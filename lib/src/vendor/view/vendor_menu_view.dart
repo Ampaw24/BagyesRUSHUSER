@@ -671,7 +671,7 @@ class _FeaturedSection extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: w * 0.52,
+          height: w * 0.72,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: horizontalPad),

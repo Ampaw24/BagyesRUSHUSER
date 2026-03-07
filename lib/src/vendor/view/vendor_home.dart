@@ -15,6 +15,7 @@ import 'widgets/new_order_banner.dart';
 import 'widgets/order_card.dart';
 import 'widgets/floating_nav_bar.dart';
 import 'widgets/vendor_drawer.dart';
+import 'vendor_shop_profile_screen.dart';
 import '../features/notifications/view/screens/vendor_notifications_screen.dart';
 import 'vendor_orders_view.dart';
 import 'vendor_menu_view.dart';
@@ -34,13 +35,107 @@ class _VendorHomeState extends State<VendorHome> {
 
   static const _navItems = [
     NavItem(icon: HugeIcons.strokeRoundedHome11, label: 'Home'),
-    NavItem(icon: HugeIcons.strokeRoundedReceiptDollar, label: 'Orders'),
+    NavItem(icon: HugeIcons.strokeRoundedCheckList, label: 'Orders'),
     NavItem(icon: HugeIcons.strokeRoundedRestaurant01, label: 'Menu'),
     NavItem(icon: HugeIcons.strokeRoundedAnalyticsUp, label: 'Earnings'),
   ];
 
   void _openDrawer() => setState(() => _drawerOpen = true);
   void _closeDrawer() => setState(() => _drawerOpen = false);
+
+  void _navigateToShopProfile() {
+    _closeDrawer();
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, anim, _) => const VendorShopProfileScreen(),
+        transitionsBuilder: (_, anim, _, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+          ),
+          child: FadeTransition(opacity: anim, child: child),
+        ),
+        transitionDuration: const Duration(milliseconds: 350),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    _closeDrawer();
+    final w = MediaQuery.sizeOf(context).width;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(w * 0.05),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(w * 0.025),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(w * 0.025),
+              ),
+              child: Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.error,
+                size: w * 0.06,
+              ),
+            ),
+            SizedBox(width: w * 0.03),
+            const Expanded(child: Text('Delete Account')),
+          ],
+        ),
+        titleTextStyle: TextStyle(
+          fontSize: w * 0.045,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+          fontFamily: 'Mukta',
+        ),
+        content: Text(
+          'This action is permanent and cannot be undone. '
+          'All your shop data, menu items, order history, and earnings records will be permanently deleted.',
+          style: TextStyle(
+            fontSize: w * 0.034,
+            color: AppColors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: w * 0.036,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              // TODO: Call deleteAccount via ViewModel when API is ready
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: w * 0.036,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +162,7 @@ class _VendorHomeState extends State<VendorHome> {
                   _DashboardTab(
                     onDrawerTap: _openDrawer,
                     onViewAllOrders: () => setState(() => _navIndex = 1),
+                    onAvatarTap: _navigateToShopProfile,
                   ),
                   const VendorOrdersView(),
                   const VendorMenuView(),
@@ -105,9 +201,11 @@ class _VendorHomeState extends State<VendorHome> {
                     ),
                   );
                 },
+                onShopProfile: _navigateToShopProfile,
                 onPaymentMethods: () {},
                 onPrivacyPolicy: () {},
                 onHelpSupport: () {},
+                onDeleteAccount: _showDeleteAccountDialog,
                 onLogout: () {},
               ),
           ],
@@ -122,7 +220,8 @@ class _VendorHomeState extends State<VendorHome> {
 class _DashboardTab extends ConsumerStatefulWidget {
   final VoidCallback? onDrawerTap;
   final VoidCallback? onViewAllOrders;
-  const _DashboardTab({this.onDrawerTap, this.onViewAllOrders});
+  final VoidCallback? onAvatarTap;
+  const _DashboardTab({this.onDrawerTap, this.onViewAllOrders, this.onAvatarTap});
 
   @override
   ConsumerState<_DashboardTab> createState() => _DashboardTabState();
@@ -329,7 +428,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     transitionDuration: const Duration(milliseconds: 320),
                   ),
                 ),
-                onAvatarTap: () {},
+                onAvatarTap: widget.onAvatarTap,
               ),
               Padding(
                 padding: EdgeInsets.only(top: w * 0.07),

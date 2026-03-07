@@ -14,6 +14,8 @@ class VendorDrawer extends StatefulWidget {
   final VoidCallback? onPaymentMethods;
   final VoidCallback? onNotifications;
   final VoidCallback? onHelpSupport;
+  final VoidCallback? onShopProfile;
+  final VoidCallback? onDeleteAccount;
 
   const VendorDrawer({
     super.key,
@@ -27,6 +29,8 @@ class VendorDrawer extends StatefulWidget {
     this.onPaymentMethods,
     this.onNotifications,
     this.onHelpSupport,
+    this.onShopProfile,
+    this.onDeleteAccount,
   });
 
   @override
@@ -188,7 +192,7 @@ class _VendorDrawerState extends State<VendorDrawer>
                     _AnimatedDrawerTile(
                       icon: HugeIcons.strokeRoundedStore01,
                       label: 'Shop Profile',
-                      onTap: widget.onPaymentMethods,
+                      onTap: widget.onShopProfile,
                       fadeAnim: _staggeredFade(0),
                       slideAnim: _staggeredSlide(0),
                     ),
@@ -226,12 +230,20 @@ class _VendorDrawerState extends State<VendorDrawer>
                       child: const Divider(color: AppColors.divider, height: 1),
                     ),
                     _AnimatedDrawerTile(
+                      icon: HugeIcons.strokeRoundedDelete02,
+                      label: 'Delete Account',
+                      color: AppColors.warning,
+                      onTap: widget.onDeleteAccount,
+                      fadeAnim: _staggeredFade(5),
+                      slideAnim: _staggeredSlide(5),
+                    ),
+                    _AnimatedDrawerTile(
                       icon: HugeIcons.strokeRoundedLogout01,
                       label: 'Logout',
                       color: AppColors.error,
                       onTap: widget.onLogout,
-                      fadeAnim: _staggeredFade(4),
-                      slideAnim: _staggeredSlide(4),
+                      fadeAnim: _staggeredFade(6),
+                      slideAnim: _staggeredSlide(6),
                     ),
                     SizedBox(height: w * 0.04),
                   ],

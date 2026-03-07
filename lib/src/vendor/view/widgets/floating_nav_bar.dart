@@ -35,19 +35,14 @@ class FloatingNavBar extends StatelessWidget {
       ),
       padding: EdgeInsets.symmetric(horizontal: w * 0.02, vertical: w * 0.03),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.secondary,
         borderRadius: BorderRadius.circular(w * 0.06),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: w * 0.08,
-            spreadRadius: 2,
-            offset: Offset(0, w * 0.025),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
+            color: AppColors.secondary.withValues(alpha: 0.3),
+            blurRadius: w * 0.06,
+            spreadRadius: 0,
+            offset: Offset(0, w * 0.02),
           ),
         ],
       ),
@@ -71,8 +66,8 @@ class FloatingNavBar extends StatelessWidget {
                       icon: items[i].icon,
                       size: w * 0.06,
                       color: selected
-                          ? AppColors.primary
-                          : AppColors.textHint,
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.4),
                       strokeWidth: selected ? 1.8 : 1.4,
                     ),
                   ),
@@ -83,7 +78,7 @@ class FloatingNavBar extends StatelessWidget {
                     height: w * 0.013,
                     width: selected ? w * 0.013 : 0,
                     decoration: const BoxDecoration(
-                      color: AppColors.primary,
+                      color: AppColors.accent,
                       shape: BoxShape.circle,
                     ),
                   ),
