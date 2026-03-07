@@ -42,6 +42,9 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, VendorProfile>> updateVendorProfile(
     Map<String, dynamic> data,
   );
+
+  // ── Account ──
+  Future<Either<Failure, bool>> deleteVendorAccount();
 }
 
 class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
@@ -332,6 +335,27 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       return Left(
         ServerFailure(
           response.data['message'] ?? 'Failed to fetch profile',
+        ),
+      );
+    } on DioException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Network error'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  // ── Account ─────────────────────────────────────────────────────────
+
+  @override
+  Future<Either<Failure, bool>> deleteVendorAccount() async {
+    try {
+      final response = await _networkUtility.dio.delete('/vendors/account');
+      if (response.data['success'] == true) {
+        return const Right(true);
+      }
+      return Left(
+        ServerFailure(
+          response.data['message'] ?? 'Failed to delete account',
         ),
       );
     } on DioException catch (e) {

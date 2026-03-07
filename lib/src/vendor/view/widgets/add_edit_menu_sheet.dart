@@ -309,7 +309,7 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _SectionLabel(label: 'Price (₦) *', w: w),
+                              _SectionLabel(label: 'Price (GH₵) *', w: w),
                               SizedBox(height: w * 0.02),
                               TextFormField(
                                 controller: _priceController,

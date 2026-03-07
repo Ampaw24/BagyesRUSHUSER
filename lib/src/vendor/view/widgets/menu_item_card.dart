@@ -278,75 +278,75 @@ class MenuItemGridCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
               // ── Image with overlays ──────────────────────────────
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(cw * 0.06)),
-                    child: _ItemImage(
-                      imageUrl: item.imageUrl,
-                      size: double.infinity,
-                      // Height relative to card width — fits any parent cell
-                      height: cw * 0.62,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  if (item.isFeatured)
-                    Positioned(
-                      top: cw * 0.03,
-                      left: cw * 0.03,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: cw * 0.04,
-                          vertical: cw * 0.015,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(cw * 0.04),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star_rounded,
-                                size: cw * 0.055, color: Colors.white),
-                            SizedBox(width: cw * 0.015),
-                            Text(
-                              'Featured',
-                              style: TextStyle(
-                                fontSize: cw * 0.048,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(cw * 0.06)),
+                      child: _ItemImage(
+                        imageUrl: item.imageUrl,
+                        size: double.infinity,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                  if (!item.isAvailable || item.isOutOfStock)
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(cw * 0.06)),
+                    if (item.isFeatured)
+                      Positioned(
+                        top: cw * 0.03,
+                        left: cw * 0.03,
                         child: Container(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          alignment: Alignment.center,
-                          child: Text(
-                            item.isOutOfStock
-                                ? 'Out of Stock'
-                                : 'Unavailable',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: cw * 0.06,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: cw * 0.04,
+                            vertical: cw * 0.015,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent,
+                            borderRadius: BorderRadius.circular(cw * 0.04),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.star_rounded,
+                                  size: cw * 0.055, color: Colors.white),
+                              SizedBox(width: cw * 0.015),
+                              Text(
+                                'Featured',
+                                style: TextStyle(
+                                  fontSize: cw * 0.048,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (!item.isAvailable || item.isOutOfStock)
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(cw * 0.06)),
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            alignment: Alignment.center,
+                            child: Text(
+                              item.isOutOfStock
+                                  ? 'Out of Stock'
+                                  : 'Unavailable',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: cw * 0.06,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
 
               // ── Details ─────────────────────────────────────────
@@ -452,13 +452,11 @@ class MenuItemGridCard extends StatelessWidget {
 class _ItemImage extends StatelessWidget {
   final String? imageUrl;
   final double size;
-  final double? height;
   final BoxFit fit;
 
   const _ItemImage({
     required this.imageUrl,
     required this.size,
-    this.height,
     this.fit = BoxFit.cover,
   });
 
@@ -485,7 +483,7 @@ class _ItemImage extends StatelessWidget {
 
     return Container(
       width: size == double.infinity ? null : size,
-      height: height ?? size,
+      height: size,
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(w * 0.025),
