@@ -50,6 +50,6 @@ Future<void> init() async {
   sl.registerFactory(() => DashboardViewModel(sl()));
   sl.registerFactory(() => OrdersViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));
-  sl.registerFactory(() => EarningsViewModel(sl()));
+  sl.registerFactory(() => EarningsViewModel());
   sl.registerFactory(() => SettingsViewModel(sl()));
 }
