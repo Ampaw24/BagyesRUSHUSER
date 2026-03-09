@@ -12,6 +12,7 @@ class VendorDrawer extends StatefulWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onPrivacyPolicy;
   final VoidCallback? onPaymentMethods;
+  final VoidCallback? onWallet;
   final VoidCallback? onNotifications;
   final VoidCallback? onHelpSupport;
   final VoidCallback? onShopProfile;
@@ -27,6 +28,7 @@ class VendorDrawer extends StatefulWidget {
     this.onLogout,
     this.onPrivacyPolicy,
     this.onPaymentMethods,
+    this.onWallet,
     this.onNotifications,
     this.onHelpSupport,
     this.onShopProfile,
@@ -205,24 +207,31 @@ class _VendorDrawerState extends State<VendorDrawer>
                     ),
                     _AnimatedDrawerTile(
                       icon: HugeIcons.strokeRoundedWallet01,
-                      label: 'Payment Methods',
-                      onTap: widget.onPaymentMethods,
+                      label: 'Wallet',
+                      onTap: widget.onWallet,
                       fadeAnim: _staggeredFade(2),
                       slideAnim: _staggeredSlide(2),
+                    ),
+                    _AnimatedDrawerTile(
+                      icon: HugeIcons.strokeRoundedCreditCard,
+                      label: 'Payment Methods',
+                      onTap: widget.onPaymentMethods,
+                      fadeAnim: _staggeredFade(3),
+                      slideAnim: _staggeredSlide(3),
                     ),
                     _AnimatedDrawerTile(
                       icon: HugeIcons.strokeRoundedShieldKey,
                       label: 'Privacy Policy',
                       onTap: widget.onPrivacyPolicy,
-                      fadeAnim: _staggeredFade(3),
-                      slideAnim: _staggeredSlide(3),
+                      fadeAnim: _staggeredFade(4),
+                      slideAnim: _staggeredSlide(4),
                     ),
                     _AnimatedDrawerTile(
                       icon: HugeIcons.strokeRoundedHelpCircle,
                       label: 'Help & Support',
                       onTap: widget.onHelpSupport,
-                      fadeAnim: _staggeredFade(4),
-                      slideAnim: _staggeredSlide(4),
+                      fadeAnim: _staggeredFade(5),
+                      slideAnim: _staggeredSlide(5),
                     ),
                     const Spacer(),
                     Padding(
@@ -234,16 +243,16 @@ class _VendorDrawerState extends State<VendorDrawer>
                       label: 'Delete Account',
                       color: AppColors.warning,
                       onTap: widget.onDeleteAccount,
-                      fadeAnim: _staggeredFade(5),
-                      slideAnim: _staggeredSlide(5),
+                      fadeAnim: _staggeredFade(6),
+                      slideAnim: _staggeredSlide(6),
                     ),
                     _AnimatedDrawerTile(
                       icon: HugeIcons.strokeRoundedLogout01,
                       label: 'Logout',
                       color: AppColors.error,
                       onTap: widget.onLogout,
-                      fadeAnim: _staggeredFade(6),
-                      slideAnim: _staggeredSlide(6),
+                      fadeAnim: _staggeredFade(7),
+                      slideAnim: _staggeredSlide(7),
                     ),
                     SizedBox(height: w * 0.04),
                   ],

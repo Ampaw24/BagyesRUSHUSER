@@ -22,6 +22,7 @@ import 'package:bagyesrushappusernew/src/onboarding/views/onboarding_view.dart';
 import 'package:bagyesrushappusernew/src/vendor_registration/views/vendor_registration_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
+import 'package:bagyesrushappusernew/features/vendor_wallet/views/screens/wallet_screen.dart';
 
 import 'app_routes.dart';
 
@@ -122,6 +123,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.vendorPaymentMethods,
       builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.vendorWallet,
+      builder: (context, state) => const VendorWalletScreen(),
     ),
 
     // ── Other ──
