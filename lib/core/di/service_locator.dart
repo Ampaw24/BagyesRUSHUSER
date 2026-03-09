@@ -15,6 +15,9 @@ import '../../src/vendor/viewmodel/orders_viewmodel.dart';
 import '../../src/vendor/viewmodel/menu_viewmodel.dart';
 import '../../src/vendor/viewmodel/earnings_viewmodel.dart';
 import '../../src/vendor/viewmodel/settings_viewmodel.dart';
+import '../../features/vendor_payment_methods/services/payment_api_service.dart';
+import '../../features/vendor_payment_methods/services/otp_service.dart';
+import '../../features/vendor_payment_methods/repositories/payment_repository.dart';
 
 final sl = GetIt.instance;
 
@@ -38,6 +41,13 @@ Future<void> init() async {
   sl.registerLazySingleton<VendorRepository>(() => VendorRepositoryImpl(sl()));
   sl.registerLazySingleton<VendorDashboardRepository>(
     () => VendorDashboardRepositoryImpl(sl()),
+  );
+
+  // Payment methods (dummy — swap sl() args for real deps when API is ready)
+  sl.registerLazySingleton(() => PaymentApiService());
+  sl.registerLazySingleton(() => OtpService(sl()));
+  sl.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepositoryImpl(sl(), sl()),
   );
 
   // Validators

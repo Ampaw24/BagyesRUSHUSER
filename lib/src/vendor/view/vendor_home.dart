@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../core/router/app_routes.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -202,7 +204,10 @@ class _VendorHomeState extends State<VendorHome> {
                   );
                 },
                 onShopProfile: _navigateToShopProfile,
-                onPaymentMethods: () {},
+                onPaymentMethods: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.vendorPaymentMethods);
+                },
                 onPrivacyPolicy: () {},
                 onHelpSupport: () {},
                 onDeleteAccount: _showDeleteAccountDialog,
