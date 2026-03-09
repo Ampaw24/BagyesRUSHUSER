@@ -204,6 +204,10 @@ class _VendorHomeState extends State<VendorHome> {
                   );
                 },
                 onShopProfile: _navigateToShopProfile,
+                onWallet: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.vendorWallet);
+                },
                 onPaymentMethods: () {
                   _closeDrawer();
                   context.push(AppRoutes.vendorPaymentMethods);

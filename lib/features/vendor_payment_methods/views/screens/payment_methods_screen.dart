@@ -100,13 +100,6 @@ class _PaymentMethodsScreenState
             ),
         ],
       ),
-      floatingActionButton: state.paymentMethods.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: _showAddScreen,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add Method'),
-            ),
       body: SafeArea(
         child: _buildBody(state, notifier, context),
       ),

@@ -53,6 +53,7 @@ abstract final class AppRoutes {
   static const String vendorHome = '/vendor';
   static const String vendorRegistration = '/vendor-registration';
   static const String vendorPaymentMethods = '/vendor/payment-methods';
+  static const String vendorWallet = '/vendor/wallet';
 
   // ── Other ──
   static const String inviteFriend = '/invite-friend';
