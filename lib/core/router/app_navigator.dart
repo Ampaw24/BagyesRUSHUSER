@@ -59,6 +59,16 @@ abstract final class AppNavigator {
     ),
   );
 
+  // ── Vendor ──
+  static void toVendorHome(BuildContext context) =>
+      context.go(AppRoutes.vendorHome);
+  static void toVendorRegistration(BuildContext context) =>
+      context.push(AppRoutes.vendorRegistration);
+  static void toVendorPaymentMethods(BuildContext context) =>
+      context.push(AppRoutes.vendorPaymentMethods);
+  static void toVendorWallet(BuildContext context) =>
+      context.push(AppRoutes.vendorWallet);
+
   // ── Other ──
   static void toInviteFriend(BuildContext context) =>
       context.push(AppRoutes.inviteFriend);
