@@ -63,27 +63,30 @@ class _LoginViewState extends State<LoginView>
 
   void proceed(BuildContext context) {
     final phone = _phoneController.text;
-    if (phone.length < 10) {
+    if (phone.length < 9) {
       _showErrorDialog(
         context,
         'Invalid Phone Number',
-        'Please enter a valid 10-digit phone number',
+        'Please enter a valid 9-digit phone number',
       );
       return;
     }
 
-    context.read<AuthViewModel>().sendOtp(phone).then((_) {
-      final state = context.read<AuthViewModel>().state;
-      if (state.status == AuthStatus.initial && state.errorMessage == null) {
-        AppNavigator.toOtp(context);
-      } else if (state.status == AuthStatus.error) {
-        _showErrorDialog(
-          context,
-          'Error',
-          state.errorMessage ?? 'Something went wrong',
-        );
-      }
-    });
+    ///TODO: Implement OTP sending logic here. For now, we will just navigate to the OTP screen.
+    AppNavigator.toHome(context);
+
+    // context.read<AuthViewModel>().sendOtp(phone).then((_) {
+    //   final state = context.read<AuthViewModel>().state;
+    //   if (state.status == AuthStatus.initial && state.errorMessage == null) {
+    //     AppNavigator.toOtp(context);
+    //   } else if (state.status == AuthStatus.error) {
+    //     _showErrorDialog(
+    //       context,
+    //       'Error',
+    //       state.errorMessage ?? 'Something went wrong',
+    //     );
+    //   }
+    // });
   }
 
   void _showErrorDialog(BuildContext context, String title, String message) {
@@ -116,6 +119,8 @@ class _LoginViewState extends State<LoginView>
             final horizontalPadding = isTablet
                 ? constraints.maxWidth * 0.15
                 : constraints.maxWidth * 0.06;
+
+            final sw = constraints.maxWidth;
 
             return SingleChildScrollView(
               physics: ClampingScrollPhysics(),
@@ -153,13 +158,13 @@ class _LoginViewState extends State<LoginView>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildHeaderSection(),
+                              _buildHeaderSection(sw),
                               SizedBox(height: size.height * 0.04),
-                              _buildPhoneInputSection(loading),
+                              _buildPhoneInputSection(loading, sw),
                               SizedBox(height: size.height * 0.03),
-                              _buildContinueButton(size, loading),
+                              _buildContinueButton(size, loading, sw),
                               Spacer(),
-                              _buildSignUpLink(),
+                              _buildSignUpLink(sw),
                             ],
                           ),
                         ),
@@ -205,59 +210,64 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
-  Widget _buildHeaderSection() {
+  Widget _buildHeaderSection(double sw) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Welcome back',
           style: TextStyle(
-            fontSize: 32,
+            fontSize: (sw * 0.085).clamp(24, 36),
             fontWeight: FontWeight.bold,
             color: Colors.black87,
             letterSpacing: -0.5,
           ),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: sw * 0.02),
         Text(
           'Enter your mobile number to continue',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.4),
+          style: TextStyle(
+            fontSize: (sw * 0.043).clamp(13, 18),
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildPhoneInputSection(bool loading) {
+  Widget _buildPhoneInputSection(bool loading, double sw) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Phone Number',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: (sw * 0.037).clamp(11, 16),
             fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        SizedBox(height: 12),
+        SizedBox(height: sw * 0.032),
         _ModernPhoneInput(
           controller: _phoneController,
           focusNode: _phoneFocusNode,
           enabled: !loading,
+          screenWidth: sw,
           onSubmitted: (_) => proceed(context),
         ),
       ],
     );
   }
 
-  Widget _buildContinueButton(Size size, bool loading) {
+  Widget _buildContinueButton(Size size, bool loading, double sw) {
     return InkWell(
       onTap: loading ? null : () => proceed(context),
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: Duration(milliseconds: 200),
         width: double.infinity,
-        height: 56,
+        height: (sw * 0.15).clamp(48, 64),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: loading ? Colors.red.withValues(alpha: 0.7) : Colors.red,
@@ -273,12 +283,12 @@ class _LoginViewState extends State<LoginView>
         ),
         child: Center(
           child: loading
-              ? SpinKitCircle(size: 24, color: Colors.white)
+              ? SpinKitCircle(size: sw * 0.064, color: Colors.white)
               : Text(
                   'Continue',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: (sw * 0.043).clamp(13, 18),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -288,19 +298,20 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
-  Widget _buildSignUpLink() {
+  Widget _buildSignUpLink(double sw) {
+    final fontSize = (sw * 0.037).clamp(11.0, 16.0);
     return Center(
       child: Padding(
         padding: EdgeInsets.only(bottom: 16),
         child: RichText(
           text: TextSpan(
             text: "Don't have an account? ",
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            style: TextStyle(fontSize: fontSize, color: Colors.grey[600]),
             children: [
               TextSpan(
                 text: 'Sign up',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: fontSize,
                   color: Colors.red,
                   fontWeight: FontWeight.w600,
                 ),
@@ -319,11 +330,13 @@ class _ModernPhoneInput extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
+  final double screenWidth;
   final Function(String)? onSubmitted;
 
   const _ModernPhoneInput({
     required this.controller,
     required this.focusNode,
+    required this.screenWidth,
     this.enabled = true,
     this.onSubmitted,
   });
@@ -375,26 +388,33 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
             : [],
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: EdgeInsets.symmetric(
+          horizontal: widget.screenWidth * 0.043,
+          vertical: 4,
+        ),
         child: Row(
           children: [
             // Country Code Prefix
             Text(
               '+233',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: (widget.screenWidth * 0.043).clamp(13, 18),
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
                 letterSpacing: 0.3,
               ),
             ),
 
-            SizedBox(width: 12),
+            SizedBox(width: widget.screenWidth * 0.032),
 
             // Divider
-            Container(width: 1, height: 24, color: Colors.grey[300]),
+            Container(
+              width: 1,
+              height: (widget.screenWidth * 0.064).clamp(20, 28),
+              color: Colors.grey[300],
+            ),
 
-            SizedBox(width: 12),
+            SizedBox(width: widget.screenWidth * 0.032),
 
             // Phone Number Input
             Expanded(
@@ -402,10 +422,10 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
                 controller: widget.controller,
                 focusNode: widget.focusNode,
                 enabled: widget.enabled,
-                maxLength: 10,
+                maxLength: 9,
                 keyboardType: TextInputType.phone,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: (widget.screenWidth * 0.043).clamp(13, 18),
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                   letterSpacing: 0.5,
@@ -422,7 +442,9 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
                   errorBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   counterText: '',
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: widget.screenWidth * 0.043,
+                  ),
                 ),
                 onSubmitted: widget.onSubmitted,
               ),
