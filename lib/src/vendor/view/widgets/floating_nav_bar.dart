@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
@@ -33,60 +34,72 @@ class FloatingNavBar extends StatelessWidget {
         w * 0.06,
         bottomPadding + w * 0.04,
       ),
-      padding: EdgeInsets.symmetric(horizontal: w * 0.02, vertical: w * 0.03),
-      decoration: BoxDecoration(
-        color: AppColors.secondary,
-        borderRadius: BorderRadius.circular(w * 0.06),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondary.withValues(alpha: 0.3),
-            blurRadius: w * 0.06,
-            spreadRadius: 0,
-            offset: Offset(0, w * 0.02),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(items.length, (i) {
-          final selected = i == currentIndex;
-          return GestureDetector(
-            onTap: () => onTap(i),
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              width: w * 0.14,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedScale(
-                    scale: selected ? 1.15 : 1.0,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    child: HugeIcon(
-                      icon: items[i].icon,
-                      size: w * 0.06,
-                      color: selected
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.4),
-                      strokeWidth: selected ? 1.8 : 1.4,
-                    ),
-                  ),
-                  SizedBox(height: w * 0.015),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    height: w * 0.013,
-                    width: selected ? w * 0.013 : 0,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(w * 0.08),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: w * 0.02, vertical: w * 0.03),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(w * 0.08),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.12),
+                width: 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          );
-        }),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(items.length, (i) {
+                final selected = i == currentIndex;
+                return GestureDetector(
+                  onTap: () => onTap(i),
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: w * 0.14,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedScale(
+                          scale: selected ? 1.15 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          child: HugeIcon(
+                            icon: items[i].icon,
+                            size: w * 0.06,
+                            color: selected
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.45),
+                            strokeWidth: selected ? 1.8 : 1.4,
+                          ),
+                        ),
+                        SizedBox(height: w * 0.015),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          height: w * 0.013,
+                          width: selected ? w * 0.013 : 0,
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -119,7 +119,6 @@ class _VendorDrawerState extends State<VendorDrawer>
     final w = MediaQuery.sizeOf(context).width;
     final h = MediaQuery.sizeOf(context).height;
     final drawerWidth = w * 0.78;
-    final drawerHeight = h * 0.72;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -152,113 +151,127 @@ class _VendorDrawerState extends State<VendorDrawer>
           ],
         );
       },
-      child: Container(
-        width: drawerWidth,
-        height: drawerHeight,
-        margin: EdgeInsets.only(left: w * 0.02),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 40,
-              offset: const Offset(8, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Column(
-            children: [
-              // ── Header ──
-              _DrawerHeader(
-                userName: widget.userName,
-                userEmail: widget.userEmail,
-                initials: widget.initials,
-                isVerified: widget.isVerified,
-                onClose: _close,
-                animation: _controller,
-              ),
-
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                child: const Divider(color: AppColors.divider, height: 1),
-              ),
-              SizedBox(height: w * 0.025),
-
-              // ── Menu items with staggered animations ──
-              Expanded(
-                child: Column(
-                  children: [
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedStore01,
-                      label: 'Shop Profile',
-                      onTap: widget.onShopProfile,
-                      fadeAnim: _staggeredFade(0),
-                      slideAnim: _staggeredSlide(0),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedNotification01,
-                      label: 'Notifications',
-                      onTap: widget.onNotifications,
-                      fadeAnim: _staggeredFade(1),
-                      slideAnim: _staggeredSlide(1),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedWallet01,
-                      label: 'Wallet',
-                      onTap: widget.onWallet,
-                      fadeAnim: _staggeredFade(2),
-                      slideAnim: _staggeredSlide(2),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedCreditCard,
-                      label: 'Payment Methods',
-                      onTap: widget.onPaymentMethods,
-                      fadeAnim: _staggeredFade(3),
-                      slideAnim: _staggeredSlide(3),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedShieldKey,
-                      label: 'Privacy Policy',
-                      onTap: widget.onPrivacyPolicy,
-                      fadeAnim: _staggeredFade(4),
-                      slideAnim: _staggeredSlide(4),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedHelpCircle,
-                      label: 'Help & Support',
-                      onTap: widget.onHelpSupport,
-                      fadeAnim: _staggeredFade(5),
-                      slideAnim: _staggeredSlide(5),
-                    ),
-                    const Spacer(),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                      child: const Divider(color: AppColors.divider, height: 1),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedDelete02,
-                      label: 'Delete Account',
-                      color: AppColors.warning,
-                      onTap: widget.onDeleteAccount,
-                      fadeAnim: _staggeredFade(6),
-                      slideAnim: _staggeredSlide(6),
-                    ),
-                    _AnimatedDrawerTile(
-                      icon: HugeIcons.strokeRoundedLogout01,
-                      label: 'Logout',
-                      color: AppColors.error,
-                      onTap: widget.onLogout,
-                      fadeAnim: _staggeredFade(7),
-                      slideAnim: _staggeredSlide(7),
-                    ),
-                    SizedBox(height: w * 0.04),
-                  ],
-                ),
+      child: SafeArea(
+        child: Container(
+          width: drawerWidth,
+          margin: EdgeInsets.symmetric(
+            vertical: h * 0.02,
+            horizontal: w * 0.02,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 40,
+                offset: const Offset(8, 4),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Column(
+              children: [
+                // ── Header ──
+                _DrawerHeader(
+                  userName: widget.userName,
+                  userEmail: widget.userEmail,
+                  initials: widget.initials,
+                  isVerified: widget.isVerified,
+                  onClose: _close,
+                  animation: _controller,
+                ),
+
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                  child: const Divider(color: AppColors.divider, height: 1),
+                ),
+                SizedBox(height: w * 0.025),
+
+                // ── Scrollable menu items ──
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(),
+                          child: Column(
+                            children: [
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedStore01,
+                                label: 'Shop Profile',
+                                onTap: widget.onShopProfile,
+                                fadeAnim: _staggeredFade(0),
+                                slideAnim: _staggeredSlide(0),
+                              ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedNotification01,
+                                label: 'Notifications',
+                                onTap: widget.onNotifications,
+                                fadeAnim: _staggeredFade(1),
+                                slideAnim: _staggeredSlide(1),
+                              ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedWallet01,
+                                label: 'Wallet',
+                                onTap: widget.onWallet,
+                                fadeAnim: _staggeredFade(2),
+                                slideAnim: _staggeredSlide(2),
+                              ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedCreditCard,
+                                label: 'Payment Methods',
+                                onTap: widget.onPaymentMethods,
+                                fadeAnim: _staggeredFade(3),
+                                slideAnim: _staggeredSlide(3),
+                              ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedShieldKey,
+                                label: 'Privacy Policy',
+                                onTap: widget.onPrivacyPolicy,
+                                fadeAnim: _staggeredFade(4),
+                                slideAnim: _staggeredSlide(4),
+                              ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedHelpCircle,
+                                label: 'Help & Support',
+                                onTap: widget.onHelpSupport,
+                                fadeAnim: _staggeredFade(5),
+                                slideAnim: _staggeredSlide(5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // ── Pinned bottom actions ──
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                        child: const Divider(color: AppColors.divider, height: 1),
+                      ),
+                      _AnimatedDrawerTile(
+                        icon: HugeIcons.strokeRoundedDelete02,
+                        label: 'Delete Account',
+                        color: AppColors.warning,
+                        onTap: widget.onDeleteAccount,
+                        fadeAnim: _staggeredFade(6),
+                        slideAnim: _staggeredSlide(6),
+                      ),
+                      _AnimatedDrawerTile(
+                        icon: HugeIcons.strokeRoundedLogout01,
+                        label: 'Logout',
+                        color: AppColors.error,
+                        onTap: widget.onLogout,
+                        fadeAnim: _staggeredFade(7),
+                        slideAnim: _staggeredSlide(7),
+                      ),
+                      SizedBox(height: h * 0.015),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

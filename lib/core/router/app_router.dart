@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/presentation/splash_screen.dart';
-import 'package:bagyesrushappusernew/presentation/bottom_bar.dart';
+import 'package:bagyesrushappusernew/presentation/home/home.dart';
 import 'package:bagyesrushappusernew/presentation/orders/track_order.dart';
 import 'package:bagyesrushappusernew/presentation/profile/profile.dart';
 import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
@@ -11,7 +11,6 @@ import 'package:bagyesrushappusernew/presentation/courier/get_food_deliver.dart'
 import 'package:bagyesrushappusernew/presentation/courier/get_grocery_deliver.dart';
 import 'package:bagyesrushappusernew/presentation/courier/restaurant_items.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
-import 'package:bagyesrushappusernew/presentation/cart_address/cart.dart';
 import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
 import 'package:bagyesrushappusernew/presentation/invite_friend/invite_friend.dart';
 import 'package:bagyesrushappusernew/src/auth/views/login_view.dart';
@@ -23,6 +22,13 @@ import 'package:bagyesrushappusernew/src/vendor_registration/views/vendor_regist
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
 import 'package:bagyesrushappusernew/features/vendor_wallet/views/screens/wallet_screen.dart';
+
+// ── Consumer feature screens ──
+import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/views/restaurant_detail_view.dart';
+import 'package:bagyesrushappusernew/features/consumer/cart/presentation/views/cart_view.dart';
+import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/views/checkout_view.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/presentation/views/order_tracking_view.dart';
+import 'package:bagyesrushappusernew/features/consumer/search/presentation/views/consumer_search_view.dart';
 
 import 'app_routes.dart';
 
@@ -53,10 +59,49 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: AppRoutes.otp, builder: (context, state) => OTPView()),
 
-    // ── Main app (BottomBar manages its own tabs internally) ──
+    // ── Consumer home shell ──
     GoRoute(
       path: AppRoutes.home,
-      builder: (context, state) => const BottomBar(),
+      builder: (context, state) => const Home(),
+    ),
+
+    // ── Consumer: restaurant discovery ──
+    GoRoute(
+      path: '/restaurant/:id',
+      builder: (context, state) => RestaurantDetailView(
+        restaurantId: state.pathParameters['id']!,
+      ),
+    ),
+
+    // ── Consumer: cart ──
+    GoRoute(
+      path: AppRoutes.cart,
+      builder: (context, state) => const CartView(),
+    ),
+
+    // ── Consumer: checkout ──
+    GoRoute(
+      path: AppRoutes.checkout,
+      builder: (context, state) => const CheckoutView(),
+    ),
+
+    // ── Consumer: order tracking ──
+    GoRoute(
+      path: AppRoutes.trackOrder,
+      builder: (context, state) {
+        // Accept orderId via `extra` (from placeOrder) or fall back to legacy TrackOrder
+        final orderId = state.extra as String?;
+        if (orderId != null) {
+          return OrderTrackingView(orderId: orderId);
+        }
+        return TrackOrder();
+      },
+    ),
+
+    // ── Consumer: search ──
+    GoRoute(
+      path: AppRoutes.consumerSearch,
+      builder: (context, state) => const ConsumerSearchView(),
     ),
 
     // ── Profile ──
@@ -84,24 +129,21 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => RestaurantItems(),
     ),
 
-    // ── Cart & payment ──
-    GoRoute(path: AppRoutes.cart, builder: (context, state) => Cart()),
+    // ── Legacy cart & payment ──
     GoRoute(path: AppRoutes.payment, builder: (context, state) => Payment()),
-
-    // ── Orders detail ──
-    GoRoute(
-      path: AppRoutes.trackOrder,
-      builder: (context, state) => TrackOrder(),
-    ),
 
     // ── Route map (receives coordinates via query params) ──
     GoRoute(
       path: AppRoutes.routeMap,
       builder: (context, state) {
-        final srcLat = double.parse(state.uri.queryParameters['srcLat'] ?? '0');
-        final srcLng = double.parse(state.uri.queryParameters['srcLng'] ?? '0');
-        final dstLat = double.parse(state.uri.queryParameters['dstLat'] ?? '0');
-        final dstLng = double.parse(state.uri.queryParameters['dstLng'] ?? '0');
+        final srcLat =
+            double.parse(state.uri.queryParameters['srcLat'] ?? '0');
+        final srcLng =
+            double.parse(state.uri.queryParameters['srcLng'] ?? '0');
+        final dstLat =
+            double.parse(state.uri.queryParameters['dstLat'] ?? '0');
+        final dstLng =
+            double.parse(state.uri.queryParameters['dstLng'] ?? '0');
         return RouteMap(
           sourceLat: srcLat,
           sourceLang: srcLng,

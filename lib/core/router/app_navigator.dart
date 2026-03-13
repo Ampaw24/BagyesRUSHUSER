@@ -69,6 +69,19 @@ abstract final class AppNavigator {
   static void toVendorWallet(BuildContext context) =>
       context.push(AppRoutes.vendorWallet);
 
+  // ── Consumer features ──
+  static void toRestaurantDetail(BuildContext context, String id) =>
+      context.push(AppRoutes.restaurantDetailPath(id));
+
+  static void toCheckout(BuildContext context) =>
+      context.push(AppRoutes.checkout);
+
+  static void toConsumerSearch(BuildContext context) =>
+      context.push(AppRoutes.consumerSearch);
+
+  static void toOrderTracking(BuildContext context, String orderId) =>
+      context.push(AppRoutes.trackOrder, extra: orderId);
+
   // ── Other ──
   static void toInviteFriend(BuildContext context) =>
       context.push(AppRoutes.inviteFriend);
