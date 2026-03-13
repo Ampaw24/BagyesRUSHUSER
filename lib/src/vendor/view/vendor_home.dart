@@ -54,9 +54,7 @@ class _VendorHomeState extends State<VendorHome> {
           position: Tween<Offset>(
             begin: const Offset(1, 0),
             end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-          ),
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
           child: FadeTransition(opacity: anim, child: child),
         ),
         transitionDuration: const Duration(milliseconds: 350),
@@ -123,9 +121,7 @@ class _VendorHomeState extends State<VendorHome> {
               Navigator.of(ctx).pop();
               // TODO: Call deleteAccount via ViewModel when API is ready
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(
               'Delete',
               style: TextStyle(
@@ -148,12 +144,6 @@ class _VendorHomeState extends State<VendorHome> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.scaffold,
-        extendBody: true,
-        bottomNavigationBar: FloatingNavBar(
-          currentIndex: _navIndex,
-          onTap: (i) => setState(() => _navIndex = i),
-          items: _navItems,
-        ),
         body: Stack(
           children: [
             SafeArea(
@@ -172,6 +162,16 @@ class _VendorHomeState extends State<VendorHome> {
                 ],
               ),
             ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: FloatingNavBar(
+                currentIndex: _navIndex,
+                onTap: (i) => setState(() => _navIndex = i),
+                items: _navItems,
+              ),
+            ),
             if (_drawerOpen)
               VendorDrawer(
                 userName: "Mama's Kitchen",
@@ -187,16 +187,15 @@ class _VendorHomeState extends State<VendorHome> {
                           const VendorNotificationsScreen(),
                       transitionsBuilder: (_, anim, _, child) =>
                           SlideTransition(
-                            position:
-                                Tween<Offset>(
-                                  begin: const Offset(0, -0.06),
-                                  end: Offset.zero,
-                                ).animate(
-                                  CurvedAnimation(
-                                    parent: anim,
-                                    curve: Curves.easeOutCubic,
-                                  ),
-                                ),
+                            position: Tween<Offset>(
+                              begin: const Offset(0, -0.06),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: anim,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            ),
                             child: FadeTransition(opacity: anim, child: child),
                           ),
                       transitionDuration: const Duration(milliseconds: 320),
@@ -230,7 +229,11 @@ class _DashboardTab extends ConsumerStatefulWidget {
   final VoidCallback? onDrawerTap;
   final VoidCallback? onViewAllOrders;
   final VoidCallback? onAvatarTap;
-  const _DashboardTab({this.onDrawerTap, this.onViewAllOrders, this.onAvatarTap});
+  const _DashboardTab({
+    this.onDrawerTap,
+    this.onViewAllOrders,
+    this.onAvatarTap,
+  });
 
   @override
   ConsumerState<_DashboardTab> createState() => _DashboardTabState();
