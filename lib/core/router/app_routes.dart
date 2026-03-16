@@ -55,6 +55,9 @@ abstract final class AppRoutes {
   }) =>
       '$routeMap?srcLat=$sourceLat&srcLng=$sourceLng&dstLat=$destLat&dstLng=$destLng';
 
+  // ── Courier ──
+  static const String courierWallet = '/courier/wallet';
+
   // ── Vendor ──
   static const String vendorHome = '/vendor';
   static const String vendorRegistration = '/vendor-registration';

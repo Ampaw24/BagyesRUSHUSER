@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/providers/cart_provider.dart';
-import 'package:bagyesrushappusernew/features/consumer/orders/presentation/providers/orders_provider.dart';
+import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
+import 'package:bagyesrushappusernew/features/consumer/checkout/domain/entities/checkout_model.dart';
+import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/states/checkout_state.dart';
+import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_viewmodel.dart';
 
 class CheckoutView extends ConsumerStatefulWidget {
   const CheckoutView({super.key});
@@ -19,14 +21,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     text: '12 Osu Badu St, Accra',
   );
   final _instructionsController = TextEditingController();
-  String _selectedPayment = 'Mobile Money';
-  bool _isPlacing = false;
-
-  static const _paymentMethods = [
-    'Mobile Money',
-    'Visa / Mastercard',
-    'Cash on Delivery',
-  ];
 
   @override
   void dispose() {
@@ -35,39 +29,31 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     super.dispose();
   }
 
-  Future<void> _placeOrder() async {
-    final cart = ref.read(cartProvider);
-    if (cart.isEmpty) return;
-
-    setState(() => _isPlacing = true);
-    try {
-      final order = await ref.read(ordersProvider.notifier).placeOrder(
-            cart: cart,
-            deliveryAddress: _addressController.text.trim(),
-            deliveryInstructions: _instructionsController.text.trim().isEmpty
-                ? null
-                : _instructionsController.text.trim(),
-            paymentMethod: _selectedPayment,
-          );
-      ref.read(cartProvider.notifier).clear();
-      if (mounted) {
-        context.go(AppRoutes.trackOrder, extra: order.id);
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to place order. Try again.')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isPlacing = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final cart = ref.watch(cartProvider);
+    final checkoutState = ref.watch(checkoutProvider);
+
+    // React to success → navigate to tracking
+    ref.listen<CheckoutState>(checkoutProvider, (_, next) {
+      if (next is CheckoutSuccess) {
+        context.go(AppRoutes.trackOrder, extra: next.orderId);
+      } else if (next is CheckoutError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.message)),
+        );
+        ref.read(checkoutProvider.notifier).resetAfterError();
+      }
+    });
+
+    final isPlacing = checkoutState is CheckoutPlacing;
+    final form = switch (checkoutState) {
+      CheckoutIdle(:final form) => form,
+      CheckoutPlacing(:final form) => form,
+      CheckoutError(:final form) => form,
+      _ => const CheckoutForm(),
+    };
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -81,13 +67,12 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
               ),
               children: [
                 // ── Step 1: Delivery address ──
-                _SectionHeader(
-                  number: '1',
-                  title: 'Delivery Address',
-                ),
+                _SectionHeader(number: '1', title: 'Delivery Address'),
                 SizedBox(height: w * 0.03),
                 TextField(
                   controller: _addressController,
+                  onChanged: (v) =>
+                      ref.read(checkoutProvider.notifier).updateAddress(v),
                   decoration: InputDecoration(
                     hintText: 'Enter delivery address',
                     prefixIcon: const Icon(
@@ -106,6 +91,9 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 TextField(
                   controller: _instructionsController,
                   maxLines: 2,
+                  onChanged: (v) => ref
+                      .read(checkoutProvider.notifier)
+                      .updateInstructions(v),
                   decoration: InputDecoration(
                     hintText: 'Delivery instructions (optional)',
                     prefixIcon: const Icon(
@@ -126,11 +114,12 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 // ── Step 2: Payment method ──
                 _SectionHeader(number: '2', title: 'Payment Method'),
                 SizedBox(height: w * 0.03),
-                ..._paymentMethods.map((method) => _PaymentOption(
+                ...PaymentMethod.values.map((method) => _PaymentOption(
                       method: method,
-                      isSelected: _selectedPayment == method,
-                      onTap: () =>
-                          setState(() => _selectedPayment = method),
+                      isSelected: form.paymentMethod == method,
+                      onTap: () => ref
+                          .read(checkoutProvider.notifier)
+                          .selectPaymentMethod(method),
                     )),
 
                 SizedBox(height: w * 0.055),
@@ -193,15 +182,10 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                             ),
                           )),
                       const Divider(color: AppColors.divider),
+                      _TotalRow(label: 'Subtotal', value: cart.subtotal),
                       _TotalRow(
-                          label: 'Subtotal',
-                          value: cart.subtotal),
-                      _TotalRow(
-                          label: 'Delivery fee',
-                          value: cart.deliveryFee),
-                      _TotalRow(
-                          label: 'Service fee',
-                          value: cart.serviceFee),
+                          label: 'Delivery fee', value: cart.deliveryFee),
+                      _TotalRow(label: 'Service fee', value: cart.serviceFee),
                       SizedBox(height: w * 0.01),
                       _TotalRow(
                         label: 'Total',
@@ -224,14 +208,17 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
               border: Border(top: BorderSide(color: AppColors.border)),
             ),
             child: ElevatedButton(
-              onPressed: _isPlacing ? null : _placeOrder,
+              onPressed: isPlacing
+                  ? null
+                  : () =>
+                      ref.read(checkoutProvider.notifier).placeOrder(cart),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, w * 0.13),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(w * 0.035),
                 ),
               ),
-              child: _isPlacing
+              child: isPlacing
                   ? const SizedBox(
                       height: 22,
                       width: 22,
@@ -300,7 +287,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _PaymentOption extends StatelessWidget {
-  final String method;
+  final PaymentMethod method;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -310,10 +297,15 @@ class _PaymentOption extends StatelessWidget {
     required this.onTap,
   });
 
-  static IconData _icon(String method) {
-    if (method.contains('Mobile')) return Icons.phone_android_rounded;
-    if (method.contains('Visa')) return Icons.credit_card_rounded;
-    return Icons.money_rounded;
+  static IconData _icon(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.mobileMoney:
+        return Icons.phone_android_rounded;
+      case PaymentMethod.card:
+        return Icons.credit_card_rounded;
+      case PaymentMethod.cashOnDelivery:
+        return Icons.money_rounded;
+    }
   }
 
   @override
@@ -345,7 +337,7 @@ class _PaymentOption extends StatelessWidget {
             SizedBox(width: w * 0.03),
             Expanded(
               child: Text(
-                method,
+                method.label,
                 style: TextStyle(
                   fontSize: w * 0.037,
                   fontWeight:

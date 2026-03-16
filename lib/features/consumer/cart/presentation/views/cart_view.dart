@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/providers/cart_provider.dart';
+import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/widgets/cart_item_tile.dart';
 
 class CartView extends ConsumerWidget {

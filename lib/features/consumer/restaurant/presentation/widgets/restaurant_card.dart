@@ -244,7 +244,7 @@ class _CoverImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final h = height ?? width * 0.55;
+    final h = height ?? width * 0.48;
     final w = MediaQuery.sizeOf(context).width;
 
     return ClipRRect(

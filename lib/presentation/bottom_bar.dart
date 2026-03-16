@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:bagyesrushappusernew/presentation/home/home.dart';
+import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
 import 'package:bagyesrushappusernew/presentation/notifications/notifications.dart';
 import 'package:bagyesrushappusernew/presentation/orders/orders.dart';
 import 'package:bagyesrushappusernew/presentation/search/search.dart';

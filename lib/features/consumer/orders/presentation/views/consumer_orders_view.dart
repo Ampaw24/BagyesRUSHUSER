@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
-import 'package:bagyesrushappusernew/features/consumer/orders/presentation/providers/orders_provider.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
 
 class ConsumerOrdersView extends ConsumerWidget {
   const ConsumerOrdersView({super.key});

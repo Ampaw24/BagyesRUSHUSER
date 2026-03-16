@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
+import 'package:bagyesrushappusernew/features/consumer/profile/presentation/states/profile_state.dart';
+import 'package:bagyesrushappusernew/features/consumer/profile/presentation/viewmodels/profile_viewmodel.dart';
 
-class ConsumerProfileView extends StatelessWidget {
+class ConsumerProfileView extends ConsumerWidget {
   const ConsumerProfileView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final w = MediaQuery.sizeOf(context).width;
+    final profileState = ref.watch(profileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -23,62 +28,86 @@ class ConsumerProfileView extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.06),
-        children: [
-          // ── Avatar + name ──
-          Center(
-            child: Column(
-              children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: w * 0.13,
-                      backgroundColor: AppColors.primary,
-                      child: Text(
-                        'JD',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: w * 0.09,
-                          fontWeight: FontWeight.w700,
-                        ),
+      body: switch (profileState) {
+        ProfileLoading() => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        ProfileError(:final message) => Center(child: Text(message)),
+        ProfileLoaded(:final profile) ||
+        ProfileUpdating(:final profile) =>
+          _ProfileBody(profile: profile, w: w),
+      },
+    );
+  }
+}
+
+// ─── Profile Body ─────────────────────────────────────────────────────────
+
+class _ProfileBody extends ConsumerWidget {
+  final ConsumerProfile profile;
+  final double w;
+
+  const _ProfileBody({required this.profile, required this.w});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.06),
+      children: [
+        // ── Avatar + name ──
+        Center(
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: w * 0.13,
+                    backgroundColor: AppColors.primary,
+                    child: Text(
+                      profile.initials,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: w * 0.09,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: EdgeInsets.all(w * 0.02),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: w * 0.04,
-                        ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: EdgeInsets.all(w * 0.02),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: w * 0.04,
                       ),
                     ),
-                  ],
-                ),
-                SizedBox(height: w * 0.035),
-                Text(
-                  'Ampaw Justice',
-                  style: TextStyle(
-                    fontSize: w * 0.05,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
                   ),
+                ],
+              ),
+              SizedBox(height: w * 0.035),
+              Text(
+                profile.fullName,
+                style: TextStyle(
+                  fontSize: w * 0.05,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
                 ),
-                SizedBox(height: w * 0.008),
-                Text(
-                  'john@bagyesrush.com',
-                  style: TextStyle(
-                    fontSize: w * 0.033,
-                    color: AppColors.textSecondary,
-                  ),
+              ),
+              SizedBox(height: w * 0.008),
+              Text(
+                profile.email,
+                style: TextStyle(
+                  fontSize: w * 0.033,
+                  color: AppColors.textSecondary,
                 ),
+              ),
+              if (profile.isVerified) ...[
                 SizedBox(height: w * 0.02),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -100,89 +129,84 @@ class ConsumerProfileView extends StatelessWidget {
                   ],
                 ),
               ],
-            ),
-          ),
-          SizedBox(height: w * 0.06),
-
-          // ── Stats row ──
-          Row(
-            children: [
-              _StatBox(label: 'Orders', value: '14'),
-              SizedBox(width: w * 0.03),
-              _StatBox(label: 'Reviews', value: '6'),
-              SizedBox(width: w * 0.03),
-              _StatBox(label: 'Wallet', value: 'GHS 45'),
             ],
           ),
-          SizedBox(height: w * 0.05),
+        ),
+        SizedBox(height: w * 0.06),
 
-          // ── Account section ──
-          _SectionLabel('Account'),
-          _ProfileTile(
-            icon: Icons.person_rounded,
-            label: 'Personal Information',
-            onTap: () => context.push(AppRoutes.editProfile),
-          ),
-          _ProfileTile(
-            icon: Icons.location_on_rounded,
-            label: 'Saved Addresses',
-            onTap: () {},
-          ),
-          _ProfileTile(
-            icon: Icons.credit_card_rounded,
-            label: 'Payment Methods',
-            onTap: () {},
-          ),
+        // ── Stats row ──
+        Row(
+          children: [
+            _StatBox(label: 'Orders', value: '${profile.orderCount}'),
+            SizedBox(width: w * 0.03),
+            _StatBox(label: 'Reviews', value: '${profile.reviewCount}'),
+            SizedBox(width: w * 0.03),
+            _StatBox(label: 'Wallet', value: profile.formattedWallet),
+          ],
+        ),
+        SizedBox(height: w * 0.05),
 
-          SizedBox(height: w * 0.02),
-          _SectionLabel('Orders & Wallet'),
-          _ProfileTile(
-            icon: Icons.receipt_long_rounded,
-            label: 'Order History',
-            onTap: () {},
-          ),
-          _ProfileTile(
-            icon: Icons.account_balance_wallet_rounded,
-            label: 'Wallet & Rewards',
-            onTap: () => context.push(AppRoutes.wallet),
-          ),
-          _ProfileTile(
-            icon: Icons.card_giftcard_rounded,
-            label: 'Promo Codes',
-            onTap: () {},
-          ),
+        // ── Account section ──
+        _SectionLabel('Account'),
+        _ProfileTile(
+          icon: Icons.person_rounded,
+          label: 'Personal Information',
+          onTap: () => context.push(AppRoutes.editProfile),
+        ),
+        _ProfileTile(
+          icon: Icons.location_on_rounded,
+          label: 'Saved Addresses',
+          onTap: () {},
+        ),
+        _ProfileTile(
+          icon: Icons.credit_card_rounded,
+          label: 'Payment Methods',
+          onTap: () {},
+        ),
 
-          SizedBox(height: w * 0.02),
-          _SectionLabel('Support'),
-          _ProfileTile(
-            icon: Icons.help_outline_rounded,
-            label: 'Help & Support',
-            onTap: () {},
-          ),
-          _ProfileTile(
-            icon: Icons.privacy_tip_outlined,
-            label: 'Privacy Policy',
-            onTap: () {},
-          ),
-          _ProfileTile(
-            icon: Icons.group_add_rounded,
-            label: 'Invite Friends',
-            onTap: () => context.push(AppRoutes.inviteFriend),
-          ),
+        SizedBox(height: w * 0.02),
+        _SectionLabel('Orders & Wallet'),
+        _ProfileTile(
+          icon: Icons.receipt_long_rounded,
+          label: 'Order History',
+          onTap: () {},
+        ),
+        _ProfileTile(
+          icon: Icons.account_balance_wallet_rounded,
+          label: 'Wallet & Rewards',
+          onTap: () => context.push(AppRoutes.wallet),
+        ),
+        _ProfileTile(
+          icon: Icons.card_giftcard_rounded,
+          label: 'Promo Codes',
+          onTap: () {},
+        ),
 
-          SizedBox(height: w * 0.02),
-          _ProfileTile(
-            icon: Icons.logout_rounded,
-            label: 'Log Out',
-            color: AppColors.error,
-            onTap: () => _confirmLogout(context),
-          ),
-        ],
-      ),
+        SizedBox(height: w * 0.02),
+        _SectionLabel('Support'),
+        _ProfileTile(
+          icon: Icons.help_outline_rounded,
+          label: 'Help & Support',
+          onTap: () {},
+        ),
+        _ProfileTile(
+          icon: Icons.privacy_tip_outlined,
+          label: 'Privacy Policy',
+          onTap: () {},
+        ),
+
+        SizedBox(height: w * 0.02),
+        _ProfileTile(
+          icon: Icons.logout_rounded,
+          label: 'Log Out',
+          color: AppColors.error,
+          onTap: () => _confirmLogout(context, ref),
+        ),
+      ],
     );
   }
 
-  void _confirmLogout(BuildContext context) {
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
     final w = MediaQuery.sizeOf(context).width;
     showDialog(
       context: context,
@@ -198,11 +222,13 @@ class ConsumerProfileView extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              context.go(AppRoutes.login);
+              await ref.read(profileProvider.notifier).logout();
+              if (context.mounted) context.go(AppRoutes.login);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Log out'),
           ),
         ],

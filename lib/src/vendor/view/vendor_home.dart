@@ -187,15 +187,16 @@ class _VendorHomeState extends State<VendorHome> {
                           const VendorNotificationsScreen(),
                       transitionsBuilder: (_, anim, _, child) =>
                           SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, -0.06),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: anim,
-                                curve: Curves.easeOutCubic,
-                              ),
-                            ),
+                            position:
+                                Tween<Offset>(
+                                  begin: const Offset(0, -0.06),
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: anim,
+                                    curve: Curves.easeOutCubic,
+                                  ),
+                                ),
                             child: FadeTransition(opacity: anim, child: child),
                           ),
                       transitionDuration: const Duration(milliseconds: 320),

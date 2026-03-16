@@ -11,14 +11,12 @@ import '../../constant/app_theme.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
-import '../../features/consumer/restaurant/presentation/providers/restaurant_providers.dart';
+import '../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import '../../features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
 import '../../features/consumer/restaurant/presentation/widgets/restaurant_card.dart';
 import '../../features/consumer/orders/presentation/views/consumer_orders_view.dart';
 import '../../features/consumer/search/presentation/views/consumer_search_view.dart';
 import '../../features/consumer/profile/presentation/views/consumer_profile_view.dart';
-
-// ─── Main Shell ───────────────────────────────────────────────────────────
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -167,7 +165,10 @@ class _HomeState extends ConsumerState<Home> {
                   _closeDrawer();
                   context.push(AppRoutes.wallet);
                 },
-                onPaymentMethods: () => _closeDrawer(),
+                onPaymentMethods: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.vendorPaymentMethods);
+                },
                 onInviteFriends: () {
                   _closeDrawer();
                   AppNavigator.toInviteFriend(context);
@@ -191,9 +192,7 @@ class _HomeState extends ConsumerState<Home> {
 
 class _HomeDiscoveryTab extends ConsumerStatefulWidget {
   final VoidCallback? onDrawerTap;
-
   const _HomeDiscoveryTab({this.onDrawerTap});
-
   @override
   ConsumerState<_HomeDiscoveryTab> createState() => _HomeDiscoveryTabState();
 }
@@ -220,7 +219,7 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
   void _autoscrollBanner() {
     if (!mounted || !_bannerController.hasClients) return;
     final featured = ref.read(featuredRestaurantsProvider);
-    final count = featured.valueOrNull?.length ?? 0;
+    final count = (featured.valueOrNull?.length ?? 0) + 1;
     if (count < 2) return;
     final next = (_bannerIndex + 1) % count;
     _bannerController.animateToPage(
@@ -442,12 +441,6 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
                     ),
                     SizedBox(width: w * 0.025),
                     _QuickServiceChip(
-                      emoji: '🎁',
-                      label: 'Invite',
-                      onTap: () => AppNavigator.toInviteFriend(context),
-                    ),
-                    SizedBox(width: w * 0.025),
-                    _QuickServiceChip(
                       emoji: '💳',
                       label: 'Wallet',
                       onTap: () => context.push(AppRoutes.wallet),
@@ -591,6 +584,35 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
   }
 }
 
+// ─── Banner Item model ────────────────────────────────────────────────────
+
+class _BannerItem {
+  final String imagePath;
+  final bool isAsset;
+  final String? title;
+  final String? subtitle;
+  final String? promoText;
+
+  const _BannerItem({
+    required this.imagePath,
+    this.isAsset = false,
+    this.title,
+    this.subtitle,
+    this.promoText,
+  });
+}
+
+/// Local asset banners — add or remove entries here to manage static slides.
+const _localBanners = [
+  _BannerItem(
+    imagePath: 'assets/restaurant/foodbanner.jpg',
+    isAsset: true,
+    title: 'Order Your Favourite',
+    subtitle: 'Fresh meals delivered fast',
+    promoText: 'FREE DELIVERY TODAY',
+  ),
+];
+
 // ─── Promo Banner Section ─────────────────────────────────────────────────
 
 class _PromoBannerSection extends ConsumerWidget {
@@ -620,7 +642,21 @@ class _PromoBannerSection extends ConsumerWidget {
       ),
       error: (_, __) => const SizedBox.shrink(),
       data: (restaurants) {
-        if (restaurants.isEmpty) return const SizedBox.shrink();
+        // Combine local asset banners first, then network restaurant banners.
+        final banners = [
+          ..._localBanners,
+          ...restaurants.map(
+            (r) => _BannerItem(
+              imagePath: r.imageUrl,
+              isAsset: false,
+              title: r.name,
+              subtitle:
+                  '${r.deliveryTimeLabel} · GHS ${r.deliveryFee.toStringAsFixed(0)} delivery',
+              promoText: r.promoText,
+            ),
+          ),
+        ];
+
         return Column(
           children: [
             SizedBox(
@@ -628,12 +664,17 @@ class _PromoBannerSection extends ConsumerWidget {
               child: PageView.builder(
                 controller: controller,
                 onPageChanged: onPageChanged,
-                itemCount: restaurants.length,
+                itemCount: banners.length,
                 itemBuilder: (ctx, i) {
-                  final r = restaurants[i];
+                  final banner = banners[i];
                   return GestureDetector(
-                    onTap: () =>
-                        context.push(AppRoutes.restaurantDetailPath(r.id)),
+                    onTap: !banner.isAsset
+                        ? () => context.push(
+                            AppRoutes.restaurantDetailPath(
+                              restaurants[i - _localBanners.length].id,
+                            ),
+                          )
+                        : null,
                     child: Container(
                       margin: EdgeInsets.symmetric(horizontal: w * 0.05),
                       decoration: BoxDecoration(
@@ -651,71 +692,81 @@ class _PromoBannerSection extends ConsumerWidget {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.network(
-                              r.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  Container(color: AppColors.shimmerBase),
-                            ),
+                            // ── Conditional image source ──
+                            if (banner.isAsset)
+                              Image.asset(banner.imagePath, fit: BoxFit.cover)
+                            else
+                              Image.network(
+                                banner.imagePath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    Container(color: AppColors.shimmerBase),
+                              ),
+                            // ── Gradient overlay ──
                             const DecoratedBox(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter,
                                   colors: [
-                                    Color(0xB3000000), // black ~70%
+                                    Color(0xB3000000),
                                     Colors.transparent,
                                   ],
                                 ),
                               ),
                             ),
-                            Positioned(
-                              bottom: w * 0.045,
-                              left: w * 0.045,
-                              right: w * 0.045,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (r.promoText != null)
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: w * 0.03,
-                                        vertical: w * 0.012,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        r.promoText!,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: w * 0.028,
-                                          fontWeight: FontWeight.w700,
+                            // ── Text overlay ──
+                            if (banner.title != null)
+                              Positioned(
+                                bottom: w * 0.045,
+                                left: w * 0.045,
+                                right: w * 0.045,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (banner.promoText != null)
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: w * 0.03,
+                                          vertical: w * 0.012,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          banner.promoText!,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: w * 0.028,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  SizedBox(height: w * 0.02),
-                                  Text(
-                                    r.name,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: w * 0.05,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${r.deliveryTimeLabel} · GHS ${r.deliveryFee.toStringAsFixed(0)} delivery',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.85,
+                                    SizedBox(height: w * 0.02),
+                                    Text(
+                                      banner.title!,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: w * 0.05,
+                                        fontWeight: FontWeight.w800,
                                       ),
-                                      fontSize: w * 0.03,
                                     ),
-                                  ),
-                                ],
+                                    if (banner.subtitle != null)
+                                      Text(
+                                        banner.subtitle!,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.85,
+                                          ),
+                                          fontSize: w * 0.03,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -728,7 +779,7 @@ class _PromoBannerSection extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                restaurants.length,
+                banners.length,
                 (i) => AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: EdgeInsets.symmetric(horizontal: w * 0.008),
@@ -760,18 +811,18 @@ class _PopularRestaurantsRow extends ConsumerWidget {
 
     return nearby.when(
       loading: () => SizedBox(
-        height: w * 0.6,
+        height: w * 0.50,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: w * 0.05),
           itemCount: 3,
           separatorBuilder: (_, __) => SizedBox(width: w * 0.035),
-          itemBuilder: (_, i) => _ShimmerCard(width: w * 0.55),
+          itemBuilder: (_, i) => _ShimmerCard(width: w * 0.44),
         ),
       ),
       error: (_, e) => const SizedBox.shrink(),
       data: (restaurants) => SizedBox(
-        height: w * 0.72,
+        height: w * 0.50,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: w * 0.05),
@@ -779,7 +830,7 @@ class _PopularRestaurantsRow extends ConsumerWidget {
           separatorBuilder: (_, s) => SizedBox(width: w * 0.035),
           itemBuilder: (ctx, i) => RestaurantCard(
             restaurant: restaurants[i],
-            width: w * 0.55,
+            width: w * 0.44,
             onTap: () =>
                 context.push(AppRoutes.restaurantDetailPath(restaurants[i].id)),
           ),

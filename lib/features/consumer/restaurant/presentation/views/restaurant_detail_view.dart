@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/domain/entities/cart_item.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/providers/cart_provider.dart';
+import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
+import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
-import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/providers/restaurant_providers.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/menu_item_card.dart';
 
 class RestaurantDetailView extends ConsumerStatefulWidget {

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
-import 'package:bagyesrushappusernew/features/consumer/orders/presentation/providers/orders_provider.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
 
 class OrderTrackingView extends ConsumerWidget {
   final String orderId;
@@ -12,8 +12,7 @@ class OrderTrackingView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orders = ref.watch(ordersProvider);
-    final order = orders.where((o) => o.id == orderId).firstOrNull;
+    final order = ref.watch(orderByIdProvider(orderId));
     final w = MediaQuery.sizeOf(context).width;
 
     if (order == null) {
@@ -36,6 +35,7 @@ class OrderTrackingView extends ConsumerWidget {
                   .progressOrderStatus(orderId),
               child: const Text('Simulate →'),
             ),
+
         ],
       ),
       body: ListView(
