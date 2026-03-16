@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
@@ -23,7 +24,11 @@ class ConsumerProfileView extends ConsumerWidget {
         title: const Text('Profile'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_rounded),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedPencilEdit02,
+              color: AppColors.textPrimary,
+              size: w * 0.042,
+            ),
             onPressed: () => context.push(AppRoutes.editProfile),
           ),
         ],
@@ -52,7 +57,12 @@ class _ProfileBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.06),
+      padding: EdgeInsets.fromLTRB(
+        w * 0.05,
+        w * 0.02,
+        w * 0.05,
+        w * 0.06 + MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight,
+      ),
       children: [
         // ── Avatar + name ──
         Center(
@@ -81,8 +91,8 @@ class _ProfileBody extends ConsumerWidget {
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.camera_alt_rounded,
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedCamera01,
                         color: Colors.white,
                         size: w * 0.04,
                       ),
@@ -112,10 +122,10 @@ class _ProfileBody extends ConsumerWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.verified_rounded,
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedCheckmarkBadge01,
                       color: AppColors.info,
-                      size: 16,
+                      size: w * 0.032,
                     ),
                     SizedBox(width: w * 0.015),
                     Text(
@@ -149,17 +159,12 @@ class _ProfileBody extends ConsumerWidget {
         // ── Account section ──
         _SectionLabel('Account'),
         _ProfileTile(
-          icon: Icons.person_rounded,
+          icon: HugeIcons.strokeRoundedUser,
           label: 'Personal Information',
           onTap: () => context.push(AppRoutes.editProfile),
         ),
         _ProfileTile(
-          icon: Icons.location_on_rounded,
-          label: 'Saved Addresses',
-          onTap: () {},
-        ),
-        _ProfileTile(
-          icon: Icons.credit_card_rounded,
+          icon: HugeIcons.strokeRoundedCreditCard,
           label: 'Payment Methods',
           onTap: () {},
         ),
@@ -167,37 +172,32 @@ class _ProfileBody extends ConsumerWidget {
         SizedBox(height: w * 0.02),
         _SectionLabel('Orders & Wallet'),
         _ProfileTile(
-          icon: Icons.receipt_long_rounded,
+          icon: HugeIcons.strokeRoundedReceiptDollar,
           label: 'Order History',
           onTap: () {},
         ),
         _ProfileTile(
-          icon: Icons.account_balance_wallet_rounded,
+          icon: HugeIcons.strokeRoundedWallet01,
           label: 'Wallet & Rewards',
           onTap: () => context.push(AppRoutes.wallet),
         ),
+     //TODO: Add support & privacy policy screens
+        // SizedBox(height: w * 0.02),
+        // _SectionLabel('Support'),s
+        // _ProfileTile(
+        //   icon: HugeIcons.strokeRoundedHelpCircle,
+        //   label: 'Help & Support',
+        //   onTap: () {},
+        // ),
         _ProfileTile(
-          icon: Icons.card_giftcard_rounded,
-          label: 'Promo Codes',
-          onTap: () {},
-        ),
-
-        SizedBox(height: w * 0.02),
-        _SectionLabel('Support'),
-        _ProfileTile(
-          icon: Icons.help_outline_rounded,
-          label: 'Help & Support',
-          onTap: () {},
-        ),
-        _ProfileTile(
-          icon: Icons.privacy_tip_outlined,
+          icon: HugeIcons.strokeRoundedPolicy,
           label: 'Privacy Policy',
           onTap: () {},
         ),
 
         SizedBox(height: w * 0.02),
         _ProfileTile(
-          icon: Icons.logout_rounded,
+          icon: HugeIcons.strokeRoundedDoor01,
           label: 'Log Out',
           color: AppColors.error,
           onTap: () => _confirmLogout(context, ref),
@@ -305,7 +305,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _ProfileTile extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final String label;
   final VoidCallback onTap;
   final Color? color;
@@ -340,10 +340,10 @@ class _ProfileTile extends StatelessWidget {
                   color: (color ?? AppColors.primary).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
+                child: HugeIcon(
+                  icon: icon,
                   color: color ?? AppColors.primary,
-                  size: w * 0.048,
+                  size: w * 0.044,
                 ),
               ),
               SizedBox(width: w * 0.035),
@@ -358,10 +358,10 @@ class _ProfileTile extends StatelessWidget {
                 ),
               ),
               if (color == null)
-                Icon(
-                  Icons.chevron_right,
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowRight01,
                   color: AppColors.textHint,
-                  size: w * 0.05,
+                  size: w * 0.038,
                 ),
             ],
           ),

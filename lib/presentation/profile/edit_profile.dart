@@ -1,6 +1,7 @@
 import 'dart:convert';
 
-import 'package:bagyesrushappusernew/constant/constant.dart';
+import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
@@ -15,80 +16,83 @@ class EditProfile extends StatefulWidget {
 }
 
 class _EditProfileState extends State<EditProfile> {
-  String name = 'Ellison Perry';
-  String phone = '123456789';
-  String email = 'test@abc.com';
-  var nameController = TextEditingController();
-  var phoneController = TextEditingController();
-  var emailController = TextEditingController();
+  final _nameController = TextEditingController(text: 'Ellison Perry');
+  final _phoneController = TextEditingController(text: '123456789');
+  final _emailController = TextEditingController(text: 'test@abc.com');
+  final _oldPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  bool loading = false;
+  bool _loading = false;
+  bool _obscureOld = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
   IUser user = IUser();
 
   @override
-  void initState() {
-    super.initState();
-    nameController.text = name;
-    phoneController.text = phone;
-    emailController.text = email;
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
-  Future<void> updateProfile(BuildContext context) async {
-    try {
-      user = context.read<AppState>().userInfo;
-      var token = user.token;
-      var id = user.id;
-      Map<String, dynamic> data = {};
-      String name = nameController.text;
-      String email = nameController.text;
+  Future<void> _saveProfile(BuildContext context) async {
+    user = context.read<AppState>().userInfo;
+    final token = user.token;
+    final id = user.id;
+    final appState = context.read<AppState>();
 
-      if ((name == '') && (email == '')) {
-        throw Exception('No update has been made');
-      }
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
 
-      data['name'] = name;
-
-      if (email != '') {
-        data['email'] = email;
-      }
-
-      setState(() {
-        loading = true;
-      });
-
-      Map d = {"id": id, "data": data};
-
-      Map<String, dynamic> response = await updateUser(
-        token,
-        d,
-      ).then((value) => jsonDecode(value.body));
-
-      setState(() {
-        loading = false;
-      });
-
-      switch (response['success']) {
-        case true:
-          context.read<AppState>().loadProfile(() {
-            setState(() {});
-          });
-          break;
-        default:
-          CustomDialog.showError(
-            context: context,
-            title: 'Oops!',
-            subtitle: response['message'],
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
-          );
-          break;
-      }
-    } catch (e) {
-      setState(() {
-        loading = false;
-      });
+    if (name.isEmpty && email.isEmpty) {
       CustomDialog.showError(
         context: context,
+        title: 'Oops!',
+        subtitle: 'No changes to save.',
+        iconPath: AssetImages.bagyesLogo,
+        isLottie: false,
+      );
+      return;
+    }
+
+    Map<String, dynamic> data = {};
+    if (name.isNotEmpty) data['name'] = name;
+    if (email.isNotEmpty) data['email'] = email;
+
+    setState(() => _loading = true);
+
+    try {
+      final Map<String, dynamic> response = await updateUser(token, {
+        "id": id,
+        "data": data,
+      }).then((value) => jsonDecode(value.body));
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+
+      if (response['success'] == true) {
+        appState.loadProfile(() => setState(() {}));
+        Navigator.pop(this.context);
+      } else {
+        CustomDialog.showError(
+          context: this.context,
+          title: 'Oops!',
+          subtitle: response['message'] ?? 'Something went wrong.',
+          iconPath: AssetImages.bagyesLogo,
+          isLottie: false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      CustomDialog.showError(
+        context: this.context,
         title: 'Oops!',
         subtitle: e.toString(),
         iconPath: AssetImages.bagyesLogo,
@@ -99,386 +103,629 @@ class _EditProfileState extends State<EditProfile> {
 
   @override
   Widget build(BuildContext context) {
-    changeFullName() {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (context) => CustomDialog(
-          config: CustomDialogConfig(
-            title: "Change Full Name",
-            subtitle: "Enter your full name below",
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
-            showCancelButton: true,
-            confirmText: 'Okay',
-            cancelText: 'Cancel',
-            onConfirm: () {
-              setState(() {
-                name = nameController.text;
-              });
-              Navigator.pop(context); // Manually pop the dialog
-            },
-            onCancel: () {
-              Navigator.pop(context); // Manually pop the dialog
-            },
-            content: TextField(
-              controller: nameController,
-              style: blackBottonTextStyle,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                hintText: 'Enter Your Full Name',
-                hintStyle: greySmallTextStyle,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    changePassword() {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (context) => CustomDialog(
-          config: CustomDialogConfig(
-            title: "Change Your Password",
-            subtitle: "Update your security credentials",
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
-            showCancelButton: true,
-            confirmText: 'Okay',
-            cancelText: 'Cancel',
-            onConfirm: () {
-              // TODO: Implement password change logic
-            },
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  obscureText: true,
-                  style: const TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Old Password',
-                    hintStyle: greySmallTextStyle,
-                  ),
-                ),
-                TextField(
-                  obscureText: true,
-                  style: const TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'New Password',
-                    hintStyle: greySmallTextStyle,
-                  ),
-                ),
-                TextField(
-                  obscureText: true,
-                  style: const TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Confirm New Password',
-                    hintStyle: greySmallTextStyle,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    changePhoneNumber() {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (context) => CustomDialog(
-          config: CustomDialogConfig(
-            title: "Change Phone Number",
-            subtitle: "Enter your new phone number below",
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
-            showCancelButton: true,
-            confirmText: 'Okay',
-            cancelText: 'Cancel',
-            onConfirm: () {
-              setState(() {
-                phone = phoneController.text;
-              });
-            },
-            content: TextField(
-              controller: phoneController,
-              style: blackHeadingTextStyle,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: 'Enter Phone Number',
-                hintStyle: greySmallTextStyle,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    changeEmail() {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (context) => CustomDialog(
-          config: CustomDialogConfig(
-            title: "Change Email",
-            subtitle: "Enter your new email address below",
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
-            showCancelButton: true,
-            confirmText: 'Okay',
-            cancelText: 'Cancel',
-            onConfirm: () {
-              setState(() {
-                email = emailController.text;
-              });
-            },
-            content: TextField(
-              controller: emailController,
-              style: blackHeadingTextStyle,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                hintText: 'Enter Email',
-                hintStyle: greySmallTextStyle,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    final w = MediaQuery.sizeOf(context).width;
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0.0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: blackColor),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        actions: <Widget>[
-          InkWell(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: Container(
-              padding: EdgeInsets.all(fixPadding),
-              alignment: Alignment.center,
-              child: Text('Save', style: blueSmallTextStyle),
+      backgroundColor: AppColors.scaffold,
+      body: CustomScrollView(
+        slivers: [
+          // ── Header ──
+          SliverAppBar(
+            expandedHeight: w * 0.55,
+            pinned: true,
+            backgroundColor: AppColors.primary,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowLeft01,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              Padding(
+                padding: EdgeInsets.only(right: w * 0.04),
+                child: _loading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        ),
+                      )
+                    : TextButton(
+                        onPressed: () => _saveProfile(context),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: w * 0.045,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.pin,
+              background: _EditProfileHero(
+                w: w,
+                onTapAvatar: _selectPhotoBottomSheet,
+              ),
             ),
           ),
-        ],
-      ),
-      body: ListView(
-        children: <Widget>[
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              // Profile Image Start
-              InkWell(
-                onTap: _selectOptionBottomSheet,
-                child: Container(
-                  width: 100.0,
-                  height: 100.0,
-                  margin: EdgeInsets.all(fixPadding * 4.0),
-                  alignment: Alignment.bottomRight,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5.0),
-                    border: Border.all(width: 2.0, color: whiteColor),
-                    image: DecorationImage(
-                      image: AssetImage('assets/user.jpg'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Container(
-                    height: 22.0,
-                    width: 22.0,
-                    margin: EdgeInsets.all(fixPadding / 2),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(11.0),
-                      border: Border.all(
-                        width: 1.0,
-                        color: whiteColor.withValues(alpha: 0.7),
-                      ),
-                      color: Colors.orange,
-                    ),
-                    child: Icon(Icons.add, color: whiteColor, size: 15.0),
-                  ),
-                ),
-              ),
-              // Profile Image End
-              // Full Name Start
-              InkWell(onTap: changeFullName, child: getTile('Full Name', name)),
-              // Full Name End
-              // Password Start
-              InkWell(
-                onTap: changePassword,
-                child: getTile('Password', '******'),
-              ),
-              // Password End
-              // Phone Start
-              InkWell(onTap: changePhoneNumber, child: getTile('Phone', phone)),
-              // Phone End
-              // Email Start
-              InkWell(onTap: changeEmail, child: getTile('Email', email)),
-              // Email End
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
-  getTile(String title, String value) {
-    double width = MediaQuery.of(context).size.width;
-    return Container(
-      margin: EdgeInsets.only(
-        right: fixPadding,
-        left: fixPadding,
-        bottom: fixPadding * 1.5,
-      ),
-      padding: EdgeInsets.only(
-        right: fixPadding,
-        left: fixPadding,
-        top: fixPadding * 2.0,
-        bottom: fixPadding * 2.0,
-      ),
-      decoration: BoxDecoration(
-        color: whiteColor,
-        borderRadius: BorderRadius.circular(5.0),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            blurRadius: 1.5,
-            spreadRadius: 1.5,
-            color: Colors.grey[200]!,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Container(
-            width: width - 80.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                Container(
-                  width: (width - 80.0) / 2.4,
-                  child: Text(title, style: greyNormalTextStyle),
+          // ── Form ──
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              w * 0.05,
+              w * 0.04,
+              w * 0.05,
+              w * 0.08,
+            ),
+            sliver: SliverList.list(
+              children: [
+                _FormSection(label: 'Basic Info'),
+                SizedBox(height: w * 0.03),
+                _FormCard(
+                  children: [
+                    _FieldRow(
+                      icon: HugeIcons.strokeRoundedUser,
+                      iconColor: AppColors.primary,
+                      label: 'Full Name',
+                      child: TextFormField(
+                        controller: _nameController,
+                        style: TextStyle(
+                          fontSize: w * 0.038,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDec('e.g. John Doe'),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    _FieldDivider(),
+                    _FieldRow(
+                      icon: HugeIcons.strokeRoundedMail01,
+                      iconColor: const Color(0xFF3182CE),
+                      label: 'Email',
+                      child: TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: TextStyle(
+                          fontSize: w * 0.038,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDec('e.g. you@email.com'),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    _FieldDivider(),
+                    _FieldRow(
+                      icon: HugeIcons.strokeRoundedSmartPhone01,
+                      iconColor: AppColors.success,
+                      label: 'Phone',
+                      child: TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        style: TextStyle(
+                          fontSize: w * 0.038,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDec('e.g. 0244000000'),
+                        textInputAction: TextInputAction.done,
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  width: (width - 80.0) / 2.0,
-                  child: Text(value, style: blackHeadingTextStyle),
+
+                SizedBox(height: w * 0.06),
+                _FormSection(label: 'Change Password'),
+                SizedBox(height: w * 0.03),
+                _FormCard(
+                  children: [
+                    _FieldRow(
+                      icon: HugeIcons.strokeRoundedLock,
+                      iconColor: AppColors.warning,
+                      label: 'Old Password',
+                      child: TextFormField(
+                        controller: _oldPasswordController,
+                        obscureText: _obscureOld,
+                        style: TextStyle(
+                          fontSize: w * 0.038,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDec('Current password').copyWith(
+                          suffixIcon: IconButton(
+                            icon: HugeIcon(
+                              icon: _obscureOld
+                                  ? HugeIcons.strokeRoundedViewOff
+                                  : HugeIcons.strokeRoundedView,
+                              color: AppColors.textHint,
+                              size: w * 0.038,
+                            ),
+                            onPressed: () =>
+                                setState(() => _obscureOld = !_obscureOld),
+                          ),
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    _FieldDivider(),
+                    _FieldRow(
+                      icon: HugeIcons.strokeRoundedPasswordValidation,
+                      iconColor: const Color(0xFF805AD5),
+                      label: 'New Password',
+                      child: TextFormField(
+                        controller: _newPasswordController,
+                        obscureText: _obscureNew,
+                        style: TextStyle(
+                          fontSize: w * 0.038,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDec('New password').copyWith(
+                          suffixIcon: IconButton(
+                            icon: HugeIcon(
+                              icon: _obscureNew
+                                  ? HugeIcons.strokeRoundedViewOff
+                                  : HugeIcons.strokeRoundedView,
+                              color: AppColors.textHint,
+                              size: w * 0.038,
+                            ),
+                            onPressed: () =>
+                                setState(() => _obscureNew = !_obscureNew),
+                          ),
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    _FieldDivider(),
+                    _FieldRow(
+                      icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+                      iconColor: AppColors.info,
+                      label: 'Confirm',
+                      child: TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirm,
+                        style: TextStyle(
+                          fontSize: w * 0.038,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDec('Confirm new password').copyWith(
+                          suffixIcon: IconButton(
+                            icon: HugeIcon(
+                              icon: _obscureConfirm
+                                  ? HugeIcons.strokeRoundedViewOff
+                                  : HugeIcons.strokeRoundedView,
+                              color: AppColors.textHint,
+                              size: w * 0.038,
+                            ),
+                            onPressed: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
+                          ),
+                        ),
+                        textInputAction: TextInputAction.done,
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: w * 0.08),
+
+                // ── Save button ──
+                SizedBox(
+                  width: double.infinity,
+                  height: w * 0.14,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : () => _saveProfile(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+                                color: Colors.white,
+                                size: w * 0.038,
+                              ),
+                              SizedBox(width: w * 0.025),
+                              Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  fontSize: w * 0.042,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ],
             ),
           ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16.0,
-            color: Colors.grey.withOpacity(0.6),
-          ),
         ],
       ),
     );
   }
 
-  // Bottom Sheet for Select Options (Camera or Gallery) Start Here
-  void _selectOptionBottomSheet() {
-    double width = MediaQuery.of(context).size.width;
+  InputDecoration _inputDec(String hint) => InputDecoration(
+    hintText: hint,
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+    contentPadding: EdgeInsets.zero,
+    isDense: true,
+    hintStyle: TextStyle(
+      color: AppColors.textHint,
+      fontSize: MediaQuery.sizeOf(context).width * 0.034,
+    ),
+  );
+
+  void _selectPhotoBottomSheet() {
+    final w = MediaQuery.sizeOf(context).width;
     showModalBottomSheet(
       context: context,
-      builder: (BuildContext bc) {
-        return Container(
-          color: whiteColor,
-          child: new Wrap(
-            children: <Widget>[
-              Container(
-                child: Container(
-                  padding: EdgeInsets.all(8.0),
-                  child: Column(
-                    children: <Widget>[
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, w * 0.06),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              'Update Profile Photo',
+              style: TextStyle(
+                fontSize: w * 0.043,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: w * 0.05),
+            _BottomSheetOption(
+              icon: HugeIcons.strokeRoundedCamera01,
+              label: 'Take a Photo',
+              color: AppColors.primary,
+              onTap: () => Navigator.pop(ctx),
+            ),
+            SizedBox(height: w * 0.03),
+            _BottomSheetOption(
+              icon: HugeIcons.strokeRoundedImage01,
+              label: 'Choose from Gallery',
+              color: const Color(0xFF805AD5),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Edit Profile Hero ─────────────────────────────────────────────────────────
+
+class _EditProfileHero extends StatelessWidget {
+  final double w;
+  final VoidCallback onTapAvatar;
+
+  const _EditProfileHero({required this.w, required this.onTapAvatar});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primary, Color(0xFFEF5350)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // decorative circle
+          Positioned(
+            top: -w * 0.08,
+            right: -w * 0.08,
+            child: Container(
+              width: w * 0.45,
+              height: w * 0.45,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: w * 0.1),
+                GestureDetector(
+                  onTap: onTapAvatar,
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
                       Container(
-                        width: width,
-                        padding: EdgeInsets.all(10.0),
-                        child: Text(
-                          'Choose Option',
-                          textAlign: TextAlign.center,
-                          style: blackHeadingTextStyle,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                      ),
-                      InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          width: width,
-                          padding: EdgeInsets.all(10.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: <Widget>[
-                              Icon(
-                                Icons.camera_alt,
-                                color: Colors.black.withValues(alpha: 0.7),
-                                size: 18.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text('Camera', style: inputTextStyle),
-                            ],
+                        child: CircleAvatar(
+                          radius: w * 0.14,
+                          backgroundColor: Colors.white.withValues(alpha: 0.25),
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedUser,
+                            size: w * 0.045,
+                            color: Colors.white,
                           ),
                         ),
                       ),
-                      InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          width: width,
-                          padding: EdgeInsets.all(10.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: <Widget>[
-                              Icon(
-                                Icons.photo_album,
-                                color: Colors.black.withOpacity(0.7),
-                                size: 18.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Upload from Gallery',
-                                style: inputTextStyle,
-                              ),
-                            ],
-                          ),
+                      Container(
+                        padding: EdgeInsets.all(w * 0.022),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCamera01,
+                          color: AppColors.primary,
+                          size: w * 0.036,
                         ),
                       ),
                     ],
                   ),
                 ),
+                SizedBox(height: w * 0.025),
+                Text(
+                  'Tap to change photo',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    fontSize: w * 0.03,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Form helpers ──────────────────────────────────────────────────────────────
+
+class _FormSection extends StatelessWidget {
+  final String label;
+  const _FormSection({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Text(
+      label.toUpperCase(),
+      style: TextStyle(
+        fontSize: w * 0.03,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textHint,
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+}
+
+class _FormCard extends StatelessWidget {
+  final List<Widget> children;
+  const _FormCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _FieldDivider extends StatelessWidget {
+  const _FieldDivider();
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 80),
+      child: Divider(height: 1, color: AppColors.divider),
+    );
+  }
+}
+
+class _FieldRow extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final Color iconColor;
+  final String label;
+  final Widget child;
+
+  const _FieldRow({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.045, vertical: w * 0.038),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Huge icon
+          Container(
+            width: w * 0.1,
+            height: w * 0.1,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: HugeIcon(icon: icon, color: iconColor, size: w * 0.036),
+            ),
+          ),
+          SizedBox(width: w * 0.04),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: w * 0.028,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textHint,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                SizedBox(height: w * 0.008),
+                child,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Bottom Sheet Option ───────────────────────────────────────────────────────
+
+class _BottomSheetOption extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _BottomSheetOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: w * 0.045,
+            vertical: w * 0.038,
+          ),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(w * 0.016),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: HugeIcon(icon: icon, color: color, size: w * 0.036),
+              ),
+              SizedBox(width: w * 0.04),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: w * 0.038,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
-
-  // Bottom Sheet for Select Options (Camera or Gallery) Ends Here
 }

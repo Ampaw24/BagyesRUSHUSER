@@ -357,18 +357,15 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
                       ),
                     ),
                     SizedBox(width: w * 0.025),
-                    GestureDetector(
-                      onTap: () => context.push(AppRoutes.profile),
-                      child: CircleAvatar(
-                        radius: w * 0.05,
-                        backgroundColor: AppColors.primary,
-                        child: Text(
-                          'JD',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: w * 0.035,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    CircleAvatar(
+                      radius: w * 0.05,
+                      backgroundColor: AppColors.primary,
+                      child: Text(
+                        'JD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: w * 0.035,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
