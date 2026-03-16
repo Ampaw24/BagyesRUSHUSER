@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:hugeicons/hugeicons.dart';
-
 import '../../constant/app_theme.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';

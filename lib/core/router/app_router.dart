@@ -6,7 +6,7 @@ import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
 import 'package:bagyesrushappusernew/presentation/orders/track_order.dart';
 import 'package:bagyesrushappusernew/presentation/profile/profile.dart';
 import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
-import 'package:bagyesrushappusernew/presentation/courier/send_packages.dart';
+import 'package:bagyesrushappusernew/features/parcel/presentation/views/send_parcel_view.dart';
 import 'package:bagyesrushappusernew/presentation/courier/get_food_deliver.dart';
 import 'package:bagyesrushappusernew/presentation/courier/get_grocery_deliver.dart';
 import 'package:bagyesrushappusernew/presentation/courier/restaurant_items.dart';
@@ -115,7 +115,7 @@ final GoRouter appRouter = GoRouter(
     // ── Courier / delivery ──
     GoRoute(
       path: AppRoutes.sendPackages,
-      builder: (context, state) => SendPackages(),
+      builder: (context, state) => const SendParcelView(),
     ),
     GoRoute(
       path: AppRoutes.foodDelivery,
