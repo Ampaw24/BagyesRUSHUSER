@@ -23,7 +23,7 @@ class RestaurantDetailView extends ConsumerStatefulWidget {
 }
 
 class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabController;
   List<String> _menuCategories = [];
 
@@ -140,6 +140,7 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
         SliverAppBar(
           expandedHeight: w * 0.55,
           pinned: true,
+          forceElevated: innerBoxIsScrolled,
           backgroundColor: AppColors.scaffold,
           leading: GestureDetector(
             onTap: () => context.pop(),
@@ -175,6 +176,23 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
               ],
             ),
           ),
+          bottom: (categories.isNotEmpty && _tabController != null)
+              ? TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelStyle: TextStyle(
+                    fontSize: w * 0.035,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Mukta',
+                  ),
+                  tabs: categories.map((c) => Tab(text: c)).toList(),
+                )
+              : null,
         ),
         // Restaurant info header
         SliverToBoxAdapter(
@@ -253,30 +271,6 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
             ),
           ),
         ),
-        // Tab bar
-        if (categories.isNotEmpty && _tabController != null)
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _StickyTabBarDelegate(
-              TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.primary,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelStyle: TextStyle(
-                  fontSize: w * 0.035,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Mukta',
-                ),
-                tabs: categories
-                    .map((c) => Tab(text: c))
-                    .toList(),
-              ),
-            ),
-          ),
       ],
       body: categories.isEmpty || _tabController == null
           ? const Center(
@@ -416,26 +410,4 @@ class _CartFab extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-  const _StickyTabBarDelegate(this.tabBar);
-
-  @override
-  double get minExtent => tabBar.preferredSize.height + 1;
-  @override
-  double get maxExtent => tabBar.preferredSize.height + 1;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.scaffold,
-      child: tabBar,
-    );
-  }
-
-  @override
-  bool shouldRebuild(_StickyTabBarDelegate old) => old.tabBar != tabBar;
 }

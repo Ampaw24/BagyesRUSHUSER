@@ -30,6 +30,7 @@ import 'package:bagyesrushappusernew/features/consumer/cart/presentation/views/c
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/views/checkout_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/views/order_tracking_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/search/presentation/views/consumer_search_view.dart';
+import 'package:bagyesrushappusernew/features/consumer/notifications/view/screens/consumer_notifications_screen.dart';
 
 import 'app_routes.dart';
 
@@ -103,6 +104,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.consumerSearch,
       builder: (context, state) => const ConsumerSearchView(),
+    ),
+
+    // ── Consumer: notifications ──
+    GoRoute(
+      path: AppRoutes.notifications,
+      builder: (context, state) => const ConsumerNotificationsScreen(),
     ),
 
     // ── Profile ──
