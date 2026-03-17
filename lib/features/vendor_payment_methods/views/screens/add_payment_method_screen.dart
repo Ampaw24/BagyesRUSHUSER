@@ -48,11 +48,7 @@ class AddPaymentMethodScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              _MethodTile(
-                icon: Icons.phone_android_rounded,
-                title: 'Mobile Money',
-                subtitle: 'MTN, Vodafone, AirtelTigo',
-                brandColors: const [Color(0xFFFFCC00), Color(0xFFE53935)],
+              _MobileMoneyTile(
                 onTap: () => _navigate(
                   context,
                   const AddMobileMoneyScreen(),
@@ -75,6 +71,153 @@ class AddPaymentMethodScreen extends StatelessWidget {
 
               // Coming soon section
               _ComingSoonSection(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Mobile money tile (shows actual network logos) ────────────────────────────
+
+class _MobileMoneyTile extends StatefulWidget {
+  final VoidCallback onTap;
+  const _MobileMoneyTile({required this.onTap});
+
+  @override
+  State<_MobileMoneyTile> createState() => _MobileMoneyTileState();
+}
+
+class _MobileMoneyTileState extends State<_MobileMoneyTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 110),
+      lowerBound: 0,
+      upperBound: 1,
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Network logos stacked
+              SizedBox(
+                width: 54,
+                height: 54,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 0,
+                      top: 4,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/icons/mtnbanner.png',
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/icons/telecel_icon.jpg',
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 10,
+                      bottom: 0,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/icons/atbanner.png',
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Mobile Money',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'MTN, Telecel, AT',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: AppColors.textHint,
+              ),
             ],
           ),
         ),

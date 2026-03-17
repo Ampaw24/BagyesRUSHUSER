@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import '../../../../presentation/courier/route_map.dart';
 import '../../data/models/rider_model.dart';
 
 class ParcelSummaryStep extends StatelessWidget {
@@ -36,63 +35,12 @@ class ParcelSummaryStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final h = MediaQuery.sizeOf(context).height;
 
-    return Stack(
-      children: [
-        // ── Route map (full background) ─────────────────────────────────────
-        SizedBox(
-          height: h * 0.45,
-          child: RouteMap(
-            sourceLat: sourceLat,
-            sourceLang: sourceLng,
-            destinationLat: destLat,
-            destinationLang: destLng,
-          ),
-        ),
-
-        // ── Order summary panel ─────────────────────────────────────────────
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          top: h * 0.36,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.scaffold,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(w * 0.07),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                w * 0.05,
-                w * 0.05,
-                w * 0.05,
-                w * 0.02,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag handle
-                  Center(
-                    child: Container(
-                      width: w * 0.1,
-                      height: w * 0.012,
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: w * 0.04),
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
 
                   Text(
                     'Order Summary',
@@ -206,12 +154,8 @@ class ParcelSummaryStep extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: w * 0.02),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

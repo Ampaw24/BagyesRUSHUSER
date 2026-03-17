@@ -101,7 +101,22 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
     switch (widget.method.type) {
       case PaymentMethodType.mobileMoney:
         final provider = widget.method.mobileMoney?.provider;
-        final text = provider?.shortName ?? 'MoMo';
+        final asset = switch (provider) {
+          MobileMoneyProvider.mtnMomo => 'assets/icons/mtnbanner.png',
+          MobileMoneyProvider.vodafoneCash => 'assets/icons/telecel_icon.jpg',
+          MobileMoneyProvider.airtelTigo => 'assets/icons/atbanner.png',
+          null => null,
+        };
+        if (asset != null) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.asset(
+              asset,
+              height: 32,
+              fit: BoxFit.contain,
+            ),
+          );
+        }
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -109,7 +124,7 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
-            text,
+            provider?.shortName ?? 'MoMo',
             style: TextStyle(
               color: _foreground,
               fontSize: 11,

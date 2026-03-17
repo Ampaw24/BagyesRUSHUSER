@@ -8,14 +8,14 @@ enum MobileMoneyProvider {
 
   String get displayName => switch (this) {
         MobileMoneyProvider.mtnMomo => 'MTN Mobile Money',
-        MobileMoneyProvider.vodafoneCash => 'Vodafone Cash',
-        MobileMoneyProvider.airtelTigo => 'AirtelTigo Money',
+        MobileMoneyProvider.vodafoneCash => 'Telecel Cash',
+        MobileMoneyProvider.airtelTigo => 'AT Money',
       };
 
   String get shortName => switch (this) {
         MobileMoneyProvider.mtnMomo => 'MTN',
-        MobileMoneyProvider.vodafoneCash => 'Vodafone',
-        MobileMoneyProvider.airtelTigo => 'AirtelTigo',
+        MobileMoneyProvider.vodafoneCash => 'Telecel',
+        MobileMoneyProvider.airtelTigo => 'AT',
       };
 
   /// Expected dial prefix(es) for Ghana (country-code +233 stripped).

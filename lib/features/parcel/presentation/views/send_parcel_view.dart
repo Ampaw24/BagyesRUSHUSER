@@ -195,7 +195,7 @@ class SendParcelView extends ConsumerWidget {
     SendParcelNotifier notifier,
   ) {
     if (state.currentStep == ParcelStep.summary) {
-      AppNavigator.toPayment(context);
+      AppNavigator.toVendorPaymentMethods(context);
       return;
     }
     notifier.advance();

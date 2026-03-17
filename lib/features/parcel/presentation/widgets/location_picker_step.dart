@@ -1,14 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import '../../../../constant/key.dart';
 
 class LocationPickerStep extends StatefulWidget {
   final String title;
@@ -16,8 +12,6 @@ class LocationPickerStep extends StatefulWidget {
   final LatLng? selectedLatLng;
   final String selectedAddress;
   final void Function(LatLng latLng, String address) onLocationSelected;
-
-  static const _fallbackPosition = LatLng(5.6037, -0.1870); // Accra, Ghana
 
   const LocationPickerStep({
     super.key,
@@ -33,116 +27,7 @@ class LocationPickerStep extends StatefulWidget {
 }
 
 class _LocationPickerStepState extends State<LocationPickerStep> {
-  final Completer<GoogleMapController> _mapController = Completer();
   bool _isLocating = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    final h = MediaQuery.sizeOf(context).height;
-
-    return Column(
-      children: [
-        // ── Map preview ──────────────────────────────────────────────────────
-        SizedBox(
-          height: h * 0.38,
-          child: ClipRRect(
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(w * 0.06),
-              bottomRight: Radius.circular(w * 0.06),
-            ),
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: widget.selectedLatLng ??
-                    LocationPickerStep._fallbackPosition,
-                zoom: 14,
-              ),
-              markers: widget.selectedLatLng != null
-                  ? {
-                      Marker(
-                        markerId: const MarkerId('selected'),
-                        position: widget.selectedLatLng!,
-                        icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueRed,
-                        ),
-                      ),
-                    }
-                  : {},
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              compassEnabled: false,
-              onMapCreated: (ctrl) {
-                if (!_mapController.isCompleted) _mapController.complete(ctrl);
-              },
-            ),
-          ),
-        ),
-
-        // ── Controls ─────────────────────────────────────────────────────────
-        Expanded(
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              w * 0.05,
-              w * 0.05,
-              w * 0.05,
-              w * 0.04,
-            ),
-            children: [
-              Text(
-                widget.title,
-                style: TextStyle(
-                  fontSize: w * 0.05,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: w * 0.01),
-              Text(
-                widget.subtitle,
-                style: TextStyle(
-                  fontSize: w * 0.033,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              SizedBox(height: w * 0.05),
-
-              // ── Action buttons ────────────────────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionButton(
-                      icon: HugeIcons.strokeRoundedMapsLocation01,
-                      label: 'My Location',
-                      isLoading: _isLocating,
-                      onTap: _useCurrentLocation,
-                    ),
-                  ),
-                  SizedBox(width: w * 0.03),
-                  Expanded(
-                    child: _ActionButton(
-                      icon: HugeIcons.strokeRoundedSearch01,
-                      label: 'Search Address',
-                      isPrimary: true,
-                      onTap: () => _openPlacePicker(context),
-                    ),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: w * 0.05),
-
-              // ── Selected address ──────────────────────────────────────────
-              _SelectedAddressCard(
-                address: widget.selectedAddress,
-                w: w,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   Future<void> _useCurrentLocation() async {
     setState(() => _isLocating = true);
@@ -171,9 +56,6 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
 
       final latLng = LatLng(position.latitude, position.longitude);
       widget.onLocationSelected(latLng, address);
-
-      final ctrl = await _mapController.future;
-      ctrl.animateCamera(CameraUpdate.newLatLngZoom(latLng, 15));
     } catch (_) {
       // Silently ignore — user will see empty state and can search manually.
     } finally {
@@ -181,52 +63,75 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
     }
   }
 
-  Future<void> _openPlacePicker(BuildContext context) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PlacePicker(
-          apiKey: googleMapKey,
-          initialPosition: widget.selectedLatLng ??
-              LocationPickerStep._fallbackPosition,
-          useCurrentLocation: true,
-          selectInitialPosition: true,
-          onPlacePicked: (result) {
-            Navigator.pop(context);
-            if (result.geometry == null) return;
-            final latLng = LatLng(
-              result.geometry!.location.lat,
-              result.geometry!.location.lng,
-            );
-            final address = result.formattedAddress ?? '';
-            widget.onLocationSelected(latLng, address);
-          },
-          selectedPlaceWidgetBuilder:
-              (_, selectedPlace, state, isSearchBarFocused) {
-            if (isSearchBarFocused) return const SizedBox.shrink();
-            return FloatingCard(
-              bottomPosition: 0,
-              leftPosition: 0,
-              rightPosition: 0,
-              width: double.infinity,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              child: state == SearchingState.Searching
-                  ? const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, selectedPlace),
-                        child: const Text('Confirm This Location'),
-                      ),
-                    ),
-            );
-          },
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
+      children: [
+        // ── Header ───────────────────────────────────────────────────────────
+        Text(
+          widget.title,
+          style: TextStyle(
+            fontSize: w * 0.055,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
         ),
+        SizedBox(height: w * 0.015),
+        Text(
+          widget.subtitle,
+          style: TextStyle(
+            fontSize: w * 0.035,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        SizedBox(height: w * 0.06),
+
+        // ── Action buttons ────────────────────────────────────────────────────
+        _ActionButton(
+          icon: HugeIcons.strokeRoundedMapsLocation01,
+          label: 'Use My Current Location',
+          description: 'Detect your location automatically',
+          isLoading: _isLocating,
+          onTap: _useCurrentLocation,
+          w: w,
+        ),
+        SizedBox(height: w * 0.03),
+        _ActionButton(
+          icon: HugeIcons.strokeRoundedSearch01,
+          label: 'Search for an Address',
+          description: 'Type a street, area or landmark',
+          isPrimary: true,
+          onTap: () => _openAddressSearch(context, w),
+          w: w,
+        ),
+
+        SizedBox(height: w * 0.06),
+
+        // ── Selected address card ─────────────────────────────────────────────
+        _SelectedAddressCard(
+          address: widget.selectedAddress,
+          latLng: widget.selectedLatLng,
+          w: w,
+        ),
+      ],
+    );
+  }
+
+  void _openAddressSearch(BuildContext context, double w) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddressSearchSheet(
+        w: w,
+        onAddressEntered: (address) {
+          // Fallback: use Accra coords with the typed address until Maps is wired up
+          const fallback = LatLng(5.6037, -0.1870);
+          widget.onLocationSelected(fallback, address);
+        },
       ),
     );
   }
@@ -237,62 +142,106 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
 class _ActionButton extends StatelessWidget {
   final List<List<dynamic>> icon;
   final String label;
+  final String description;
   final bool isPrimary;
   final bool isLoading;
   final VoidCallback onTap;
+  final double w;
 
   const _ActionButton({
     required this.icon,
     required this.label,
+    required this.description,
     required this.onTap,
+    required this.w,
     this.isPrimary = false,
     this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
+    final bg = isPrimary ? AppColors.primary : AppColors.surfaceVariant;
+    final fg = isPrimary ? Colors.white : AppColors.textPrimary;
+    final sub = isPrimary
+        ? Colors.white.withValues(alpha: 0.75)
+        : AppColors.textSecondary;
 
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
+          horizontal: w * 0.045,
           vertical: w * 0.04,
-          horizontal: w * 0.03,
         ),
         decoration: BoxDecoration(
-          color: isPrimary ? AppColors.primary : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.03),
+          color: bg,
+          borderRadius: BorderRadius.circular(w * 0.035),
           border: Border.all(
             color: isPrimary ? AppColors.primary : AppColors.border,
           ),
+          boxShadow: isPrimary
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (isLoading)
               SizedBox(
-                width: w * 0.04,
-                height: w * 0.04,
+                width: w * 0.055,
+                height: w * 0.055,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                  strokeWidth: 2.5,
                   color: isPrimary ? Colors.white : AppColors.primary,
                 ),
               )
             else
-              HugeIcon(
-                icon: icon,
-                color: isPrimary ? Colors.white : AppColors.textSecondary,
-                size: w * 0.045,
+              Container(
+                padding: EdgeInsets.all(w * 0.02),
+                decoration: BoxDecoration(
+                  color: isPrimary
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : AppColors.border.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(w * 0.02),
+                ),
+                child: HugeIcon(
+                  icon: icon,
+                  color: isPrimary ? Colors.white : AppColors.textSecondary,
+                  size: w * 0.05,
+                ),
               ),
-            SizedBox(width: w * 0.02),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: w * 0.033,
-                fontWeight: FontWeight.w600,
-                color: isPrimary ? Colors.white : AppColors.textSecondary,
+            SizedBox(width: w * 0.035),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: w * 0.038,
+                      fontWeight: FontWeight.w700,
+                      color: fg,
+                    ),
+                  ),
+                  SizedBox(height: w * 0.005),
+                  Text(
+                    description,
+                    style: TextStyle(fontSize: w * 0.03, color: sub),
+                  ),
+                ],
               ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: isPrimary
+                  ? Colors.white.withValues(alpha: 0.7)
+                  : AppColors.textHint,
+              size: w * 0.038,
             ),
           ],
         ),
@@ -305,47 +254,103 @@ class _ActionButton extends StatelessWidget {
 
 class _SelectedAddressCard extends StatelessWidget {
   final String address;
+  final LatLng? latLng;
   final double w;
 
-  const _SelectedAddressCard({required this.address, required this.w});
+  const _SelectedAddressCard({
+    required this.address,
+    required this.latLng,
+    required this.w,
+  });
 
   @override
   Widget build(BuildContext context) {
     final hasAddress = address.isNotEmpty;
 
-    return Container(
-      padding: EdgeInsets.all(w * 0.04),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.all(w * 0.045),
       decoration: BoxDecoration(
         color: hasAddress
             ? AppColors.success.withValues(alpha: 0.06)
             : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.03),
+        borderRadius: BorderRadius.circular(w * 0.035),
         border: Border.all(
           color: hasAddress
-              ? AppColors.success.withValues(alpha: 0.35)
+              ? AppColors.success.withValues(alpha: 0.4)
               : AppColors.border,
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedLocation01,
-            color: hasAddress ? AppColors.success : AppColors.textHint,
-            size: w * 0.05,
-          ),
-          SizedBox(width: w * 0.03),
-          Expanded(
-            child: hasAddress
-                ? Text(
-                    address,
-                    style: TextStyle(
-                      fontSize: w * 0.035,
-                      color: AppColors.textPrimary,
-                      height: 1.4,
-                    ),
-                  )
-                : Text(
+      child: hasAddress
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(w * 0.022),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedLocation01,
+                    color: AppColors.success,
+                    size: w * 0.045,
+                  ),
+                ),
+                SizedBox(width: w * 0.03),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Location Selected',
+                        style: TextStyle(
+                          fontSize: w * 0.032,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.success,
+                        ),
+                      ),
+                      SizedBox(height: w * 0.01),
+                      Text(
+                        address,
+                        style: TextStyle(
+                          fontSize: w * 0.035,
+                          color: AppColors.textPrimary,
+                          height: 1.4,
+                        ),
+                      ),
+                      if (latLng != null) ...[
+                        SizedBox(height: w * 0.01),
+                        Text(
+                          '${latLng!.latitude.toStringAsFixed(4)}, '
+                          '${latLng!.longitude.toStringAsFixed(4)}',
+                          style: TextStyle(
+                            fontSize: w * 0.028,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.success,
+                  size: w * 0.05,
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedMapsLocation01,
+                  color: AppColors.textHint,
+                  size: w * 0.05,
+                ),
+                SizedBox(width: w * 0.03),
+                Expanded(
+                  child: Text(
                     'No location selected yet.\nUse "My Location" or search for an address.',
                     style: TextStyle(
                       fontSize: w * 0.033,
@@ -353,6 +358,118 @@ class _SelectedAddressCard extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+// ── Address search bottom sheet ───────────────────────────────────────────────
+
+class _AddressSearchSheet extends StatefulWidget {
+  final double w;
+  final ValueChanged<String> onAddressEntered;
+
+  const _AddressSearchSheet({
+    required this.w,
+    required this.onAddressEntered,
+  });
+
+  @override
+  State<_AddressSearchSheet> createState() => _AddressSearchSheetState();
+}
+
+class _AddressSearchSheetState extends State<_AddressSearchSheet> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
+    Navigator.pop(context);
+    widget.onAddressEntered(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.w;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.04 + bottomInset),
+      padding: EdgeInsets.all(w * 0.05),
+      decoration: BoxDecoration(
+        color: AppColors.scaffold,
+        borderRadius: BorderRadius.circular(w * 0.05),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: w * 0.1,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          SizedBox(height: w * 0.045),
+          Text(
+            'Enter Address',
+            style: TextStyle(
+              fontSize: w * 0.045,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: w * 0.02),
+          Text(
+            'Type a street, neighbourhood, or landmark.',
+            style: TextStyle(
+              fontSize: w * 0.033,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          SizedBox(height: w * 0.04),
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _confirm(),
+            style: TextStyle(
+              fontSize: w * 0.04,
+              color: AppColors.textPrimary,
+              fontFamily: 'Mukta',
+            ),
+            decoration: InputDecoration(
+              hintText: 'e.g. Accra Mall, East Legon',
+              prefixIcon: Padding(
+                padding: EdgeInsets.all(w * 0.03),
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedLocation01,
+                  color: AppColors.primary,
+                  size: w * 0.05,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: w * 0.04),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _confirm,
+              child: const Text('Confirm Location'),
+            ),
           ),
         ],
       ),

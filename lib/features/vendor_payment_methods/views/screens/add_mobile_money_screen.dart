@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../providers/payment_providers.dart';
 import '../../viewmodels/add_payment_method_viewmodel.dart';
@@ -40,7 +41,6 @@ class _AddMobileMoneyScreenState extends ConsumerState<AddMobileMoneyScreen> {
 
     if (newState.status == AddPaymentMethodStatus.success &&
         newState.pendingMethodId != null) {
-      // Reset OTP state and start countdown
       ref.read(otpVerificationProvider.notifier).reset();
       Navigator.of(context).push(
         PageRouteBuilder(
@@ -48,13 +48,10 @@ class _AddMobileMoneyScreenState extends ConsumerState<AddMobileMoneyScreen> {
             paymentMethodId: newState.pendingMethodId!,
             maskedContact: newState.phoneNumber,
             onSuccess: () {
-              // Pop OTP screen + this screen, notify list
-              ref
-                  .read(paymentMethodsProvider.notifier)
-                  .load(); // refresh list
+              ref.read(paymentMethodsProvider.notifier).load();
               Navigator.of(context)
-                ..pop() // pop OTP
-                ..pop(); // pop this screen
+                ..pop()
+                ..pop();
             },
           ),
           transitionsBuilder: (_, anim, _, child) => SlideTransition(
@@ -79,13 +76,25 @@ class _AddMobileMoneyScreenState extends ConsumerState<AddMobileMoneyScreen> {
     final state = ref.watch(addMobileMoneyProvider);
     final isLoading = state.status == AddPaymentMethodStatus.loading;
     final w = MediaQuery.sizeOf(context).width;
+    final h = MediaQuery.sizeOf(context).height;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(
-        title: const Text('Add Mobile Money'),
+        title: Text(
+          'Add Mobile Money',
+          style: TextStyle(
+            fontSize: w * 0.045,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedArrowLeft01,
+            color: AppColors.textPrimary,
+            size: w * 0.055,
+          ),
           onPressed: () {
             ref.read(addMobileMoneyProvider.notifier).reset();
             Navigator.of(context).pop();
@@ -96,92 +105,143 @@ class _AddMobileMoneyScreenState extends ConsumerState<AddMobileMoneyScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding:
-                EdgeInsets.symmetric(horizontal: w * 0.06, vertical: 24),
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.06,
+              vertical: h * 0.025,
+            ),
             children: [
-              // Provider selector
+              // ── Provider selector ─────────────────────────────────────────
               MobileMoneyProviderSelector(
                 selected: state.provider,
-                onSelect: (p) {
-                  ref.read(addMobileMoneyProvider.notifier).setProvider(p);
-                },
+                onSelect: (p) =>
+                    ref.read(addMobileMoneyProvider.notifier).setProvider(p),
               ),
 
-              // Provider error
               if (_showErrors && state.provider == null)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
+                Padding(
+                  padding: EdgeInsets.only(top: h * 0.008),
                   child: Text(
                     'Please select a provider',
-                    style: TextStyle(color: AppColors.error, fontSize: 12),
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontSize: w * 0.032,
+                    ),
                   ),
                 ),
 
-              const SizedBox(height: 28),
+              SizedBox(height: h * 0.035),
 
-              // Phone number
-              _SectionLabel(label: 'Phone Number'),
-              const SizedBox(height: 8),
+              // ── Phone number ──────────────────────────────────────────────
+              _SectionLabel(label: 'Phone Number', w: w),
+              SizedBox(height: h * 0.01),
               TextFormField(
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[\d\s\+\-]')),
                 ],
+                style: TextStyle(
+                  fontSize: w * 0.04,
+                  color: AppColors.textPrimary,
+                ),
                 onChanged: (v) =>
                     ref.read(addMobileMoneyProvider.notifier).setPhone(v),
                 decoration: InputDecoration(
                   hintText: '+233 54 123 4567',
-                  prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                  hintStyle: TextStyle(
+                    fontSize: w * 0.038,
+                    color: AppColors.textHint,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: w * 0.04,
+                    vertical: h * 0.018,
+                  ),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.all(w * 0.03),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCall,
+                      color: AppColors.textSecondary,
+                      size: w * 0.05,
+                    ),
+                  ),
                   errorText: _showErrors ? state.phoneError : null,
+                  errorStyle: TextStyle(fontSize: w * 0.03),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              SizedBox(height: h * 0.025),
 
-              // Account name
-              _SectionLabel(label: 'Account Name'),
-              const SizedBox(height: 8),
+              // ── Account name ──────────────────────────────────────────────
+              _SectionLabel(label: 'Account Name', w: w),
+              SizedBox(height: h * 0.01),
               TextFormField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.words,
+                style: TextStyle(
+                  fontSize: w * 0.04,
+                  color: AppColors.textPrimary,
+                ),
                 onChanged: (v) =>
                     ref.read(addMobileMoneyProvider.notifier).setAccountName(v),
                 decoration: InputDecoration(
                   hintText: 'Full name on account',
-                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                  hintStyle: TextStyle(
+                    fontSize: w * 0.038,
+                    color: AppColors.textHint,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: w * 0.04,
+                    vertical: h * 0.018,
+                  ),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.all(w * 0.03),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedUser,
+                      color: AppColors.textSecondary,
+                      size: w * 0.05,
+                    ),
+                  ),
                   errorText: _showErrors ? state.accountNameError : null,
+                  errorStyle: TextStyle(fontSize: w * 0.03),
                 ),
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: h * 0.018),
 
-              // Info card
-              _InfoCard(
-                icon: Icons.info_outline_rounded,
-                message:
-                    'An OTP will be sent to verify this mobile money account before it can be used for payouts.',
-              ),
+              // ── Info card ─────────────────────────────────────────────────
+              _InfoCard(w: w, h: h),
 
-              const SizedBox(height: 36),
+              SizedBox(height: h * 0.045),
 
-              // Submit
+              // ── Submit button ─────────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
+                height: h * 0.065,
                 child: ElevatedButton(
                   onPressed: isLoading ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(w * 0.035),
+                    ),
+                    textStyle: TextStyle(
+                      fontSize: w * 0.042,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   child: isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                      ? SizedBox(
+                          width: w * 0.05,
+                          height: w * 0.05,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: w * 0.005,
                             color: Colors.white,
                           ),
                         )
                       : const Text('Continue'),
                 ),
               ),
+
+              SizedBox(height: h * 0.02),
             ],
           ),
         ),
@@ -190,53 +250,63 @@ class _AddMobileMoneyScreenState extends ConsumerState<AddMobileMoneyScreen> {
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Section label ─────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   final String label;
-  const _SectionLabel({required this.label});
+  final double w;
+
+  const _SectionLabel({required this.label, required this.w});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-        fontSize: 13,
+      style: TextStyle(
+        fontSize: w * 0.035,
         fontWeight: FontWeight.w600,
         color: AppColors.textSecondary,
-        letterSpacing: 0.3,
+        letterSpacing: w * 0.001,
       ),
     );
   }
 }
 
+// ── Info card ─────────────────────────────────────────────────────────────────
+
 class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  const _InfoCard({required this.icon, required this.message});
+  final double w;
+  final double h;
+
+  const _InfoCard({required this.w, required this.h});
 
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(w * 0.04),
       decoration: BoxDecoration(
         color: primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(w * 0.03),
         border: Border.all(color: primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: primary, size: 18),
-          const SizedBox(width: 10),
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedInformationCircle,
+            color: primary,
+            size: w * 0.045,
+          ),
+          SizedBox(width: w * 0.03),
           Expanded(
             child: Text(
-              message,
+              'An OTP will be sent to verify this mobile money account before it can be used for payouts.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: w * 0.033,
                 color: primary,
-                height: 1.4,
+                height: w * 0.004,
               ),
             ),
           ),

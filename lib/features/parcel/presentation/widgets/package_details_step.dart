@@ -11,6 +11,50 @@ import '../../../../constant/app_theme.dart';
 // 5 MB size cap per image
 const _maxFileSizeBytes = 5 * 1024 * 1024;
 
+// ── Weight category model ─────────────────────────────────────────────────────
+
+class _WCategory {
+  final String id;
+  final String label;
+  final String range;
+  final String examples;
+  final String defaultKg;
+  final List<List<dynamic>> icon;
+  final Color accent;
+
+  const _WCategory({
+    required this.id,
+    required this.label,
+    required this.range,
+    required this.examples,
+    required this.defaultKg,
+    required this.icon,
+    required this.accent,
+  });
+
+  double get _min => switch (id) {
+        'envelope' => 0.0,
+        'small' => 0.5,
+        'medium' => 3.0,
+        'large' => 8.0,
+        'heavy' => 15.0,
+        _ => 0.0,
+      };
+
+  double get _max => switch (id) {
+        'envelope' => 0.5,
+        'small' => 3.0,
+        'medium' => 8.0,
+        'large' => 15.0,
+        'heavy' => 20.0,
+        _ => 20.0,
+      };
+
+  bool matches(double kg) => kg >= _min && (id == 'heavy' ? kg <= _max : kg < _max);
+}
+
+// ── Main widget ───────────────────────────────────────────────────────────────
+
 class PackageDetailsStep extends StatefulWidget {
   final List<File> images;
   final String weightText;
@@ -34,20 +78,90 @@ class PackageDetailsStep extends StatefulWidget {
 }
 
 class _PackageDetailsStepState extends State<PackageDetailsStep> {
-  late final TextEditingController _weightCtrl;
+  late final List<_WCategory> _categories;
+  late final TextEditingController _customCtrl;
   bool _isPicking = false;
+  String? _selectedCategoryId;
+  bool _showCustom = false;
+  bool _overLimit = false;
 
   @override
   void initState() {
     super.initState();
-    _weightCtrl = TextEditingController(text: widget.weightText);
+
+    _categories = [
+      _WCategory(
+        id: 'envelope',
+        label: 'Envelope',
+        range: 'Under 0.5 kg',
+        examples: 'Documents, letters, SIM cards',
+        defaultKg: '0.3',
+        icon: HugeIcons.strokeRoundedMail01,
+        accent: AppColors.info,
+      ),
+      _WCategory(
+        id: 'small',
+        label: 'Small',
+        range: '0.5 – 3 kg',
+        examples: 'Phone, books, shoes, small gift',
+        defaultKg: '1.5',
+        icon: HugeIcons.strokeRoundedSmartPhone01,
+        accent: AppColors.success,
+      ),
+      _WCategory(
+        id: 'medium',
+        label: 'Medium',
+        range: '3 – 8 kg',
+        examples: 'Clothes, food box, small electronics',
+        defaultKg: '5.0',
+        icon: HugeIcons.strokeRoundedShoppingBag01,
+        accent: AppColors.accent,
+      ),
+      _WCategory(
+        id: 'large',
+        label: 'Large',
+        range: '8 – 15 kg',
+        examples: 'Appliances, big boxes, groceries',
+        defaultKg: '11.0',
+        icon: HugeIcons.strokeRoundedDeliveryBox01,
+        accent: const Color(0xFF9B59B6),
+      ),
+      _WCategory(
+        id: 'heavy',
+        label: 'Heavy',
+        range: '15 – 20 kg',
+        examples: 'Furniture parts, heavy equipment',
+        defaultKg: '17.0',
+        icon: HugeIcons.strokeRoundedDeliveryTruck01,
+        accent: AppColors.error,
+      ),
+    ];
+
+    _customCtrl = TextEditingController(text: widget.weightText);
+
+    // Auto-restore selection when returning to this step
+    if (widget.weightText.isNotEmpty) {
+      final kg = double.tryParse(widget.weightText);
+      if (kg != null) {
+        final match = _categories.where((c) => c.matches(kg)).firstOrNull;
+        if (match != null) {
+          _selectedCategoryId = match.id;
+        } else {
+          // Weight was set manually outside any category range
+          _showCustom = true;
+          _overLimit = kg > 20.0;
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
-    _weightCtrl.dispose();
+    _customCtrl.dispose();
     super.dispose();
   }
+
+  // ── Image picking ─────────────────────────────────────────────────────────
 
   Future<void> _pickImages() async {
     final remaining = widget.maxImages - widget.images.length;
@@ -103,6 +217,34 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
     );
   }
 
+  // ── Weight selection ──────────────────────────────────────────────────────
+
+  void _selectCategory(_WCategory cat) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selectedCategoryId = cat.id;
+      _showCustom = false;
+      _overLimit = false;
+    });
+    _customCtrl.text = cat.defaultKg;
+    widget.onWeightChanged(cat.defaultKg);
+  }
+
+  void _onCustomWeightChanged(String value) {
+    final kg = double.tryParse(value);
+    setState(() {
+      _overLimit = kg != null && kg > 20.0;
+      if (kg != null) {
+        // Smart: auto-highlight matching category tile while typing
+        final match = _categories.where((c) => c.matches(kg)).firstOrNull;
+        _selectedCategoryId = match?.id;
+      } else {
+        _selectedCategoryId = null;
+      }
+    });
+    widget.onWeightChanged(value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -123,7 +265,7 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
         ),
         SizedBox(height: w * 0.015),
         Text(
-          'Add up to ${widget.maxImages} photos and the package weight.',
+          'Add up to ${widget.maxImages} photos and select your package size.',
           style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
         ),
         SizedBox(height: w * 0.06),
@@ -149,11 +291,7 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
         SizedBox(height: w * 0.03),
 
         if (!hasImages)
-          _EmptyImageSlot(
-            isPicking: _isPicking,
-            onTap: _pickImages,
-            w: w,
-          )
+          _EmptyImageSlot(isPicking: _isPicking, onTap: _pickImages, w: w)
         else
           _ImageGrid(
             images: widget.images,
@@ -169,28 +307,130 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 
         SizedBox(height: w * 0.07),
 
-        // ── Weight section ────────────────────────────────────────────────────
-        _sectionLabel('Package Weight', w),
-        SizedBox(height: w * 0.03),
-        _WeightField(
-          controller: _weightCtrl,
-          onChanged: widget.onWeightChanged,
-          w: w,
-        ),
-        SizedBox(height: w * 0.025),
+        // ── Weight / Size section ─────────────────────────────────────────────
         Row(
           children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedInformationCircle,
-              color: AppColors.textHint,
-              size: w * 0.038,
+            _sectionLabel('Package Size', w),
+            const Spacer(),
+            // Selected weight badge
+            if (widget.weightText.isNotEmpty && !_overLimit)
+              _WeightBadge(weightText: widget.weightText, w: w),
+          ],
+        ),
+        SizedBox(height: w * 0.01),
+        Text(
+          'Tap the closest match — we\'ll estimate the weight for you.',
+          style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
+        ),
+        SizedBox(height: w * 0.04),
+
+        // ── Category grid (2 columns) ──────────────────────────────────────────
+        _buildCategoryGrid(w),
+
+        SizedBox(height: w * 0.04),
+
+        // ── "Enter exact weight" toggle ───────────────────────────────────────
+        _ExactWeightToggle(
+          isOpen: _showCustom,
+          w: w,
+          onToggle: () => setState(() => _showCustom = !_showCustom),
+        ),
+
+        // ── Custom weight field (expanded) ────────────────────────────────────
+        AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          child: _showCustom
+              ? Padding(
+                  padding: EdgeInsets.only(top: w * 0.03),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _CustomWeightField(
+                        controller: _customCtrl,
+                        onChanged: _onCustomWeightChanged,
+                        w: w,
+                      ),
+                      if (_overLimit) ...[
+                        SizedBox(height: w * 0.025),
+                        _OverLimitWarning(w: w),
+                      ] else if (_selectedCategoryId != null &&
+                          _customCtrl.text.isNotEmpty) ...[
+                        SizedBox(height: w * 0.02),
+                        _CategoryMatchHint(
+                          category: _categories
+                              .firstWhere((c) => c.id == _selectedCategoryId),
+                          w: w,
+                        ),
+                      ],
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+
+        SizedBox(height: w * 0.025),
+        _MaxWeightNote(w: w),
+      ],
+    );
+  }
+
+  Widget _buildCategoryGrid(double w) {
+    final gap = w * 0.03;
+    final tileW = (w - w * 0.1 - gap) / 2;
+
+    return Column(
+      children: [
+        // Row 1: Envelope + Small
+        Row(
+          children: [
+            _CategoryTile(
+              category: _categories[0],
+              isSelected: _selectedCategoryId == _categories[0].id,
+              width: tileW,
+              onTap: () => _selectCategory(_categories[0]),
+              w: w,
             ),
-            SizedBox(width: w * 0.02),
-            Text(
-              'Maximum weight: 20 kg per delivery',
-              style: TextStyle(fontSize: w * 0.03, color: AppColors.textHint),
+            SizedBox(width: gap),
+            _CategoryTile(
+              category: _categories[1],
+              isSelected: _selectedCategoryId == _categories[1].id,
+              width: tileW,
+              onTap: () => _selectCategory(_categories[1]),
+              w: w,
             ),
           ],
+        ),
+        SizedBox(height: gap),
+        // Row 2: Medium + Large
+        Row(
+          children: [
+            _CategoryTile(
+              category: _categories[2],
+              isSelected: _selectedCategoryId == _categories[2].id,
+              width: tileW,
+              onTap: () => _selectCategory(_categories[2]),
+              w: w,
+            ),
+            SizedBox(width: gap),
+            _CategoryTile(
+              category: _categories[3],
+              isSelected: _selectedCategoryId == _categories[3].id,
+              width: tileW,
+              onTap: () => _selectCategory(_categories[3]),
+              w: w,
+            ),
+          ],
+        ),
+        SizedBox(height: gap),
+        // Row 3: Heavy (full width)
+        _CategoryTile(
+          category: _categories[4],
+          isSelected: _selectedCategoryId == _categories[4].id,
+          width: double.infinity,
+          isFullWidth: true,
+          onTap: () => _selectCategory(_categories[4]),
+          w: w,
         ),
       ],
     );
@@ -206,7 +446,511 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
       );
 }
 
-// ── Empty slot (no images yet) ────────────────────────────────────────────────
+// ── Category tile ─────────────────────────────────────────────────────────────
+
+class _CategoryTile extends StatelessWidget {
+  final _WCategory category;
+  final bool isSelected;
+  final double width;
+  final bool isFullWidth;
+  final VoidCallback onTap;
+  final double w;
+
+  const _CategoryTile({
+    required this.category,
+    required this.isSelected,
+    required this.width,
+    required this.onTap,
+    required this.w,
+    this.isFullWidth = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        width: width,
+        padding: EdgeInsets.all(w * 0.038),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? category.accent.withValues(alpha: 0.07)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(w * 0.035),
+          border: Border.all(
+            color: isSelected ? category.accent : AppColors.border,
+            width: isSelected ? 2.0 : 1.0,
+          ),
+        ),
+        child: isFullWidth
+            ? _FullWidthContent(category: category, isSelected: isSelected, w: w)
+            : _CompactContent(category: category, isSelected: isSelected, w: w),
+      ),
+    );
+  }
+}
+
+// ── Compact tile content (2-column tiles) ─────────────────────────────────────
+
+class _CompactContent extends StatelessWidget {
+  final _WCategory category;
+  final bool isSelected;
+  final double w;
+
+  const _CompactContent({
+    required this.category,
+    required this.isSelected,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(w * 0.02),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? category.accent.withValues(alpha: 0.15)
+                    : AppColors.border.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(w * 0.02),
+              ),
+              child: HugeIcon(
+                icon: category.icon,
+                color: isSelected ? category.accent : AppColors.textSecondary,
+                size: w * 0.05,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              Container(
+                width: w * 0.05,
+                height: w * 0.05,
+                decoration: BoxDecoration(
+                  color: category.accent,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: w * 0.032,
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: w * 0.028),
+        Text(
+          category.label,
+          style: TextStyle(
+            fontSize: w * 0.038,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? category.accent : AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: w * 0.008),
+        Text(
+          category.range,
+          style: TextStyle(
+            fontSize: w * 0.029,
+            fontWeight: FontWeight.w600,
+            color: isSelected
+                ? category.accent.withValues(alpha: 0.8)
+                : AppColors.textSecondary,
+          ),
+        ),
+        SizedBox(height: w * 0.01),
+        Text(
+          category.examples,
+          style: TextStyle(
+            fontSize: w * 0.028,
+            color: AppColors.textHint,
+            height: 1.4,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+// ── Full-width tile content (Heavy tier) ──────────────────────────────────────
+
+class _FullWidthContent extends StatelessWidget {
+  final _WCategory category;
+  final bool isSelected;
+  final double w;
+
+  const _FullWidthContent({
+    required this.category,
+    required this.isSelected,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(w * 0.025),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? category.accent.withValues(alpha: 0.15)
+                : AppColors.border.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(w * 0.02),
+          ),
+          child: HugeIcon(
+            icon: category.icon,
+            color: isSelected ? category.accent : AppColors.textSecondary,
+            size: w * 0.055,
+          ),
+        ),
+        SizedBox(width: w * 0.035),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                category.label,
+                style: TextStyle(
+                  fontSize: w * 0.038,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? category.accent : AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(height: w * 0.005),
+              Text(
+                '${category.range}  ·  ${category.examples}',
+                style: TextStyle(
+                  fontSize: w * 0.029,
+                  color: AppColors.textHint,
+                  height: 1.35,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        if (isSelected) ...[
+          SizedBox(width: w * 0.02),
+          Container(
+            width: w * 0.055,
+            height: w * 0.055,
+            decoration: BoxDecoration(
+              color: category.accent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              color: Colors.white,
+              size: w * 0.035,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Selected weight badge ─────────────────────────────────────────────────────
+
+class _WeightBadge extends StatelessWidget {
+  final String weightText;
+  final double w;
+
+  const _WeightBadge({required this.weightText, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      child: Container(
+        key: ValueKey(weightText),
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.03,
+          vertical: w * 0.012,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(w * 0.05),
+          border: Border.all(
+            color: AppColors.success.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.success,
+              size: w * 0.035,
+            ),
+            SizedBox(width: w * 0.015),
+            Text(
+              '~$weightText kg',
+              style: TextStyle(
+                fontSize: w * 0.032,
+                fontWeight: FontWeight.w700,
+                color: AppColors.success,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Exact weight toggle ───────────────────────────────────────────────────────
+
+class _ExactWeightToggle extends StatelessWidget {
+  final bool isOpen;
+  final double w;
+  final VoidCallback onToggle;
+
+  const _ExactWeightToggle({
+    required this.isOpen,
+    required this.w,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.04,
+          vertical: w * 0.035,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(w * 0.03),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedDeliveryBox01,
+              color: AppColors.textSecondary,
+              size: w * 0.045,
+            ),
+            SizedBox(width: w * 0.03),
+            Expanded(
+              child: Text(
+                isOpen ? 'Hide exact weight' : 'Enter exact weight (optional)',
+                style: TextStyle(
+                  fontSize: w * 0.035,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            AnimatedRotation(
+              turns: isOpen ? 0.5 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: AppColors.textSecondary,
+                size: w * 0.055,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Custom weight field ───────────────────────────────────────────────────────
+
+class _CustomWeightField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final double w;
+
+  const _CustomWeightField({
+    required this.controller,
+    required this.onChanged,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(width: w * 0.04),
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedDeliveryBox01,
+            color: AppColors.textSecondary,
+            size: w * 0.05,
+          ),
+          SizedBox(width: w * 0.03),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+              ],
+              onChanged: onChanged,
+              autofocus: true,
+              style: TextStyle(
+                fontSize: w * 0.04,
+                color: AppColors.textPrimary,
+                fontFamily: 'Mukta',
+              ),
+              decoration: InputDecoration(
+                hintText: '0.0',
+                hintStyle: TextStyle(
+                  fontSize: w * 0.04,
+                  color: AppColors.textHint,
+                  fontFamily: 'Mukta',
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: w * 0.04,
+                  horizontal: w * 0.02,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.04,
+              vertical: w * 0.04,
+            ),
+            decoration: const BoxDecoration(
+              border: Border(left: BorderSide(color: AppColors.border)),
+            ),
+            child: Text(
+              'kg',
+              style: TextStyle(
+                fontSize: w * 0.038,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Category match hint (shown when custom weight matches a category) ──────────
+
+class _CategoryMatchHint extends StatelessWidget {
+  final _WCategory category;
+  final double w;
+
+  const _CategoryMatchHint({required this.category, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        HugeIcon(
+          icon: category.icon,
+          color: category.accent,
+          size: w * 0.038,
+        ),
+        SizedBox(width: w * 0.02),
+        Text(
+          'Matches ${category.label} · ${category.range}',
+          style: TextStyle(
+            fontSize: w * 0.031,
+            fontWeight: FontWeight.w600,
+            color: category.accent,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Over-limit warning ────────────────────────────────────────────────────────
+
+class _OverLimitWarning extends StatelessWidget {
+  final double w;
+  const _OverLimitWarning({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: w * 0.04,
+        vertical: w * 0.025,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(w * 0.025),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedInformationCircle,
+            color: AppColors.error,
+            size: w * 0.04,
+          ),
+          SizedBox(width: w * 0.025),
+          Expanded(
+            child: Text(
+              'Weight exceeds 20 kg. We can\'t deliver items over this limit.',
+              style: TextStyle(
+                fontSize: w * 0.031,
+                color: AppColors.error,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Max weight info note ──────────────────────────────────────────────────────
+
+class _MaxWeightNote extends StatelessWidget {
+  final double w;
+  const _MaxWeightNote({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        HugeIcon(
+          icon: HugeIcons.strokeRoundedInformationCircle,
+          color: AppColors.textHint,
+          size: w * 0.038,
+        ),
+        SizedBox(width: w * 0.02),
+        Text(
+          'Maximum delivery weight: 20 kg',
+          style: TextStyle(fontSize: w * 0.03, color: AppColors.textHint),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Empty image slot ──────────────────────────────────────────────────────────
 
 class _EmptyImageSlot extends StatelessWidget {
   final bool isPicking;
@@ -274,7 +1018,7 @@ class _EmptyImageSlot extends StatelessWidget {
   }
 }
 
-// ── Image grid (thumbnails + add-more tile) ───────────────────────────────────
+// ── Image grid ────────────────────────────────────────────────────────────────
 
 class _ImageGrid extends StatelessWidget {
   final List<File> images;
@@ -321,7 +1065,7 @@ class _ImageGrid extends StatelessWidget {
   }
 }
 
-// ── Individual thumbnail ──────────────────────────────────────────────────────
+// ── Image thumbnail ───────────────────────────────────────────────────────────
 
 class _ImageThumbnail extends StatelessWidget {
   final File file;
@@ -355,7 +1099,6 @@ class _ImageThumbnail extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-          // Remove button
           Positioned(
             top: -(w * 0.015),
             right: -(w * 0.015),
@@ -487,88 +1230,6 @@ class _SizeRestrictionNote extends StatelessWidget {
                 fontSize: w * 0.03,
                 color: AppColors.textSecondary,
                 height: 1.45,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Weight field ──────────────────────────────────────────────────────────────
-
-class _WeightField extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final double w;
-
-  const _WeightField({
-    required this.controller,
-    required this.onChanged,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          SizedBox(width: w * 0.04),
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedDeliveryBox01,
-            color: AppColors.textSecondary,
-            size: w * 0.05,
-          ),
-          SizedBox(width: w * 0.03),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
-              onChanged: onChanged,
-              style: TextStyle(
-                fontSize: w * 0.04,
-                color: AppColors.textPrimary,
-                fontFamily: 'Mukta',
-              ),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                hintStyle: TextStyle(
-                  fontSize: w * 0.04,
-                  color: AppColors.textHint,
-                  fontFamily: 'Mukta',
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: w * 0.04,
-                  horizontal: w * 0.02,
-                ),
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: w * 0.04,
-              vertical: w * 0.04,
-            ),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: AppColors.border)),
-            ),
-            child: Text(
-              'kg',
-              style: TextStyle(
-                fontSize: w * 0.038,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
               ),
             ),
           ),

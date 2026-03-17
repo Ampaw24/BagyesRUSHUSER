@@ -89,7 +89,7 @@ class _ProviderTileState extends State<_ProviderTile>
     super.dispose();
   }
 
-  // ── Brand colours ────────────────────────────────────────────────────────
+  // ── Brand asset & colour ─────────────────────────────────────────────────
 
   Color get _brandColor => switch (widget.provider) {
         MobileMoneyProvider.mtnMomo => const Color(0xFFFFCC00),
@@ -97,10 +97,10 @@ class _ProviderTileState extends State<_ProviderTile>
         MobileMoneyProvider.airtelTigo => const Color(0xFF1565C0),
       };
 
-  String get _initials => switch (widget.provider) {
-        MobileMoneyProvider.mtnMomo => 'MTN',
-        MobileMoneyProvider.vodafoneCash => 'VF',
-        MobileMoneyProvider.airtelTigo => 'AT',
+  String get _assetPath => switch (widget.provider) {
+        MobileMoneyProvider.mtnMomo => 'assets/icons/mtnbanner.png',
+        MobileMoneyProvider.vodafoneCash => 'assets/icons/telecel_icon.jpg',
+        MobileMoneyProvider.airtelTigo => 'assets/icons/atbanner.png',
       };
 
   @override
@@ -121,7 +121,7 @@ class _ProviderTileState extends State<_ProviderTile>
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? _brandColor.withValues(alpha: 0.12)
+                ? _brandColor.withValues(alpha: 0.10)
                 : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
@@ -141,27 +141,14 @@ class _ProviderTileState extends State<_ProviderTile>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Brand badge
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _brandColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    _initials,
-                    style: TextStyle(
-                      fontSize: widget.provider == MobileMoneyProvider.mtnMomo
-                          ? 9
-                          : 11,
-                      fontWeight: FontWeight.w900,
-                      color: widget.provider == MobileMoneyProvider.mtnMomo
-                          ? const Color(0xFF1A1A1A)
-                          : Colors.white,
-                    ),
-                  ),
+              // Provider logo
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  _assetPath,
+                  width: 52,
+                  height: 40,
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 8),
@@ -170,18 +157,13 @@ class _ProviderTileState extends State<_ProviderTile>
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected ? _brandColor : AppColors.textSecondary,
                 ),
               ),
               if (isSelected) ...[
                 const SizedBox(height: 4),
-                Icon(
-                  Icons.check_circle_rounded,
-                  size: 14,
-                  color: _brandColor,
-                ),
+                Icon(Icons.check_circle_rounded, size: 14, color: _brandColor),
               ],
             ],
           ),

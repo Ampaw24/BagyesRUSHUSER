@@ -60,7 +60,7 @@ class SendParcelState {
       case ParcelStep.packageType:
         return packageType != null;
       case ParcelStep.packageDetails:
-        return weightText.isNotEmpty && packageImages.isNotEmpty;
+        return weightText.isNotEmpty;
       case ParcelStep.pickupLocation:
         return pickupLatLng != null && pickupAddress.isNotEmpty;
       case ParcelStep.deliveryLocation:
