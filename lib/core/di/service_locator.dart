@@ -3,13 +3,16 @@ import '../services/secure_storage_service.dart';
 import '../services/user_session_manager.dart';
 import '../utils/network_utility.dart';
 import '../../src/auth/repositories/auth_repository.dart';
+import '../../src/auth/repositories/auth_repository_impl.dart';
 import '../../src/auth/viewmodels/auth_viewmodel.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import '../../src/vendor_registration/repositories/vendor_repository.dart';
+import '../../src/vendor_registration/repositories/vendor_repository_impl.dart';
 import '../../src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
 import '../../src/vendor_registration/viewmodels/step_validator.dart';
 import '../../src/vendor/repository/vendor_dashboard_repository.dart';
+import '../../src/vendor/repository/vendor_dashboard_repository_impl.dart';
 import '../../src/vendor/viewmodel/dashboard_viewmodel.dart';
 import '../../src/vendor/viewmodel/orders_viewmodel.dart';
 import '../../src/vendor/viewmodel/menu_viewmodel.dart';
@@ -18,8 +21,10 @@ import '../../src/vendor/viewmodel/settings_viewmodel.dart';
 import '../../features/vendor_payment_methods/services/payment_api_service.dart';
 import '../../features/vendor_payment_methods/services/otp_service.dart';
 import '../../features/vendor_payment_methods/repositories/payment_repository.dart';
+import '../../features/vendor_payment_methods/repositories/payment_repository_impl.dart';
 import '../../features/vendor_wallet/services/wallet_api_service.dart';
 import '../../features/vendor_wallet/repositories/wallet_repository.dart';
+import '../../features/vendor_wallet/repositories/wallet_repository_impl.dart';
 
 final sl = GetIt.instance;
 

@@ -248,9 +248,6 @@ class _OnboardingViewState extends State<OnboardingView>
                         viewModel.state.selectedRole == options[index].role,
                     onTap: () {
                       viewModel.selectRole(options[index].role);
-                      if (options[index].role == AppRole.user) {
-                        _handleRoleSelection(context, viewModel);
-                      }
                     },
                   ),
                 ),

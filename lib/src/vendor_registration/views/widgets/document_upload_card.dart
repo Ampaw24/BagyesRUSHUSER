@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 
 /// Card widget for selecting and displaying a document upload
@@ -64,10 +65,10 @@ class DocumentUploadCard extends StatelessWidget {
                         color: AppColors.primary,
                       ),
                     )
-                  : Icon(
-                      hasFile
-                          ? Icons.check_circle_rounded
-                          : Icons.cloud_upload_outlined,
+                  : HugeIcon(
+                      icon: hasFile
+                          ? HugeIcons.strokeRoundedCheckmarkCircle01
+                          : HugeIcons.strokeRoundedCloudUpload,
                       color: hasFile ? AppColors.success : AppColors.primary,
                       size: size.width * 0.06,
                     ),
@@ -119,8 +120,10 @@ class DocumentUploadCard extends StatelessWidget {
               ),
             ),
             // Trailing icon
-            Icon(
-              hasFile ? Icons.swap_horiz_rounded : Icons.add_rounded,
+            HugeIcon(
+              icon: hasFile
+                  ? HugeIcons.strokeRoundedExchange01
+                  : HugeIcons.strokeRoundedAdd01,
               color: AppColors.textHint,
               size: size.width * 0.055,
             ),

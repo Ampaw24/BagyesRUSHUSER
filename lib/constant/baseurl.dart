@@ -1,3 +1,8 @@
-// ignore_for_file: constant_identifier_names
+// ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
-const String BASEURL = 'http://44.201.244.12:9000/api/v1';
+import 'package:flutter/foundation.dart';
+import '../core/utils/config..utils.dart';
+
+/// Returns the appropriate base URL depending on the build mode.
+/// In debug mode the DEV_BASE_URL is used; in release/profile the PROD_BASE_URL.
+String get BASEURL => kDebugMode ? Config.devBaseUrl : Config.baseUrl;

@@ -1,5 +1,6 @@
 import 'package:bagyesrushappusernew/constant/constant.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -105,8 +106,10 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     if (vm.state.canGoBack) {
       vm.previousStep();
       _animateStepTransition();
-    } else {
+    } else if (context.canPop()) {
       context.pop();
+    } else {
+      context.go(AppRoutes.onboarding);
     }
   }
 
@@ -238,8 +241,8 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
               color: AppColors.surfaceVariant,
               border: Border.all(color: AppColors.border),
             ),
-            child: Icon(
-              Icons.arrow_back_rounded,
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
               size: size.width * 0.05,
               color: AppColors.textPrimary,
             ),
@@ -293,8 +296,8 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.error_outline_rounded,
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedAlert01,
             color: AppColors.error,
             size: size.width * 0.05,
           ),
@@ -310,8 +313,8 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
           ),
           GestureDetector(
             onTap: vm.clearError,
-            child: Icon(
-              Icons.close_rounded,
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedCancel01,
               color: AppColors.error,
               size: size.width * 0.045,
             ),

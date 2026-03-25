@@ -3,6 +3,7 @@ import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/constant.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -98,23 +99,13 @@ class _SignupViewState extends State<SignupView>
       return;
     }
 
-    // Check length
     if (password.length >= 8) strength += 0.25;
     if (password.length >= 12) strength += 0.1;
-
-    // Check for lowercase
     if (password.contains(RegExp(r'[a-z]'))) strength += 0.2;
-
-    // Check for uppercase
     if (password.contains(RegExp(r'[A-Z]'))) strength += 0.2;
-
-    // Check for numbers
     if (password.contains(RegExp(r'[0-9]'))) strength += 0.15;
-
-    // Check for special characters
     if (password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) strength += 0.1;
 
-    // Determine strength text and color
     if (strength <= 0.3) {
       text = 'Weak';
       color = Colors.red;
@@ -233,7 +224,6 @@ class _SignupViewState extends State<SignupView>
     final authViewModel = context.read<AuthViewModel>();
     final phone = _phoneController.text.trim();
 
-    // Store signup data temporarily in the ViewModel for later use
     authViewModel.storeSignupData({
       'firstName': _firstNameController.text.trim(),
       'lastName': _lastNameController.text.trim(),
@@ -243,11 +233,9 @@ class _SignupViewState extends State<SignupView>
       'referralCode': _referralController.text.trim(),
     });
 
-    // Send OTP for phone verification
     authViewModel.sendOtp(phone).then((_) {
       final state = authViewModel.state;
       if (state.status == AuthStatus.initial && state.errorMessage == null) {
-        // Navigate to OTP verification
         AppNavigator.toOtp(context);
       } else if (state.status == AuthStatus.error) {
         CustomDialog.showError(
@@ -284,7 +272,6 @@ class _SignupViewState extends State<SignupView>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final authViewModel = context.watch<AuthViewModel>();
     final loading = authViewModel.state.status == AuthStatus.loading;
 
@@ -294,32 +281,25 @@ class _SignupViewState extends State<SignupView>
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isTablet = constraints.maxWidth > 600;
-            final horizontalPadding = isTablet
-                ? constraints.maxWidth * 0.15
-                : constraints.maxWidth * 0.06;
+            final sw = constraints.maxWidth;
+            final sh = constraints.maxHeight;
+            final horizontalPadding = isTablet ? sw * 0.15 : sw * 0.06;
 
             return Column(
               children: [
-                // Header with back button
-                _buildHeader(size, horizontalPadding),
-
-                // Progress indicator
-                _buildProgressIndicator(size, horizontalPadding),
-
-                // Form content
+                _buildHeader(sw, sh, horizontalPadding),
+                _buildProgressIndicator(sw, sh, horizontalPadding),
                 Expanded(
                   child: PageView(
                     controller: _pageController,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
-                      _buildStep1(size, horizontalPadding, loading),
-                      _buildStep2(size, horizontalPadding, loading),
+                      _buildStep1(sw, sh, horizontalPadding, loading),
+                      _buildStep2(sw, sh, horizontalPadding, loading),
                     ],
                   ),
                 ),
-
-                // Bottom section with button
-                _buildBottomSection(size, horizontalPadding, loading),
+                _buildBottomSection(sw, sh, horizontalPadding, loading),
               ],
             );
           },
@@ -328,16 +308,20 @@ class _SignupViewState extends State<SignupView>
     );
   }
 
-  Widget _buildHeader(Size size, double horizontalPadding) {
+  Widget _buildHeader(double sw, double sh, double horizontalPadding) {
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: horizontalPadding,
-        vertical: size.height * 0.02,
+        vertical: sh * 0.02,
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
+              color: Colors.black87,
+              size: (sw * 0.06).clamp(20, 28),
+            ),
             onPressed: () {
               if (_currentStep > 0) {
                 _previousStep();
@@ -346,11 +330,11 @@ class _SignupViewState extends State<SignupView>
               }
             },
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: sw * 0.02),
           Text(
             _currentStep == 0 ? 'Personal Details' : 'Security',
-            style: const TextStyle(
-              fontSize: 20,
+            style: TextStyle(
+              fontSize: (sw * 0.051).clamp(16, 24),
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -360,7 +344,11 @@ class _SignupViewState extends State<SignupView>
     );
   }
 
-  Widget _buildProgressIndicator(Size size, double horizontalPadding) {
+  Widget _buildProgressIndicator(
+    double sw,
+    double sh,
+    double horizontalPadding,
+  ) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Column(
@@ -371,31 +359,31 @@ class _SignupViewState extends State<SignupView>
               Expanded(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  height: 4,
+                  height: sh * 0.005,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(sw * 0.005),
                     color: Colors.red,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: sw * 0.02),
               Expanded(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  height: 4,
+                  height: sh * 0.005,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(sw * 0.005),
                     color: _currentStep >= 1 ? Colors.red : Colors.grey[300],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: sh * 0.01),
           Text(
             'Step ${_currentStep + 1} of 2',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: (sw * 0.030).clamp(10, 14),
               color: Colors.grey[600],
               fontWeight: FontWeight.w500,
             ),
@@ -405,7 +393,12 @@ class _SignupViewState extends State<SignupView>
     );
   }
 
-  Widget _buildStep1(Size size, double horizontalPadding, bool loading) {
+  Widget _buildStep1(
+    double sw,
+    double sh,
+    double horizontalPadding,
+    bool loading,
+  ) {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
@@ -417,78 +410,88 @@ class _SignupViewState extends State<SignupView>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: size.height * 0.03),
-                const Text(
+                SizedBox(height: sh * 0.03),
+                Text(
                   "Let's get you started",
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: (sw * 0.072).clamp(22, 34),
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: sh * 0.01),
                 Text(
                   'Create a new account to get started',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: (sw * 0.038).clamp(13, 17),
                     color: Colors.grey[600],
                     height: 1.4,
                   ),
                 ),
-                SizedBox(height: size.height * 0.04),
+                SizedBox(height: sh * 0.04),
                 _ModernTextField(
                   controller: _firstNameController,
                   focusNode: _firstNameFocus,
                   label: 'First Name',
                   hint: 'Enter your first name',
-                  prefixIcon: Icons.person_outline,
+                  prefixIcon: HugeIcons.strokeRoundedUser,
                   textInputAction: TextInputAction.next,
                   enabled: !loading,
+                  screenWidth: sw,
+                  screenHeight: sh,
                   onSubmitted: (_) => _lastNameFocus.requestFocus(),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: sh * 0.018),
                 _ModernTextField(
                   controller: _lastNameController,
                   focusNode: _lastNameFocus,
                   label: 'Last Name',
                   hint: 'Enter your last name',
-                  prefixIcon: Icons.person_outline,
+                  prefixIcon: HugeIcons.strokeRoundedUser,
                   textInputAction: TextInputAction.next,
                   enabled: !loading,
+                  screenWidth: sw,
+                  screenHeight: sh,
                   onSubmitted: (_) => _emailFocus.requestFocus(),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: sh * 0.018),
                 _ModernTextField(
                   controller: _emailController,
                   focusNode: _emailFocus,
                   label: 'Email Address',
                   hint: 'your.email@example.com',
-                  prefixIcon: Icons.email_outlined,
+                  prefixIcon: HugeIcons.strokeRoundedMail01,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   enabled: !loading,
+                  screenWidth: sw,
+                  screenHeight: sh,
                   onSubmitted: (_) => _phoneFocus.requestFocus(),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: sh * 0.018),
                 _ModernPhoneField(
                   controller: _phoneController,
                   focusNode: _phoneFocus,
                   enabled: !loading,
+                  screenWidth: sw,
+                  screenHeight: sh,
                   onSubmitted: (_) => _referralFocus.requestFocus(),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: sh * 0.018),
                 _ModernTextField(
                   controller: _referralController,
                   focusNode: _referralFocus,
                   label: 'Referral Code (Optional)',
                   hint: 'Enter referral code',
-                  prefixIcon: Icons.card_giftcard_outlined,
+                  prefixIcon: HugeIcons.strokeRoundedGift,
                   textInputAction: TextInputAction.done,
                   enabled: !loading,
+                  screenWidth: sw,
+                  screenHeight: sh,
                   onSubmitted: (_) => _nextStep(),
                 ),
-                SizedBox(height: size.height * 0.02),
+                SizedBox(height: sh * 0.02),
               ],
             ),
           ),
@@ -497,7 +500,12 @@ class _SignupViewState extends State<SignupView>
     );
   }
 
-  Widget _buildStep2(Size size, double horizontalPadding, bool loading) {
+  Widget _buildStep2(
+    double sw,
+    double sh,
+    double horizontalPadding,
+    bool loading,
+  ) {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
@@ -505,39 +513,44 @@ class _SignupViewState extends State<SignupView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: size.height * 0.03),
-            const Text(
+            SizedBox(height: sh * 0.03),
+            Text(
               'Secure your account',
               style: TextStyle(
-                fontSize: 28,
+                fontSize: (sw * 0.072).clamp(22, 34),
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: sh * 0.01),
             Text(
               'Create a strong password to protect your account',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: (sw * 0.038).clamp(13, 17),
                 color: Colors.grey[600],
                 height: 1.4,
               ),
             ),
-            SizedBox(height: size.height * 0.04),
+            SizedBox(height: sh * 0.04),
             _ModernTextField(
               controller: _passwordController,
               focusNode: _passwordFocus,
               label: 'Password',
               hint: 'Enter your password',
-              prefixIcon: Icons.lock_outline,
+              prefixIcon: HugeIcons.strokeRoundedLock,
               obscureText: _obscurePassword,
               textInputAction: TextInputAction.next,
               enabled: !loading,
+              screenWidth: sw,
+              screenHeight: sh,
               suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey[600],
+                icon: HugeIcon(
+                  icon: _obscurePassword
+                      ? HugeIcons.strokeRoundedViewOff
+                      : HugeIcons.strokeRoundedView,
+                  color: Colors.grey[600]!,
+                  size: (sw * 0.056).clamp(18, 24),
                 ),
                 onPressed: () {
                   setState(() => _obscurePassword = !_obscurePassword);
@@ -546,25 +559,28 @@ class _SignupViewState extends State<SignupView>
               onSubmitted: (_) => _confirmPasswordFocus.requestFocus(),
             ),
             if (_passwordController.text.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildPasswordStrengthIndicator(),
+              SizedBox(height: sh * 0.015),
+              _buildPasswordStrengthIndicator(sw, sh),
             ],
-            const SizedBox(height: 16),
+            SizedBox(height: sh * 0.018),
             _ModernTextField(
               controller: _confirmPasswordController,
               focusNode: _confirmPasswordFocus,
               label: 'Confirm Password',
               hint: 'Re-enter your password',
-              prefixIcon: Icons.lock_outline,
+              prefixIcon: HugeIcons.strokeRoundedLock,
               obscureText: _obscureConfirmPassword,
               textInputAction: TextInputAction.done,
               enabled: !loading,
+              screenWidth: sw,
+              screenHeight: sh,
               suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirmPassword
-                      ? Icons.visibility_off
-                      : Icons.visibility,
-                  color: Colors.grey[600],
+                icon: HugeIcon(
+                  icon: _obscureConfirmPassword
+                      ? HugeIcons.strokeRoundedViewOff
+                      : HugeIcons.strokeRoundedView,
+                  color: Colors.grey[600]!,
+                  size: (sw * 0.056).clamp(18, 24),
                 ),
                 onPressed: () {
                   setState(
@@ -574,54 +590,49 @@ class _SignupViewState extends State<SignupView>
               ),
               onSubmitted: (_) => _nextStep(),
             ),
-            const SizedBox(height: 20),
-            _buildPasswordRequirements(),
-            SizedBox(height: size.height * 0.02),
+            SizedBox(height: sh * 0.025),
+            _buildPasswordRequirements(sw, sh),
+            SizedBox(height: sh * 0.02),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPasswordStrengthIndicator() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPasswordStrengthIndicator(double sw, double sh) {
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: _passwordStrength,
-                  backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation(_passwordStrengthColor),
-                  minHeight: 6,
-                ),
-              ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(sw * 0.01),
+            child: LinearProgressIndicator(
+              value: _passwordStrength,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation(_passwordStrengthColor),
+              minHeight: sh * 0.007,
             ),
-            const SizedBox(width: 12),
-            Text(
-              _passwordStrengthText,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: _passwordStrengthColor,
-              ),
-            ),
-          ],
+          ),
+        ),
+        SizedBox(width: sw * 0.03),
+        Text(
+          _passwordStrengthText,
+          style: TextStyle(
+            fontSize: (sw * 0.033).clamp(11, 15),
+            fontWeight: FontWeight.w600,
+            color: _passwordStrengthColor,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildPasswordRequirements() {
+  Widget _buildPasswordRequirements(double sw, double sh) {
     final password = _passwordController.text;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(sw * 0.04),
       decoration: BoxDecoration(
         color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(sw * 0.03),
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
@@ -630,43 +641,56 @@ class _SignupViewState extends State<SignupView>
           Text(
             'Password must contain:',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: (sw * 0.033).clamp(11, 15),
               fontWeight: FontWeight.w600,
               color: Colors.grey[700],
             ),
           ),
-          const SizedBox(height: 8),
-          _buildRequirement('At least 8 characters', password.length >= 8),
+          SizedBox(height: sh * 0.01),
+          _buildRequirement(
+            'At least 8 characters',
+            password.length >= 8,
+            sw,
+            sh,
+          ),
           _buildRequirement(
             'At least one number',
             password.contains(RegExp(r'[0-9]')),
+            sw,
+            sh,
           ),
           _buildRequirement(
             'At least one special character (!@#\$%^&*)',
             password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]')),
+            sw,
+            sh,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRequirement(String text, bool met) {
+  Widget _buildRequirement(String text, bool met, double sw, double sh) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: sh * 0.005),
       child: Row(
         children: [
-          Icon(
-            met ? Icons.check_circle : Icons.circle_outlined,
-            size: 16,
-            color: met ? Colors.green : Colors.grey[400],
+          HugeIcon(
+            icon: met
+                ? HugeIcons.strokeRoundedCheckmarkCircle01
+                : HugeIcons.strokeRoundedCircle,
+            size: (sw * 0.041).clamp(14, 18),
+            color: met ? Colors.green : Colors.grey[400]!,
           ),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              color: met ? Colors.green : Colors.grey[600],
-              fontWeight: met ? FontWeight.w500 : FontWeight.normal,
+          SizedBox(width: sw * 0.02),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: (sw * 0.030).clamp(10, 14),
+                color: met ? Colors.green : Colors.grey[600],
+                fontWeight: met ? FontWeight.w500 : FontWeight.normal,
+              ),
             ),
           ),
         ],
@@ -675,27 +699,27 @@ class _SignupViewState extends State<SignupView>
   }
 
   Widget _buildBottomSection(
-    Size size,
+    double sw,
+    double sh,
     double horizontalPadding,
     bool loading,
   ) {
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: horizontalPadding,
-        vertical: size.height * 0.02,
+        vertical: sh * 0.02,
       ),
       child: Column(
         children: [
-          // Continue/Register button
           InkWell(
             onTap: loading ? null : _nextStep,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(sw * 0.04),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: double.infinity,
-              height: 56,
+              height: (sw * 0.14).clamp(48, 60),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(sw * 0.04),
                 color: loading ? Colors.red.withValues(alpha: 0.7) : Colors.red,
                 boxShadow: loading
                     ? []
@@ -709,12 +733,12 @@ class _SignupViewState extends State<SignupView>
               ),
               child: Center(
                 child: loading
-                    ? const SpinKitCircle(size: 24, color: Colors.white)
+                    ? SpinKitCircle(size: sw * 0.06, color: Colors.white)
                     : Text(
                         _currentStep == 0 ? 'Continue' : 'Send OTP',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: (sw * 0.041).clamp(14, 18),
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
                         ),
@@ -722,18 +746,20 @@ class _SignupViewState extends State<SignupView>
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          // Login link
+          SizedBox(height: sh * 0.018),
           Center(
             child: RichText(
               text: TextSpan(
                 text: 'Already have an account? ',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: (sw * 0.036).clamp(12, 16),
+                  color: Colors.grey[600],
+                ),
                 children: [
                   TextSpan(
                     text: 'Log in',
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: (sw * 0.036).clamp(12, 16),
                       color: Colors.red,
                       fontWeight: FontWeight.w600,
                     ),
@@ -752,19 +778,24 @@ class _SignupViewState extends State<SignupView>
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
 // Modern TextField Component
+// ═══════════════════════════════════════════════════════════════════════════
+
 class _ModernTextField extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String label;
   final String hint;
-  final IconData prefixIcon;
+  final List<List<dynamic>> prefixIcon;
   final bool obscureText;
   final TextInputType keyboardType;
   final TextInputAction textInputAction;
   final bool enabled;
   final Widget? suffixIcon;
   final Function(String)? onSubmitted;
+  final double screenWidth;
+  final double screenHeight;
 
   const _ModernTextField({
     required this.controller,
@@ -772,6 +803,8 @@ class _ModernTextField extends StatefulWidget {
     required this.label,
     required this.hint,
     required this.prefixIcon,
+    required this.screenWidth,
+    required this.screenHeight,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.textInputAction = TextInputAction.next,
@@ -807,89 +840,94 @@ class _ModernTextFieldState extends State<_ModernTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final sw = widget.screenWidth;
+    final sh = widget.screenHeight;
+    final radius = BorderRadius.circular(sw * 0.032);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label,
-          style: const TextStyle(
-            fontSize: 14,
+          style: TextStyle(
+            fontSize: (sw * 0.036).clamp(12, 16),
             fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        const SizedBox(height: 8),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.grey[50],
-            border: Border.all(
-              color: _isFocused ? Colors.red : Colors.grey[300]!,
-              width: _isFocused ? 2 : 1,
-            ),
-            boxShadow: _isFocused
-                ? [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
+        SizedBox(height: sh * 0.008),
+        TextField(
+          controller: widget.controller,
+          focusNode: widget.focusNode,
+          enabled: widget.enabled,
+          obscureText: widget.obscureText,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          style: TextStyle(
+            fontSize: (sw * 0.038).clamp(13, 17),
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
           ),
-          child: TextField(
-            controller: widget.controller,
-            focusNode: widget.focusNode,
-            enabled: widget.enabled,
-            obscureText: widget.obscureText,
-            keyboardType: widget.keyboardType,
-            textInputAction: widget.textInputAction,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+          decoration: InputDecoration(
+            hintText: widget.hint,
+            hintStyle: TextStyle(
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w400,
+              fontSize: (sw * 0.038).clamp(13, 17),
             ),
-            decoration: InputDecoration(
-              hintText: widget.hint,
-              hintStyle: TextStyle(
-                color: Colors.grey[400],
-                fontWeight: FontWeight.w400,
-              ),
-              prefixIcon: Icon(
-                widget.prefixIcon,
-                color: _isFocused ? Colors.red : Colors.grey[600],
-                size: 22,
-              ),
-              suffixIcon: widget.suffixIcon,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              errorBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+            filled: true,
+            fillColor: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
+            prefixIcon: HugeIcon(
+              icon: widget.prefixIcon,
+              color: _isFocused ? Colors.red : Colors.grey[500]!,
+              size: (sw * 0.052).clamp(18, 22),
             ),
-            onSubmitted: widget.onSubmitted,
+            suffixIcon: widget.suffixIcon,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: sw * 0.04,
+              vertical: sh * 0.018,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(color: Colors.grey[100]!, width: 1),
+            ),
           ),
+          onSubmitted: widget.onSubmitted,
         ),
       ],
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
 // Modern Phone Field Component
+// ══════════════════════════════════════════════════���════════════════════════
+
 class _ModernPhoneField extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
   final Function(String)? onSubmitted;
+  final double screenWidth;
+  final double screenHeight;
 
   const _ModernPhoneField({
     required this.controller,
     required this.focusNode,
+    required this.screenWidth,
+    required this.screenHeight,
     this.enabled = true,
     this.onSubmitted,
   });
@@ -921,90 +959,91 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
 
   @override
   Widget build(BuildContext context) {
+    final sw = widget.screenWidth;
+    final sh = widget.screenHeight;
+    final radius = BorderRadius.circular(sw * 0.032);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Phone Number',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: (sw * 0.036).clamp(12, 16),
             fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        const SizedBox(height: 8),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        SizedBox(height: sh * 0.008),
+        Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.grey[50],
+            borderRadius: radius,
+            color: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
             border: Border.all(
-              color: _isFocused ? Colors.red : Colors.grey[300]!,
-              width: _isFocused ? 2 : 1,
+              color: _isFocused ? Colors.red : Colors.grey[200]!,
+              width: _isFocused ? 1.5 : 1,
             ),
-            boxShadow: _isFocused
-                ? [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.phone_outlined,
-                  color: _isFocused ? Colors.red : Colors.grey[600],
-                  size: 22,
+          child: Row(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(left: sw * 0.04),
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedCall,
+                  color: _isFocused ? Colors.red : Colors.grey[500]!,
+                  size: (sw * 0.052).clamp(18, 22),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  '+233',
+              ),
+              SizedBox(width: sw * 0.025),
+              Text(
+                '+233',
+                style: TextStyle(
+                  fontSize: (sw * 0.038).clamp(13, 17),
+                  fontWeight: FontWeight.w600,
+                  color: _isFocused ? Colors.red : Colors.black87,
+                ),
+              ),
+              SizedBox(width: sw * 0.025),
+              Container(
+                width: 1,
+                height: sw * 0.055,
+                color: Colors.grey[300],
+              ),
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  enabled: widget.enabled,
+                  maxLength: 10,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: _isFocused ? Colors.red : Colors.black87,
+                    fontSize: (sw * 0.038).clamp(13, 17),
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Container(width: 1, height: 24, color: Colors.grey[300]),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    enabled: widget.enabled,
-                    maxLength: 10,
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.next,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                  decoration: InputDecoration(
+                    hintText: '24 123 4567',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.w400,
+                      fontSize: (sw * 0.038).clamp(13, 17),
                     ),
-                    decoration: InputDecoration(
-                      hintText: '24 123 4567',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontWeight: FontWeight.w400,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      counterText: '',
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    counterText: '',
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: sw * 0.03,
+                      vertical: sh * 0.018,
                     ),
-                    onSubmitted: widget.onSubmitted,
                   ),
+                  onSubmitted: widget.onSubmitted,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],

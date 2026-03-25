@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../models/vendor_enums.dart';
 
@@ -68,8 +69,8 @@ class StepProgressBar extends StatelessWidget {
               ),
               child: Center(
                 child: isCompleted
-                    ? Icon(
-                        Icons.check_rounded,
+                    ? HugeIcon(
+                        icon: HugeIcons.strokeRoundedCheckmarkCircle01,
                         color: Colors.white,
                         size: dotSize * 0.55,
                       )

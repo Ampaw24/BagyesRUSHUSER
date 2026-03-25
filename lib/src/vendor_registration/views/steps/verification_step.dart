@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../models/vendor_enums.dart';
 
@@ -109,14 +110,14 @@ class _VerificationStepState extends State<VerificationStep>
           child: widget.isVerified
               ? ScaleTransition(
                   scale: _checkScale,
-                  child: Icon(
-                    Icons.check_circle_rounded,
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedCheckmarkCircle01,
                     color: AppColors.success,
                     size: size.width * 0.1,
                   ),
                 )
-              : Icon(
-                  Icons.phone_android_rounded,
+              : HugeIcon(
+                  icon: HugeIcons.strokeRoundedSmartPhone01,
                   color: AppColors.primary,
                   size: size.width * 0.08,
                 ),

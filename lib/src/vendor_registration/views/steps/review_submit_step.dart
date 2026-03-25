@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../models/vendor_enums.dart';
 import '../../models/vendor_registration_state.dart';
@@ -33,8 +34,8 @@ class ReviewSubmitStep extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.fact_check_outlined,
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedFileVerified,
                 color: AppColors.primary,
                 size: size.width * 0.06,
               ),
@@ -57,7 +58,7 @@ class ReviewSubmitStep extends StatelessWidget {
         // Business Details section
         _ReviewSection(
           title: 'Business Details',
-          icon: Icons.storefront_outlined,
+          icon: HugeIcons.strokeRoundedStore01,
           onEdit: () => onEditStep(VendorRegistrationStep.businessDetails),
           items: [
             _ReviewItem('Business Name', data.businessDetails.businessName),
@@ -77,7 +78,7 @@ class ReviewSubmitStep extends StatelessWidget {
         // Legal section
         _ReviewSection(
           title: 'Legal & Compliance',
-          icon: Icons.verified_user_outlined,
+          icon: HugeIcons.strokeRoundedShieldUser,
           onEdit: () => onEditStep(VendorRegistrationStep.legalCompliance),
           items: [
             _ReviewItem(
@@ -109,7 +110,7 @@ class ReviewSubmitStep extends StatelessWidget {
         // Operations section
         _ReviewSection(
           title: 'Operations',
-          icon: Icons.schedule_outlined,
+          icon: HugeIcons.strokeRoundedCalendar01,
           onEdit: () => onEditStep(VendorRegistrationStep.operationalDetails),
           items: [
             _ReviewItem(
@@ -143,7 +144,7 @@ class ReviewSubmitStep extends StatelessWidget {
         // Payout section
         _ReviewSection(
           title: 'Payout Details',
-          icon: Icons.account_balance_outlined,
+          icon: HugeIcons.strokeRoundedBank,
           onEdit: () => onEditStep(VendorRegistrationStep.payoutDetails),
           items: [
             if (data.payoutDetails.bankName.isNotEmpty) ...[
@@ -171,7 +172,7 @@ class ReviewSubmitStep extends StatelessWidget {
         // Verification status
         _ReviewSection(
           title: 'Verification',
-          icon: Icons.verified_outlined,
+          icon: HugeIcons.strokeRoundedCheckmarkBadge01,
           onEdit: () => onEditStep(VendorRegistrationStep.verification),
           items: [
             _ReviewItem(
@@ -199,7 +200,8 @@ class _ReviewItem {
 
 class _ReviewSection extends StatelessWidget {
   final String title;
-  final IconData icon;
+  // ignore: prefer_typing_uninitialized_variables
+  final dynamic icon;
   final VoidCallback onEdit;
   final List<_ReviewItem> items;
 
@@ -237,7 +239,7 @@ class _ReviewSection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(icon, color: AppColors.primary, size: size.width * 0.05),
+                HugeIcon(icon: icon, color: AppColors.primary, size: size.width * 0.05),
                 SizedBox(width: size.width * 0.025),
                 Expanded(
                   child: Text(
@@ -254,8 +256,8 @@ class _ReviewSection extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.edit_outlined,
+                      HugeIcon(
+                        icon: HugeIcons.strokeRoundedEdit01,
                         color: AppColors.primary,
                         size: size.width * 0.04,
                       ),

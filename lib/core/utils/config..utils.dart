@@ -6,8 +6,10 @@ class Config {
   //     dotenv.env['GOOGLE_MAPS_API_KEY'] ?? ''; //Goofle Maps API Key
   // static final String MapBoxApiKey =
   //     dotenv.env['MAPBOX_API_KEY'] ?? ''; //MapBox API Key
-  // static final String baseUrl = dotenv.env['PROD_BASE_URL'] ?? ''; //Base URL
-  // static final String stagedUrl = dotenv.env['DEV_BASE_URL'] ?? ''; //Staged Url
+  static final String baseUrl =
+      dotenv.env['PROD_BASE_URL'] ?? ''; // Production Base URL
+  static final String devBaseUrl =
+      dotenv.env['DEV_BASE_URL'] ?? ''; // Development/Staging Base URL
   // static final String googleNearbyUrl =
   //     dotenv.env['GOOGLE_NEARBY_URL'] ?? ''; // Google Nearby Search URL
   // static final String wsUrl = dotenv.env['WS_BASE_URL'] ?? ''; // WebSocket URL

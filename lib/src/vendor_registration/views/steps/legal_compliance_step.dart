@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/legal_compliance_data.dart';
 import '../widgets/document_upload_card.dart';
@@ -51,8 +52,8 @@ class LegalComplianceStep extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.info_outline_rounded,
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedInformationCircle,
                 color: const Color(0xFFF9A825),
                 size: size.width * 0.055,
               ),

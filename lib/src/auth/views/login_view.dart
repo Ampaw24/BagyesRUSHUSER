@@ -121,6 +121,7 @@ class _LoginViewState extends State<LoginView>
                 : constraints.maxWidth * 0.06;
 
             final sw = constraints.maxWidth;
+            final sh = constraints.maxHeight;
 
             return SingleChildScrollView(
               physics: ClampingScrollPhysics(),
@@ -162,9 +163,9 @@ class _LoginViewState extends State<LoginView>
                               SizedBox(height: size.height * 0.04),
                               _buildPhoneInputSection(loading, sw),
                               SizedBox(height: size.height * 0.03),
-                              _buildContinueButton(size, loading, sw),
+                              _buildContinueButton(loading, sw),
                               Spacer(),
-                              _buildSignUpLink(sw),
+                              _buildSignUpLink(sw, sh),
                             ],
                           ),
                         ),
@@ -192,17 +193,17 @@ class _LoginViewState extends State<LoginView>
           width: logoSize,
           height: logoSize,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(logoSize * 0.15),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: Offset(0, 10),
+                blurRadius: logoSize * 0.15,
+                offset: Offset(0, logoSize * 0.08),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(logoSize * 0.15),
             child: Image.asset(AssetImages.bagyesLogo, fit: BoxFit.contain),
           ),
         ),
@@ -260,16 +261,16 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
-  Widget _buildContinueButton(Size size, bool loading, double sw) {
+  Widget _buildContinueButton(bool loading, double sw) {
     return InkWell(
       onTap: loading ? null : () => proceed(context),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(sw * 0.04),
       child: AnimatedContainer(
         duration: Duration(milliseconds: 200),
         width: double.infinity,
         height: (sw * 0.15).clamp(48, 64),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(sw * 0.04),
           color: loading ? Colors.red.withValues(alpha: 0.7) : Colors.red,
           boxShadow: loading
               ? []
@@ -298,11 +299,11 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
-  Widget _buildSignUpLink(double sw) {
+  Widget _buildSignUpLink(double sw, double sh) {
     final fontSize = (sw * 0.037).clamp(11.0, 16.0);
     return Center(
       child: Padding(
-        padding: EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.only(bottom: sh * 0.02),
         child: RichText(
           text: TextSpan(
             text: "Don't have an account? ",
@@ -368,55 +369,41 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 200),
+    final sw = widget.screenWidth;
+    final radius = BorderRadius.circular(sw * 0.032);
+
+    return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.grey[50],
+        borderRadius: radius,
+        color: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
         border: Border.all(
-          color: _isFocused ? Colors.red : Colors.grey[300]!,
-          width: _isFocused ? 2 : 1,
+          color: _isFocused ? Colors.red : Colors.grey[200]!,
+          width: _isFocused ? 1.5 : 1,
         ),
-        boxShadow: _isFocused
-            ? [
-                BoxShadow(
-                  color: Colors.red.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ]
-            : [],
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: widget.screenWidth * 0.043,
-          vertical: 4,
+          horizontal: sw * 0.043,
+          vertical: sw * 0.01,
         ),
         child: Row(
           children: [
-            // Country Code Prefix
             Text(
               '+233',
               style: TextStyle(
-                fontSize: (widget.screenWidth * 0.043).clamp(13, 18),
+                fontSize: (sw * 0.043).clamp(13, 18),
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: _isFocused ? Colors.red : Colors.black87,
                 letterSpacing: 0.3,
               ),
             ),
-
-            SizedBox(width: widget.screenWidth * 0.032),
-
-            // Divider
+            SizedBox(width: sw * 0.032),
             Container(
               width: 1,
-              height: (widget.screenWidth * 0.064).clamp(20, 28),
+              height: (sw * 0.064).clamp(20, 28),
               color: Colors.grey[300],
             ),
-
-            SizedBox(width: widget.screenWidth * 0.032),
-
-            // Phone Number Input
+            SizedBox(width: sw * 0.032),
             Expanded(
               child: TextField(
                 controller: widget.controller,
@@ -425,7 +412,7 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
                 maxLength: 9,
                 keyboardType: TextInputType.phone,
                 style: TextStyle(
-                  fontSize: (widget.screenWidth * 0.043).clamp(13, 18),
+                  fontSize: (sw * 0.043).clamp(13, 18),
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                   letterSpacing: 0.5,
@@ -443,7 +430,7 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
                   disabledBorder: InputBorder.none,
                   counterText: '',
                   contentPadding: EdgeInsets.symmetric(
-                    vertical: widget.screenWidth * 0.043,
+                    vertical: sw * 0.043,
                   ),
                 ),
                 onSubmitted: widget.onSubmitted,

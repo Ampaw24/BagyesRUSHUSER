@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../models/vendor_enums.dart';
 import '../../models/operational_details_data.dart';
@@ -330,8 +331,8 @@ class _TimePickerTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.access_time_rounded,
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedClock01,
               color: AppColors.primary,
               size: size.width * 0.05,
             ),
