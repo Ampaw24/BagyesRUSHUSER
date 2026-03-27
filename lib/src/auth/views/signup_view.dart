@@ -7,6 +7,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/constant.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import '../viewmodels/auth_state.dart';
 import '../../../core/router/router.dart';
 
 class SignupView extends StatefulWidget {
@@ -221,10 +222,10 @@ class _SignupViewState extends State<SignupView>
   void _submitSignup() {
     if (!_validateStep2()) return;
 
-    final authViewModel = context.read<AuthViewModel>();
+    final vm = context.read<AuthViewmodel>();
     final phone = _phoneController.text.trim();
 
-    authViewModel.storeSignupData({
+    vm.storeSignupData({
       'firstName': _firstNameController.text.trim(),
       'lastName': _lastNameController.text.trim(),
       'email': _emailController.text.trim(),
@@ -233,20 +234,7 @@ class _SignupViewState extends State<SignupView>
       'referralCode': _referralController.text.trim(),
     });
 
-    authViewModel.sendOtp(phone).then((_) {
-      final state = authViewModel.state;
-      if (state.status == AuthStatus.initial && state.errorMessage == null) {
-        AppNavigator.toOtp(context);
-      } else if (state.status == AuthStatus.error) {
-        CustomDialog.showError(
-          context: context,
-          title: 'Error',
-          subtitle: state.errorMessage ?? 'Failed to send OTP',
-          iconPath: AssetImages.bagyesLogo,
-          isLottie: false,
-        );
-      }
-    });
+    vm.sendOtp(phone);
   }
 
   @override
@@ -272,8 +260,25 @@ class _SignupViewState extends State<SignupView>
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = context.watch<AuthViewModel>();
-    final loading = authViewModel.state.status == AuthStatus.loading;
+    final authViewModel = context.watch<AuthViewmodel>();
+    final loading = authViewModel.state is AuthLoading;
+
+    // Side effects: navigate on OTPSent, show error on AuthError
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = authViewModel.state;
+      if (state is OTPSent) {
+        AppNavigator.toOtp(context);
+      } else if (state is AuthError) {
+        CustomDialog.showError(
+          context: context,
+          title: 'Error',
+          subtitle: state.message,
+          iconPath: AssetImages.bagyesLogo,
+          isLottie: false,
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: scaffoldBgColor,

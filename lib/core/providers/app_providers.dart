@@ -1,0 +1,19 @@
+import 'package:get_it/get_it.dart';
+import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
+
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+
+final _sl = GetIt.instance;
+
+class AppProviders {
+  static List<SingleChildWidget> get allProviders => [
+        ChangeNotifierProvider<CurrentUserProvider>(
+          create: (_) => _sl<CurrentUserProvider>(),
+        ),
+        ChangeNotifierProvider<AuthViewmodel>(
+          create: (_) => _sl<AuthViewmodel>(),
+        ),
+      ];
+}

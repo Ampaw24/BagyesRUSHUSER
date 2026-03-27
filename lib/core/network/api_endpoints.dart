@@ -12,26 +12,27 @@
 /// ```
 abstract final class ApiEndpoints {
   // ─── Authentication ────────────────────────────────────────────────────────
-  static const String customerSignup    = '/customers/signup';
-  static const String otpSend           = '/otp/send';
+  static const String customerSignup = '/auth/signup';
+  static const String customerLogin = '/auth/login';
+  static const String otpSend = '/otp/send';
 
   /// `POST /customers/details/:id`
   static String customerDetails(String id) => '/customers/details/$id';
 
   // ─── Vendor Registration ───────────────────────────────────────────────────
-  static const String vendorRegister    = '/vendors/register';
-  static const String vendorDocUpload   = '/vendors/documents/upload';
-  static const String vendorOtpSend     = '/vendors/otp/send';
-  static const String vendorOtpVerify   = '/vendors/otp/verify';
+  static const String vendorRegister = '/vendors/register';
+  static const String vendorDocUpload = '/vendors/documents/upload';
+  static const String vendorOtpSend = '/vendors/otp/send';
+  static const String vendorOtpVerify = '/vendors/otp/verify';
 
   // ─── Vendor Dashboard ──────────────────────────────────────────────────────
-  static const String vendorDashStats   = '/vendors/dashboard/stats';
-  static const String vendorOrders      = '/vendors/orders';
+  static const String vendorDashStats = '/vendors/dashboard/stats';
+  static const String vendorOrders = '/vendors/orders';
   static const String vendorStoreStatus = '/vendors/store/status';
-  static const String vendorMenu        = '/vendors/menu';
-  static const String vendorEarnings    = '/vendors/earnings';
-  static const String vendorProfile     = '/vendors/profile';
-  static const String vendorAccount     = '/vendors/account';
+  static const String vendorMenu = '/vendors/menu';
+  static const String vendorEarnings = '/vendors/earnings';
+  static const String vendorProfile = '/vendors/profile';
+  static const String vendorAccount = '/vendors/account';
 
   /// `PATCH /vendors/orders/:orderId/status`
   static String vendorOrderStatus(String orderId) =>
@@ -56,7 +57,7 @@ abstract final class ApiEndpoints {
       '/vendors/payment-methods/$id/verify-otp';
 
   // ─── Vendor Wallet ─────────────────────────────────────────────────────────
-  static const String vendorWallet             = '/vendors/wallet';
+  static const String vendorWallet = '/vendors/wallet';
   static const String vendorWalletTransactions = '/vendors/wallet/transactions';
-  static const String vendorWalletWithdraw     = '/vendors/wallet/withdraw';
+  static const String vendorWalletWithdraw = '/vendors/wallet/withdraw';
 }

@@ -1,90 +1,124 @@
-import 'package:equatable/equatable.dart';
-import '../../../core/viewmodel/viewmodel.dart';
-import '../../../core/services/user_session_manager.dart';
-import '../models/user_model.dart';
-import '../repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/singletons/cache.dart';
+import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
+import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
+import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 
-enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
+class AuthViewmodel extends ViewModel<AuthState> {
+  AuthViewmodel({
+    required AuthRepository repository,
+    required CurrentUserProvider currentUserProvider,
+  })  : _repository = repository,
+        _currentUserProvider = currentUserProvider,
+        super(const AuthInitial());
 
-class AuthState extends Equatable {
-  final AuthStatus status;
-  final UserModel? user;
-  final String? errorMessage;
-  final Map<String, dynamic>? signupData;
+  final AuthRepository _repository;
+  final CurrentUserProvider _currentUserProvider;
 
-  const AuthState({
-    this.status = AuthStatus.initial,
-    this.user,
-    this.errorMessage,
-    this.signupData,
-  });
+  // Cached OTP response (needed across signup/OTP screens)
+  DataMap? _otpResponse;
+  DataMap? get otpResponse => _otpResponse;
 
-  AuthState copyWith({
-    AuthStatus? status,
-    UserModel? user,
-    String? errorMessage,
-    Map<String, dynamic>? signupData,
-  }) {
-    return AuthState(
-      status: status ?? this.status,
-      user: user ?? this.user,
-      errorMessage: errorMessage ?? this.errorMessage,
-      signupData: signupData ?? this.signupData,
+  // Temporary signup data stored across OTP flow
+  DataMap? _pendingSignupData;
+
+  void storeSignupData(DataMap data) {
+    _pendingSignupData = data;
+  }
+
+  DataMap? get pendingSignupData => _pendingSignupData;
+
+  Future<void> login({
+    required String phoneNumber,
+    required String password,
+  }) async {
+    emit(const AuthLoading());
+
+    final result = await _repository.login(
+      phoneNumber: phoneNumber,
+      password: password,
+    );
+
+    result.fold(
+      (failure) => emit(AuthError.fromFailure(failure)),
+      (user) {
+        _currentUserProvider.setUser(user);
+        emit(const LoggedIn());
+      },
     );
   }
 
-  @override
-  List<Object?> get props => [status, user, errorMessage, signupData];
-}
+  Future<void> signup(DataMap data) async {
+    emit(const AuthLoading());
 
-class AuthViewModel extends ViewModel<AuthState> {
-  final AuthRepository _authRepository;
-  final UserSessionManager _sessionManager;
+    final result = await _repository.signup(data);
 
-  AuthViewModel(this._authRepository, this._sessionManager)
-    : super(const AuthState());
-
-  Future<void> login(String phone, String password) async {
-    // This is just a placeholder, existing app seems to use OTP
-  }
-
-  Future<void> signup(Map<String, dynamic> data) async {
-    emit(state.copyWith(status: AuthStatus.loading));
-    final result = await _authRepository.signup(data);
     result.fold(
-      (failure) => emit(
-        state.copyWith(status: AuthStatus.error, errorMessage: failure.message),
-      ),
-      (user) async {
-        await _sessionManager.login(user.token ?? '', '', user.toJson());
-        emit(state.copyWith(status: AuthStatus.authenticated, user: user));
+      (failure) => emit(AuthError.fromFailure(failure)),
+      (user) {
+        _currentUserProvider.setUser(user);
+        emit(const Registered());
       },
     );
   }
 
   Future<void> sendOtp(String phone) async {
-    emit(state.copyWith(status: AuthStatus.loading));
-    final result = await _authRepository.sendOtp({'phone': phone});
+    emit(const RequestingOTP());
+
+    final result = await _repository.sendOtp({'phone': phone});
+
     result.fold(
-      (failure) => emit(
-        state.copyWith(status: AuthStatus.error, errorMessage: failure.message),
-      ),
-      (data) => emit(
-        state.copyWith(
-          status: AuthStatus.initial,
-          user: UserModel(id: '', phone: phone), // Store phone temporarily
-        ),
-      ),
+      (failure) => emit(AuthError.fromFailure(failure)),
+      (response) {
+        _otpResponse = response;
+        emit(const OTPSent());
+      },
     );
   }
 
-  /// Store signup data temporarily for OTP verification flow
-  void storeSignupData(Map<String, dynamic> data) {
-    emit(state.copyWith(signupData: data));
+  Future<void> getUserDetails(String id) async {
+    emit(const AuthLoading());
+
+    final result = await _repository.getUserDetails(id);
+
+    result.fold(
+      (failure) => emit(AuthError.fromFailure(failure)),
+      (user) {
+        _currentUserProvider.setUser(user);
+        emit(const LoggedIn());
+      },
+    );
   }
 
-  void logout() async {
-    await _sessionManager.logout();
-    emit(state.copyWith(status: AuthStatus.unauthenticated, user: null));
+  /// Called on app launch. If a valid token + userId are found in secure
+  /// storage (warmed into [Cache] by AppInitializer), re-fetches the full
+  /// user profile so the app can resume without requiring a new login.
+  Future<void> restoreSession() async {
+    final token  = Cache.instance.sessionToken;
+    final userId = Cache.instance.userId;
+
+    if (token == null || userId == null) {
+      emit(const LoggedOut());
+      return;
+    }
+
+    await getUserDetails(userId);
+  }
+
+  Future<void> logout() async {
+    emit(const AuthLoading());
+
+    final result = await _repository.logout();
+
+    result.fold(
+      (failure) => emit(AuthError.fromFailure(failure)),
+      (_) {
+        _currentUserProvider.clearUser();
+        _otpResponse = null;
+        _pendingSignupData = null;
+        emit(const LoggedOut());
+      },
+    );
   }
 }

@@ -2,9 +2,6 @@ import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
 import '../services/user_session_manager.dart';
 import '../utils/network_utility.dart';
-import '../../src/auth/repositories/auth_repository.dart';
-import '../../src/auth/repositories/auth_repository_impl.dart';
-import '../../src/auth/viewmodels/auth_viewmodel.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import '../../src/vendor_registration/repositories/vendor_repository.dart';
@@ -29,7 +26,7 @@ import '../../features/vendor_wallet/repositories/wallet_repository_impl.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // Services
+  // ── Services ────────────────────────────────────────────────────────────────
   final secureStorage = SecureStorageService();
   sl.registerLazySingleton(() => secureStorage);
 
@@ -37,37 +34,33 @@ Future<void> init() async {
   await sessionManager.init();
   sl.registerLazySingleton(() => sessionManager);
 
-  // Onboarding Service
   sl.registerLazySingleton(() => OnboardingService(sl()));
 
-  // Network
+  // ── Network (legacy — used by vendor/onboarding repositories) ───────────────
   sl.registerLazySingleton(() => NetworkUtility(sl()));
 
-  // Repositories
-  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl()));
+  // ── Repositories ────────────────────────────────────────────────────────────
   sl.registerLazySingleton<VendorRepository>(() => VendorRepositoryImpl(sl()));
   sl.registerLazySingleton<VendorDashboardRepository>(
     () => VendorDashboardRepositoryImpl(sl()),
   );
 
-  // Payment methods (dummy — swap sl() args for real deps when API is ready)
   sl.registerLazySingleton(() => PaymentApiService());
   sl.registerLazySingleton(() => OtpService(sl()));
   sl.registerLazySingleton<PaymentRepository>(
     () => PaymentRepositoryImpl(sl(), sl()),
   );
 
-  // Wallet (dummy — swap for real API service when ready)
   sl.registerLazySingleton(() => WalletApiService());
   sl.registerLazySingleton<WalletRepository>(
     () => WalletRepositoryImpl(sl()),
   );
 
-  // Validators
+  // ── Validators ──────────────────────────────────────────────────────────────
   sl.registerLazySingleton(() => StepValidator());
 
-  // ViewModels
-  sl.registerFactory(() => AuthViewModel(sl(), sl()));
+  // ── ViewModels ──────────────────────────────────────────────────────────────
+  // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
   sl.registerFactory(() => OnboardingViewModel(sl()));
   sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl()));
   sl.registerFactory(() => DashboardViewModel(sl()));
