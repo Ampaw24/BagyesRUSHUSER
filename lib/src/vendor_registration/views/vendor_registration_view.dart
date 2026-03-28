@@ -134,8 +134,6 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         title: 'Application Submitted!',
         subtitle:
             'Your vendor registration has been submitted for review. We\'ll notify you once it\'s approved.',
-        iconPath: AssetImages.bagyesLogo,
-        isLottie: false,
         onConfirm: () => context.go(AppRoutes.login),
       );
     } else {
@@ -144,8 +142,6 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         title: 'Submission Failed',
         subtitle:
             vm.state.errorMessage ?? 'Something went wrong. Please try again.',
-        iconPath: AssetImages.bagyesLogo,
-        isLottie: false,
       );
     }
   }

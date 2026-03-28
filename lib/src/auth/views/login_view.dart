@@ -2,6 +2,7 @@ import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -21,16 +22,16 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView>
     with SingleTickerProviderStateMixin {
-  final TextEditingController _phoneController    = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final FocusNode _phoneFocusNode    = FocusNode();
+  final FocusNode _phoneFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
 
   bool _obscurePassword = true;
 
   late AnimationController _animationController;
-  late Animation<double>  _fadeAnimation;
-  late Animation<Offset>  _slideAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
@@ -58,8 +59,6 @@ class _LoginViewState extends State<LoginView>
         context: context,
         title: error.title,
         subtitle: error.message,
-        iconPath: AssetImages.bagyesLogo,
-        isLottie: false,
       );
     }
   }
@@ -79,11 +78,11 @@ class _LoginViewState extends State<LoginView>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, -0.3), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
-      ),
-    );
+          CurvedAnimation(
+            parent: _animationController,
+            curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _animationController.forward();
   }
@@ -100,10 +99,10 @@ class _LoginViewState extends State<LoginView>
   }
 
   void _proceed(BuildContext context) {
-    final phone    = _phoneController.text.trim();
+    final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (phone.length < 9) {
+    if (phone.length != 9) {
       _showErrorDialog(
         context,
         'Invalid Phone Number',
@@ -122,19 +121,13 @@ class _LoginViewState extends State<LoginView>
     }
 
     context.read<AuthViewmodel>().login(
-          phoneNumber: '+233$phone',
-          password: password,
-        );
+      phoneNumber: '+233$phone',
+      password: password,
+    );
   }
 
   void _showErrorDialog(BuildContext context, String title, String message) {
-    CustomDialog.showError(
-      context: context,
-      title: title,
-      subtitle: message,
-      iconPath: AssetImages.bagyesLogo,
-      isLottie: false,
-    );
+    CustomDialog.showError(context: context, title: title, subtitle: message);
   }
 
   @override
@@ -142,8 +135,8 @@ class _LoginViewState extends State<LoginView>
     return Consumer<AuthViewmodel>(
       builder: (context, vm, _) {
         final loading = vm.state is AuthLoading;
-        final size    = MediaQuery.of(context).size;
-        final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+        final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+        final keyboardVisible = keyboardHeight > 0;
 
         return Scaffold(
           backgroundColor: scaffoldBgColor,
@@ -161,46 +154,46 @@ class _LoginViewState extends State<LoginView>
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(minHeight: sh),
                     child: IntrinsicHeight(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               margin: EdgeInsets.only(
-                                top: keyboardVisible
-                                    ? size.height * 0.02
-                                    : size.height * 0.06,
+                                top: keyboardVisible ? sh * 0.012 : sh * 0.04,
                               ),
                               child: FadeTransition(
                                 opacity: _fadeAnimation,
                                 child: SlideTransition(
                                   position: _slideAnimation,
-                                  child: _buildLogoSection(size, isTablet),
+                                  child: _buildLogoSection(sw, isTablet),
                                 ),
                               ),
                             ),
-                            SizedBox(height: size.height * 0.05),
+                            SizedBox(height: sh * 0.025),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildHeaderSection(sw),
-                                  SizedBox(height: size.height * 0.04),
+                                  SizedBox(height: sh * 0.060),
                                   _buildPhoneInputSection(loading, sw),
-                                  SizedBox(height: size.height * 0.025),
+                                  SizedBox(height: sh * 0.025),
                                   _buildPasswordInputSection(loading, sw),
-                                  SizedBox(height: size.height * 0.03),
-                                  _buildLoginButton(context, loading, sw),
+                                  SizedBox(height: sh * 0.070),
+                                  _buildLoginButton(context, loading, sw, sh),
                                   const Spacer(),
                                   _buildSignUpLink(sw, sh),
                                 ],
                               ),
                             ),
-                            SizedBox(height: size.height * 0.03),
+                            SizedBox(height: sh * 0.015),
                           ],
                         ),
                       ),
@@ -215,26 +208,17 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
-  Widget _buildLogoSection(Size size, bool isTablet) {
-    final logoSize = isTablet ? size.width * 0.25 : size.width * 0.35;
+  Widget _buildLogoSection(double sw, bool isTablet) {
+    final logoSize = isTablet ? sw * 0.20 : sw * 0.28;
     return Row(
       children: [
-        Container(
-          width: logoSize,
-          height: logoSize,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(logoSize * 0.15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: logoSize * 0.15,
-                offset: Offset(0, logoSize * 0.08),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(logoSize * 0.15),
-            child: Image.asset(AssetImages.bagyesLogo, fit: BoxFit.contain),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(logoSize * 0.15),
+          child: Image.asset(
+            AssetImages.bagyesLogo,
+            width: logoSize,
+            height: logoSize,
+            fit: BoxFit.contain,
           ),
         ),
       ],
@@ -248,17 +232,17 @@ class _LoginViewState extends State<LoginView>
         Text(
           'Welcome back',
           style: TextStyle(
-            fontSize: (sw * 0.085).clamp(24, 36),
+            fontSize: (sw * 0.075).clamp(22.0, 34.0),
             fontWeight: FontWeight.bold,
             color: Colors.black87,
             letterSpacing: -0.5,
           ),
         ),
-        SizedBox(height: sw * 0.02),
+        SizedBox(height: sw * 0.015),
         Text(
           'Sign in to your account',
           style: TextStyle(
-            fontSize: (sw * 0.043).clamp(13, 18),
+            fontSize: (sw * 0.038).clamp(12.0, 17.0),
             color: Colors.grey[600],
             height: 1.4,
           ),
@@ -274,18 +258,19 @@ class _LoginViewState extends State<LoginView>
         Text(
           'Phone Number',
           style: TextStyle(
-            fontSize: (sw * 0.037).clamp(11, 16),
+            fontSize: (sw * 0.034).clamp(11.0, 15.0),
             fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        SizedBox(height: sw * 0.032),
+        SizedBox(height: sw * 0.018),
         _ModernPhoneInput(
           controller: _phoneController,
           focusNode: _phoneFocusNode,
           enabled: !loading,
           screenWidth: sw,
-          onSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
+          onSubmitted: (_) =>
+              FocusScope.of(context).requestFocus(_passwordFocusNode),
         ),
       ],
     );
@@ -298,54 +283,60 @@ class _LoginViewState extends State<LoginView>
         Text(
           'Password',
           style: TextStyle(
-            fontSize: (sw * 0.037).clamp(11, 16),
+            fontSize: (sw * 0.034).clamp(11.0, 15.0),
             fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        SizedBox(height: sw * 0.032),
+        SizedBox(height: sw * 0.018),
         _ModernPasswordInput(
           controller: _passwordController,
           focusNode: _passwordFocusNode,
           enabled: !loading,
           obscure: _obscurePassword,
           screenWidth: sw,
-          onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+          onToggleObscure: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
           onSubmitted: (_) => _proceed(context),
         ),
       ],
     );
   }
 
-  Widget _buildLoginButton(BuildContext context, bool loading, double sw) {
+  Widget _buildLoginButton(
+    BuildContext context,
+    bool loading,
+    double sw,
+    double sh,
+  ) {
     return InkWell(
       onTap: loading ? null : () => _proceed(context),
-      borderRadius: BorderRadius.circular(sw * 0.04),
+      borderRadius: BorderRadius.circular(sw * 0.032),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
-        height: (sw * 0.15).clamp(48, 64),
+        height: (sh * 0.065).clamp(44.0, 58.0),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(sw * 0.04),
+          borderRadius: BorderRadius.circular(sw * 0.032),
           color: loading ? Colors.red.withValues(alpha: 0.7) : Colors.red,
           boxShadow: loading
               ? []
               : [
                   BoxShadow(
                     color: Colors.red.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
                 ],
         ),
         child: Center(
           child: loading
-              ? SpinKitCircle(size: sw * 0.064, color: Colors.white)
+              ? SpinKitCircle(size: sw * 0.055, color: Colors.white)
               : Text(
                   'Login',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: (sw * 0.043).clamp(13, 18),
+                    fontSize: (sw * 0.04).clamp(13.0, 17.0),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -356,10 +347,10 @@ class _LoginViewState extends State<LoginView>
   }
 
   Widget _buildSignUpLink(double sw, double sh) {
-    final fontSize = (sw * 0.037).clamp(11.0, 16.0);
+    final fontSize = (sw * 0.034).clamp(11.0, 15.0);
     return Center(
       child: Padding(
-        padding: EdgeInsets.only(bottom: sh * 0.02),
+        padding: EdgeInsets.only(bottom: sh * 0.018),
         child: RichText(
           text: TextSpan(
             text: "Don't have an account? ",
@@ -384,6 +375,17 @@ class _LoginViewState extends State<LoginView>
 }
 
 // ── Phone input ───────────────────────────────────────────────────────────────
+
+class _NoLeadingZeroFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith('0')) return oldValue;
+    return newValue;
+  }
+}
 
 class _ModernPhoneInput extends StatefulWidget {
   const _ModernPhoneInput({
@@ -419,38 +421,46 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
     super.dispose();
   }
 
-  void _onFocusChange() => setState(() => _isFocused = widget.focusNode.hasFocus);
+  void _onFocusChange() =>
+      setState(() => _isFocused = widget.focusNode.hasFocus);
 
   @override
   Widget build(BuildContext context) {
-    final sw     = widget.screenWidth;
-    final radius = BorderRadius.circular(sw * 0.032);
+    final sw = widget.screenWidth;
+    final radius = BorderRadius.circular(sw * 0.028);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: radius,
-        color: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
+        color: Colors.white,
         border: Border.all(
           color: _isFocused ? Colors.red : Colors.grey[200]!,
           width: _isFocused ? 1.5 : 1,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: sw * 0.043, vertical: sw * 0.008),
+        padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.04,
+          vertical: sw * 0.002,
+        ),
         child: Row(
           children: [
             Text(
               '+233',
               style: TextStyle(
-                fontSize: (sw * 0.043).clamp(13, 18),
+                fontSize: (sw * 0.038).clamp(12.0, 17.0),
                 fontWeight: FontWeight.w600,
                 color: _isFocused ? Colors.red : Colors.black87,
                 letterSpacing: 0.3,
               ),
             ),
-            SizedBox(width: sw * 0.032),
-            Container(width: 1, height: (sw * 0.052).clamp(16, 23), color: Colors.grey[300]),
-            SizedBox(width: sw * 0.032),
+            SizedBox(width: sw * 0.028),
+            Container(
+              width: 1,
+              height: (sw * 0.045).clamp(14.0, 20.0),
+              color: Colors.grey[300],
+            ),
+            SizedBox(width: sw * 0.028),
             Expanded(
               child: TextField(
                 controller: widget.controller,
@@ -458,22 +468,31 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
                 enabled: widget.enabled,
                 maxLength: 9,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _NoLeadingZeroFormatter(),
+                ],
                 style: TextStyle(
-                  fontSize: (sw * 0.043).clamp(13, 18),
+                  fontSize: (sw * 0.038).clamp(12.0, 17.0),
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                   letterSpacing: 0.5,
                 ),
                 decoration: InputDecoration(
                   hintText: '24 123 4567',
-                  hintStyle: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w400),
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w400,
+                    fontSize: (sw * 0.038).clamp(12.0, 17.0),
+                  ),
+                  filled: false,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   errorBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   counterText: '',
-                  contentPadding: EdgeInsets.symmetric(vertical: sw * 0.035),
+                  contentPadding: EdgeInsets.symmetric(vertical: sw * 0.026),
                 ),
                 onSubmitted: widget.onSubmitted,
               ),
@@ -525,34 +544,42 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
     super.dispose();
   }
 
-  void _onFocusChange() => setState(() => _isFocused = widget.focusNode.hasFocus);
+  void _onFocusChange() =>
+      setState(() => _isFocused = widget.focusNode.hasFocus);
 
   @override
   Widget build(BuildContext context) {
-    final sw     = widget.screenWidth;
-    final radius = BorderRadius.circular(sw * 0.032);
+    final sw = widget.screenWidth;
+    final radius = BorderRadius.circular(sw * 0.028);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: radius,
-        color: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
+        color: Colors.white,
         border: Border.all(
           color: _isFocused ? Colors.red : Colors.grey[200]!,
           width: _isFocused ? 1.5 : 1,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: sw * 0.043, vertical: sw * 0.008),
+        padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.04,
+          vertical: sw * 0.002,
+        ),
         child: Row(
           children: [
             HugeIcon(
               icon: HugeIcons.strokeRoundedLock,
-              size: (sw * 0.05).clamp(16, 22),
+              size: (sw * 0.045).clamp(14.0, 20.0),
               color: _isFocused ? Colors.red : Colors.grey[500]!,
             ),
-            SizedBox(width: sw * 0.032),
-            Container(width: 1, height: (sw * 0.052).clamp(16, 23), color: Colors.grey[300]),
-            SizedBox(width: sw * 0.032),
+            SizedBox(width: sw * 0.028),
+            Container(
+              width: 1,
+              height: (sw * 0.045).clamp(14.0, 20.0),
+              color: Colors.grey[300],
+            ),
+            SizedBox(width: sw * 0.028),
             Expanded(
               child: TextField(
                 controller: widget.controller,
@@ -561,20 +588,25 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
                 obscureText: widget.obscure,
                 keyboardType: TextInputType.visiblePassword,
                 style: TextStyle(
-                  fontSize: (sw * 0.043).clamp(13, 18),
+                  fontSize: (sw * 0.038).clamp(12.0, 17.0),
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                   letterSpacing: 0.5,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
-                  hintStyle: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w400),
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w400,
+                    fontSize: (sw * 0.038).clamp(12.0, 17.0),
+                  ),
+                  filled: false,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   errorBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: sw * 0.035),
+                  contentPadding: EdgeInsets.symmetric(vertical: sw * 0.026),
                 ),
                 onSubmitted: widget.onSubmitted,
               ),
@@ -585,7 +617,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
                 icon: widget.obscure
                     ? HugeIcons.strokeRoundedViewOff
                     : HugeIcons.strokeRoundedView,
-                size: (sw * 0.05).clamp(16, 22),
+                size: (sw * 0.045).clamp(14.0, 20.0),
                 color: Colors.grey[500]!,
               ),
             ),

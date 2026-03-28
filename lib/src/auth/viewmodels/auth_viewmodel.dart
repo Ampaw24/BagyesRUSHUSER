@@ -36,8 +36,8 @@ class AuthViewmodel extends ViewModel<AuthState> {
     emit(const AuthLoading());
 
     final result = await _repository.login(
-      phoneNumber: phoneNumber,
-      password: password,
+      phoneNumber: phoneNumber.trim(),
+      password: password.trim(),
     );
 
     result.fold(

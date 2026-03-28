@@ -50,8 +50,6 @@ class _OTPViewState extends State<OTPView> {
               context: context,
               title: 'Oops!',
               subtitle: error.message,
-              iconPath: AssetImages.bagyesLogo,
-              isLottie: false,
             );
           }
         });

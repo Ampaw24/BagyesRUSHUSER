@@ -116,7 +116,10 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           hint: '024 123 4567',
           controller: _phoneCtrl,
           keyboardType: TextInputType.phone,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            _NoLeadingZeroFormatter(),
+          ],
           onChanged: (_) => _emit(),
           prefixIcon: Padding(
             padding: EdgeInsets.only(left: size.width * 0.04),
@@ -235,5 +238,16 @@ class _BusinessTypeSelector extends StatelessWidget {
         );
       }).toList(),
     );
+  }
+}
+
+class _NoLeadingZeroFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith('0')) return oldValue;
+    return newValue;
   }
 }

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+import 'package:hugeicons/hugeicons.dart';
 
-/// Enum for dialog types
 enum DialogType { success, error, confirmation, info, warning }
 
-/// Model class for dialog configuration
 class CustomDialogConfig {
   final String title;
   final String subtitle;
-  final String iconPath;
-  final bool isLottie;
   final DialogType type;
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
@@ -23,12 +19,10 @@ class CustomDialogConfig {
   CustomDialogConfig({
     required this.title,
     required this.subtitle,
-    required this.iconPath,
-    this.isLottie = false,
     this.type = DialogType.info,
     this.onConfirm,
     this.onCancel,
-    this.confirmText = 'Confirm',
+    this.confirmText = 'OK',
     this.cancelText = 'Cancel',
     this.showCancelButton = false,
     this.customColor,
@@ -37,7 +31,6 @@ class CustomDialogConfig {
   });
 }
 
-/// Main Custom Dialog Widget
 class CustomDialog extends StatefulWidget {
   final CustomDialogConfig config;
 
@@ -46,13 +39,10 @@ class CustomDialog extends StatefulWidget {
   @override
   State<CustomDialog> createState() => _CustomDialogState();
 
-  /// Static method to show success dialog
   static Future<void> showSuccess({
     required BuildContext context,
     required String title,
     required String subtitle,
-    required String iconPath,
-    bool isLottie = true,
     VoidCallback? onConfirm,
     String confirmText = 'OK',
     bool barrierDismissible = false,
@@ -60,12 +50,10 @@ class CustomDialog extends StatefulWidget {
     return showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (context) => CustomDialog(
+      builder: (_) => CustomDialog(
         config: CustomDialogConfig(
           title: title,
           subtitle: subtitle,
-          iconPath: iconPath,
-          isLottie: isLottie,
           type: DialogType.success,
           onConfirm: onConfirm,
           confirmText: confirmText,
@@ -75,13 +63,10 @@ class CustomDialog extends StatefulWidget {
     );
   }
 
-  /// Static method to show error dialog
   static Future<void> showError({
     required BuildContext context,
     required String title,
     required String subtitle,
-    required String iconPath,
-    bool isLottie = true,
     VoidCallback? onConfirm,
     String confirmText = 'OK',
     bool barrierDismissible = false,
@@ -89,12 +74,10 @@ class CustomDialog extends StatefulWidget {
     return showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (context) => CustomDialog(
+      builder: (_) => CustomDialog(
         config: CustomDialogConfig(
           title: title,
           subtitle: subtitle,
-          iconPath: iconPath,
-          isLottie: isLottie,
           type: DialogType.error,
           onConfirm: onConfirm,
           confirmText: confirmText,
@@ -104,13 +87,10 @@ class CustomDialog extends StatefulWidget {
     );
   }
 
-  /// Static method to show confirmation dialog
   static Future<void> showConfirmation({
     required BuildContext context,
     required String title,
     required String subtitle,
-    required String iconPath,
-    bool isLottie = true,
     required VoidCallback onConfirm,
     VoidCallback? onCancel,
     String confirmText = 'Confirm',
@@ -120,12 +100,10 @@ class CustomDialog extends StatefulWidget {
     return showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (context) => CustomDialog(
+      builder: (_) => CustomDialog(
         config: CustomDialogConfig(
           title: title,
           subtitle: subtitle,
-          iconPath: iconPath,
-          isLottie: isLottie,
           type: DialogType.confirmation,
           onConfirm: onConfirm,
           onCancel: onCancel,
@@ -138,13 +116,10 @@ class CustomDialog extends StatefulWidget {
     );
   }
 
-  /// Static method to show warning dialog
   static Future<void> showWarning({
     required BuildContext context,
     required String title,
     required String subtitle,
-    required String iconPath,
-    bool isLottie = true,
     VoidCallback? onConfirm,
     String confirmText = 'OK',
     bool barrierDismissible = false,
@@ -152,13 +127,35 @@ class CustomDialog extends StatefulWidget {
     return showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (context) => CustomDialog(
+      builder: (_) => CustomDialog(
         config: CustomDialogConfig(
           title: title,
           subtitle: subtitle,
-          iconPath: iconPath,
-          isLottie: isLottie,
           type: DialogType.warning,
+          onConfirm: onConfirm,
+          confirmText: confirmText,
+          barrierDismissible: barrierDismissible,
+        ),
+      ),
+    );
+  }
+
+  static Future<void> showInfo({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    VoidCallback? onConfirm,
+    String confirmText = 'OK',
+    bool barrierDismissible = false,
+  }) {
+    return showDialog(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: (_) => CustomDialog(
+        config: CustomDialogConfig(
+          title: title,
+          subtitle: subtitle,
+          type: DialogType.info,
           onConfirm: onConfirm,
           confirmText: confirmText,
           barrierDismissible: barrierDismissible,
@@ -182,25 +179,21 @@ class _CustomDialogState extends State<CustomDialog>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-
     _scaleAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeOutBack,
     );
-
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeIn,
     );
-
     _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
-
+        Tween<Offset>(begin: const Offset(0, -0.08), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
     _animationController.forward();
   }
 
@@ -210,22 +203,42 @@ class _CustomDialogState extends State<CustomDialog>
     super.dispose();
   }
 
-  Color _getDialogColor() {
-    if (widget.config.customColor != null) {
-      return widget.config.customColor!;
-    }
+  // ── Per-type colour ──────────────────────────────────────────────────────
 
-    // Use primary color for all except error (red)
+  Color _color() {
+    if (widget.config.customColor != null) return widget.config.customColor!;
     switch (widget.config.type) {
       case DialogType.error:
-        return const Color(0xFFE53935); // Red for errors
+        return const Color(0xFFE53935);
       case DialogType.success:
-      case DialogType.confirmation:
+        return const Color(0xFF2E7D32);
       case DialogType.warning:
+        return const Color(0xFFE65100);
+      case DialogType.confirmation:
+        return const Color(0xFF5C35D4);
       case DialogType.info:
-        return const Color(0xFF0056D2); // Your app primary color
+        return const Color(0xFF0056D2);
     }
   }
+
+  // ── Per-type HugeIcon ────────────────────────────────────────────────────
+
+  List<List<dynamic>> _icon() {
+    switch (widget.config.type) {
+      case DialogType.error:
+        return HugeIcons.strokeRoundedAlertCircle;
+      case DialogType.success:
+        return HugeIcons.strokeRoundedCheckmarkCircle01;
+      case DialogType.warning:
+        return HugeIcons.strokeRoundedAlert01;
+      case DialogType.confirmation:
+        return HugeIcons.strokeRoundedHelpCircle;
+      case DialogType.info:
+        return HugeIcons.strokeRoundedInformationCircle;
+    }
+  }
+
+  // ── Button handlers ──────────────────────────────────────────────────────
 
   void _handleConfirm() {
     _animationController.reverse().then((_) {
@@ -241,10 +254,14 @@ class _CustomDialogState extends State<CustomDialog>
     });
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final theme = Theme.of(context);
+    final mq     = MediaQuery.of(context);
+    final sw     = mq.size.width;
+    final sh     = mq.size.height;
+    final theme  = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return PopScope(
@@ -255,8 +272,8 @@ class _CustomDialogState extends State<CustomDialog>
           backgroundColor: Colors.transparent,
           elevation: 0,
           insetPadding: EdgeInsets.symmetric(
-            horizontal: size.width * 0.05,
-            vertical: size.height * 0.02,
+            horizontal: sw * 0.06,
+            vertical: sh * 0.02,
           ),
           child: SlideTransition(
             position: _slideAnimation,
@@ -264,73 +281,59 @@ class _CustomDialogState extends State<CustomDialog>
               scale: _scaleAnimation,
               child: Container(
                 constraints: BoxConstraints(
-                  maxWidth: size.width * 0.9,
-                  maxHeight: size.height * 0.7,
+                  maxWidth: sw * 0.88,
+                  maxHeight: sh * 0.72,
                 ),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: BorderRadius.circular(size.width * 0.05),
+                  borderRadius: BorderRadius.circular(sw * 0.055),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: sw * 0.06,
+                      offset: Offset(0, sw * 0.025),
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Content
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.all(size.width * 0.05),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Icon
-                            _buildIcon(size),
-
-                            SizedBox(height: size.height * 0.02),
-
-                            // Title
-                            Text(
-                              widget.config.title,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: size.width * 0.055,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-
-                            SizedBox(height: size.height * 0.015),
-
-                            // Subtitle
-                            Text(
-                              widget.config.subtitle,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontSize: size.width * 0.04,
-                                color: isDark ? Colors.white70 : Colors.black54,
-                                height: 1.5,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-
-                            if (widget.config.content != null) ...[
-                              SizedBox(height: size.height * 0.02),
-                              widget.config.content!,
-                            ],
-
-                            SizedBox(height: size.height * 0.03),
-
-                            // Buttons
-                            _buildButtons(size, theme, isDark),
-                          ],
-                        ),
-                      ),
+                child: Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: sw * 0.06,
+                      vertical: sh * 0.03,
                     ),
-                  ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildIconBadge(sw),
+                        SizedBox(height: sh * 0.022),
+                        Text(
+                          widget.config.title,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: sw * 0.052,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: sh * 0.012),
+                        Text(
+                          widget.config.subtitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: sw * 0.038,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (widget.config.content != null) ...[
+                          SizedBox(height: sh * 0.02),
+                          widget.config.content!,
+                        ],
+                        SizedBox(height: sh * 0.032),
+                        _buildButtons(sw, sh, theme, isDark),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -340,37 +343,34 @@ class _CustomDialogState extends State<CustomDialog>
     );
   }
 
-  Widget _buildIcon(Size size) {
-    final iconSize = size.width * 0.25;
+  Widget _buildIconBadge(double sw) {
+    final badgeSize = sw * 0.22;
+    final iconSize  = sw * 0.11;
+    final accent    = _color();
 
     return Container(
-      width: iconSize,
-      height: iconSize,
+      width:  badgeSize,
+      height: badgeSize,
       decoration: BoxDecoration(
-        color: _getDialogColor().withValues(alpha: 0.1),
+        color: accent.withValues(alpha: 0.1),
         shape: BoxShape.circle,
+        border: Border.all(
+          color: accent.withValues(alpha: 0.25),
+          width: sw * 0.004,
+        ),
       ),
       child: Center(
-        child: SizedBox(
-          width: iconSize * 1.8,
-          height: iconSize * 1.8,
-          child: widget.config.isLottie
-              ? Lottie.asset(
-                  widget.config.iconPath,
-                  fit: BoxFit.contain,
-                  repeat:
-                      widget.config.type == DialogType.success ||
-                      widget.config.type == DialogType.error,
-                )
-              : Image.asset(widget.config.iconPath, fit: BoxFit.contain),
+        child: HugeIcon(
+          icon: _icon(),
+          size: iconSize,
+          color: accent,
         ),
       ),
     );
   }
 
-  Widget _buildButtons(Size size, ThemeData theme, bool isDark) {
+  Widget _buildButtons(double sw, double sh, ThemeData theme, bool isDark) {
     if (widget.config.showCancelButton) {
-      // Two buttons (Confirmation dialog)
       return Row(
         children: [
           Expanded(
@@ -378,74 +378,68 @@ class _CustomDialogState extends State<CustomDialog>
               text: widget.config.cancelText,
               onPressed: _handleCancel,
               isPrimary: false,
-              size: size,
-              theme: theme,
-              isDark: isDark,
+              sw: sw, sh: sh, theme: theme, isDark: isDark,
             ),
           ),
-          SizedBox(width: size.width * 0.03),
+          SizedBox(width: sw * 0.03),
           Expanded(
             child: _buildButton(
               text: widget.config.confirmText,
               onPressed: _handleConfirm,
               isPrimary: true,
-              size: size,
-              theme: theme,
-              isDark: isDark,
+              sw: sw, sh: sh, theme: theme, isDark: isDark,
             ),
           ),
         ],
       );
-    } else {
-      // Single button
-      return _buildButton(
-        text: widget.config.confirmText,
-        onPressed: _handleConfirm,
-        isPrimary: true,
-        size: size,
-        theme: theme,
-        isDark: isDark,
-      );
     }
+    return _buildButton(
+      text: widget.config.confirmText,
+      onPressed: _handleConfirm,
+      isPrimary: true,
+      sw: sw, sh: sh, theme: theme, isDark: isDark,
+    );
   }
 
   Widget _buildButton({
     required String text,
     required VoidCallback onPressed,
     required bool isPrimary,
-    required Size size,
+    required double sw,
+    required double sh,
     required ThemeData theme,
     required bool isDark,
   }) {
+    final accent = _color();
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(size.width * 0.03),
+        borderRadius: BorderRadius.circular(sw * 0.03),
         child: Container(
           padding: EdgeInsets.symmetric(
-            vertical: size.height * 0.018,
-            horizontal: size.width * 0.04,
+            vertical: sh * 0.017,
+            horizontal: sw * 0.04,
           ),
           decoration: BoxDecoration(
             color: isPrimary
-                ? _getDialogColor()
+                ? accent
                 : (isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(size.width * 0.03),
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(sw * 0.03),
             border: Border.all(
               color: isPrimary
-                  ? _getDialogColor()
+                  ? accent
                   : (isDark ? Colors.white24 : Colors.grey.shade300),
-              width: 1.5,
+              width: sw * 0.003,
             ),
           ),
           child: Center(
             child: Text(
               text,
               style: theme.textTheme.labelLarge?.copyWith(
-                fontSize: size.width * 0.04,
+                fontSize: sw * 0.038,
                 fontWeight: FontWeight.w600,
                 color: isPrimary
                     ? Colors.white

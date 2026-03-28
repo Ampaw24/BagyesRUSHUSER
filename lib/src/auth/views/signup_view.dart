@@ -2,6 +2,7 @@ import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter, TextInputFormatter, TextEditingValue;
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -149,8 +150,8 @@ class _SignupViewState extends State<SignupView>
       _showError('Please enter your phone number');
       return false;
     }
-    if (_phoneController.text.length < 10) {
-      _showError('Please enter a valid 10-digit phone number');
+    if (_phoneController.text.length != 9) {
+      _showError('Please enter a valid 9-digit phone number');
       return false;
     }
     return true;
@@ -188,8 +189,6 @@ class _SignupViewState extends State<SignupView>
       context: context,
       title: 'Validation Error',
       subtitle: message,
-      iconPath: AssetImages.bagyesLogo,
-      isLottie: false,
     );
   }
 
@@ -274,8 +273,6 @@ class _SignupViewState extends State<SignupView>
           context: context,
           title: 'Error',
           subtitle: state.message,
-          iconPath: AssetImages.bagyesLogo,
-          isLottie: false,
         );
       }
     });
@@ -555,7 +552,7 @@ class _SignupViewState extends State<SignupView>
                       ? HugeIcons.strokeRoundedViewOff
                       : HugeIcons.strokeRoundedView,
                   color: Colors.grey[600]!,
-                  size: (sw * 0.056).clamp(18, 24),
+                  size: (sw * 0.038).clamp(14, 18),
                 ),
                 onPressed: () {
                   setState(() => _obscurePassword = !_obscurePassword);
@@ -585,7 +582,7 @@ class _SignupViewState extends State<SignupView>
                       ? HugeIcons.strokeRoundedViewOff
                       : HugeIcons.strokeRoundedView,
                   color: Colors.grey[600]!,
-                  size: (sw * 0.056).clamp(18, 24),
+                  size: (sw * 0.038).clamp(14, 18),
                 ),
                 onPressed: () {
                   setState(
@@ -881,11 +878,11 @@ class _ModernTextFieldState extends State<_ModernTextField> {
               fontSize: (sw * 0.038).clamp(13, 17),
             ),
             filled: true,
-            fillColor: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
+            fillColor: Colors.white,
             prefixIcon: HugeIcon(
               icon: widget.prefixIcon,
               color: _isFocused ? Colors.red : Colors.grey[500]!,
-              size: (sw * 0.052).clamp(18, 22),
+              size: (sw * 0.038).clamp(14, 18),
             ),
             suffixIcon: widget.suffixIcon,
             contentPadding: EdgeInsets.symmetric(
@@ -913,6 +910,21 @@ class _ModernTextFieldState extends State<_ModernTextField> {
         ),
       ],
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// No Leading Zero Formatter
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _NoLeadingZeroFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith('0')) return oldValue;
+    return newValue;
   }
 }
 
@@ -983,7 +995,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
         Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            color: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
+            color: Colors.white,
             border: Border.all(
               color: _isFocused ? Colors.red : Colors.grey[200]!,
               width: _isFocused ? 1.5 : 1,
@@ -996,7 +1008,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
                 child: HugeIcon(
                   icon: HugeIcons.strokeRoundedCall,
                   color: _isFocused ? Colors.red : Colors.grey[500]!,
-                  size: (sw * 0.052).clamp(18, 22),
+                  size: (sw * 0.038).clamp(14, 18),
                 ),
               ),
               SizedBox(width: sw * 0.025),
@@ -1019,9 +1031,13 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
                   controller: widget.controller,
                   focusNode: widget.focusNode,
                   enabled: widget.enabled,
-                  maxLength: 10,
+                  maxLength: 9,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    _NoLeadingZeroFormatter(),
+                  ],
                   style: TextStyle(
                     fontSize: (sw * 0.038).clamp(13, 17),
                     fontWeight: FontWeight.w500,
@@ -1034,6 +1050,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
                       fontWeight: FontWeight.w400,
                       fontSize: (sw * 0.038).clamp(13, 17),
                     ),
+                    filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,

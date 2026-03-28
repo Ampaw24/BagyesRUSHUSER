@@ -91,25 +91,11 @@ class _SplashScreenState extends State<SplashScreen>
               scale: _scaleAnimation,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: Container(
+                child: Image.asset(
+                  AssetImages.bagyesLogo,
                   width: logoSize,
                   height: logoSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      AssetImages.bagyesLogo,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  fit: BoxFit.contain,
                 ),
               ),
             ),

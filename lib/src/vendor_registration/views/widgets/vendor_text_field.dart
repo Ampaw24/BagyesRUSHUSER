@@ -105,7 +105,7 @@ class _VendorTextFieldState extends State<VendorTextField> {
               fontSize: size.width * 0.036,
             ),
             filled: true,
-            fillColor: _isFocused ? Colors.white : const Color(0xFFF7F7F7),
+            fillColor: Colors.white,
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.suffixIcon,
             contentPadding: EdgeInsets.symmetric(

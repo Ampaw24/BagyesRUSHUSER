@@ -124,8 +124,6 @@ class _SendPackagesState extends State<SendPackages> {
             context: context,
             title: 'Hello',
             subtitle: 'Order Successfully Placed',
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
           );
           break;
         default:
@@ -133,8 +131,6 @@ class _SendPackagesState extends State<SendPackages> {
             context: context,
             title: 'Oops!',
             subtitle: resp['message'],
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
           );
           break;
       }

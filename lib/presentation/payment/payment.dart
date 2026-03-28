@@ -21,8 +21,6 @@ class _PaymentState extends State<Payment> {
       context: context,
       title: 'Success!',
       subtitle: 'Order Successfully Placed',
-      iconPath: AssetImages.bagyesLogo,
-      isLottie: false,
     );
 
     Future.delayed(const Duration(milliseconds: 3000), () {

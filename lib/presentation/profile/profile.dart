@@ -21,8 +21,6 @@ class Profile extends StatelessWidget {
         context: context,
         title: "Logout?",
         subtitle: "You sure want to logout?",
-        iconPath: AssetImages.bagyesLogo,
-        isLottie: false,
         onConfirm: () {
           AppNavigator.toWalkthrough(context);
         },

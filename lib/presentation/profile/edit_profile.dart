@@ -6,6 +6,7 @@ import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../states/app.state.dart';
@@ -55,8 +56,6 @@ class _EditProfileState extends State<EditProfile> {
         context: context,
         title: 'Oops!',
         subtitle: 'No changes to save.',
-        iconPath: AssetImages.bagyesLogo,
-        isLottie: false,
       );
       return;
     }
@@ -84,8 +83,6 @@ class _EditProfileState extends State<EditProfile> {
           context: this.context,
           title: 'Oops!',
           subtitle: response['message'] ?? 'Something went wrong.',
-          iconPath: AssetImages.bagyesLogo,
-          isLottie: false,
         );
       }
     } catch (e) {
@@ -95,8 +92,6 @@ class _EditProfileState extends State<EditProfile> {
         context: this.context,
         title: 'Oops!',
         subtitle: e.toString(),
-        iconPath: AssetImages.bagyesLogo,
-        isLottie: false,
       );
     }
   }
@@ -230,12 +225,19 @@ class _EditProfileState extends State<EditProfile> {
                       child: TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
+                        maxLength: 9,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          _NoLeadingZeroFormatter(),
+                        ],
                         style: TextStyle(
                           fontSize: w * 0.038,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
-                        decoration: _inputDec('e.g. 0244000000'),
+                        decoration: _inputDec('e.g. 241234567').copyWith(
+                          counterText: '',
+                        ),
                         textInputAction: TextInputAction.done,
                       ),
                     ),
@@ -727,5 +729,16 @@ class _BottomSheetOption extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _NoLeadingZeroFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith('0')) return oldValue;
+    return newValue;
   }
 }

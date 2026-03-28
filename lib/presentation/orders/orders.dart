@@ -47,8 +47,6 @@ class _OrdersState extends State<Orders> {
             context: context,
             title: 'Oops!',
             subtitle: resp['message'],
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
           );
           break;
       }

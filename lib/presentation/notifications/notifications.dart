@@ -44,8 +44,6 @@ class _NotificationsState extends State<Notifications> {
             context: context,
             title: 'Oops!',
             subtitle: resp['message'],
-            iconPath: AssetImages.bagyesLogo,
-            isLottie: false,
           );
           break;
       }
