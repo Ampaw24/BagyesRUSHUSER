@@ -1,18 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:logger/logger.dart';
 
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
+import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 
-final _log = Logger(
-  printer: PrettyPrinter(
-    methodCount: 0,
-    errorMethodCount: 5,
-    lineLength: 100,
-    colors: true,
-    printEmojis: true,
-    dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-  ),
-);
+final _log = appLogger;
 
 class DioInterceptor extends Interceptor {
   static const _authExclusions = [

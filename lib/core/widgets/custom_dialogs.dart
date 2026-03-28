@@ -281,58 +281,56 @@ class _CustomDialogState extends State<CustomDialog>
               scale: _scaleAnimation,
               child: Container(
                 constraints: BoxConstraints(
-                  maxWidth: sw * 0.88,
-                  maxHeight: sh * 0.72,
+                  maxWidth: sw * 0.85,
+                  maxHeight: sh * 0.52,
                 ),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: BorderRadius.circular(sw * 0.055),
+                  borderRadius: BorderRadius.circular(sw * 0.045),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.18),
-                      blurRadius: sw * 0.06,
-                      offset: Offset(0, sw * 0.025),
+                      blurRadius: sw * 0.05,
+                      offset: Offset(0, sw * 0.02),
                     ),
                   ],
                 ),
-                child: Flexible(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: sw * 0.06,
-                      vertical: sh * 0.03,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildIconBadge(sw),
-                        SizedBox(height: sh * 0.022),
-                        Text(
-                          widget.config.title,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: sw * 0.052,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                          textAlign: TextAlign.center,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: sw * 0.055,
+                    vertical: sh * 0.022,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildIconBadge(sw),
+                      SizedBox(height: sh * 0.016),
+                      Text(
+                        widget.config.title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: sw * 0.046,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
-                        SizedBox(height: sh * 0.012),
-                        Text(
-                          widget.config.subtitle,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: sw * 0.038,
-                            color: isDark ? Colors.white70 : Colors.black54,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: sh * 0.009),
+                      Text(
+                        widget.config.subtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: sw * 0.034,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          height: 1.45,
                         ),
-                        if (widget.config.content != null) ...[
-                          SizedBox(height: sh * 0.02),
-                          widget.config.content!,
-                        ],
-                        SizedBox(height: sh * 0.032),
-                        _buildButtons(sw, sh, theme, isDark),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (widget.config.content != null) ...[
+                        SizedBox(height: sh * 0.015),
+                        widget.config.content!,
                       ],
-                    ),
+                      SizedBox(height: sh * 0.024),
+                      _buildButtons(sw, sh, theme, isDark),
+                    ],
                   ),
                 ),
               ),
@@ -344,8 +342,8 @@ class _CustomDialogState extends State<CustomDialog>
   }
 
   Widget _buildIconBadge(double sw) {
-    final badgeSize = sw * 0.22;
-    final iconSize  = sw * 0.11;
+    final badgeSize = sw * 0.155;
+    final iconSize  = sw * 0.075;
     final accent    = _color();
 
     return Container(
@@ -418,7 +416,7 @@ class _CustomDialogState extends State<CustomDialog>
         borderRadius: BorderRadius.circular(sw * 0.03),
         child: Container(
           padding: EdgeInsets.symmetric(
-            vertical: sh * 0.017,
+            vertical: sh * 0.013,
             horizontal: sw * 0.04,
           ),
           decoration: BoxDecoration(

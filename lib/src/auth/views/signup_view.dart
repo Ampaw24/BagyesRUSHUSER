@@ -2,7 +2,8 @@ import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart' show FilteringTextInputFormatter, TextInputFormatter, TextEditingValue;
+import 'package:flutter/services.dart'
+    show FilteringTextInputFormatter, TextInputFormatter, TextEditingValue;
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -49,6 +50,7 @@ class _SignupViewState extends State<SignupView>
   int _currentStep = 0;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _otpTriggered = false;
 
   // Password strength
   double _passwordStrength = 0.0;
@@ -60,7 +62,10 @@ class _SignupViewState extends State<SignupView>
     super.initState();
     _setupAnimations();
     _passwordController.addListener(_checkPasswordStrength);
+    _confirmPasswordController.addListener(_onConfirmPasswordChanged);
   }
+
+  void _onConfirmPasswordChanged() => setState(() {});
 
   void _setupAnimations() {
     _animationController = AnimationController(
@@ -224,17 +229,24 @@ class _SignupViewState extends State<SignupView>
     final vm = context.read<AuthViewmodel>();
     final phone = _phoneController.text.trim();
 
-    vm.storeSignupData({
-      'firstName': _firstNameController.text.trim(),
-      'lastName': _lastNameController.text.trim(),
-      'email': _emailController.text.trim(),
-      'phone': phone,
-      'password': _passwordController.text,
-      'referralCode': _referralController.text.trim(),
-    });
+    // Store data so OTP screen can use phone for resend
+    vm.storeSignupData({'phone': phone});
 
-    vm.sendOtp(phone);
+    vm.signup(
+      email: _emailController.text.trim(),
+      phone: "0$phone",
+      password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text,
+      role: 'customer',
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      address: '',
+      referralCode: _referralController.text.trim().isEmpty
+          ? null
+          : _referralController.text.trim(),
+    );
   }
+  //548789999
 
   @override
   void dispose() {
@@ -245,6 +257,8 @@ class _SignupViewState extends State<SignupView>
     _emailController.dispose();
     _phoneController.dispose();
     _referralController.dispose();
+    _passwordController.removeListener(_checkPasswordStrength);
+    _confirmPasswordController.removeListener(_onConfirmPasswordChanged);
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _firstNameFocus.dispose();
@@ -262,16 +276,22 @@ class _SignupViewState extends State<SignupView>
     final authViewModel = context.watch<AuthViewmodel>();
     final loading = authViewModel.state is AuthLoading;
 
-    // Side effects: navigate on OTPSent, show error on AuthError
+    // Side effects: on Registered → trigger OTP; on OTPSent → navigate; on error → show dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final state = authViewModel.state;
-      if (state is OTPSent) {
+      if (state is Registered && !_otpTriggered) {
+        _otpTriggered = true;
+        final phone =
+            authViewModel.pendingSignupData?['phone'] as String? ?? '';
+        authViewModel.sendOtp(phone);
+      } else if (state is OTPSent) {
         AppNavigator.toOtp(context);
       } else if (state is AuthError) {
+        _otpTriggered = false;
         CustomDialog.showError(
           context: context,
-          title: 'Error',
+          title: state.title,
           subtitle: state.message,
         );
       }
@@ -592,6 +612,10 @@ class _SignupViewState extends State<SignupView>
               ),
               onSubmitted: (_) => _nextStep(),
             ),
+            if (_confirmPasswordController.text.isNotEmpty) ...[
+              SizedBox(height: sh * 0.012),
+              _buildPasswordMatchIndicator(sw),
+            ],
             SizedBox(height: sh * 0.025),
             _buildPasswordRequirements(sw, sh),
             SizedBox(height: sh * 0.02),
@@ -622,6 +646,30 @@ class _SignupViewState extends State<SignupView>
             fontSize: (sw * 0.033).clamp(11, 15),
             fontWeight: FontWeight.w600,
             color: _passwordStrengthColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordMatchIndicator(double sw) {
+    final match = _passwordController.text == _confirmPasswordController.text;
+    return Row(
+      children: [
+        HugeIcon(
+          icon: match
+              ? HugeIcons.strokeRoundedCheckmarkCircle01
+              : HugeIcons.strokeRoundedAlert01,
+          size: (sw * 0.038).clamp(14.0, 18.0),
+          color: match ? Colors.green : Colors.red,
+        ),
+        SizedBox(width: sw * 0.02),
+        Text(
+          match ? 'Passwords match' : 'Passwords do not match',
+          style: TextStyle(
+            fontSize: (sw * 0.033).clamp(11.0, 14.0),
+            fontWeight: FontWeight.w500,
+            color: match ? Colors.green : Colors.red,
           ),
         ),
       ],
@@ -737,7 +785,7 @@ class _SignupViewState extends State<SignupView>
                 child: loading
                     ? SpinKitCircle(size: sw * 0.06, color: Colors.white)
                     : Text(
-                        _currentStep == 0 ? 'Continue' : 'Send OTP',
+                        _currentStep == 0 ? 'Continue' : 'Register',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: (sw * 0.041).clamp(14, 18),
@@ -843,8 +891,8 @@ class _ModernTextFieldState extends State<_ModernTextField> {
   @override
   Widget build(BuildContext context) {
     final sw = widget.screenWidth;
-    final sh = widget.screenHeight;
-    final radius = BorderRadius.circular(sw * 0.032);
+    final radius = BorderRadius.circular(sw * 0.028);
+    final iconSize = (sw * 0.038).clamp(14.0, 18.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -852,61 +900,77 @@ class _ModernTextFieldState extends State<_ModernTextField> {
         Text(
           widget.label,
           style: TextStyle(
-            fontSize: (sw * 0.036).clamp(12, 16),
+            fontSize: (sw * 0.034).clamp(11.0, 15.0),
             fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        SizedBox(height: sh * 0.008),
-        TextField(
-          controller: widget.controller,
-          focusNode: widget.focusNode,
-          enabled: widget.enabled,
-          obscureText: widget.obscureText,
-          keyboardType: widget.keyboardType,
-          textInputAction: widget.textInputAction,
-          style: TextStyle(
-            fontSize: (sw * 0.038).clamp(13, 17),
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
+        SizedBox(height: sw * 0.018),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            color: Colors.white,
+            border: Border.all(
+              color: _isFocused ? Colors.red : Colors.grey[200]!,
+              width: _isFocused ? 1.5 : 1,
+            ),
           ),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: TextStyle(
-              color: Colors.grey[400],
-              fontWeight: FontWeight.w400,
-              fontSize: (sw * 0.038).clamp(13, 17),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            prefixIcon: HugeIcon(
-              icon: widget.prefixIcon,
-              color: _isFocused ? Colors.red : Colors.grey[500]!,
-              size: (sw * 0.038).clamp(14, 18),
-            ),
-            suffixIcon: widget.suffixIcon,
-            contentPadding: EdgeInsets.symmetric(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
               horizontal: sw * 0.04,
-              vertical: sh * 0.018,
+              vertical: sw * 0.002,
             ),
-            border: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: Colors.grey[100]!, width: 1),
+            child: Row(
+              children: [
+                HugeIcon(
+                  icon: widget.prefixIcon,
+                  color: _isFocused ? Colors.red : Colors.grey[500]!,
+                  size: iconSize,
+                ),
+                SizedBox(width: sw * 0.028),
+                Container(
+                  width: 1,
+                  height: (sw * 0.045).clamp(14.0, 20.0),
+                  color: Colors.grey[300],
+                ),
+                SizedBox(width: sw * 0.028),
+                Expanded(
+                  child: TextField(
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
+                    enabled: widget.enabled,
+                    obscureText: widget.obscureText,
+                    keyboardType: widget.keyboardType,
+                    textInputAction: widget.textInputAction,
+                    style: TextStyle(
+                      fontSize: (sw * 0.038).clamp(12.0, 17.0),
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: widget.hint,
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w400,
+                        fontSize: (sw * 0.038).clamp(12.0, 17.0),
+                      ),
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: sw * 0.026,
+                      ),
+                      suffixIcon: widget.suffixIcon,
+                    ),
+                    onSubmitted: widget.onSubmitted,
+                  ),
+                ),
+              ],
             ),
           ),
-          onSubmitted: widget.onSubmitted,
         ),
       ],
     );
@@ -1021,11 +1085,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
                 ),
               ),
               SizedBox(width: sw * 0.025),
-              Container(
-                width: 1,
-                height: sw * 0.055,
-                color: Colors.grey[300],
-              ),
+              Container(width: 1, height: sw * 0.055, color: Colors.grey[300]),
               Expanded(
                 child: TextField(
                   controller: widget.controller,

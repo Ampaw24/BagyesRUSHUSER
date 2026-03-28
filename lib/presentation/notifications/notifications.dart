@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:bagyesrushappusernew/constant/constant.dart';
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';

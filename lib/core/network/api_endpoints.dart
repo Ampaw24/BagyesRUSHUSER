@@ -12,9 +12,10 @@
 /// ```
 abstract final class ApiEndpoints {
   // ─── Authentication ────────────────────────────────────────────────────────
-  static const String customerSignup = '/auth/signup';
-  static const String customerLogin = '/auth/login';
+  static const String signup = '/auth/signup';
+  static const String login = '/auth/login';
   static const String otpSend = '/otp/send';
+  static const String otpVerify = '/otp/verify';
 
   /// `POST /customers/details/:id`
   static String customerDetails(String id) => '/customers/details/$id';

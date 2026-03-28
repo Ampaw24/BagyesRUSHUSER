@@ -1,10 +1,10 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
+import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 
 abstract class NetworkUtils {
   static Left<Failure, T> handleDioException<T>(DioException e) {
@@ -62,8 +62,9 @@ abstract class NetworkUtils {
     required String repositoryName,
     String? methodName,
   }) {
-    log(
+    appLogger.e(
       '$repositoryName${methodName != null ? '.$methodName' : ''}: $e',
+      error: e,
       stackTrace: s,
     );
 

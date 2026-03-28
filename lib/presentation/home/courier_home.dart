@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../constant/app_theme.dart';
+import '../../core/common/app/current_user_provider.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
@@ -110,6 +112,17 @@ class _HomeState extends ConsumerState<Home> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<CurrentUserProvider>().user;
+    final firstName = user?.profile?.firstName ?? '';
+    final lastName = user?.profile?.lastName ?? '';
+    final fullName = [firstName, lastName]
+        .where((s) => s.isNotEmpty)
+        .join(' ');
+    final initials = '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
+        '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
+    final email = user?.email ?? '';
+    final isVerified = user?.phoneVerified ?? false;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -143,10 +156,10 @@ class _HomeState extends ConsumerState<Home> {
             ),
             if (_drawerOpen)
               _CustomerDrawer(
-                userName: 'Ampaw Justice',
-                userEmail: 'john@bagyesrush.com',
-                initials: 'JD',
-                isVerified: true,
+                userName: fullName.isNotEmpty ? fullName : 'User',
+                userEmail: email,
+                initials: initials.isNotEmpty ? initials : 'U',
+                isVerified: isVerified,
                 onClose: _closeDrawer,
                 onProfile: () {
                   _closeDrawer();
@@ -270,6 +283,11 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
     final hPad = w * 0.05;
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final restaurantsAsync = ref.watch(restaurantsProvider);
+    final user = context.watch<CurrentUserProvider>().user;
+    final firstName = user?.profile?.firstName ?? '';
+    final lastName = user?.profile?.lastName ?? '';
+    final avatarInitials = '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
+        '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
 
     return CustomScrollView(
       slivers: [
@@ -305,7 +323,7 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Hey, Safo 👋',
+                            'Hey, ${firstName.isNotEmpty ? firstName : 'there'} 👋',
                             style: TextStyle(
                               fontSize: w * 0.04,
                               fontWeight: FontWeight.w700,
@@ -361,7 +379,7 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
                       radius: w * 0.05,
                       backgroundColor: AppColors.primary,
                       child: Text(
-                        'JD',
+                        avatarInitials.isNotEmpty ? avatarInitials : 'U',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: w * 0.035,

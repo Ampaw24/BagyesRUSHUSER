@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import '../../../constant/constant.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
@@ -25,14 +24,13 @@ class _OTPViewState extends State<OTPView> {
   }
 
   void _submitOtp(BuildContext context) {
+    final otp = _otpController.text.trim();
+    if (otp.isEmpty) return;
+
     final vm = context.read<AuthViewmodel>();
-    final pendingData = vm.pendingSignupData;
+    final phone = vm.pendingSignupData?['phone'] as String? ?? '';
 
-    final data = pendingData != null
-        ? {...pendingData, 'otp': _otpController.text.trim()}
-        : {'otp': _otpController.text.trim()};
-
-    vm.signup(data);
+    vm.verifyOtp(phone: phone, otp: otp);
   }
 
   @override
@@ -42,13 +40,13 @@ class _OTPViewState extends State<OTPView> {
         // Side effects
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          if (vm.state is Registered) {
+          if (vm.state is OTPVerified) {
             AppNavigator.toHome(context);
           } else if (vm.state is AuthError) {
             final error = vm.state as AuthError;
             CustomDialog.showError(
               context: context,
-              title: 'Oops!',
+              title: error.title,
               subtitle: error.message,
             );
           }
@@ -143,8 +141,8 @@ class _OTPViewState extends State<OTPView> {
                                   onTap: () {
                                     final phone =
                                         vm.pendingSignupData?['phone']
-                                                as String? ??
-                                            '';
+                                            as String? ??
+                                        '';
                                     vm.sendOtp(phone);
                                   },
                                   child: const Text(
@@ -161,9 +159,7 @@ class _OTPViewState extends State<OTPView> {
                           Container(
                             margin: const EdgeInsets.only(top: 30),
                             child: InkWell(
-                              onTap: loading
-                                  ? null
-                                  : () => _submitOtp(context),
+                              onTap: loading ? null : () => _submitOtp(context),
                               child: AnimatedContainer(
                                 width: width,
                                 height: buttonHeight,
@@ -180,9 +176,7 @@ class _OTPViewState extends State<OTPView> {
                                         color: Colors.white,
                                       )
                                     : Text(
-                                        vm.pendingSignupData != null
-                                            ? 'Verify and Create Account'
-                                            : 'Verify',
+                                        'Verify and Continue',
                                         style: whiteBottonTextStyle,
                                       ),
                               ),
