@@ -10,7 +10,7 @@ abstract final class AppNavigator {
   // ── Auth ──
   static void toOnboarding(BuildContext context) =>
       context.go(AppRoutes.onboarding);
-  static void toLogin(BuildContext context) => context.go(AppRoutes.login);
+  static void toLogin(BuildContext context) => context.push(AppRoutes.login);
   static void toSignup(BuildContext context) => context.push(AppRoutes.signup);
   static void toWalkthrough(BuildContext context) =>
       context.push(AppRoutes.walkthrough);

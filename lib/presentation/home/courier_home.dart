@@ -115,10 +115,9 @@ class _HomeState extends ConsumerState<Home> {
     final user = context.watch<CurrentUserProvider>().user;
     final firstName = user?.profile?.firstName ?? '';
     final lastName = user?.profile?.lastName ?? '';
-    final fullName = [firstName, lastName]
-        .where((s) => s.isNotEmpty)
-        .join(' ');
-    final initials = '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
+    final fullName = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
+    final initials =
+        '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
     final email = user?.email ?? '';
     final isVerified = user?.phoneVerified ?? false;
@@ -286,7 +285,8 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
     final user = context.watch<CurrentUserProvider>().user;
     final firstName = user?.profile?.firstName ?? '';
     final lastName = user?.profile?.lastName ?? '';
-    final avatarInitials = '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
+    final avatarInitials =
+        '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
 
     return CustomScrollView(
@@ -323,7 +323,7 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Hey, ${firstName.isNotEmpty ? firstName : 'there'} 👋',
+                            'Hey, ${firstName.isNotEmpty ? user?.profile?.firstName : 'there'} 👋',
                             style: TextStyle(
                               fontSize: w * 0.04,
                               fontWeight: FontWeight.w700,

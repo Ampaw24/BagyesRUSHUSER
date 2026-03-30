@@ -7,6 +7,8 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../constant/constant.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
@@ -212,6 +214,28 @@ class _LoginViewState extends State<LoginView>
     final logoSize = isTablet ? sw * 0.20 : sw * 0.28;
     return Row(
       children: [
+        GestureDetector(
+          onTap: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.onboarding);
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.all(sw * 0.018),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(sw * 0.022),
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: (sw * 0.045).clamp(16.0, 22.0),
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        SizedBox(width: sw * 0.03),
         ClipRRect(
           borderRadius: BorderRadius.circular(logoSize * 0.15),
           child: Image.asset(

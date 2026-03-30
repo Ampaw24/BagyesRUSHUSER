@@ -94,7 +94,7 @@ class _OnboardingViewState extends State<OnboardingView>
 
     if (success) {
       final destination = viewModel.getNavigationDestination();
-      context.go(destination);
+      context.push(destination);
     } else {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -329,7 +329,7 @@ class _OnboardingViewState extends State<OnboardingView>
                 ),
                 recognizer: TapGestureRecognizer()
                   ..onTap = () {
-                    context.go(AppRoutes.login);
+                    context.push(AppRoutes.login);
                   },
               ),
             ],

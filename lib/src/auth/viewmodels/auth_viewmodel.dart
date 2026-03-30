@@ -63,7 +63,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String role,
     required String firstName,
     required String lastName,
-    required String address,
+    String? address,
     String? referralCode,
   }) async {
     appLogger.d('AuthViewmodel.signup → email=$email phone=$phone');
@@ -173,6 +173,9 @@ class AuthViewmodel extends ViewModel<AuthState> {
     appLogger.d('AuthViewmodel.restoreSession → restoring session for userId=$userId');
     await getUserDetails(userId);
   }
+
+  /// Resets state to [AuthInitial] after a one-shot action has been handled.
+  void resetState() => emit(const AuthInitial());
 
   Future<void> logout() async {
     appLogger.d('AuthViewmodel.logout');

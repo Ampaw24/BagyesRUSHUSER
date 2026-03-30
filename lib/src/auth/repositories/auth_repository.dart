@@ -33,7 +33,7 @@ class AuthRepository {
     required String role,
     required String firstName,
     required String lastName,
-    required String address,
+    String? address,
     String? referralCode,
   }) async {
     appLogger.d('AuthRepository.signup → email=$email phone=$phone role=$role');
@@ -45,8 +45,9 @@ class AuthRepository {
       'role': role,
       'first_name': firstName,
       'last_name': lastName,
-      'address': address,
-      'referral_code': referralCode,
+      'address': address ?? '',
+      if (referralCode != null && referralCode.isNotEmpty)
+        'referral_code': referralCode,
     };
     try {
       final response = await _client.post(ApiEndpoints.signup, data: data);

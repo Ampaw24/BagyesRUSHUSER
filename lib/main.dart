@@ -2,9 +2,9 @@ import 'package:bagyesrushappusernew/main.wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    hide ChangeNotifierProvider;
 import 'package:provider/provider.dart';
-
 import 'states/app.state.dart';
 import 'core/di/service_locator.dart' as di;
 import 'core/di/service_locator.dart';
@@ -24,7 +24,6 @@ void main() async {
 
   // Phase 1 — legacy vendor/onboarding services
   await di.init();
-  
 
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,
   //           AuthRepository, AuthViewmodel); guarded with isRegistered checks.

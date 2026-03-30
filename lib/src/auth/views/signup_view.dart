@@ -1,4 +1,3 @@
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/constant.dart';
+import '../../../core/common/app/current_user_provider.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
 import '../../../core/router/router.dart';
@@ -31,6 +31,7 @@ class _SignupViewState extends State<SignupView>
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _referralController = TextEditingController();
 
   // Form controllers - Step 2
@@ -43,6 +44,7 @@ class _SignupViewState extends State<SignupView>
   final FocusNode _lastNameFocus = FocusNode();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _phoneFocus = FocusNode();
+  final FocusNode _addressFocus = FocusNode();
   final FocusNode _referralFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
   final FocusNode _confirmPasswordFocus = FocusNode();
@@ -50,7 +52,6 @@ class _SignupViewState extends State<SignupView>
   int _currentStep = 0;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _otpTriggered = false;
 
   // Password strength
   double _passwordStrength = 0.0;
@@ -63,6 +64,29 @@ class _SignupViewState extends State<SignupView>
     _setupAnimations();
     _passwordController.addListener(_checkPasswordStrength);
     _confirmPasswordController.addListener(_onConfirmPasswordChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthViewmodel>().addListener(_onAuthStateChanged);
+    });
+  }
+
+  void _onAuthStateChanged() {
+    if (!mounted) return;
+    final vm = context.read<AuthViewmodel>();
+    final state = vm.state;
+
+    if (state is Registered) {
+      vm.resetState();
+      final phone = context.read<CurrentUserProvider>().user?.phone ?? '';
+      AppNavigator.toOtp(context);
+      vm.sendOtp(phone);
+    } else if (state is AuthError) {
+      vm.resetState();
+      CustomDialog.showError(
+        context: context,
+        title: state.title,
+        subtitle: state.message,
+      );
+    }
   }
 
   void _onConfirmPasswordChanged() => setState(() {});
@@ -227,20 +251,17 @@ class _SignupViewState extends State<SignupView>
     if (!_validateStep2()) return;
 
     final vm = context.read<AuthViewmodel>();
-    final phone = _phoneController.text.trim();
-
-    // Store data so OTP screen can use phone for resend
-    vm.storeSignupData({'phone': phone});
+    final phone = "+233${_phoneController.text.trim()}";
 
     vm.signup(
       email: _emailController.text.trim(),
-      phone: "0$phone",
+      phone: phone,
       password: _passwordController.text,
       confirmPassword: _confirmPasswordController.text,
       role: 'customer',
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
-      address: '',
+      address: _addressController.text.trim(),
       referralCode: _referralController.text.trim().isEmpty
           ? null
           : _referralController.text.trim(),
@@ -250,12 +271,14 @@ class _SignupViewState extends State<SignupView>
 
   @override
   void dispose() {
+    context.read<AuthViewmodel>().removeListener(_onAuthStateChanged);
     _pageController.dispose();
     _animationController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
     _referralController.dispose();
     _passwordController.removeListener(_checkPasswordStrength);
     _confirmPasswordController.removeListener(_onConfirmPasswordChanged);
@@ -265,6 +288,7 @@ class _SignupViewState extends State<SignupView>
     _lastNameFocus.dispose();
     _emailFocus.dispose();
     _phoneFocus.dispose();
+    _addressFocus.dispose();
     _referralFocus.dispose();
     _passwordFocus.dispose();
     _confirmPasswordFocus.dispose();
@@ -273,29 +297,9 @@ class _SignupViewState extends State<SignupView>
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = context.watch<AuthViewmodel>();
-    final loading = authViewModel.state is AuthLoading;
-
-    // Side effects: on Registered → trigger OTP; on OTPSent → navigate; on error → show dialog
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final state = authViewModel.state;
-      if (state is Registered && !_otpTriggered) {
-        _otpTriggered = true;
-        final phone =
-            authViewModel.pendingSignupData?['phone'] as String? ?? '';
-        authViewModel.sendOtp(phone);
-      } else if (state is OTPSent) {
-        AppNavigator.toOtp(context);
-      } else if (state is AuthError) {
-        _otpTriggered = false;
-        CustomDialog.showError(
-          context: context,
-          title: state.title,
-          subtitle: state.message,
-        );
-      }
-    });
+    final loading = context.select<AuthViewmodel, bool>(
+      (vm) => vm.state is AuthLoading,
+    );
 
     return Scaffold(
       backgroundColor: scaffoldBgColor,
@@ -495,6 +499,19 @@ class _SignupViewState extends State<SignupView>
                 _ModernPhoneField(
                   controller: _phoneController,
                   focusNode: _phoneFocus,
+                  enabled: !loading,
+                  screenWidth: sw,
+                  screenHeight: sh,
+                  onSubmitted: (_) => _addressFocus.requestFocus(),
+                ),
+                SizedBox(height: sh * 0.018),
+                _ModernTextField(
+                  controller: _addressController,
+                  focusNode: _addressFocus,
+                  label: 'Address (Optional)',
+                  hint: 'Enter your address',
+                  prefixIcon: HugeIcons.strokeRoundedLocation01,
+                  textInputAction: TextInputAction.next,
                   enabled: !loading,
                   screenWidth: sw,
                   screenHeight: sh,

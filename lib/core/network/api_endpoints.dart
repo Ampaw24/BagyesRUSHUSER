@@ -12,7 +12,7 @@
 /// ```
 abstract final class ApiEndpoints {
   // ─── Authentication ────────────────────────────────────────────────────────
-  static const String signup = '/auth/signup';
+  static const String signup = '/auth/register';
   static const String login = '/auth/login';
   static const String otpSend = '/otp/send';
   static const String otpVerify = '/otp/verify';
