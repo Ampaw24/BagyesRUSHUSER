@@ -2,6 +2,7 @@ import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/c
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/repositories/i_profile_repository.dart';
 
 class ProfileRepositoryImpl implements IProfileRepository {
+  
   ConsumerProfile _profile = const ConsumerProfile(
     id: 'u1',
     fullName: 'Ampaw Justice',

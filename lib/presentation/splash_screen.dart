@@ -5,7 +5,9 @@ import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/services/user_session_manager.dart';
+import '../core/common/app/current_user_provider.dart';
+import '../src/auth/viewmodels/auth_viewmodel.dart';
+import '../src/auth/viewmodels/auth_state.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -54,23 +56,28 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateToNextScreen() async {
-    // Wait for splash duration
     await Future.delayed(const Duration(seconds: 4));
 
     if (!mounted) return;
 
-    final sessionManager = context.read<UserSessionManager>();
-
-    // Check authentication status
-    final isAuthenticated = sessionManager.isAuthenticated;
+    final authState = context.read<AuthViewmodel>().state;
+    final currentUser = context.read<CurrentUserProvider>();
 
     if (!mounted) return;
 
-    if (isAuthenticated) {
-      context.go(AppRoutes.home);
+    if (authState is LoggedIn) {
+      // Route by role
+      final role = currentUser.user?.role ?? '';
+      if (role == 'vendor') {
+        context.go(AppRoutes.vendorHome);
+      } else {
+        context.go(AppRoutes.home);
+      }
+    } else if (authState is AuthError) {
+      // Token existed but was expired/invalid → go straight to login
+      context.go(AppRoutes.login);
     } else {
-      // Always show onboarding (role selection) for unauthenticated users
-      // so they can choose the Vendor or User flow
+      // LoggedOut → no stored token → go through onboarding
       context.go(AppRoutes.onboarding);
     }
   }

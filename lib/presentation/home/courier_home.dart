@@ -11,6 +11,10 @@ import '../../constant/app_theme.dart';
 import '../../core/common/app/current_user_provider.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';
+import '../../src/auth/viewmodels/auth_viewmodel.dart';
+import '../../states/app.state.dart';
+import '../../services/auth.service.dart';
+import '../../core/widgets/custom_dialogs.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
 import '../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import '../../features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
@@ -39,6 +43,33 @@ class _HomeState extends ConsumerState<Home> {
 
   void _openDrawer() => setState(() => _drawerOpen = true);
   void _closeDrawer() => setState(() => _drawerOpen = false);
+
+  void _handleLogout() {
+    _closeDrawer();
+    CustomDialog.showConfirmation(
+      context: context,
+      title: 'Logout',
+      subtitle: 'Are you sure you want to log out?',
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      onConfirm: () async {
+        if (!mounted) return;
+
+        // Clear new MVVM auth session
+        await context.read<AuthViewmodel>().logout();
+
+        if (!mounted) return;
+
+        // Clear legacy AppState user data
+        final appState = context.read<AppState>();
+        appState.setUser(IUser());
+        appState.setPayload(ISignup());
+
+        // Navigate to login, replacing the entire stack
+        context.go(AppRoutes.login);
+      },
+    );
+  }
 
   void _showDeleteAccountDialog() {
     _closeDrawer();
@@ -187,10 +218,7 @@ class _HomeState extends ConsumerState<Home> {
                 onPrivacyPolicy: () => _closeDrawer(),
                 onHelpSupport: () => _closeDrawer(),
                 onDeleteAccount: _showDeleteAccountDialog,
-                onLogout: () {
-                  _closeDrawer();
-                  context.go(AppRoutes.login);
-                },
+                onLogout: _handleLogout,
               ),
           ],
         ),

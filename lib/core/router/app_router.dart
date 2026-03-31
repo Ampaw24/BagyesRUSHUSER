@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/singletons/cache.dart';
 import 'package:bagyesrushappusernew/presentation/splash_screen.dart';
 import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
 import 'package:bagyesrushappusernew/presentation/orders/track_order.dart';
@@ -17,6 +20,7 @@ import 'package:bagyesrushappusernew/src/auth/views/login_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/signup_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/otp_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/walkthrough_view.dart';
+import 'package:bagyesrushappusernew/src/auth/views/kyc_verification_view.dart';
 import 'package:bagyesrushappusernew/src/onboarding/views/onboarding_view.dart';
 import 'package:bagyesrushappusernew/src/vendor_registration/views/vendor_registration_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
@@ -36,10 +40,59 @@ import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Routes that do not require authentication.
+const _publicRoutes = {
+  AppRoutes.splash,
+  AppRoutes.onboarding,
+  AppRoutes.walkthrough,
+  AppRoutes.login,
+  AppRoutes.signup,
+  AppRoutes.otp,
+};
+
+/// Routes exempt from KYC verification checks (user is logged in but
+/// allowed to access these even when not fully verified).
+const _kycExemptRoutes = {
+  AppRoutes.kycVerification,
+  AppRoutes.editProfile,
+  AppRoutes.profile,
+};
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: true,
+
+  // ── Centralized redirect guard ──────────────────────────────────────────
+  redirect: (context, state) {
+    final location = state.matchedLocation;
+    final isPublicRoute = _publicRoutes.contains(location);
+    final hasToken = Cache.instance.sessionToken != null;
+
+    // 1. Unauthenticated user trying to access a protected route → login
+    if (!hasToken && !isPublicRoute) {
+      return AppRoutes.login;
+    }
+
+    // 2. Authenticated user trying to access auth pages → home
+    if (hasToken && isPublicRoute && location != AppRoutes.splash) {
+      return AppRoutes.home;
+    }
+
+    // 3. KYC gating — redirect unverified users away from protected routes
+    if (hasToken && !isPublicRoute && !_kycExemptRoutes.contains(location)) {
+      final sl = GetIt.instance;
+      if (sl.isRegistered<CurrentUserProvider>()) {
+        final user = sl<CurrentUserProvider>().user;
+        if (user != null && !user.phoneVerified) {
+          return AppRoutes.kycVerification;
+        }
+      }
+    }
+
+    return null; // no redirect
+  },
+
   routes: [
     // ── Auth flow ──
     GoRoute(
@@ -59,7 +112,19 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.signup,
       builder: (context, state) => const SignupView(),
     ),
-    GoRoute(path: AppRoutes.otp, builder: (context, state) => OTPView()),
+    GoRoute(
+      path: AppRoutes.otp,
+      builder: (context, state) {
+        final showSuccess = state.extra as bool? ?? false;
+        return OTPView(showSuccessOnVerify: showSuccess);
+      },
+    ),
+
+    // ── KYC verification gate ──
+    GoRoute(
+      path: AppRoutes.kycVerification,
+      builder: (context, state) => const KycVerificationView(),
+    ),
 
     // ── Consumer home shell ──
     GoRoute(

@@ -81,7 +81,10 @@ class AppInitializer {
         contentType: 'application/json',
       ),
     );
-    dio.interceptors.add(DioInterceptor());
+    dio.interceptors.add(DioInterceptor(
+      cacheHelper: _sl<CacheHelper>(),
+      dio: dio,
+    ));
     if (kDebugMode) {
       dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
     }

@@ -24,6 +24,7 @@ class Cache {
 
   void resetSession() {
     _sessionToken = null;
+    _passwordResetToken = null;
     _userId = null;
   }
 }

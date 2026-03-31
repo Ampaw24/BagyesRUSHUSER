@@ -34,12 +34,12 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String phoneNumber,
     required String password,
   }) async {
-    appLogger.d('AuthViewmodel.login → phone=$phoneNumber');
+    appLogger.d('AuthViewmodel.login → phone=***${phoneNumber.length > 4 ? phoneNumber.substring(phoneNumber.length - 4) : ""}');
     emit(const AuthLoading());
 
     final result = await _repository.login(
       phoneNumber: phoneNumber.trim(),
-      password: password.trim(),
+      password: password,
     );
 
     result.fold(
@@ -66,7 +66,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     String? address,
     String? referralCode,
   }) async {
-    appLogger.d('AuthViewmodel.signup → email=$email phone=$phone');
+    appLogger.d('AuthViewmodel.signup → initiated');
     emit(const AuthLoading());
 
     final result = await _repository.signup(
@@ -95,7 +95,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
   }
 
   Future<void> sendOtp(String phone) async {
-    appLogger.d('AuthViewmodel.sendOtp → phone=$phone');
+    appLogger.d('AuthViewmodel.sendOtp → initiated');
     emit(const RequestingOTP());
 
     final result = await _repository.sendOtp(phone: phone.trim());
@@ -117,7 +117,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String phone,
     required String otp,
   }) async {
-    appLogger.d('AuthViewmodel.verifyOtp → phone=$phone');
+    appLogger.d('AuthViewmodel.verifyOtp → initiated');
     emit(const AuthLoading());
 
     final result = await _repository.verifyOtp(phone: phone, otp: otp);
@@ -158,8 +158,12 @@ class AuthViewmodel extends ViewModel<AuthState> {
   }
 
   /// Called on app launch. If a valid token + userId are found in secure
-  /// storage (warmed into [Cache] by AppInitializer), re-fetches the full
-  /// user profile so the app can resume without requiring a new login.
+  /// storage (warmed into [Cache] by AppInitializer), marks the user as
+  /// [LoggedIn] immediately and fetches the profile in the background.
+  ///
+  /// This decouples "auth state" from "profile data" — a network failure
+  /// during profile fetch no longer forces the user back to the login screen
+  /// when they have a valid token.
   Future<void> restoreSession() async {
     final token  = Cache.instance.sessionToken;
     final userId = Cache.instance.userId;
@@ -170,8 +174,37 @@ class AuthViewmodel extends ViewModel<AuthState> {
       return;
     }
 
-    appLogger.d('AuthViewmodel.restoreSession → restoring session for userId=$userId');
-    await getUserDetails(userId);
+    // Mark as logged in immediately based on token presence
+    appLogger.d('AuthViewmodel.restoreSession → token found, marking LoggedIn');
+    emit(const LoggedIn());
+
+    // Fetch profile in background — failures are non-fatal
+    _fetchProfileInBackground(userId);
+  }
+
+  /// Fetches user profile without changing auth state on failure.
+  /// If the fetch succeeds, updates [CurrentUserProvider].
+  /// If it fails (e.g. poor connectivity), the user stays logged in
+  /// and the profile will be retried on next relevant screen.
+  Future<void> _fetchProfileInBackground(String userId) async {
+    appLogger.d('AuthViewmodel._fetchProfileInBackground → userId=$userId');
+    final result = await _repository.getUserDetails(userId);
+
+    result.fold(
+      (failure) {
+        appLogger.w(
+          'AuthViewmodel._fetchProfileInBackground → '
+          'profile fetch failed (non-fatal): ${failure.message}',
+        );
+      },
+      (user) {
+        appLogger.i(
+          'AuthViewmodel._fetchProfileInBackground → '
+          'profile loaded id=${user.id}',
+        );
+        _currentUserProvider.setUser(user);
+      },
+    );
   }
 
   /// Resets state to [AuthInitial] after a one-shot action has been handled.
@@ -183,16 +216,19 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
     final result = await _repository.logout();
 
+    // Always clear local state — the repository already wipes secure storage
+    // and the in-memory Cache regardless of the server response.
+    _currentUserProvider.clearUser();
+    _otpResponse = null;
+    _pendingSignupData = null;
+
     result.fold(
       (failure) {
-        appLogger.w('AuthViewmodel.logout → error: ${failure.message}');
-        emit(AuthError.fromFailure(failure));
+        appLogger.w('AuthViewmodel.logout → server error (session cleared locally): ${failure.message}');
+        emit(const LoggedOut());
       },
       (_) {
         appLogger.i('AuthViewmodel.logout → LoggedOut');
-        _currentUserProvider.clearUser();
-        _otpResponse = null;
-        _pendingSignupData = null;
         emit(const LoggedOut());
       },
     );

@@ -58,14 +58,22 @@ class _SignupViewState extends State<SignupView>
   String _passwordStrengthText = '';
   Color _passwordStrengthColor = Colors.grey;
 
+  /// Saved reference so dispose() doesn't call context.read on an unmounted widget.
+  AuthViewmodel? _vm;
+
+  late final TapGestureRecognizer _loginTapRecognizer;
+
   @override
   void initState() {
     super.initState();
+    _loginTapRecognizer = TapGestureRecognizer()
+      ..onTap = () => AppNavigator.toLogin(context);
     _setupAnimations();
     _passwordController.addListener(_checkPasswordStrength);
     _confirmPasswordController.addListener(_onConfirmPasswordChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthViewmodel>().addListener(_onAuthStateChanged);
+      _vm = context.read<AuthViewmodel>();
+      _vm!.addListener(_onAuthStateChanged);
     });
   }
 
@@ -73,6 +81,7 @@ class _SignupViewState extends State<SignupView>
     if (!mounted) return;
     final vm = context.read<AuthViewmodel>();
     final state = vm.state;
+    _submitting = false;
 
     if (state is Registered) {
       vm.resetState();
@@ -158,6 +167,12 @@ class _SignupViewState extends State<SignupView>
     });
   }
 
+  static final _emailRegExp = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
+
+  bool _isValidEmail(String email) => _emailRegExp.hasMatch(email);
+
   bool _validateStep1() {
     if (_firstNameController.text.trim().isEmpty) {
       _showError('Please enter your first name');
@@ -171,7 +186,7 @@ class _SignupViewState extends State<SignupView>
       _showError('Please enter your email');
       return false;
     }
-    if (!_emailController.text.contains('@')) {
+    if (!_isValidEmail(_emailController.text.trim())) {
       _showError('Please enter a valid email address');
       return false;
     }
@@ -196,6 +211,14 @@ class _SignupViewState extends State<SignupView>
     }
     if (password.length < 8) {
       _showError('Password must be at least 8 characters');
+      return false;
+    }
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      _showError('Password must contain at least one uppercase letter');
+      return false;
+    }
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      _showError('Password must contain at least one lowercase letter');
       return false;
     }
     if (!password.contains(RegExp(r'[0-9]'))) {
@@ -247,9 +270,13 @@ class _SignupViewState extends State<SignupView>
     }
   }
 
+  bool _submitting = false;
+
   void _submitSignup() {
+    if (_submitting) return;
     if (!_validateStep2()) return;
 
+    _submitting = true;
     final vm = context.read<AuthViewmodel>();
     final phone = "+233${_phoneController.text.trim()}";
 
@@ -271,7 +298,8 @@ class _SignupViewState extends State<SignupView>
 
   @override
   void dispose() {
-    context.read<AuthViewmodel>().removeListener(_onAuthStateChanged);
+    _vm?.removeListener(_onAuthStateChanged);
+    _loginTapRecognizer.dispose();
     _pageController.dispose();
     _animationController.dispose();
     _firstNameController.dispose();
@@ -721,6 +749,18 @@ class _SignupViewState extends State<SignupView>
             sh,
           ),
           _buildRequirement(
+            'At least one uppercase letter',
+            password.contains(RegExp(r'[A-Z]')),
+            sw,
+            sh,
+          ),
+          _buildRequirement(
+            'At least one lowercase letter',
+            password.contains(RegExp(r'[a-z]')),
+            sw,
+            sh,
+          ),
+          _buildRequirement(
             'At least one number',
             password.contains(RegExp(r'[0-9]')),
             sw,
@@ -830,10 +870,7 @@ class _SignupViewState extends State<SignupView>
                       color: Colors.red,
                       fontWeight: FontWeight.w600,
                     ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                        AppNavigator.toLogin(context);
-                      },
+                    recognizer: _loginTapRecognizer,
                   ),
                 ],
               ),

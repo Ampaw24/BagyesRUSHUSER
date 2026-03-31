@@ -1,15 +1,22 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+
 import '../../constant/baseurl.dart';
+import '../helpers/cache_helper.dart';
 import '../router/app_routes.dart';
 import '../router/app_router.dart' show appRouter;
-import '../services/user_session_manager.dart';
+import '../singletons/cache.dart';
 
+/// Legacy network client used by vendor/onboarding repositories.
+///
+/// Now reads the session token from [Cache.instance] (the same source the
+/// new MVVM [DioInterceptor] uses), eliminating the old
+/// `UserSessionManager` as a separate source of truth.
 class NetworkUtility {
   final Dio _dio;
-  final UserSessionManager _sessionManager;
 
-  NetworkUtility(this._sessionManager)
+  NetworkUtility()
     : _dio = Dio(
         BaseOptions(
           baseUrl: BASEURL,
@@ -24,7 +31,7 @@ class NetworkUtility {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final token = _sessionManager.accessToken;
+          final token = Cache.instance.sessionToken;
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -32,8 +39,10 @@ class NetworkUtility {
         },
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
-            // Token expired or invalid — clear session and redirect to login.
-            await _sessionManager.logout();
+            final sl = GetIt.instance;
+            if (sl.isRegistered<CacheHelper>()) {
+              await sl<CacheHelper>().resetSession();
+            }
             appRouter.go(AppRoutes.login);
           }
           return handler.next(e);
@@ -41,7 +50,6 @@ class NetworkUtility {
       ),
     );
 
-    // Log requests/responses only in debug builds.
     if (kDebugMode) {
       _dio.interceptors.add(
         LogInterceptor(requestBody: true, responseBody: true),

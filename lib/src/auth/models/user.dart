@@ -91,7 +91,7 @@ class Profile extends Equatable {
     final String firstName;
     final String lastName;
     final String address;
-    final dynamic profilePictureUrl;
+    final String? profilePictureUrl;
     final String referralCode;
     final num referralCount;
     final DateTime? createdAt;
@@ -104,7 +104,7 @@ class Profile extends Equatable {
         String? firstName,
         String? lastName,
         String? address,
-        dynamic profilePictureUrl,
+        String? profilePictureUrl,
         String? referralCode,
         num? referralCount,
         DateTime? createdAt,
@@ -133,7 +133,7 @@ class Profile extends Equatable {
             firstName: json["first_name"] ?? "",
             lastName: json["last_name"] ?? "",
             address: json["address"] ?? "",
-            profilePictureUrl: json["profile_picture_url"],
+            profilePictureUrl: json["profile_picture_url"] as String?,
             referralCode: json["referral_code"] ?? "",
             referralCount: json["referral_count"] ?? 0,
             createdAt: DateTime.tryParse(json["created_at"] ?? ""),

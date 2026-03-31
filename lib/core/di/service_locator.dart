@@ -1,6 +1,5 @@
 import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
-import '../services/user_session_manager.dart';
 import '../utils/network_utility.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
@@ -30,14 +29,10 @@ Future<void> init() async {
   final secureStorage = SecureStorageService();
   sl.registerLazySingleton(() => secureStorage);
 
-  final sessionManager = UserSessionManager(sl());
-  await sessionManager.init();
-  sl.registerLazySingleton(() => sessionManager);
-
   sl.registerLazySingleton(() => OnboardingService(sl()));
 
-  // ── Network (legacy — used by vendor/onboarding repositories) ───────────────
-  sl.registerLazySingleton(() => NetworkUtility(sl()));
+  // ── Network (legacy — now uses Cache.instance instead of UserSessionManager) ─
+  sl.registerLazySingleton(() => NetworkUtility());
 
   // ── Repositories ────────────────────────────────────────────────────────────
   sl.registerLazySingleton<VendorRepository>(() => VendorRepositoryImpl(sl()));

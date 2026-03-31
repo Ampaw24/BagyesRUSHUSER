@@ -10,7 +10,6 @@ import 'core/di/service_locator.dart' as di;
 import 'core/di/service_locator.dart';
 import 'core/services/app_initializer.dart';
 import 'core/providers/app_providers.dart';
-import 'core/services/user_session_manager.dart';
 import 'src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
 import 'src/vendor/viewmodel/orders_viewmodel.dart';
@@ -42,9 +41,6 @@ void main() async {
 
             // ── Auth + current user (new MVVM pattern) ──────────────────────
             ...AppProviders.allProviders,
-
-            // ── Legacy session manager (used by vendor features) ────────────
-            ChangeNotifierProvider(create: (_) => sl<UserSessionManager>()),
 
             // ── Other feature viewmodels ────────────────────────────────────
             ChangeNotifierProvider(create: (_) => sl<OnboardingViewModel>()),

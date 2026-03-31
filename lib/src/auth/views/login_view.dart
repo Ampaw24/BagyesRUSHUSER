@@ -35,18 +35,27 @@ class _LoginViewState extends State<LoginView>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  /// Saved reference so dispose() doesn't call context.read on an unmounted widget.
+  AuthViewmodel? _vm;
+
+  late final TapGestureRecognizer _signUpTapRecognizer;
+
   @override
   void initState() {
     super.initState();
+    _signUpTapRecognizer = TapGestureRecognizer()
+      ..onTap = () => AppNavigator.toSignup(context);
     _setupAnimations();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthViewmodel>().addListener(_onAuthStateChanged);
+      _vm = context.read<AuthViewmodel>();
+      _vm!.addListener(_onAuthStateChanged);
     });
   }
 
   void _onAuthStateChanged() {
     if (!mounted) return;
     final vm = context.read<AuthViewmodel>();
+    _submitting = false;
 
     if (vm.state is LoggedIn) {
       final role = context.read<CurrentUserProvider>().user?.role;
@@ -91,7 +100,8 @@ class _LoginViewState extends State<LoginView>
 
   @override
   void dispose() {
-    context.read<AuthViewmodel>().removeListener(_onAuthStateChanged);
+    _vm?.removeListener(_onAuthStateChanged);
+    _signUpTapRecognizer.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     _phoneFocusNode.dispose();
@@ -100,9 +110,12 @@ class _LoginViewState extends State<LoginView>
     super.dispose();
   }
 
+  bool _submitting = false;
+
   void _proceed(BuildContext context) {
+    if (_submitting) return;
     final phone = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _passwordController.text;
 
     if (phone.length != 9) {
       _showErrorDialog(
@@ -113,15 +126,16 @@ class _LoginViewState extends State<LoginView>
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       _showErrorDialog(
         context,
         'Invalid Password',
-        'Password must be at least 6 characters.',
+        'Password must be at least 8 characters.',
       );
       return;
     }
 
+    _submitting = true;
     context.read<AuthViewmodel>().login(
       phoneNumber: '+233$phone',
       password: password,
@@ -387,8 +401,7 @@ class _LoginViewState extends State<LoginView>
                   color: Colors.red,
                   fontWeight: FontWeight.w600,
                 ),
-                recognizer: TapGestureRecognizer()
-                  ..onTap = () => AppNavigator.toSignup(context),
+                recognizer: _signUpTapRecognizer,
               ),
             ],
           ),

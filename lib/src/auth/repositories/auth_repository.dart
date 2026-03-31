@@ -36,7 +36,7 @@ class AuthRepository {
     String? address,
     String? referralCode,
   }) async {
-    appLogger.d('AuthRepository.signup → email=$email phone=$phone role=$role');
+    appLogger.d('AuthRepository.signup → role=$role');
     final data = {
       'email': email,
       'phone': phone,
@@ -82,7 +82,7 @@ class AuthRepository {
     required String phoneNumber,
     required String password,
   }) async {
-    appLogger.d('AuthRepository.login → phone=$phoneNumber');
+    appLogger.d('AuthRepository.login → initiated');
     try {
       final response = await _client.post(
         ApiEndpoints.login,
@@ -116,7 +116,7 @@ class AuthRepository {
   }
 
   ResultFuture sendOtp({required String phone}) async {
-    appLogger.d('AuthRepository.sendOtp → phone=$phone');
+    appLogger.d('AuthRepository.sendOtp → initiated');
     try {
       final response = await _client.post(ApiEndpoints.otpSend, data: {'phone': phone});
 
@@ -140,7 +140,7 @@ class AuthRepository {
     required String phone,
     required String otp,
   }) async {
-    appLogger.d('AuthRepository.verifyOtp → phone=$phone');
+    appLogger.d('AuthRepository.verifyOtp → initiated');
     try {
       final response = await _client.post(
         ApiEndpoints.otpVerify,
@@ -187,13 +187,24 @@ class AuthRepository {
     }
   }
 
+
+  /// Logs the user out by invalidating the server session first (while the
+  /// token is still available), then clearing all local state.
   ResultFuture<void> logout() async {
     appLogger.d('AuthRepository.logout → clearing session');
     try {
+      // Notify server before clearing local tokens so the auth header is sent
+      try {
+        await _client.post(ApiEndpoints.logout);
+      } catch (_) {
+        // Server logout is best-effort — always clear local session
+      }
       await _cacheHelper.resetSession();
       appLogger.i('AuthRepository.logout → session cleared');
       return const Right(null);
     } catch (e, s) {
+      // Even on unexpected failure, ensure local session is cleared
+      await _cacheHelper.resetSession();
       return NetworkUtils.handleException(e, s,
           repositoryName: 'AuthRepository', methodName: 'logout');
     }

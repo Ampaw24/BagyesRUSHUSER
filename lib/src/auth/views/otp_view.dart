@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
+import '../../../core/widgets/custom_dialogs.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
@@ -558,10 +559,18 @@ class _OtpDigitFormatter extends TextInputFormatter {
 ///
 /// Set [obscureDigits] to `true` to mask digits with a bullet.
 class OTPView extends StatefulWidget {
-  const OTPView({super.key, this.obscureDigits = false});
+  const OTPView({
+    super.key,
+    this.obscureDigits = false,
+    this.showSuccessOnVerify = false,
+  });
 
   /// Whether each entered digit should be rendered as `•`.
   final bool obscureDigits;
+
+  /// When `true`, shows a success dialog after verification before navigating
+  /// home. Used when coming from the phone verification / KYC flow.
+  final bool showSuccessOnVerify;
 
   @override
   State<OTPView> createState() => _OTPViewState();
@@ -585,6 +594,9 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   bool    _isSuccess    = false;
   String? _errorMessage;
 
+  /// Saved reference so dispose() doesn't call context.read on an unmounted widget.
+  AuthViewmodel? _vm;
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
@@ -595,14 +607,15 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
     _initAnimations();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthViewmodel>().addListener(_onAuthStateChanged);
+      _vm = context.read<AuthViewmodel>();
+      _vm!.addListener(_onAuthStateChanged);
       _input.focusFirst();
     });
   }
 
   @override
   void dispose() {
-    context.read<AuthViewmodel>().removeListener(_onAuthStateChanged);
+    _vm?.removeListener(_onAuthStateChanged);
     _input.dispose();
     _resendTimer.cancel();
     _entryCtrl.dispose();
@@ -738,7 +751,29 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   Future<void> _handleVerified() async {
     setState(() => _isSuccess = true);
     await _successCtrl.forward(from: 0);
-    if (mounted) AppNavigator.toHome(context);
+    if (!mounted) return;
+
+    // Show success dialog when coming from the verification / KYC flow
+    if (widget.showSuccessOnVerify) {
+      await CustomDialog.showSuccess(
+        context: context,
+        title: 'Verification Successful',
+        subtitle: 'Your phone number has been verified. Welcome to bagyesRUSH!',
+        confirmText: 'Get Started',
+        onConfirm: () {
+          if (mounted) AppNavigator.toHome(context);
+        },
+      );
+      return;
+    }
+
+    // Default: KYC check — route unverified users to verification screen
+    final user = context.read<CurrentUserProvider>().user;
+    if (user != null && !user.phoneVerified) {
+      context.go(AppRoutes.kycVerification);
+    } else {
+      AppNavigator.toHome(context);
+    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────

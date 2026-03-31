@@ -14,11 +14,16 @@ abstract final class ApiEndpoints {
   // ─── Authentication ────────────────────────────────────────────────────────
   static const String signup = '/auth/register';
   static const String login = '/auth/login';
+  static const String logout = '/auth/logout';
+  static const String refreshToken = '/auth/refresh-token';
   static const String otpSend = '/otp/send';
   static const String otpVerify = '/otp/verify';
 
-  /// `POST /customers/details/:id`
-  static String customerDetails(String id) => '/customers/details/$id';
+  /// `GET /auth/me`
+  static String customerDetails(String id) => '/auth/me';
+
+  /// `PATCH /customers/update`
+  static const String customerUpdate = '/customers/update';
 
   // ─── Vendor Registration ───────────────────────────────────────────────────
   static const String vendorRegister = '/vendors/register';

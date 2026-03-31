@@ -35,12 +35,13 @@ Future<http.Response> sendOtp(data) {
 }
 
 Future<http.Response> updateUser(token, data) {
-  const headers = {
+  final headers = {
     'Content-Type': 'application/json',
     "Access-Control-Allow-Origin": "*",
+    "Authorization": "Bearer $token",
   };
-  return http.post(Uri.parse("$BASEURL/otp/send"),
-      headers: headers, body: data);
+  return http.patch(Uri.parse("$BASEURL/customers/update"),
+      headers: headers, body: jsonEncode(data));
 }
 
 Future<http.Response> getDetails(token, id) {
