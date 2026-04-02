@@ -33,6 +33,7 @@ enum VendorRegistrationStatus {
   submitting,
   otpSent,
   otpVerified,
+  complete,
   submitted,
   error,
 }

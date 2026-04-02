@@ -60,7 +60,7 @@ Future<void> init() async {
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
   sl.registerFactory(() => OnboardingViewModel(sl()));
-  sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl()));
+  sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => DashboardViewModel(sl()));
   sl.registerFactory(() => OrdersViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));

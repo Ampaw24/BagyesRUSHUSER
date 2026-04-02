@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'vendor_enums.dart';
 import 'business_details_data.dart';
 import 'legal_compliance_data.dart';
@@ -16,8 +17,17 @@ class VendorRegistrationState extends Equatable {
   final PayoutDetailsData payoutDetails;
   final String? otpCode;
   final bool isOtpVerified;
+  final bool isOtpSent;
+  /// True when the user's account already exists but phone is unverified —
+  /// the flow skips straight to OTP rather than re-registering.
+  final bool isResumeFlow;
   final String? errorMessage;
   final Map<VendorRegistrationStep, bool> completedSteps;
+
+  // Category state consolidated here (was scattered as separate VM fields)
+  final List<CategoryElement> availableCategories;
+  final bool isCategoriesLoading;
+  final String? categoriesError;
 
   const VendorRegistrationState({
     this.currentStep = VendorRegistrationStep.businessDetails,
@@ -28,8 +38,13 @@ class VendorRegistrationState extends Equatable {
     this.payoutDetails = const PayoutDetailsData(),
     this.otpCode,
     this.isOtpVerified = false,
+    this.isOtpSent = false,
+    this.isResumeFlow = false,
     this.errorMessage,
     this.completedSteps = const {},
+    this.availableCategories = const [],
+    this.isCategoriesLoading = false,
+    this.categoriesError,
   });
 
   double get progress =>
@@ -48,8 +63,13 @@ class VendorRegistrationState extends Equatable {
     PayoutDetailsData? payoutDetails,
     String? otpCode,
     bool? isOtpVerified,
+    bool? isOtpSent,
+    bool? isResumeFlow,
     String? errorMessage,
     Map<VendorRegistrationStep, bool>? completedSteps,
+    List<CategoryElement>? availableCategories,
+    bool? isCategoriesLoading,
+    String? categoriesError,
   }) {
     return VendorRegistrationState(
       currentStep: currentStep ?? this.currentStep,
@@ -60,8 +80,13 @@ class VendorRegistrationState extends Equatable {
       payoutDetails: payoutDetails ?? this.payoutDetails,
       otpCode: otpCode ?? this.otpCode,
       isOtpVerified: isOtpVerified ?? this.isOtpVerified,
+      isOtpSent: isOtpSent ?? this.isOtpSent,
+      isResumeFlow: isResumeFlow ?? this.isResumeFlow,
       errorMessage: errorMessage,
       completedSteps: completedSteps ?? this.completedSteps,
+      availableCategories: availableCategories ?? this.availableCategories,
+      isCategoriesLoading: isCategoriesLoading ?? this.isCategoriesLoading,
+      categoriesError: categoriesError,
     );
   }
 
@@ -83,7 +108,12 @@ class VendorRegistrationState extends Equatable {
     payoutDetails,
     otpCode,
     isOtpVerified,
+    isOtpSent,
+    isResumeFlow,
     errorMessage,
     completedSteps,
+    availableCategories,
+    isCategoriesLoading,
+    categoriesError,
   ];
 }

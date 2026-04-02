@@ -9,6 +9,7 @@ class VerificationStep extends StatefulWidget {
   final bool isLoading;
   final bool isOtpSent;
   final bool isVerified;
+  final bool isResumeFlow;
   final VoidCallback onSendOtp;
   final ValueChanged<String> onVerifyOtp;
 
@@ -18,6 +19,7 @@ class VerificationStep extends StatefulWidget {
     required this.isLoading,
     required this.isOtpSent,
     required this.isVerified,
+    this.isResumeFlow = false,
     required this.onSendOtp,
     required this.onVerifyOtp,
   });
@@ -93,6 +95,43 @@ class _VerificationStepState extends State<VerificationStep>
     return Column(
       children: [
         SizedBox(height: size.height * 0.02),
+
+        // Resume banner — shown when the account already existed
+        if (widget.isResumeFlow) ...[
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(size.width * 0.035),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(size.width * 0.025),
+              color: Colors.amber.shade50,
+              border: Border.all(color: Colors.amber.shade300),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.amber.shade700,
+                  size: size.width * 0.045,
+                ),
+                SizedBox(width: size.width * 0.025),
+                Expanded(
+                  child: Text(
+                    'It looks like you already started registration. '
+                    'We\'ve sent a new verification code to your phone — '
+                    'enter it below to complete your account.',
+                    style: TextStyle(
+                      fontSize: size.width * 0.03,
+                      color: Colors.amber.shade900,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: size.height * 0.02),
+        ],
 
         // Phone icon
         AnimatedContainer(

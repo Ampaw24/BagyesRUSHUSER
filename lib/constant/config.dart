@@ -24,4 +24,6 @@ class Config {
 
   static final String googleSignInClientIdIOS =
       dotenv.env['G_CLIENTID_IOS'] ?? '';
+
+  static const String defaultCountryCode = '+233';
 }

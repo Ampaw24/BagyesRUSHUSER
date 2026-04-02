@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../constant/app_theme.dart';
@@ -30,6 +31,15 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
   late TextEditingController _descriptionCtrl;
   late TextEditingController _tinCtrl;
 
+  late FocusNode _nameFocus;
+  late FocusNode _contactFocus;
+  late FocusNode _phoneFocus;
+  late FocusNode _emailFocus;
+  late FocusNode _addressFocus;
+  late FocusNode _cityFocus;
+  late FocusNode _descriptionFocus;
+  late FocusNode _tinFocus;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +51,15 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     _cityCtrl = TextEditingController(text: widget.data.city);
     _descriptionCtrl = TextEditingController(text: widget.data.description ?? '');
     _tinCtrl = TextEditingController(text: widget.data.taxIdentificationNumber ?? '');
+
+    _nameFocus = FocusNode()..addListener(() { if (!_nameFocus.hasFocus) _emit(); });
+    _contactFocus = FocusNode()..addListener(() { if (!_contactFocus.hasFocus) _emit(); });
+    _phoneFocus = FocusNode()..addListener(() { if (!_phoneFocus.hasFocus) _emit(); });
+    _emailFocus = FocusNode()..addListener(() { if (!_emailFocus.hasFocus) _emit(); });
+    _addressFocus = FocusNode()..addListener(() { if (!_addressFocus.hasFocus) _emit(); });
+    _cityFocus = FocusNode()..addListener(() { if (!_cityFocus.hasFocus) _emit(); });
+    _descriptionFocus = FocusNode()..addListener(() { if (!_descriptionFocus.hasFocus) _emit(); });
+    _tinFocus = FocusNode()..addListener(() { if (!_tinFocus.hasFocus) _emit(); });
   }
 
   @override
@@ -53,6 +72,16 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     _cityCtrl.dispose();
     _descriptionCtrl.dispose();
     _tinCtrl.dispose();
+
+    _nameFocus.dispose();
+    _contactFocus.dispose();
+    _phoneFocus.dispose();
+    _emailFocus.dispose();
+    _addressFocus.dispose();
+    _cityFocus.dispose();
+    _descriptionFocus.dispose();
+    _tinFocus.dispose();
+
     super.dispose();
   }
 
@@ -83,7 +112,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Business Name',
           hint: 'e.g. Mama\'s Kitchen',
           controller: _nameCtrl,
-          onChanged: (_) => _emit(),
+          focusNode: _nameFocus,
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -110,7 +139,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Contact Person Name',
           hint: 'Full name of owner or manager',
           controller: _contactCtrl,
-          onChanged: (_) => _emit(),
+          focusNode: _contactFocus,
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -119,19 +148,19 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Phone Number',
           hint: '024 123 4567',
           controller: _phoneCtrl,
+          focusNode: _phoneFocus,
           keyboardType: TextInputType.phone,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             _NoLeadingZeroFormatter(),
           ],
-          onChanged: (_) => _emit(),
           prefixIcon: Padding(
             padding: EdgeInsets.only(left: size.width * 0.04),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '+233',
+                  Config.defaultCountryCode,
                   style: TextStyle(
                     fontSize: size.width * 0.038,
                     fontWeight: FontWeight.w600,
@@ -156,8 +185,8 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Email Address',
           hint: 'business@example.com',
           controller: _emailCtrl,
+          focusNode: _emailFocus,
           keyboardType: TextInputType.emailAddress,
-          onChanged: (_) => _emit(),
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -166,7 +195,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Business Address',
           hint: 'Street address or landmark',
           controller: _addressCtrl,
-          onChanged: (_) => _emit(),
+          focusNode: _addressFocus,
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -175,7 +204,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'City',
           hint: 'e.g. Accra',
           controller: _cityCtrl,
-          onChanged: (_) => _emit(),
+          focusNode: _cityFocus,
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -184,8 +213,8 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Business Description (optional)',
           hint: 'Tell customers what makes your food special...',
           controller: _descriptionCtrl,
+          focusNode: _descriptionFocus,
           maxLines: 3,
-          onChanged: (_) => _emit(),
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -194,7 +223,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           label: 'Tax Identification Number (optional)',
           hint: 'e.g. GH-123456-789',
           controller: _tinCtrl,
-          onChanged: (_) => _emit(),
+          focusNode: _tinFocus,
         ),
       ],
     );

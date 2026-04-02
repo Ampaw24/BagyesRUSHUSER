@@ -22,20 +22,42 @@ class _CreatePasswordStepState extends State<CreatePasswordStep> {
   late TextEditingController _passwordCtrl;
   late TextEditingController _confirmPasswordCtrl;
 
+  late FocusNode _passwordFocus;
+  late FocusNode _confirmPasswordFocus;
+
   bool _showPassword = false;
   bool _showConfirmPassword = false;
+
+  // Local match indicator state — updated on keystroke only for this small widget
+  bool _confirmHasText = false;
+  bool _passwordsMatch = false;
 
   @override
   void initState() {
     super.initState();
     _passwordCtrl = TextEditingController(text: widget.data.password);
     _confirmPasswordCtrl = TextEditingController(text: widget.data.confirmPassword);
+
+    // Emit to VM only on blur — prevents wizard-wide rebuilds per keystroke
+    _passwordFocus = FocusNode()
+      ..addListener(() {
+        if (!_passwordFocus.hasFocus) _emit();
+      });
+    _confirmPasswordFocus = FocusNode()
+      ..addListener(() {
+        if (!_confirmPasswordFocus.hasFocus) _emit();
+      });
+
+    _confirmHasText = _confirmPasswordCtrl.text.isNotEmpty;
+    _passwordsMatch = _passwordCtrl.text == _confirmPasswordCtrl.text;
   }
 
   @override
   void dispose() {
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -46,6 +68,19 @@ class _CreatePasswordStepState extends State<CreatePasswordStep> {
         confirmPassword: _confirmPasswordCtrl.text,
       ),
     );
+  }
+
+  void _onPasswordChanged(String _) {
+    setState(() {
+      _passwordsMatch = _passwordCtrl.text == _confirmPasswordCtrl.text;
+    });
+  }
+
+  void _onConfirmChanged(String _) {
+    setState(() {
+      _confirmHasText = _confirmPasswordCtrl.text.isNotEmpty;
+      _passwordsMatch = _passwordCtrl.text == _confirmPasswordCtrl.text;
+    });
   }
 
   @override
@@ -79,8 +114,9 @@ class _CreatePasswordStepState extends State<CreatePasswordStep> {
           label: 'Password',
           hint: 'Min. 8 characters',
           controller: _passwordCtrl,
+          focusNode: _passwordFocus,
           obscureText: !_showPassword,
-          onChanged: (_) => _emit(),
+          onChanged: _onPasswordChanged,
           suffixIcon: GestureDetector(
             onTap: () => setState(() => _showPassword = !_showPassword),
             child: Icon(
@@ -97,10 +133,12 @@ class _CreatePasswordStepState extends State<CreatePasswordStep> {
           label: 'Confirm Password',
           hint: 'Re-enter your password',
           controller: _confirmPasswordCtrl,
+          focusNode: _confirmPasswordFocus,
           obscureText: !_showConfirmPassword,
-          onChanged: (_) => _emit(),
+          onChanged: _onConfirmChanged,
           suffixIcon: GestureDetector(
-            onTap: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+            onTap: () =>
+                setState(() => _showConfirmPassword = !_showConfirmPassword),
             child: Icon(
               _showConfirmPassword ? Icons.visibility : Icons.visibility_off,
               color: AppColors.textSecondary,
@@ -109,30 +147,24 @@ class _CreatePasswordStepState extends State<CreatePasswordStep> {
           ),
         ),
 
-        // Live match indicator
-        if (_confirmPasswordCtrl.text.isNotEmpty) ...[
+        // Live match indicator — local setState, not propagated to VM
+        if (_confirmHasText) ...[
           SizedBox(height: size.height * 0.012),
           Row(
             children: [
               Icon(
-                _passwordCtrl.text == _confirmPasswordCtrl.text
+                _passwordsMatch
                     ? Icons.check_circle_outline
                     : Icons.cancel_outlined,
                 size: size.width * 0.04,
-                color: _passwordCtrl.text == _confirmPasswordCtrl.text
-                    ? AppColors.success
-                    : AppColors.error,
+                color: _passwordsMatch ? AppColors.success : AppColors.error,
               ),
               SizedBox(width: size.width * 0.02),
               Text(
-                _passwordCtrl.text == _confirmPasswordCtrl.text
-                    ? 'Passwords match'
-                    : 'Passwords do not match',
+                _passwordsMatch ? 'Passwords match' : 'Passwords do not match',
                 style: TextStyle(
                   fontSize: size.width * 0.03,
-                  color: _passwordCtrl.text == _confirmPasswordCtrl.text
-                      ? AppColors.success
-                      : AppColors.error,
+                  color: _passwordsMatch ? AppColors.success : AppColors.error,
                 ),
               ),
             ],

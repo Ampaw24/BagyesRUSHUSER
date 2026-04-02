@@ -1,6 +1,4 @@
 import 'package:bagyesrushappusernew/constant/constant.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +7,6 @@ import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/widgets/custom_dialogs.dart';
-import '../../../constant/image_constants.dart';
 import '../models/vendor_enums.dart';
 import '../viewmodels/vendor_registration_viewmodel.dart';
 import 'widgets/step_progress_bar.dart';
@@ -20,7 +17,11 @@ import 'steps/verification_step.dart';
 
 /// Main vendor registration wizard view.
 ///
-/// Orchestrates navigation between steps with animated transitions.
+/// Orchestration logic (auth state transitions, API calls) lives entirely in
+/// [VendorRegistrationViewModel]. This view is responsible only for:
+///   - Rendering the current step
+///   - Triggering VM methods on user actions
+///   - Showing the success dialog when registration is complete
 class VendorRegistrationView extends StatefulWidget {
   const VendorRegistrationView({super.key});
 
@@ -44,25 +45,18 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     super.initState();
     _setupAnimations();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VendorRegistrationViewModel>().loadCuisineTypes();
-      context.read<AuthViewmodel>().addListener(_onAuthStateChanged);
+      final vm = context.read<VendorRegistrationViewModel>();
+      vm.loadCuisineTypes();
+      vm.addListener(_onVmStateChanged);
     });
   }
 
-  void _onAuthStateChanged() {
-    final authVm = context.read<AuthViewmodel>();
-    final state = authVm.state;
-
-    if (state is VendorRegistered) {
-      // Registration succeeded — move to OTP verification step
-      final vm = context.read<VendorRegistrationViewModel>();
-      vm.goToStep(VendorRegistrationStep.verifySubmit);
-      _animateStepTransition();
-      authVm.resetState();
-    } else if (state is OTPVerified) {
-      // Phone verified — registration complete
-      authVm.resetState();
-      if (!mounted) return;
+  /// Handles navigation/dialog — the only view-level concern left.
+  void _onVmStateChanged() {
+    if (!mounted) return;
+    final vm = context.read<VendorRegistrationViewModel>();
+    if (vm.state.status == VendorRegistrationStatus.complete) {
+      vm.resetStatus();
       CustomDialog.showSuccess(
         context: context,
         title: 'Registration Successful!',
@@ -70,15 +64,10 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
             'Your account is ready. Log in and complete your document verification from your dashboard.',
         onConfirm: () => context.go(AppRoutes.login),
       );
-    } else if (state is AuthError) {
-      final vm = context.read<VendorRegistrationViewModel>();
-      vm.setError(state.message);
-      authVm.resetState();
     }
   }
 
   void _setupAnimations() {
-    // Header entrance animation
     _headerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -97,7 +86,6 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
       ),
     );
 
-    // Content entrance animation
     _contentController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -129,7 +117,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
 
   @override
   void dispose() {
-    context.read<AuthViewmodel>().removeListener(_onAuthStateChanged);
+    context.read<VendorRegistrationViewModel>().removeListener(_onVmStateChanged);
     _headerController.dispose();
     _contentController.dispose();
     super.dispose();
@@ -148,54 +136,34 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
 
   void _handleNext(VendorRegistrationViewModel vm) {
     if (vm.state.currentStep == VendorRegistrationStep.createPassword) {
-      _handleVendorRegister(vm);
+      vm.submitRegistration();
       return;
     }
-    // verifySubmit has no Continue button — OTP flow is self-contained
     final success = vm.nextStep();
     if (success) {
       _animateStepTransition();
     }
   }
 
-  Future<void> _handleVendorRegister(VendorRegistrationViewModel vm) async {
-    // Validate operational details first
-    if (!vm.validateAndMarkComplete()) return;
-
-    final b = vm.state.businessDetails;
-    final o = vm.state.operationalDetails;
-    final p = vm.state.payoutDetails;
-
-    await context.read<AuthViewmodel>().vendorRegister(
-      email: b.email,
-      phone: b.phone,
-      password: b.password,
-      confirmPassword: b.confirmPassword,
-      businessName: b.businessName,
-      businessType: b.businessType?.name ?? '',
-      contactPersonName: b.contactPersonName,
-      businessAddress: b.businessAddress,
-      city: b.city,
-      description: b.description ?? '',
-      taxIdentificationNumber: b.taxIdentificationNumber ?? '',
-      cuisineTypes: o.cuisineTypes,
-      deliveryRadiusKm: o.deliveryRadiusKm,
-      openingTime: o.openingTime,
-      closingTime: o.closingTime,
-      operatingDays: o.operatingDays.map((d) => d.toLowerCase()).toList(),
-      estimatedPrepTimeMinutes: o.estimatedPrepTimeMinutes,
-      bankName: p.bankName,
-      accountNumber: p.accountNumber,
-      accountName: p.accountName,
-      branchCode: p.branchCode ?? '',
-    );
-    // Result is handled in _onAuthStateChanged
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final vm = context.watch<VendorRegistrationViewModel>();
+
+    // Targeted selects — each widget subtree only rebuilds for its own data.
+    final currentStep = context.select(
+      (VendorRegistrationViewModel vm) => vm.state.currentStep,
+    );
+    final canGoBack = context.select(
+      (VendorRegistrationViewModel vm) => vm.state.canGoBack,
+    );
+    final errorMessage = context.select(
+      (VendorRegistrationViewModel vm) => vm.state.errorMessage,
+    );
+    final isSubmitting = context.select(
+      (VendorRegistrationViewModel vm) =>
+          vm.state.currentStep == VendorRegistrationStep.createPassword &&
+          vm.state.status == VendorRegistrationStatus.loading,
+    );
 
     return Scaffold(
       backgroundColor: scaffoldBgColor,
@@ -221,12 +189,10 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
                       child: Column(
                         children: [
                           SizedBox(height: size.height * 0.015),
-                          _buildTopBar(size, vm),
+                          _buildTopBar(size, currentStep, canGoBack),
                           SizedBox(height: size.height * 0.02),
-                          StepProgressBar(
-                            currentStep: vm.state.currentStep,
-                            completedSteps: vm.state.completedSteps,
-                          ),
+                          // StepProgressBar only needs step/completedSteps
+                          _StepProgressBarSlice(),
                           SizedBox(height: size.height * 0.015),
                         ],
                       ),
@@ -248,10 +214,9 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
                         child: Column(
                           children: [
                             SizedBox(height: size.height * 0.01),
-                            // Error message
-                            if (vm.state.errorMessage != null)
-                              _buildErrorBanner(size, vm),
-                            _buildCurrentStep(vm),
+                            if (errorMessage != null)
+                              _buildErrorBanner(size, errorMessage),
+                            _buildCurrentStep(currentStep),
                             SizedBox(height: size.height * 0.03),
                           ],
                         ),
@@ -261,7 +226,13 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
                 ),
 
                 // ── Fixed Bottom Buttons ──
-                _buildBottomButtons(size, vm, horizontalPadding),
+                _buildBottomButtons(
+                  size,
+                  currentStep,
+                  canGoBack,
+                  isSubmitting,
+                  horizontalPadding,
+                ),
               ],
             );
           },
@@ -270,7 +241,12 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     );
   }
 
-  Widget _buildTopBar(Size size, VendorRegistrationViewModel vm) {
+  Widget _buildTopBar(
+    Size size,
+    VendorRegistrationStep currentStep,
+    bool canGoBack,
+  ) {
+    final vm = context.read<VendorRegistrationViewModel>();
     return Row(
       children: [
         GestureDetector(
@@ -301,7 +277,6 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
             ),
           ),
         ),
-        // Step counter
         Container(
           padding: EdgeInsets.symmetric(
             horizontal: size.width * 0.03,
@@ -312,7 +287,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
             color: AppColors.primary.withValues(alpha: 0.08),
           ),
           child: Text(
-            '${vm.state.currentStep.index + 1}/${VendorRegistrationStep.totalSteps}',
+            '${currentStep.index + 1}/${VendorRegistrationStep.totalSteps}',
             style: TextStyle(
               fontSize: size.width * 0.032,
               fontWeight: FontWeight.w600,
@@ -324,7 +299,8 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     );
   }
 
-  Widget _buildErrorBanner(Size size, VendorRegistrationViewModel vm) {
+  Widget _buildErrorBanner(Size size, String message) {
+    final vm = context.read<VendorRegistrationViewModel>();
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(bottom: size.height * 0.015),
@@ -346,7 +322,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
           SizedBox(width: size.width * 0.025),
           Expanded(
             child: Text(
-              vm.state.errorMessage!,
+              message,
               style: TextStyle(
                 fontSize: size.width * 0.032,
                 color: AppColors.error,
@@ -366,8 +342,9 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     );
   }
 
-  Widget _buildCurrentStep(VendorRegistrationViewModel vm) {
-    switch (vm.state.currentStep) {
+  Widget _buildCurrentStep(VendorRegistrationStep currentStep) {
+    final vm = context.read<VendorRegistrationViewModel>();
+    switch (currentStep) {
       case VendorRegistrationStep.businessDetails:
         return BusinessDetailsStep(
           data: vm.state.businessDetails,
@@ -382,40 +359,37 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         return OperationalDetailsStep(
           data: vm.state.operationalDetails,
           onChanged: vm.updateOperationalDetails,
-          availableCategories: vm.availableCategories,
-          isLoadingCategories: vm.categoriesLoading,
-          categoriesError: vm.categoriesError,
+          availableCategories: vm.state.availableCategories,
+          isLoadingCategories: vm.state.isCategoriesLoading,
+          categoriesError: vm.state.categoriesError,
         );
       case VendorRegistrationStep.verifySubmit:
-        final authVm = context.read<AuthViewmodel>();
-        final authState = authVm.state;
+        final state = vm.state;
+        final isLoading = state.status == VendorRegistrationStatus.loading;
         return VerificationStep(
-          phone: vm.state.businessDetails.phone,
-          isLoading: authState is AuthLoading,
-          isOtpSent: authState is OTPSent || vm.state.isOtpVerified,
-          isVerified: vm.state.isOtpVerified,
-          onSendOtp: () => authVm.sendOtp(vm.state.businessDetails.phone),
-          onVerifyOtp: (otp) => authVm.verifyOtp(
-            phone: vm.state.businessDetails.phone,
-            otp: otp,
-          ),
+          phone: state.businessDetails.phone,
+          isLoading: isLoading,
+          isOtpSent: state.isOtpSent || state.isOtpVerified,
+          isVerified: state.isOtpVerified,
+          isResumeFlow: state.isResumeFlow,
+          onSendOtp: vm.sendOtp,
+          onVerifyOtp: vm.verifyOtp,
         );
     }
   }
 
   Widget _buildBottomButtons(
     Size size,
-    VendorRegistrationViewModel vm,
+    VendorRegistrationStep currentStep,
+    bool canGoBack,
+    bool isSubmitting,
     double horizontalPadding,
   ) {
-    // OTP step is self-contained — no bottom button needed
-    if (vm.state.currentStep == VendorRegistrationStep.verifySubmit) {
+    if (currentStep == VendorRegistrationStep.verifySubmit) {
       return const SizedBox.shrink();
     }
 
-    final authState = context.watch<AuthViewmodel>().state;
-    final isSubmitting = vm.state.currentStep == VendorRegistrationStep.createPassword
-        && authState is AuthLoading;
+    final vm = context.read<VendorRegistrationViewModel>();
 
     return Container(
       padding: EdgeInsets.only(
@@ -436,8 +410,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
       ),
       child: Row(
         children: [
-          // Back button
-          if (vm.state.canGoBack)
+          if (canGoBack)
             Expanded(
               flex: 2,
               child: GestureDetector(
@@ -462,9 +435,8 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
                 ),
               ),
             ),
-          if (vm.state.canGoBack) SizedBox(width: size.width * 0.03),
+          if (canGoBack) SizedBox(width: size.width * 0.03),
 
-          // Next / Submit button
           Expanded(
             flex: 3,
             child: GestureDetector(
@@ -509,6 +481,25 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Isolated widget so the progress bar only rebuilds when step/completedSteps change.
+class _StepProgressBarSlice extends StatelessWidget {
+  const _StepProgressBarSlice();
+
+  @override
+  Widget build(BuildContext context) {
+    final currentStep = context.select(
+      (VendorRegistrationViewModel vm) => vm.state.currentStep,
+    );
+    final completedSteps = context.select(
+      (VendorRegistrationViewModel vm) => vm.state.completedSteps,
+    );
+    return StepProgressBar(
+      currentStep: currentStep,
+      completedSteps: completedSteps,
     );
   }
 }
