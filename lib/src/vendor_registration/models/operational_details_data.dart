@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
-import 'vendor_enums.dart';
 
 /// Data model for Step 3 - Operational Details
 class OperationalDetailsData extends Equatable {
-  final List<CuisineType> cuisineTypes;
+  /// Lowercase category names sent to the API (e.g. ["local", "continental"]).
+  final List<String> cuisineTypes;
   final double deliveryRadiusKm;
   final String openingTime;
   final String closingTime;
@@ -28,7 +28,7 @@ class OperationalDetailsData extends Equatable {
   });
 
   OperationalDetailsData copyWith({
-    List<CuisineType>? cuisineTypes,
+    List<String>? cuisineTypes,
     double? deliveryRadiusKm,
     String? openingTime,
     String? closingTime,
@@ -48,12 +48,12 @@ class OperationalDetailsData extends Equatable {
 
   Map<String, dynamic> toMap() {
     return {
-      'cuisine_types': cuisineTypes.map((c) => c.name).toList(),
+      'cuisine_types': cuisineTypes,
       'delivery_radius_km': deliveryRadiusKm,
       'opening_time': openingTime,
       'closing_time': closingTime,
-      'operating_days': operatingDays,
-      'estimated_prep_time': estimatedPrepTimeMinutes,
+      'operating_days': operatingDays.map((d) => d.toLowerCase()).toList(),
+      'estimated_prep_time_minutes': estimatedPrepTimeMinutes,
     };
   }
 

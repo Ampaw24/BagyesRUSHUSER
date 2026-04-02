@@ -28,6 +28,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
   late TextEditingController _addressCtrl;
   late TextEditingController _cityCtrl;
   late TextEditingController _descriptionCtrl;
+  late TextEditingController _tinCtrl;
 
   @override
   void initState() {
@@ -39,6 +40,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     _addressCtrl = TextEditingController(text: widget.data.businessAddress);
     _cityCtrl = TextEditingController(text: widget.data.city);
     _descriptionCtrl = TextEditingController(text: widget.data.description ?? '');
+    _tinCtrl = TextEditingController(text: widget.data.taxIdentificationNumber ?? '');
   }
 
   @override
@@ -50,6 +52,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     _addressCtrl.dispose();
     _cityCtrl.dispose();
     _descriptionCtrl.dispose();
+    _tinCtrl.dispose();
     super.dispose();
   }
 
@@ -63,6 +66,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         businessAddress: _addressCtrl.text,
         city: _cityCtrl.text,
         description: _descriptionCtrl.text,
+        taxIdentificationNumber: _tinCtrl.text,
       ),
     );
   }
@@ -83,7 +87,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         ),
         SizedBox(height: size.height * 0.022),
 
-        // Business Type dropdown
+        // Business Type
         Text(
           'Business Type',
           style: TextStyle(
@@ -183,12 +187,20 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
           maxLines: 3,
           onChanged: (_) => _emit(),
         ),
+        SizedBox(height: size.height * 0.022),
+
+        // Tax Identification Number (optional)
+        VendorTextField(
+          label: 'Tax Identification Number (optional)',
+          hint: 'e.g. GH-123456-789',
+          controller: _tinCtrl,
+          onChanged: (_) => _emit(),
+        ),
       ],
     );
   }
 }
 
-/// Horizontal scrollable chips for business type selection
 class _BusinessTypeSelector extends StatelessWidget {
   final BusinessType? selected;
   final ValueChanged<BusinessType> onChanged;

@@ -8,16 +8,12 @@ class StepValidator {
     switch (step) {
       case VendorRegistrationStep.businessDetails:
         return _validateBusinessDetails(state);
-      case VendorRegistrationStep.legalCompliance:
-        return _validateLegalCompliance(state);
+      case VendorRegistrationStep.createPassword:
+        return _validateCreatePassword(state);
       case VendorRegistrationStep.operationalDetails:
         return _validateOperationalDetails(state);
-      case VendorRegistrationStep.payoutDetails:
-        return _validatePayoutDetails(state);
-      case VendorRegistrationStep.verification:
+      case VendorRegistrationStep.verifySubmit:
         return _validateVerification(state);
-      case VendorRegistrationStep.reviewSubmit:
-        return null;
     }
   }
 
@@ -47,10 +43,13 @@ class StepValidator {
     return null;
   }
 
-  String? _validateLegalCompliance(VendorRegistrationState state) {
-    final data = state.legalCompliance;
-    if (data.ownerIdPath == null || data.ownerIdPath!.isEmpty) {
-      return 'Owner ID document is required';
+  String? _validateCreatePassword(VendorRegistrationState state) {
+    final data = state.businessDetails;
+    if (data.password.trim().length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (data.password != data.confirmPassword) {
+      return 'Passwords do not match';
     }
     return null;
   }
@@ -66,21 +65,6 @@ class StepValidator {
     return null;
   }
 
-  String? _validatePayoutDetails(VendorRegistrationState state) {
-    final data = state.payoutDetails;
-    final hasBankDetails = data.bankName.trim().isNotEmpty &&
-        data.accountNumber.trim().isNotEmpty &&
-        data.accountName.trim().isNotEmpty;
-    final hasMobileMoney = data.mobileMoneyNumber != null &&
-        data.mobileMoneyNumber!.trim().isNotEmpty &&
-        data.mobileMoneyProvider != null &&
-        data.mobileMoneyProvider!.trim().isNotEmpty;
-
-    if (!hasBankDetails && !hasMobileMoney) {
-      return 'Please provide bank details or mobile money info';
-    }
-    return null;
-  }
 
   String? _validateVerification(VendorRegistrationState state) {
     if (!state.isOtpVerified) {

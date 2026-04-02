@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:bagyesrushappusernew/core/errors/failure.dart';
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
@@ -75,6 +76,83 @@ class AuthRepository {
     } catch (e, s) {
       return NetworkUtils.handleException(e, s,
           repositoryName: 'AuthRepository', methodName: 'signup');
+    }
+  }
+
+  ResultFuture<User> vendorRegister({
+    required String email,
+    required String phone,
+    required String password,
+    required String confirmPassword,
+    required String businessName,
+    required String businessType,
+    required String contactPersonName,
+    required String businessAddress,
+    required String city,
+    required String description,
+    required String taxIdentificationNumber,
+    required List<String> cuisineTypes,
+    required double deliveryRadiusKm,
+    required String openingTime,
+    required String closingTime,
+    required List<String> operatingDays,
+    required int estimatedPrepTimeMinutes,
+    required String bankName,
+    required String accountNumber,
+    required String accountName,
+    required String branchCode,
+  }) async {
+    appLogger.d('AuthRepository.vendorRegister → initiated');
+    final data = {
+      'email': email,
+      'phone': phone,
+      'password': password,
+      'confirm_password': confirmPassword,
+      'role': 'vendor',
+      'business_name': businessName,
+      'business_type': businessType,
+      'contact_person_name': contactPersonName,
+      'business_address': businessAddress,
+      'city': city,
+      'description': description,
+      'tax_identification_number': taxIdentificationNumber,
+      'cuisine_types': cuisineTypes,
+      'delivery_radius_km': deliveryRadiusKm,
+      'opening_time': openingTime,
+      'closing_time': closingTime,
+      'operating_days': operatingDays,
+      'estimated_prep_time_minutes': estimatedPrepTimeMinutes,
+      'bank_name': bankName,
+      'account_number': accountNumber,
+      'account_name': accountName,
+      'branch_code': branchCode,
+    };
+    try {
+      final response = await _client.post(ApiEndpoints.vendorRegister, data: data);
+
+      if ([200, 201].contains(response.statusCode)) {
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
+            response.data as DataMap;
+
+        await _cacheTokens(payload);
+
+        final userJson = payload['user'] as DataMap? ?? payload;
+        final user = User.fromJson(userJson);
+        await _cacheHelper.cacheUserId(user.id);
+
+        appLogger.i('AuthRepository.vendorRegister → success id=${user.id}');
+        return Right(user);
+      }
+
+      appLogger.w('AuthRepository.vendorRegister → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('AuthRepository.vendorRegister → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(e, s,
+          repositoryName: 'AuthRepository', methodName: 'vendorRegister');
     }
   }
 
@@ -187,6 +265,54 @@ class AuthRepository {
     }
   }
 
+
+  /// Exchanges the stored refresh token for a new access + refresh token pair.
+  ///
+  /// On success both tokens are persisted via [CacheHelper] and the in-memory
+  /// [Cache] singleton is updated so subsequent requests get the new token
+  /// immediately — no app restart needed.
+  ///
+  /// On failure the caller receives a [Left<Failure>]; local session data is
+  /// left intact so the UI can decide whether to force a logout.
+  ResultFuture<void> refreshToken() async {
+    appLogger.d('AuthRepository.refreshToken → attempting token refresh');
+    try {
+      final storedRefreshToken = await _cacheHelper.getRefreshToken();
+
+      if (storedRefreshToken == null) {
+        appLogger.w('AuthRepository.refreshToken → no refresh token stored');
+        return Left(const ServerFailure(
+          message: 'No refresh token available. Please log in again.',
+          statusCode: 401,
+          title: 'Session Expired',
+        ));
+      }
+
+      final response = await _client.post(
+        ApiEndpoints.refreshToken,
+        data: {'refresh_token': storedRefreshToken},
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
+            response.data as DataMap;
+
+        await _cacheTokens(payload);
+        appLogger.i('AuthRepository.refreshToken → new tokens cached');
+        return const Right(null);
+      }
+
+      appLogger.w('AuthRepository.refreshToken → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('AuthRepository.refreshToken → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(e, s,
+          repositoryName: 'AuthRepository', methodName: 'refreshToken');
+    }
+  }
 
   /// Logs the user out by invalidating the server session first (while the
   /// token is still available), then clearing all local state.

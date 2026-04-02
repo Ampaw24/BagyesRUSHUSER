@@ -66,4 +66,21 @@ abstract final class ApiEndpoints {
   static const String vendorWallet = '/vendors/wallet';
   static const String vendorWalletTransactions = '/vendors/wallet/transactions';
   static const String vendorWalletWithdraw = '/vendors/wallet/withdraw';
+
+  // ─── Customer Home ─────────────────────────────────────────────────────────
+  static const String categories = '/categories';
+  static const String vendors = '/vendors';
+  static const String customerOrders = '/orders';
+
+  /// `GET /vendors/:id`
+  static String vendorById(String id) => '/vendors/$id';
+
+  /// `GET /vendors/:id/menu`
+  static String vendorMenuItems(String vendorId) => '/vendors/$vendorId/menu';
+
+  /// `GET /orders/:id`
+  static String customerOrderById(String orderId) => '/orders/$orderId';
+
+  /// `GET /categories/:id`
+  static String categoryById(String id) => '/categories/$id';
 }

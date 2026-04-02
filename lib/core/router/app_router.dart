@@ -48,6 +48,7 @@ const _publicRoutes = {
   AppRoutes.login,
   AppRoutes.signup,
   AppRoutes.otp,
+  AppRoutes.vendorRegistration,
 };
 
 /// Routes exempt from KYC verification checks (user is logged in but

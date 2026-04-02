@@ -66,43 +66,10 @@ class ReviewSubmitStep extends StatelessWidget {
               'Type',
               data.businessDetails.businessType?.label ?? 'Not set',
             ),
-            _ReviewItem('Contact Person', data.businessDetails.contactPersonName),
-            _ReviewItem('Phone', '+233 ${data.businessDetails.phone}'),
+            _ReviewItem('Business Contact', '+233 ${data.businessDetails.phone}'),
             _ReviewItem('Email', data.businessDetails.email),
             _ReviewItem('Address', data.businessDetails.businessAddress),
             _ReviewItem('City', data.businessDetails.city),
-          ],
-        ),
-        SizedBox(height: size.height * 0.02),
-
-        // Legal section
-        _ReviewSection(
-          title: 'Legal & Compliance',
-          icon: HugeIcons.strokeRoundedShieldUser,
-          onEdit: () => onEditStep(VendorRegistrationStep.legalCompliance),
-          items: [
-            _ReviewItem(
-              'Owner ID',
-              data.legalCompliance.ownerIdPath != null
-                  ? 'Uploaded'
-                  : 'Not uploaded',
-            ),
-            _ReviewItem(
-              'Business Cert.',
-              data.legalCompliance.businessRegistrationCertPath != null
-                  ? 'Uploaded'
-                  : 'Not uploaded',
-            ),
-            _ReviewItem(
-              'Food Safety License',
-              data.legalCompliance.foodSafetyLicensePath != null
-                  ? 'Uploaded'
-                  : 'Not uploaded',
-            ),
-            _ReviewItem(
-              'Tax ID',
-              data.legalCompliance.taxIdentificationNumber ?? 'Not provided',
-            ),
           ],
         ),
         SizedBox(height: size.height * 0.02),
@@ -116,7 +83,7 @@ class ReviewSubmitStep extends StatelessWidget {
             _ReviewItem(
               'Cuisine',
               data.operationalDetails.cuisineTypes
-                  .map((c) => c.label)
+                  .map((c) => c[0].toUpperCase() + c.substring(1))
                   .join(', '),
             ),
             _ReviewItem(
@@ -139,57 +106,10 @@ class ReviewSubmitStep extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: size.height * 0.02),
-
-        // Payout section
-        _ReviewSection(
-          title: 'Payout Details',
-          icon: HugeIcons.strokeRoundedBank,
-          onEdit: () => onEditStep(VendorRegistrationStep.payoutDetails),
-          items: [
-            if (data.payoutDetails.bankName.isNotEmpty) ...[
-              _ReviewItem('Bank', data.payoutDetails.bankName),
-              _ReviewItem(
-                'Account',
-                _maskAccount(data.payoutDetails.accountNumber),
-              ),
-              _ReviewItem('Account Name', data.payoutDetails.accountName),
-            ],
-            if ((data.payoutDetails.mobileMoneyProvider ?? '').isNotEmpty) ...[
-              _ReviewItem(
-                'MoMo Provider',
-                data.payoutDetails.mobileMoneyProvider!,
-              ),
-              _ReviewItem(
-                'MoMo Number',
-                data.payoutDetails.mobileMoneyNumber ?? '',
-              ),
-            ],
-          ],
-        ),
-        SizedBox(height: size.height * 0.02),
-
-        // Verification status
-        _ReviewSection(
-          title: 'Verification',
-          icon: HugeIcons.strokeRoundedCheckmarkBadge01,
-          onEdit: () => onEditStep(VendorRegistrationStep.verification),
-          items: [
-            _ReviewItem(
-              'Phone Verified',
-              data.isOtpVerified ? 'Yes' : 'No',
-            ),
-          ],
-        ),
       ],
     );
   }
 
-  String _maskAccount(String account) {
-    if (account.length <= 4) return account;
-    final visible = account.substring(account.length - 4);
-    return '****$visible';
-  }
 }
 
 class _ReviewItem {

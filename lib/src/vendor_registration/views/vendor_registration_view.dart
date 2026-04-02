@@ -1,4 +1,6 @@
 import 'package:bagyesrushappusernew/constant/constant.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:go_router/go_router.dart';
@@ -12,11 +14,9 @@ import '../models/vendor_enums.dart';
 import '../viewmodels/vendor_registration_viewmodel.dart';
 import 'widgets/step_progress_bar.dart';
 import 'steps/business_details_step.dart';
-import 'steps/legal_compliance_step.dart';
+import 'steps/create_password_step.dart';
 import 'steps/operational_details_step.dart';
-import 'steps/payout_details_step.dart';
 import 'steps/verification_step.dart';
-import 'steps/review_submit_step.dart';
 
 /// Main vendor registration wizard view.
 ///
@@ -43,6 +43,38 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
   void initState() {
     super.initState();
     _setupAnimations();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<VendorRegistrationViewModel>().loadCuisineTypes();
+      context.read<AuthViewmodel>().addListener(_onAuthStateChanged);
+    });
+  }
+
+  void _onAuthStateChanged() {
+    final authVm = context.read<AuthViewmodel>();
+    final state = authVm.state;
+
+    if (state is VendorRegistered) {
+      // Registration succeeded — move to OTP verification step
+      final vm = context.read<VendorRegistrationViewModel>();
+      vm.goToStep(VendorRegistrationStep.verifySubmit);
+      _animateStepTransition();
+      authVm.resetState();
+    } else if (state is OTPVerified) {
+      // Phone verified — registration complete
+      authVm.resetState();
+      if (!mounted) return;
+      CustomDialog.showSuccess(
+        context: context,
+        title: 'Registration Successful!',
+        subtitle:
+            'Your account is ready. Log in and complete your document verification from your dashboard.',
+        onConfirm: () => context.go(AppRoutes.login),
+      );
+    } else if (state is AuthError) {
+      final vm = context.read<VendorRegistrationViewModel>();
+      vm.setError(state.message);
+      authVm.resetState();
+    }
   }
 
   void _setupAnimations() {
@@ -97,6 +129,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
 
   @override
   void dispose() {
+    context.read<AuthViewmodel>().removeListener(_onAuthStateChanged);
     _headerController.dispose();
     _contentController.dispose();
     super.dispose();
@@ -114,36 +147,49 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
   }
 
   void _handleNext(VendorRegistrationViewModel vm) {
-    if (vm.state.currentStep == VendorRegistrationStep.reviewSubmit) {
-      _handleSubmit(vm);
+    if (vm.state.currentStep == VendorRegistrationStep.createPassword) {
+      _handleVendorRegister(vm);
       return;
     }
+    // verifySubmit has no Continue button — OTP flow is self-contained
     final success = vm.nextStep();
     if (success) {
       _animateStepTransition();
     }
   }
 
-  Future<void> _handleSubmit(VendorRegistrationViewModel vm) async {
-    final success = await vm.submitRegistration();
-    if (!mounted) return;
+  Future<void> _handleVendorRegister(VendorRegistrationViewModel vm) async {
+    // Validate operational details first
+    if (!vm.validateAndMarkComplete()) return;
 
-    if (success) {
-      CustomDialog.showSuccess(
-        context: context,
-        title: 'Application Submitted!',
-        subtitle:
-            'Your vendor registration has been submitted for review. We\'ll notify you once it\'s approved.',
-        onConfirm: () => context.go(AppRoutes.login),
-      );
-    } else {
-      CustomDialog.showError(
-        context: context,
-        title: 'Submission Failed',
-        subtitle:
-            vm.state.errorMessage ?? 'Something went wrong. Please try again.',
-      );
-    }
+    final b = vm.state.businessDetails;
+    final o = vm.state.operationalDetails;
+    final p = vm.state.payoutDetails;
+
+    await context.read<AuthViewmodel>().vendorRegister(
+      email: b.email,
+      phone: b.phone,
+      password: b.password,
+      confirmPassword: b.confirmPassword,
+      businessName: b.businessName,
+      businessType: b.businessType?.name ?? '',
+      contactPersonName: b.contactPersonName,
+      businessAddress: b.businessAddress,
+      city: b.city,
+      description: b.description ?? '',
+      taxIdentificationNumber: b.taxIdentificationNumber ?? '',
+      cuisineTypes: o.cuisineTypes,
+      deliveryRadiusKm: o.deliveryRadiusKm,
+      openingTime: o.openingTime,
+      closingTime: o.closingTime,
+      operatingDays: o.operatingDays.map((d) => d.toLowerCase()).toList(),
+      estimatedPrepTimeMinutes: o.estimatedPrepTimeMinutes,
+      bankName: p.bankName,
+      accountNumber: p.accountNumber,
+      accountName: p.accountName,
+      branchCode: p.branchCode ?? '',
+    );
+    // Result is handled in _onAuthStateChanged
   }
 
   @override
@@ -327,37 +373,32 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
           data: vm.state.businessDetails,
           onChanged: vm.updateBusinessDetails,
         );
-      case VendorRegistrationStep.legalCompliance:
-        return LegalComplianceStep(
-          data: vm.state.legalCompliance,
-          onChanged: vm.updateLegalCompliance,
+      case VendorRegistrationStep.createPassword:
+        return CreatePasswordStep(
+          data: vm.state.businessDetails,
+          onChanged: vm.updateBusinessDetails,
         );
       case VendorRegistrationStep.operationalDetails:
         return OperationalDetailsStep(
           data: vm.state.operationalDetails,
           onChanged: vm.updateOperationalDetails,
+          availableCategories: vm.availableCategories,
+          isLoadingCategories: vm.categoriesLoading,
+          categoriesError: vm.categoriesError,
         );
-      case VendorRegistrationStep.payoutDetails:
-        return PayoutDetailsStep(
-          data: vm.state.payoutDetails,
-          onChanged: vm.updatePayoutDetails,
-        );
-      case VendorRegistrationStep.verification:
+      case VendorRegistrationStep.verifySubmit:
+        final authVm = context.read<AuthViewmodel>();
+        final authState = authVm.state;
         return VerificationStep(
           phone: vm.state.businessDetails.phone,
-          email: vm.state.businessDetails.email,
-          status: vm.state.status,
+          isLoading: authState is AuthLoading,
+          isOtpSent: authState is OTPSent || vm.state.isOtpVerified,
           isVerified: vm.state.isOtpVerified,
-          onSendOtp: vm.sendOtp,
-          onVerifyOtp: vm.verifyOtp,
-        );
-      case VendorRegistrationStep.reviewSubmit:
-        return ReviewSubmitStep(
-          data: vm.state,
-          onEditStep: (step) {
-            vm.goToStep(step);
-            _animateStepTransition();
-          },
+          onSendOtp: () => authVm.sendOtp(vm.state.businessDetails.phone),
+          onVerifyOtp: (otp) => authVm.verifyOtp(
+            phone: vm.state.businessDetails.phone,
+            otp: otp,
+          ),
         );
     }
   }
@@ -367,10 +408,14 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     VendorRegistrationViewModel vm,
     double horizontalPadding,
   ) {
-    final isSubmitting =
-        vm.state.status == VendorRegistrationStatus.submitting;
-    final isLastStep =
-        vm.state.currentStep == VendorRegistrationStep.reviewSubmit;
+    // OTP step is self-contained — no bottom button needed
+    if (vm.state.currentStep == VendorRegistrationStep.verifySubmit) {
+      return const SizedBox.shrink();
+    }
+
+    final authState = context.watch<AuthViewmodel>().state;
+    final isSubmitting = vm.state.currentStep == VendorRegistrationStep.createPassword
+        && authState is AuthLoading;
 
     return Container(
       padding: EdgeInsets.only(
@@ -451,7 +496,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
                           ),
                         )
                       : Text(
-                          isLastStep ? 'Submit Application' : 'Continue',
+                          'Continue',
                           style: TextStyle(
                             fontSize: size.width * 0.038,
                             fontWeight: FontWeight.w600,

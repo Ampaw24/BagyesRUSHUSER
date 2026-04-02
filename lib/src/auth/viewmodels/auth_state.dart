@@ -28,6 +28,10 @@ final class Registered extends AuthState {
   const Registered();
 }
 
+final class VendorRegistered extends AuthState {
+  const VendorRegistered();
+}
+
 final class OTPSent extends AuthState {
   const OTPSent();
 }
@@ -38,6 +42,10 @@ final class OTPVerified extends AuthState {
 
 final class LoggedOut extends AuthState {
   const LoggedOut();
+}
+
+final class TokenRefreshed extends AuthState {
+  const TokenRefreshed();
 }
 
 final class AuthError extends AuthState {

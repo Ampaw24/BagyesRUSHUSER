@@ -8,9 +8,12 @@ class BusinessDetailsData extends Equatable {
   final String contactPersonName;
   final String phone;
   final String email;
+  final String password;
+  final String confirmPassword;
   final String businessAddress;
   final String city;
   final String? description;
+  final String? taxIdentificationNumber;
 
   const BusinessDetailsData({
     this.businessName = '',
@@ -18,9 +21,12 @@ class BusinessDetailsData extends Equatable {
     this.contactPersonName = '',
     this.phone = '',
     this.email = '',
+    this.password = '',
+    this.confirmPassword = '',
     this.businessAddress = '',
     this.city = '',
     this.description,
+    this.taxIdentificationNumber,
   });
 
   BusinessDetailsData copyWith({
@@ -29,9 +35,12 @@ class BusinessDetailsData extends Equatable {
     String? contactPersonName,
     String? phone,
     String? email,
+    String? password,
+    String? confirmPassword,
     String? businessAddress,
     String? city,
     String? description,
+    String? taxIdentificationNumber,
   }) {
     return BusinessDetailsData(
       businessName: businessName ?? this.businessName,
@@ -39,22 +48,30 @@ class BusinessDetailsData extends Equatable {
       contactPersonName: contactPersonName ?? this.contactPersonName,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      password: password ?? this.password,
+      confirmPassword: confirmPassword ?? this.confirmPassword,
       businessAddress: businessAddress ?? this.businessAddress,
       city: city ?? this.city,
       description: description ?? this.description,
+      taxIdentificationNumber:
+          taxIdentificationNumber ?? this.taxIdentificationNumber,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
+      'email': email,
+      'phone': phone,
+      'password': password,
+      'confirm_password': confirmPassword,
+      'role': 'vendor',
       'business_name': businessName,
       'business_type': businessType?.name,
-      'contact_person': contactPersonName,
-      'phone': phone,
-      'email': email,
-      'address': businessAddress,
+      'contact_person_name': contactPersonName,
+      'business_address': businessAddress,
       'city': city,
       'description': description,
+      'tax_identification_number': taxIdentificationNumber,
     };
   }
 
@@ -65,8 +82,11 @@ class BusinessDetailsData extends Equatable {
     contactPersonName,
     phone,
     email,
+    password,
+    confirmPassword,
     businessAddress,
     city,
     description,
+    taxIdentificationNumber,
   ];
 }

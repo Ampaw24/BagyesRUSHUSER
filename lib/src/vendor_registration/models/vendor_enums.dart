@@ -1,11 +1,9 @@
 /// Represents the steps in the vendor registration wizard
 enum VendorRegistrationStep {
   businessDetails('Business Details', 'Tell us about your business'),
-  legalCompliance('Legal & Compliance', 'Upload required documents'),
   operationalDetails('Operations', 'Set up your operations'),
-  payoutDetails('Payout Details', 'How you get paid'),
-  verification('Verification', 'Verify your contact'),
-  reviewSubmit('Review & Submit', 'Confirm your details');
+  createPassword('Create Password', 'Secure your vendor account'),
+  verifySubmit('Verify & Submit', 'Verify your number and go live');
 
   const VendorRegistrationStep(this.title, this.subtitle);
 
@@ -37,23 +35,6 @@ enum VendorRegistrationStatus {
   otpVerified,
   submitted,
   error,
-}
-
-/// Cuisine type options
-enum CuisineType {
-  local('Local / Traditional'),
-  continental('Continental'),
-  chinese('Chinese'),
-  indian('Indian'),
-  fastFood('Fast Food'),
-  bakery('Bakery & Pastries'),
-  beverages('Beverages'),
-  seafood('Seafood'),
-  vegan('Vegan / Vegetarian'),
-  other('Other');
-
-  const CuisineType(this.label);
-  final String label;
 }
 
 /// Business type options

@@ -94,6 +94,69 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
+  Future<void> vendorRegister({
+    required String email,
+    required String phone,
+    required String password,
+    required String confirmPassword,
+    required String businessName,
+    required String businessType,
+    required String contactPersonName,
+    required String businessAddress,
+    required String city,
+    required String description,
+    required String taxIdentificationNumber,
+    required List<String> cuisineTypes,
+    required double deliveryRadiusKm,
+    required String openingTime,
+    required String closingTime,
+    required List<String> operatingDays,
+    required int estimatedPrepTimeMinutes,
+    required String bankName,
+    required String accountNumber,
+    required String accountName,
+    required String branchCode,
+  }) async {
+    appLogger.d('AuthViewmodel.vendorRegister → initiated');
+    emit(const AuthLoading());
+
+    final result = await _repository.vendorRegister(
+      email: email,
+      phone: phone,
+      password: password,
+      confirmPassword: confirmPassword,
+      businessName: businessName,
+      businessType: businessType,
+      contactPersonName: contactPersonName,
+      businessAddress: businessAddress,
+      city: city,
+      description: description,
+      taxIdentificationNumber: taxIdentificationNumber,
+      cuisineTypes: cuisineTypes,
+      deliveryRadiusKm: deliveryRadiusKm,
+      openingTime: openingTime,
+      closingTime: closingTime,
+      operatingDays: operatingDays,
+      estimatedPrepTimeMinutes: estimatedPrepTimeMinutes,
+      bankName: bankName,
+      accountNumber: accountNumber,
+      accountName: accountName,
+      branchCode: branchCode,
+    );
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.vendorRegister → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (user) {
+        appLogger.i('AuthViewmodel.vendorRegister → VendorRegistered id=${user.id}');
+        _currentUserProvider.setUser(user);
+        emit(const VendorRegistered());
+      },
+    );
+  }
+
   Future<void> sendOtp(String phone) async {
     appLogger.d('AuthViewmodel.sendOtp → initiated');
     emit(const RequestingOTP());
@@ -203,6 +266,30 @@ class AuthViewmodel extends ViewModel<AuthState> {
           'profile loaded id=${user.id}',
         );
         _currentUserProvider.setUser(user);
+      },
+    );
+  }
+
+  /// Explicitly refreshes the access token using the stored refresh token.
+  ///
+  /// Emits [AuthLoading] → [TokenRefreshed] on success.
+  /// Emits [LoggedOut] on failure so the routing guard redirects to login.
+  Future<void> refreshToken() async {
+    appLogger.d('AuthViewmodel.refreshToken → initiated');
+    emit(const AuthLoading());
+
+    final result = await _repository.refreshToken();
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.refreshToken → failed: ${failure.message}');
+        // Refresh failed — clear user and force re-login
+        _currentUserProvider.clearUser();
+        emit(const LoggedOut());
+      },
+      (_) {
+        appLogger.i('AuthViewmodel.refreshToken → TokenRefreshed');
+        emit(const TokenRefreshed());
       },
     );
   }

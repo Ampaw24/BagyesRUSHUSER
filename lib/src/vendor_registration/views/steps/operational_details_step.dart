@@ -1,18 +1,24 @@
+import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
-import '../../models/vendor_enums.dart';
 import '../../models/operational_details_data.dart';
 
 /// Step 3 - Cuisine types, delivery radius, operating hours/days
 class OperationalDetailsStep extends StatelessWidget {
   final OperationalDetailsData data;
   final ValueChanged<OperationalDetailsData> onChanged;
+  final List<CategoryElement> availableCategories;
+  final bool isLoadingCategories;
+  final String? categoriesError;
 
   const OperationalDetailsStep({
     super.key,
     required this.data,
     required this.onChanged,
+    required this.availableCategories,
+    this.isLoadingCategories = false,
+    this.categoriesError,
   });
 
   static const _allDays = [
@@ -50,48 +56,66 @@ class OperationalDetailsStep extends StatelessWidget {
           ),
         ),
         SizedBox(height: size.height * 0.012),
-        Wrap(
-          spacing: size.width * 0.02,
-          runSpacing: size.height * 0.008,
-          children: CuisineType.values.map((cuisine) {
-            final isSelected = data.cuisineTypes.contains(cuisine);
-            return GestureDetector(
-              onTap: () {
-                final updated = List<CuisineType>.from(data.cuisineTypes);
-                isSelected ? updated.remove(cuisine) : updated.add(cuisine);
-                onChanged(data.copyWith(cuisineTypes: updated));
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: EdgeInsets.symmetric(
-                  horizontal: size.width * 0.035,
-                  vertical: size.height * 0.009,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(size.width * 0.05),
-                  color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.1)
-                      : AppColors.surfaceVariant,
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                    width: isSelected ? 1.5 : 1.0,
-                  ),
-                ),
-                child: Text(
-                  cuisine.label,
-                  style: TextStyle(
-                    fontSize: size.width * 0.03,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
-                  ),
-                ),
+        if (isLoadingCategories)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+            child: const Center(child: CircularProgressIndicator()),
+          )
+        else if (categoriesError != null)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
+            child: Text(
+              categoriesError!,
+              style: TextStyle(
+                fontSize: size.width * 0.03,
+                color: AppColors.error,
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          )
+        else
+          Wrap(
+            spacing: size.width * 0.02,
+            runSpacing: size.height * 0.008,
+            children: availableCategories.map((category) {
+              final apiValue = category.name.toLowerCase();
+              final isSelected = data.cuisineTypes.contains(apiValue);
+              return GestureDetector(
+                onTap: () {
+                  final updated = List<String>.from(data.cuisineTypes);
+                  isSelected ? updated.remove(apiValue) : updated.add(apiValue);
+                  onChanged(data.copyWith(cuisineTypes: updated));
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: size.width * 0.035,
+                    vertical: size.height * 0.009,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(size.width * 0.05),
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.1)
+                        : AppColors.surfaceVariant,
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                      width: isSelected ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Text(
+                    category.name,
+                    style: TextStyle(
+                      fontSize: size.width * 0.03,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
 
         SizedBox(height: size.height * 0.03),
 

@@ -159,7 +159,7 @@ class _OnboardingViewState extends State<OnboardingView>
                         _buildContinueButton(size, viewModel),
 
                         const Spacer(),
-
+                        SizedBox(height: size.height * 0.02),
                         // Login Link
                         _buildLoginLink(size),
 

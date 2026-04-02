@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
 import '../utils/network_utility.dart';
+import '../../src/home/repositories/home_repository.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import '../../src/vendor_registration/repositories/vendor_repository.dart';
@@ -35,6 +37,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => NetworkUtility());
 
   // ── Repositories ────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<HomeRepository>(() => HomeRepository(client: sl<Dio>()));
   sl.registerLazySingleton<VendorRepository>(() => VendorRepositoryImpl(sl()));
   sl.registerLazySingleton<VendorDashboardRepository>(
     () => VendorDashboardRepositoryImpl(sl()),
@@ -57,7 +60,7 @@ Future<void> init() async {
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
   sl.registerFactory(() => OnboardingViewModel(sl()));
-  sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl()));
+  sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl()));
   sl.registerFactory(() => DashboardViewModel(sl()));
   sl.registerFactory(() => OrdersViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));

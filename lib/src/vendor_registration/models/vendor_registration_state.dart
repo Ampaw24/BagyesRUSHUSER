@@ -69,9 +69,7 @@ class VendorRegistrationState extends Equatable {
   Map<String, dynamic> toSubmissionData() {
     return {
       ...businessDetails.toMap(),
-      ...legalCompliance.toMap(),
       ...operationalDetails.toMap(),
-      ...payoutDetails.toMap(),
     };
   }
 

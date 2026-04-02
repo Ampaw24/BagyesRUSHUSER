@@ -1,9 +1,9 @@
+import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
+import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
 import 'package:flutter/foundation.dart';
 import '../models/vendor_enums.dart';
 import '../models/business_details_data.dart';
-import '../models/legal_compliance_data.dart';
 import '../models/operational_details_data.dart';
-import '../models/payout_details_data.dart';
 import '../models/vendor_registration_state.dart';
 import '../repositories/vendor_repository.dart';
 import 'step_validator.dart';
@@ -11,12 +11,51 @@ import 'step_validator.dart';
 /// ViewModel for managing the vendor registration wizard flow
 class VendorRegistrationViewModel extends ChangeNotifier {
   final VendorRepository _repository;
+  final HomeRepository _homeRepository;
   final StepValidator _validator;
 
   VendorRegistrationState _state = const VendorRegistrationState();
   VendorRegistrationState get state => _state;
 
-  VendorRegistrationViewModel(this._repository, this._validator);
+  List<CategoryElement> _availableCategories = [];
+  List<CategoryElement> get availableCategories => _availableCategories;
+
+  bool _categoriesLoading = false;
+  bool get categoriesLoading => _categoriesLoading;
+
+  String? _categoriesError;
+  String? get categoriesError => _categoriesError;
+
+  VendorRegistrationViewModel(
+    this._repository,
+    this._homeRepository,
+    this._validator,
+);
+
+  // ── Cuisine Types (fetched from API) ──
+
+  Future<void> loadCuisineTypes() async {
+    _categoriesLoading = true;
+    _categoriesError = null;
+    notifyListeners();
+
+    final result = await _homeRepository.getCategories();
+
+    result.fold(
+      (failure) {
+        _categoriesError = failure.message;
+      },
+      (categories) {
+        _availableCategories = categories
+            .expand((c) => c.categories)
+            .where((c) => c.isActive)
+            .toList();
+      },
+    );
+
+    _categoriesLoading = false;
+    notifyListeners();
+  }
 
   // ── Navigation ──
 
@@ -64,6 +103,37 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Validates the current step and marks it complete without navigating.
+  /// Returns true if valid, false (with errorMessage set) if not.
+  bool validateAndMarkComplete() {
+    final error = _validator.validate(_state.currentStep, _state);
+    if (error != null) {
+      _state = _state.copyWith(errorMessage: error);
+      notifyListeners();
+      return false;
+    }
+    final updatedCompleted = Map<VendorRegistrationStep, bool>.from(
+      _state.completedSteps,
+    );
+    updatedCompleted[_state.currentStep] = true;
+    _state = _state.copyWith(
+      completedSteps: updatedCompleted,
+      errorMessage: null,
+    );
+    notifyListeners();
+    return true;
+  }
+
+  void setError(String message) {
+    _state = _state.copyWith(errorMessage: message);
+    notifyListeners();
+  }
+
+  void markOtpVerified() {
+    _state = _state.copyWith(isOtpVerified: true);
+    notifyListeners();
+  }
+
   // ── Step 1: Business Details ──
 
   void updateBusinessDetails(BusinessDetailsData data) {
@@ -71,59 +141,14 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Step 2: Legal & Compliance ──
-
-  void updateLegalCompliance(LegalComplianceData data) {
-    _state = _state.copyWith(legalCompliance: data);
-    notifyListeners();
-  }
-
-  Future<void> uploadDocument(String filePath, String documentType) async {
-    _state = _state.copyWith(status: VendorRegistrationStatus.loading);
-    notifyListeners();
-
-    final result = await _repository.uploadDocument(filePath, documentType);
-    result.fold(
-      (failure) {
-        _state = _state.copyWith(
-          status: VendorRegistrationStatus.error,
-          errorMessage: failure.message,
-        );
-      },
-      (url) {
-        var updated = _state.legalCompliance;
-        switch (documentType) {
-          case 'business_registration':
-            updated = updated.copyWith(businessRegistrationCertPath: url);
-          case 'food_safety_license':
-            updated = updated.copyWith(foodSafetyLicensePath: url);
-          case 'owner_id':
-            updated = updated.copyWith(ownerIdPath: url);
-        }
-        _state = _state.copyWith(
-          status: VendorRegistrationStatus.idle,
-          legalCompliance: updated,
-        );
-      },
-    );
-    notifyListeners();
-  }
-
-  // ── Step 3: Operational Details ──
+  // ── Step 2: Operational Details ──
 
   void updateOperationalDetails(OperationalDetailsData data) {
     _state = _state.copyWith(operationalDetails: data);
     notifyListeners();
   }
 
-  // ── Step 4: Payout Details ──
-
-  void updatePayoutDetails(PayoutDetailsData data) {
-    _state = _state.copyWith(payoutDetails: data);
-    notifyListeners();
-  }
-
-  // ── Step 5: Verification ──
+  // ── Step 3: Verification ──
 
   Future<void> sendOtp() async {
     _state = _state.copyWith(status: VendorRegistrationStatus.loading);

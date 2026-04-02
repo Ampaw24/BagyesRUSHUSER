@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
-import '../../models/vendor_enums.dart';
 
-/// Step 5 - OTP verification for vendor phone/email
+/// Step - OTP verification for vendor phone number after registration
 class VerificationStep extends StatefulWidget {
   final String phone;
-  final String email;
-  final VendorRegistrationStatus status;
+  final bool isLoading;
+  final bool isOtpSent;
   final bool isVerified;
   final VoidCallback onSendOtp;
   final ValueChanged<String> onVerifyOtp;
@@ -16,8 +15,8 @@ class VerificationStep extends StatefulWidget {
   const VerificationStep({
     super.key,
     required this.phone,
-    required this.email,
-    required this.status,
+    required this.isLoading,
+    required this.isOtpSent,
     required this.isVerified,
     required this.onSendOtp,
     required this.onVerifyOtp,
@@ -88,9 +87,8 @@ class _VerificationStepState extends State<VerificationStep>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isLoading = widget.status == VendorRegistrationStatus.loading;
-    final otpSent = widget.status == VendorRegistrationStatus.otpSent ||
-        widget.isVerified;
+    final isLoading = widget.isLoading;
+    final otpSent = widget.isOtpSent || widget.isVerified;
 
     return Column(
       children: [
