@@ -44,10 +44,6 @@ final class LoggedOut extends AuthState {
   const LoggedOut();
 }
 
-final class TokenRefreshed extends AuthState {
-  const TokenRefreshed();
-}
-
 final class AuthError extends AuthState {
   const AuthError({required this.message, required this.title});
 

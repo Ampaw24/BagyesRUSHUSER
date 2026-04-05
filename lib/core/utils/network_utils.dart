@@ -4,7 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+import 'app_logger.dart';
 
 abstract class NetworkUtils {
   static Left<Failure, T> handleDioException<T>(DioException e) {
@@ -41,10 +41,20 @@ abstract class NetworkUtils {
     String title = 'Error';
 
     if (data is Map<String, dynamic>) {
-      message = data['message']?.toString() ??
-          data['error']?.toString() ??
-          message;
+      final topMessage = data['message']?.toString() ?? data['error']?.toString();
       title = data['title']?.toString() ?? title;
+
+      // Extract nested field-level errors (e.g. {"errors": {"phone": "..."}})
+      final errors = data['errors'];
+      String? errorDetail;
+      if (errors is Map && errors.isNotEmpty) {
+        errorDetail = errors.values
+            .map((v) => v is List ? v.join(', ') : v.toString())
+            .join('\n');
+      }
+
+      message = errorDetail ?? topMessage ?? message;
+      appLogger.w('NetworkUtils.handleDioResponseError → $message');
     } else if (data is String && data.isNotEmpty) {
       message = data;
     }

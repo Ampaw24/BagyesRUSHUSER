@@ -20,10 +20,9 @@ class AuthRepository {
     final token = payload['token'] as String?;
     final refreshToken = payload['refresh_token'] as String?;
     if (token != null) await _cacheHelper.cacheSessionToken(token);
-    if (refreshToken != null){
+    if (refreshToken != null) {
       await _cacheHelper.cacheRefreshToken(refreshToken);
     }
-
   }
 
   ResultFuture<User> signup({
@@ -74,8 +73,12 @@ class AuthRepository {
       appLogger.e('AuthRepository.signup → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'signup');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'signup',
+      );
     }
   }
 
@@ -85,7 +88,7 @@ class AuthRepository {
     required String password,
     required String confirmPassword,
     required String businessName,
-    required String businessType,
+    required String businessTypeId,
     required String contactPersonName,
     required String businessAddress,
     required String city,
@@ -97,38 +100,33 @@ class AuthRepository {
     required String closingTime,
     required List<String> operatingDays,
     required int estimatedPrepTimeMinutes,
-    required String bankName,
-    required String accountNumber,
-    required String accountName,
-    required String branchCode,
   }) async {
     appLogger.d('AuthRepository.vendorRegister → initiated');
     final data = {
-      'email': email,
-      'phone': phone,
-      'password': password,
-      'confirm_password': confirmPassword,
-      'role': 'vendor',
-      'business_name': businessName,
-      'business_type': businessType,
-      'contact_person_name': contactPersonName,
-      'business_address': businessAddress,
-      'city': city,
-      'description': description,
-      'tax_identification_number': taxIdentificationNumber,
-      'cuisine_types': cuisineTypes,
-      'delivery_radius_km': deliveryRadiusKm,
-      'opening_time': openingTime,
-      'closing_time': closingTime,
-      'operating_days': operatingDays,
-      'estimated_prep_time_minutes': estimatedPrepTimeMinutes,
-      'bank_name': bankName,
-      'account_number': accountNumber,
-      'account_name': accountName,
-      'branch_code': branchCode,
+      "email": email,
+      "phone": phone,
+      "password": password,
+      "confirm_password": confirmPassword,
+      "role": "vendor",
+      "business_name": businessName,
+      "business_type_id": businessTypeId,
+      "contact_person_name": contactPersonName,
+      "business_address": businessAddress,
+      "city": city,
+      "description": description,
+      "tax_identification_number": taxIdentificationNumber,
+      "cuisine_types": cuisineTypes,
+      "delivery_radius_km": deliveryRadiusKm,
+      "opening_time": openingTime,
+      "closing_time": closingTime,
+      "operating_days": operatingDays,
+      "estimated_prep_time_minutes": estimatedPrepTimeMinutes,
     };
     try {
-      final response = await _client.post(ApiEndpoints.vendorRegister, data: data);
+      final response = await _client.post(
+        ApiEndpoints.vendorRegister,
+        data: data,
+      );
 
       if ([200, 201].contains(response.statusCode)) {
         final payload =
@@ -145,14 +143,20 @@ class AuthRepository {
         return Right(user);
       }
 
-      appLogger.w('AuthRepository.vendorRegister → HTTP ${response.statusCode}');
+      appLogger.w(
+        'AuthRepository.vendorRegister → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('AuthRepository.vendorRegister → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'vendorRegister');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'vendorRegister',
+      );
     }
   }
 
@@ -188,15 +192,22 @@ class AuthRepository {
       appLogger.e('AuthRepository.login → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'login');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'login',
+      );
     }
   }
 
   ResultFuture sendOtp({required String phone}) async {
     appLogger.d('AuthRepository.sendOtp → initiated');
     try {
-      final response = await _client.post(ApiEndpoints.otpSend, data: {'phone': phone});
+      final response = await _client.post(
+        ApiEndpoints.otpSend,
+        data: {'phone': phone},
+      );
 
       if ([200, 201].contains(response.statusCode)) {
         appLogger.i('AuthRepository.sendOtp → OTP dispatched');
@@ -209,8 +220,12 @@ class AuthRepository {
       appLogger.e('AuthRepository.sendOtp → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'sendOtp');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'sendOtp',
+      );
     }
   }
 
@@ -236,8 +251,12 @@ class AuthRepository {
       appLogger.e('AuthRepository.verifyOtp → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'verifyOtp');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'verifyOtp',
+      );
     }
   }
 
@@ -254,17 +273,22 @@ class AuthRepository {
         return Right(user);
       }
 
-      appLogger.w('AuthRepository.getUserDetails → HTTP ${response.statusCode}');
+      appLogger.w(
+        'AuthRepository.getUserDetails → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('AuthRepository.getUserDetails → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'getUserDetails');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'getUserDetails',
+      );
     }
   }
-
 
   /// Exchanges the stored refresh token for a new access + refresh token pair.
   ///
@@ -281,11 +305,13 @@ class AuthRepository {
 
       if (storedRefreshToken == null) {
         appLogger.w('AuthRepository.refreshToken → no refresh token stored');
-        return Left(const ServerFailure(
-          message: 'No refresh token available. Please log in again.',
-          statusCode: 401,
-          title: 'Session Expired',
-        ));
+        return Left(
+          const ServerFailure(
+            message: 'No refresh token available. Please log in again.',
+            statusCode: 401,
+            title: 'Session Expired',
+          ),
+        );
       }
 
       final response = await _client.post(
@@ -309,8 +335,12 @@ class AuthRepository {
       appLogger.e('AuthRepository.refreshToken → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'refreshToken');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'refreshToken',
+      );
     }
   }
 
@@ -331,8 +361,12 @@ class AuthRepository {
     } catch (e, s) {
       // Even on unexpected failure, ensure local session is cleared
       await _cacheHelper.resetSession();
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'AuthRepository', methodName: 'logout');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'logout',
+      );
     }
   }
 }

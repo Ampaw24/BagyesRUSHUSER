@@ -148,79 +148,79 @@ class _LoginViewState extends State<LoginView>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthViewmodel>(
-      builder: (context, vm, _) {
-        final loading = vm.state is AuthLoading;
-        final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-        final keyboardVisible = keyboardHeight > 0;
+    // Use select so only the loading boolean change triggers a rebuild —
+    // not every AuthState transition (AuthError, LoggedIn, etc.).
+    final loading = context.select<AuthViewmodel, bool>(
+      (vm) => vm.state is AuthLoading,
+    );
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final keyboardVisible = keyboardHeight > 0;
 
-        return Scaffold(
-          backgroundColor: scaffoldBgColor,
-          body: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isTablet = constraints.maxWidth > 600;
-                final horizontalPadding = isTablet
-                    ? constraints.maxWidth * 0.15
-                    : constraints.maxWidth * 0.06;
+    return Scaffold(
+      backgroundColor: scaffoldBgColor,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isTablet = constraints.maxWidth > 600;
+            final horizontalPadding = isTablet
+                ? constraints.maxWidth * 0.15
+                : constraints.maxWidth * 0.06;
 
-                final sw = constraints.maxWidth;
-                final sh = constraints.maxHeight;
+            final sw = constraints.maxWidth;
+            final sh = constraints.maxHeight;
 
-                return SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: sh),
-                    child: IntrinsicHeight(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: horizontalPadding,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: EdgeInsets.only(
-                                top: keyboardVisible ? sh * 0.012 : sh * 0.04,
-                              ),
-                              child: FadeTransition(
-                                opacity: _fadeAnimation,
-                                child: SlideTransition(
-                                  position: _slideAnimation,
-                                  child: _buildLogoSection(sw, isTablet),
-                                ),
-                              ),
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: sh),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: EdgeInsets.only(
+                            top: keyboardVisible ? sh * 0.012 : sh * 0.04,
+                          ),
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: SlideTransition(
+                              position: _slideAnimation,
+                              child: _buildLogoSection(sw, isTablet),
                             ),
-                            SizedBox(height: sh * 0.025),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildHeaderSection(sw),
-                                  SizedBox(height: sh * 0.060),
-                                  _buildPhoneInputSection(loading, sw),
-                                  SizedBox(height: sh * 0.025),
-                                  _buildPasswordInputSection(loading, sw),
-                                  SizedBox(height: sh * 0.070),
-                                  _buildLoginButton(context, loading, sw, sh),
-                                  const Spacer(),
-                                  _buildSignUpLink(sw, sh),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: sh * 0.015),
-                          ],
+                          ),
                         ),
-                      ),
+                        SizedBox(height: sh * 0.025),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeaderSection(sw),
+                              SizedBox(height: sh * 0.060),
+                              _buildPhoneInputSection(loading, sw),
+                              SizedBox(height: sh * 0.025),
+                              _buildPasswordInputSection(loading, sw),
+                              SizedBox(height: sh * 0.070),
+                              _buildLoginButton(context, loading, sw, sh),
+                              const Spacer(),
+                              _buildSignUpLink(sw, sh),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: sh * 0.015),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        );
-      },
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

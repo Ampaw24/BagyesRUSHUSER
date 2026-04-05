@@ -4,6 +4,7 @@ import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
 import 'package:bagyesrushappusernew/src/home/models/category.dart';
 import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'package:bagyesrushappusernew/src/home/models/menu_item.dart';
@@ -14,6 +15,35 @@ class HomeRepository {
   const HomeRepository({required Dio client}) : _client = client;
 
   final Dio _client;
+
+  // ─── Business Types ────────────────────────────────────────────────────────
+
+  ResultFuture<List<BusinessType>> getBusinessTypes() async {
+    appLogger.d('HomeRepository.getBusinessTypes → initiated');
+    try {
+      final response = await _client.get(ApiEndpoints.businessTypes);
+
+      if ([200, 201].contains(response.statusCode)) {
+        final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+            response.data as List<dynamic>;
+        final businessTypes =
+            payload.map((e) => BusinessType.fromJson(e as DataMap)).toList();
+        appLogger.i(
+            'HomeRepository.getBusinessTypes → loaded ${businessTypes.length} business types');
+        return Right(businessTypes);
+      }
+
+      appLogger.w(
+          'HomeRepository.getBusinessTypes → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('HomeRepository.getBusinessTypes → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(e, s,
+          repositoryName: 'HomeRepository', methodName: 'getBusinessTypes');
+    }
+  }
 
   // ─── Categories ────────────────────────────────────────────────────────────
  //["This defines the API endpoint for fetching categories. It is a static constant string that can be used throughout the application to make API calls related to categories."]

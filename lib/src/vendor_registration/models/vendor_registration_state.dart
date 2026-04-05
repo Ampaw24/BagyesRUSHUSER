@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
 import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'vendor_enums.dart';
 import 'business_details_data.dart';
@@ -29,6 +30,11 @@ class VendorRegistrationState extends Equatable {
   final bool isCategoriesLoading;
   final String? categoriesError;
 
+  // Business types fetched from API
+  final List<BusinessType> availableBusinessTypes;
+  final bool isBusinessTypesLoading;
+  final String? businessTypesError;
+
   const VendorRegistrationState({
     this.currentStep = VendorRegistrationStep.businessDetails,
     this.status = VendorRegistrationStatus.idle,
@@ -45,6 +51,9 @@ class VendorRegistrationState extends Equatable {
     this.availableCategories = const [],
     this.isCategoriesLoading = false,
     this.categoriesError,
+    this.availableBusinessTypes = const [],
+    this.isBusinessTypesLoading = false,
+    this.businessTypesError,
   });
 
   double get progress =>
@@ -70,6 +79,9 @@ class VendorRegistrationState extends Equatable {
     List<CategoryElement>? availableCategories,
     bool? isCategoriesLoading,
     String? categoriesError,
+    List<BusinessType>? availableBusinessTypes,
+    bool? isBusinessTypesLoading,
+    String? businessTypesError,
   }) {
     return VendorRegistrationState(
       currentStep: currentStep ?? this.currentStep,
@@ -87,6 +99,9 @@ class VendorRegistrationState extends Equatable {
       availableCategories: availableCategories ?? this.availableCategories,
       isCategoriesLoading: isCategoriesLoading ?? this.isCategoriesLoading,
       categoriesError: categoriesError,
+      availableBusinessTypes: availableBusinessTypes ?? this.availableBusinessTypes,
+      isBusinessTypesLoading: isBusinessTypesLoading ?? this.isBusinessTypesLoading,
+      businessTypesError: businessTypesError,
     );
   }
 
@@ -115,5 +130,8 @@ class VendorRegistrationState extends Equatable {
     availableCategories,
     isCategoriesLoading,
     categoriesError,
+    availableBusinessTypes,
+    isBusinessTypesLoading,
+    businessTypesError,
   ];
 }

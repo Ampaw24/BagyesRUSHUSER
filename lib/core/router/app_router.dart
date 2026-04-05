@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
@@ -62,7 +63,10 @@ const _kycExemptRoutes = {
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
-  debugLogDiagnostics: true,
+  debugLogDiagnostics: kDebugMode,
+  // Re-evaluate the redirect whenever auth state changes so that background
+  // token expiry / logout immediately redirects the user to login.
+  refreshListenable: GetIt.instance<CurrentUserProvider>(),
 
   // ── Centralized redirect guard ──────────────────────────────────────────
   redirect: (context, state) {

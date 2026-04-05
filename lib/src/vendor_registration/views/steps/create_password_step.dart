@@ -71,12 +71,14 @@ class _CreatePasswordStepState extends State<CreatePasswordStep> {
   }
 
   void _onPasswordChanged(String _) {
+    _emit(); // keep VM state in sync so validateAndMarkComplete always sees the latest value
     setState(() {
       _passwordsMatch = _passwordCtrl.text == _confirmPasswordCtrl.text;
     });
   }
 
   void _onConfirmChanged(String _) {
+    _emit();
     setState(() {
       _confirmHasText = _confirmPasswordCtrl.text.isNotEmpty;
       _passwordsMatch = _passwordCtrl.text == _confirmPasswordCtrl.text;

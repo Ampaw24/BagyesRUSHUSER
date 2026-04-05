@@ -80,11 +80,13 @@ class DioInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
+    final isAuthErr = _authExclusions.any((e) =>
+        err.requestOptions.path.contains(e));
     _log.e(
       '[ERROR] ${err.type.name} ${err.requestOptions.uri}\n'
       'Status: ${err.response?.statusCode}\n'
       'Message: ${err.message}\n'
-      'Response: ${err.response?.data}',
+      'Response: ${isAuthErr ? '[REDACTED]' : err.response?.data}',
       error: err,
     );
 

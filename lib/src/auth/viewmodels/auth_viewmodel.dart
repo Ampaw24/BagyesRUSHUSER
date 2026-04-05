@@ -100,7 +100,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String password,
     required String confirmPassword,
     required String businessName,
-    required String businessType,
+    required String businessTypeID,
     required String contactPersonName,
     required String businessAddress,
     required String city,
@@ -112,10 +112,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String closingTime,
     required List<String> operatingDays,
     required int estimatedPrepTimeMinutes,
-    required String bankName,
-    required String accountNumber,
-    required String accountName,
-    required String branchCode,
+  
   }) async {
     appLogger.d('AuthViewmodel.vendorRegister → initiated');
     emit(const AuthLoading());
@@ -126,7 +123,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
       password: password,
       confirmPassword: confirmPassword,
       businessName: businessName,
-      businessType: businessType,
+      businessTypeId: businessTypeID,
       contactPersonName: contactPersonName,
       businessAddress: businessAddress,
       city: city,
@@ -138,10 +135,6 @@ class AuthViewmodel extends ViewModel<AuthState> {
       closingTime: closingTime,
       operatingDays: operatingDays,
       estimatedPrepTimeMinutes: estimatedPrepTimeMinutes,
-      bankName: bankName,
-      accountNumber: accountNumber,
-      accountName: accountName,
-      branchCode: branchCode,
     );
 
     result.fold(
@@ -272,7 +265,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
   /// Explicitly refreshes the access token using the stored refresh token.
   ///
-  /// Emits [AuthLoading] → [TokenRefreshed] on success.
+  /// Emits [AuthLoading] → [LoggedIn] on success.
   /// Emits [LoggedOut] on failure so the routing guard redirects to login.
   Future<void> refreshToken() async {
     appLogger.d('AuthViewmodel.refreshToken → initiated');
@@ -288,8 +281,8 @@ class AuthViewmodel extends ViewModel<AuthState> {
         emit(const LoggedOut());
       },
       (_) {
-        appLogger.i('AuthViewmodel.refreshToken → TokenRefreshed');
-        emit(const TokenRefreshed());
+        appLogger.i('AuthViewmodel.refreshToken → success, session continues');
+        emit(const LoggedIn());
       },
     );
   }

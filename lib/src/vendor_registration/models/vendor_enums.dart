@@ -38,16 +38,3 @@ enum VendorRegistrationStatus {
   error,
 }
 
-/// Business type options
-enum BusinessType {
-  restaurant('Restaurant'),
-  foodTruck('Food Truck'),
-  cloudKitchen('Cloud Kitchen'),
-  bakery('Bakery'),
-  catering('Catering Service'),
-  grocery('Grocery Store'),
-  other('Other');
-
-  const BusinessType(this.label);
-  final String label;
-}

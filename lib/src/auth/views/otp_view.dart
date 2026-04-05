@@ -35,6 +35,7 @@ abstract final class _Strings {
 
 const int _kOtpLength      = 5;
 const int _kResendCooldown = 60; // seconds
+const int _kMaxOtpAttempts = 5;  // client-side lockout after N consecutive failures
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SECTION 3 — Responsive dimensions
@@ -590,9 +591,10 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   late final Animation<double> _successScaleAnim;
 
   // ── View-local UI state ───────────────────────────────────────────────────
-  bool    _hasError     = false;
-  bool    _isSuccess    = false;
+  bool    _hasError        = false;
+  bool    _isSuccess       = false;
   String? _errorMessage;
+  int     _failedAttempts  = 0;
 
   /// Saved reference so dispose() doesn't call context.read on an unmounted widget.
   AuthViewmodel? _vm;
@@ -676,6 +678,7 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
       _handleVerified();
     } else if (state is OTPSent) {
       vm.resetState();
+      _failedAttempts = 0; // new OTP issued — reset attempt counter
       _resendTimer.start();
       setState(() {});
     } else if (state is AuthError) {
@@ -731,12 +734,23 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   // ── State transitions ─────────────────────────────────────────────────────
 
   void _handleError(String message) {
+    _failedAttempts++;
     _input.clearAll();
+
+    final locked = _failedAttempts >= _kMaxOtpAttempts;
     setState(() {
       _hasError     = true;
-      _errorMessage = message;
+      _errorMessage = locked
+          ? 'Too many failed attempts. Please request a new code.'
+          : message;
     });
     _shakeCtrl.forward(from: 0);
+
+    // Force a resend cycle after max attempts to invalidate the current OTP.
+    if (locked) {
+      _failedAttempts = 0;
+      _resendTimer.start();
+    }
   }
 
   void _clearErrorIfNeeded() {
@@ -781,41 +795,40 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final d = _Dims.of(context);
+    // Use select so only the loading boolean triggers a rebuild — not every
+    // intermediate AuthState transition (OTPSent, AuthError, etc.).
+    final isLoading = context.select<AuthViewmodel, bool>(
+      (vm) => vm.state is AuthLoading,
+    );
 
-    return Consumer<AuthViewmodel>(
-      builder: (context, vm, _) {
-        final isLoading = vm.state is AuthLoading;
-
-        return Scaffold(
-          backgroundColor: Colors.white,
-          appBar: _buildAppBar(),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: d.horizontalPad),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: d.topGap),
-                  _buildHeader(d),
-                  SizedBox(height: d.headerToFields),
-                  _buildOtpRow(d, isLoading),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    child: _hasError && _errorMessage != null
-                        ? _buildErrorBanner(d)
-                        : const SizedBox.shrink(),
-                  ),
-                  SizedBox(height: d.errorToButton),
-                  _buildVerifyButton(d, isLoading),
-                  SizedBox(height: d.buttonToResend),
-                  _buildResendRow(d, vm),
-                  SizedBox(height: d.bottomPad),
-                ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _buildAppBar(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: d.horizontalPad),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: d.topGap),
+              _buildHeader(d),
+              SizedBox(height: d.headerToFields),
+              _buildOtpRow(d, isLoading),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                child: _hasError && _errorMessage != null
+                    ? _buildErrorBanner(d)
+                    : const SizedBox.shrink(),
               ),
-            ),
+              SizedBox(height: d.errorToButton),
+              _buildVerifyButton(d, isLoading),
+              SizedBox(height: d.buttonToResend),
+              _buildResendRow(d, isLoading),
+              SizedBox(height: d.bottomPad),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -967,8 +980,8 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
   // ── Resend row ────────────────────────────────────────────────────────────
 
-  Widget _buildResendRow(_Dims d, AuthViewmodel vm) {
-    final canResend = _resendTimer.canResend && vm.state is! AuthLoading;
+  Widget _buildResendRow(_Dims d, bool isLoading) {
+    final canResend = _resendTimer.canResend && !isLoading;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

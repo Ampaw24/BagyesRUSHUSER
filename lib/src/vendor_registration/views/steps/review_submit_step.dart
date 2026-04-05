@@ -64,7 +64,7 @@ class ReviewSubmitStep extends StatelessWidget {
             _ReviewItem('Business Name', data.businessDetails.businessName),
             _ReviewItem(
               'Type',
-              data.businessDetails.businessType?.label ?? 'Not set',
+              data.businessDetails.businessType?.name ?? 'Not set',
             ),
             _ReviewItem('Business Contact', '+233 ${data.businessDetails.phone}'),
             _ReviewItem('Email', data.businessDetails.email),

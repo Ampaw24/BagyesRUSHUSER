@@ -8,6 +8,7 @@ import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart'
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
 import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 
 class AppInitializer {
@@ -86,7 +87,19 @@ class AppInitializer {
       dio: dio,
     ));
     if (kDebugMode) {
-      dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+      // requestBody/responseBody are disabled — DioInterceptor already logs
+      // request/response bodies with auth-endpoint redaction applied.
+      // Enabling them here would print raw credentials (password, tokens) to
+      // the device log via LogInterceptor's own unredacted output.
+      dio.interceptors.add(
+        LogInterceptor(
+          requestBody: false,
+          responseBody: false,
+          requestHeader: false,
+          responseHeader: false,
+          logPrint: (o) => appLogger.d(o.toString()),
+        ),
+      );
     }
     return dio;
   }

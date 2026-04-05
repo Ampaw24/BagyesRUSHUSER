@@ -46,6 +46,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     _setupAnimations();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<VendorRegistrationViewModel>();
+      vm.loadBusinessTypes();
       vm.loadCuisineTypes();
       vm.addListener(_onVmStateChanged);
     });
@@ -55,7 +56,9 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
   void _onVmStateChanged() {
     if (!mounted) return;
     final vm = context.read<VendorRegistrationViewModel>();
-    if (vm.state.status == VendorRegistrationStatus.complete) {
+    final state = vm.state;
+
+    if (state.status == VendorRegistrationStatus.complete) {
       vm.resetStatus();
       CustomDialog.showSuccess(
         context: context,
@@ -63,6 +66,14 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         subtitle:
             'Your account is ready. Log in and complete your document verification from your dashboard.',
         onConfirm: () => context.go(AppRoutes.login),
+      );
+    } else if (state.status == VendorRegistrationStatus.error &&
+        state.errorMessage != null) {
+      vm.clearError();
+      CustomDialog.showError(
+        context: context,
+        title: 'Registration Failed',
+        subtitle: state.errorMessage!,
       );
     }
   }
@@ -135,6 +146,12 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
   }
 
   void _handleNext(VendorRegistrationViewModel vm) {
+    // Flush any pending text from a focused field before validation runs.
+    // GestureDetector (the Continue button) does not steal focus, so without
+    // this the focus listener on the active field never fires and the VM state
+    // still holds the stale empty value.
+    FocusManager.instance.primaryFocus?.unfocus();
+
     if (vm.state.currentStep == VendorRegistrationStep.createPassword) {
       vm.submitRegistration();
       return;
@@ -163,6 +180,30 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
       (VendorRegistrationViewModel vm) =>
           vm.state.currentStep == VendorRegistrationStep.createPassword &&
           vm.state.status == VendorRegistrationStatus.loading,
+    );
+
+    // These selectors ensure the build method re-runs when async state changes.
+    // Business types — loaded after initState.
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.availableBusinessTypes,
+    );
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.isBusinessTypesLoading,
+    );
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.businessTypesError,
+    );
+    // OTP flow — isOtpSent/isOtpVerified/status change after registration
+    // submits and the server responds; without these the VerificationStep
+    // never receives updated props and stays stuck on the pre-send state.
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.isOtpSent,
+    );
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.isOtpVerified,
+    );
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.status,
     );
 
     return Scaffold(
@@ -349,6 +390,10 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         return BusinessDetailsStep(
           data: vm.state.businessDetails,
           onChanged: vm.updateBusinessDetails,
+          businessTypes: vm.state.availableBusinessTypes,
+          isLoadingBusinessTypes: vm.state.isBusinessTypesLoading,
+          businessTypesError: vm.state.businessTypesError,
+          onRetryBusinessTypes: vm.loadBusinessTypes,
         );
       case VendorRegistrationStep.createPassword:
         return CreatePasswordStep(
@@ -362,6 +407,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
           availableCategories: vm.state.availableCategories,
           isLoadingCategories: vm.state.isCategoriesLoading,
           categoriesError: vm.state.categoriesError,
+          onRetryCategories: vm.loadCuisineTypes,
         );
       case VendorRegistrationStep.verifySubmit:
         final state = vm.state;

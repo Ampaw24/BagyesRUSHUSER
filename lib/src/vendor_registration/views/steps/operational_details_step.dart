@@ -5,12 +5,13 @@ import '../../../../constant/app_theme.dart';
 import '../../models/operational_details_data.dart';
 
 /// Step 3 - Cuisine types, delivery radius, operating hours/days
-class OperationalDetailsStep extends StatelessWidget {
+class OperationalDetailsStep extends StatefulWidget {
   final OperationalDetailsData data;
   final ValueChanged<OperationalDetailsData> onChanged;
   final List<CategoryElement> availableCategories;
   final bool isLoadingCategories;
   final String? categoriesError;
+  final VoidCallback? onRetryCategories;
 
   const OperationalDetailsStep({
     super.key,
@@ -19,17 +20,77 @@ class OperationalDetailsStep extends StatelessWidget {
     required this.availableCategories,
     this.isLoadingCategories = false,
     this.categoriesError,
+    this.onRetryCategories,
   });
 
+  @override
+  State<OperationalDetailsStep> createState() => _OperationalDetailsStepState();
+}
+
+class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
   static const _allDays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday', 'Sunday',
   ];
+
+  late List<String> _cuisineTypes;
+  late List<String> _operatingDays;
+  late double _deliveryRadiusKm;
+  late String _openingTime;
+  late String _closingTime;
+  late int _estimatedPrepTimeMinutes;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncFromData(widget.data);
+  }
+
+  @override
+  void didUpdateWidget(OperationalDetailsStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only re-sync if data was changed externally (e.g. VM reset),
+    // not from our own _emit calls.
+    if (widget.data != oldWidget.data) {
+      _syncFromData(widget.data);
+    }
+  }
+
+  void _syncFromData(OperationalDetailsData data) {
+    _cuisineTypes = List<String>.from(data.cuisineTypes);
+    _operatingDays = List<String>.from(data.operatingDays);
+    _deliveryRadiusKm = data.deliveryRadiusKm;
+    _openingTime = data.openingTime;
+    _closingTime = data.closingTime;
+    _estimatedPrepTimeMinutes = data.estimatedPrepTimeMinutes;
+  }
+
+  void _emit() {
+    widget.onChanged(
+      widget.data.copyWith(
+        cuisineTypes: _cuisineTypes,
+        operatingDays: _operatingDays,
+        deliveryRadiusKm: _deliveryRadiusKm,
+        openingTime: _openingTime,
+        closingTime: _closingTime,
+        estimatedPrepTimeMinutes: _estimatedPrepTimeMinutes,
+      ),
+    );
+  }
+
+  Future<void> _pickTime(String currentTime, ValueChanged<String> onPicked) async {
+    final parts = currentTime.split(':');
+    final initial = TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? 8,
+      minute: int.tryParse(parts[1]) ?? 0,
+    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null) {
+      final h = picked.hour.toString().padLeft(2, '0');
+      final m = picked.minute.toString().padLeft(2, '0');
+      onPicked('$h:$m');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,34 +117,32 @@ class OperationalDetailsStep extends StatelessWidget {
           ),
         ),
         SizedBox(height: size.height * 0.012),
-        if (isLoadingCategories)
+        if (widget.isLoadingCategories)
           Padding(
             padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
             child: const Center(child: CircularProgressIndicator()),
           )
-        else if (categoriesError != null)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
-            child: Text(
-              categoriesError!,
-              style: TextStyle(
-                fontSize: size.width * 0.03,
-                color: AppColors.error,
-              ),
-            ),
+        else if (widget.categoriesError != null)
+          _FetchErrorTile(
+            message: widget.categoriesError!,
+            onRetry: widget.onRetryCategories,
+            size: size,
           )
         else
           Wrap(
             spacing: size.width * 0.02,
             runSpacing: size.height * 0.008,
-            children: availableCategories.map((category) {
-              final apiValue = category.name.toLowerCase();
-              final isSelected = data.cuisineTypes.contains(apiValue);
+            children: widget.availableCategories.map((category) {
+              final apiValue = category.name;
+              final isSelected = _cuisineTypes.contains(apiValue);
               return GestureDetector(
                 onTap: () {
-                  final updated = List<String>.from(data.cuisineTypes);
-                  isSelected ? updated.remove(apiValue) : updated.add(apiValue);
-                  onChanged(data.copyWith(cuisineTypes: updated));
+                  setState(() {
+                    isSelected
+                        ? _cuisineTypes.remove(apiValue)
+                        : _cuisineTypes.add(apiValue);
+                  });
+                  _emit();
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -105,11 +164,8 @@ class OperationalDetailsStep extends StatelessWidget {
                     category.name,
                     style: TextStyle(
                       fontSize: size.width * 0.03,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? AppColors.primary : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -134,8 +190,8 @@ class OperationalDetailsStep extends StatelessWidget {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: Text(
-                '${data.deliveryRadiusKm.toStringAsFixed(1)} km',
-                key: ValueKey(data.deliveryRadiusKm),
+                '${_deliveryRadiusKm.toStringAsFixed(1)} km',
+                key: ValueKey(_deliveryRadiusKm),
                 style: TextStyle(
                   fontSize: size.width * 0.034,
                   fontWeight: FontWeight.w600,
@@ -154,13 +210,12 @@ class OperationalDetailsStep extends StatelessWidget {
             trackHeight: size.height * 0.005,
           ),
           child: Slider(
-            value: data.deliveryRadiusKm,
+            value: _deliveryRadiusKm,
             min: 1,
             max: 30,
             divisions: 58,
-            onChanged: (val) {
-              onChanged(data.copyWith(deliveryRadiusKm: val));
-            },
+            onChanged: (val) => setState(() => _deliveryRadiusKm = val),
+            onChangeEnd: (_) => _emit(),
           ),
         ),
 
@@ -181,9 +236,10 @@ class OperationalDetailsStep extends StatelessWidget {
             Expanded(
               child: _TimePickerTile(
                 label: 'Opens',
-                time: data.openingTime,
-                onTap: () => _pickTime(context, data.openingTime, (t) {
-                  onChanged(data.copyWith(openingTime: t));
+                time: _openingTime,
+                onTap: () => _pickTime(_openingTime, (t) {
+                  setState(() => _openingTime = t);
+                  _emit();
                 }),
               ),
             ),
@@ -191,9 +247,10 @@ class OperationalDetailsStep extends StatelessWidget {
             Expanded(
               child: _TimePickerTile(
                 label: 'Closes',
-                time: data.closingTime,
-                onTap: () => _pickTime(context, data.closingTime, (t) {
-                  onChanged(data.copyWith(closingTime: t));
+                time: _closingTime,
+                onTap: () => _pickTime(_closingTime, (t) {
+                  setState(() => _closingTime = t);
+                  _emit();
                 }),
               ),
             ),
@@ -217,8 +274,8 @@ class OperationalDetailsStep extends StatelessWidget {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: Text(
-                '${data.estimatedPrepTimeMinutes} min',
-                key: ValueKey(data.estimatedPrepTimeMinutes),
+                '$_estimatedPrepTimeMinutes min',
+                key: ValueKey(_estimatedPrepTimeMinutes),
                 style: TextStyle(
                   fontSize: size.width * 0.034,
                   fontWeight: FontWeight.w600,
@@ -237,13 +294,12 @@ class OperationalDetailsStep extends StatelessWidget {
             trackHeight: size.height * 0.005,
           ),
           child: Slider(
-            value: data.estimatedPrepTimeMinutes.toDouble(),
+            value: _estimatedPrepTimeMinutes.toDouble(),
             min: 5,
             max: 120,
             divisions: 23,
-            onChanged: (val) {
-              onChanged(data.copyWith(estimatedPrepTimeMinutes: val.round()));
-            },
+            onChanged: (val) => setState(() => _estimatedPrepTimeMinutes = val.round()),
+            onChangeEnd: (_) => _emit(),
           ),
         ),
 
@@ -263,12 +319,15 @@ class OperationalDetailsStep extends StatelessWidget {
           spacing: size.width * 0.02,
           runSpacing: size.height * 0.008,
           children: _allDays.map((day) {
-            final isSelected = data.operatingDays.contains(day);
+            final isSelected = _operatingDays.contains(day);
             return GestureDetector(
               onTap: () {
-                final updated = List<String>.from(data.operatingDays);
-                isSelected ? updated.remove(day) : updated.add(day);
-                onChanged(data.copyWith(operatingDays: updated));
+                setState(() {
+                  isSelected
+                      ? _operatingDays.remove(day)
+                      : _operatingDays.add(day);
+                });
+                _emit();
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -289,11 +348,8 @@ class OperationalDetailsStep extends StatelessWidget {
                   day.substring(0, 3),
                   style: TextStyle(
                     fontSize: size.width * 0.03,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -303,26 +359,72 @@ class OperationalDetailsStep extends StatelessWidget {
       ],
     );
   }
+}
 
-  Future<void> _pickTime(
-    BuildContext context,
-    String currentTime,
-    ValueChanged<String> onPicked,
-  ) async {
-    final parts = currentTime.split(':');
-    final initial = TimeOfDay(
-      hour: int.tryParse(parts[0]) ?? 8,
-      minute: int.tryParse(parts[1]) ?? 0,
+class _FetchErrorTile extends StatelessWidget {
+  final String message;
+  final VoidCallback? onRetry;
+  final Size size;
+
+  const _FetchErrorTile({
+    required this.message,
+    required this.size,
+    this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: size.width * 0.04,
+        vertical: size.height * 0.012,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(size.width * 0.025),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, color: AppColors.error, size: size.width * 0.045),
+          SizedBox(width: size.width * 0.025),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: size.width * 0.03,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+          if (onRetry != null) ...[
+            SizedBox(width: size.width * 0.02),
+            GestureDetector(
+              onTap: onRetry,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: size.width * 0.03,
+                  vertical: size.height * 0.006,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(size.width * 0.02),
+                ),
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontSize: size.width * 0.028,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
-    if (picked != null) {
-      final h = picked.hour.toString().padLeft(2, '0');
-      final m = picked.minute.toString().padLeft(2, '0');
-      onPicked('$h:$m');
-    }
   }
 }
 

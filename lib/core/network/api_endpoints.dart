@@ -25,12 +25,12 @@ abstract final class ApiEndpoints {
   /// `PATCH /customers/update`
   static const String customerUpdate = '/customers/update';
 
-  // ─── Vendor Registration ───────────────────────────────────────────────────
-  static const String vendorRegister = '/vendors/register';
-  static const String vendorDocUpload = '/vendors/documents/upload';
+  // ─── Vendor Registration ───────────────────────────────────────────────────.   
+  static const String vendorRegister = '/auth/register';
+  static const String vendorDocUpload = '/vendors/documents/upload';     
   static const String vendorOtpSend = '/vendors/otp/send';
   static const String vendorOtpVerify = '/vendors/otp/verify';
-
+   
   // ─── Vendor Dashboard ──────────────────────────────────────────────────────
   static const String vendorDashStats = '/vendors/dashboard/stats';
   static const String vendorOrders = '/vendors/orders';
@@ -69,6 +69,7 @@ abstract final class ApiEndpoints {
 
   // ─── Customer Home ─────────────────────────────────────────────────────────
   static const String categories = '/categories';
+  static const String businessTypes = '/business-types';
   static const String vendors = '/vendors';
   static const String customerOrders = '/orders';
 

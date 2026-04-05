@@ -1,8 +1,8 @@
 import 'package:bagyesrushappusernew/constant/config.dart';
+import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../constant/app_theme.dart';
-import '../../models/vendor_enums.dart';
 import '../../models/business_details_data.dart';
 import '../widgets/vendor_text_field.dart';
 
@@ -10,11 +10,19 @@ import '../widgets/vendor_text_field.dart';
 class BusinessDetailsStep extends StatefulWidget {
   final BusinessDetailsData data;
   final ValueChanged<BusinessDetailsData> onChanged;
+  final List<BusinessType> businessTypes;
+  final bool isLoadingBusinessTypes;
+  final String? businessTypesError;
+  final VoidCallback? onRetryBusinessTypes;
 
   const BusinessDetailsStep({
     super.key,
     required this.data,
     required this.onChanged,
+    this.businessTypes = const [],
+    this.isLoadingBusinessTypes = false,
+    this.businessTypesError,
+    this.onRetryBusinessTypes,
   });
 
   @override
@@ -128,6 +136,10 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         SizedBox(height: size.height * 0.008),
         _BusinessTypeSelector(
           selected: widget.data.businessType,
+          businessTypes: widget.businessTypes,
+          isLoading: widget.isLoadingBusinessTypes,
+          error: widget.businessTypesError,
+          onRetry: widget.onRetryBusinessTypes,
           onChanged: (type) {
             widget.onChanged(widget.data.copyWith(businessType: type));
           },
@@ -230,26 +242,85 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
   }
 }
 
-class _BusinessTypeSelector extends StatelessWidget {
+// StatefulWidget so selection is reflected immediately via local state,
+// independent of whether the parent rebuild cycle has fired.
+class _BusinessTypeSelector extends StatefulWidget {
   final BusinessType? selected;
+  final List<BusinessType> businessTypes;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback? onRetry;
   final ValueChanged<BusinessType> onChanged;
 
   const _BusinessTypeSelector({
     required this.selected,
+    required this.businessTypes,
+    required this.isLoading,
     required this.onChanged,
+    this.error,
+    this.onRetry,
   });
+
+  @override
+  State<_BusinessTypeSelector> createState() => _BusinessTypeSelectorState();
+}
+
+class _BusinessTypeSelectorState extends State<_BusinessTypeSelector> {
+  late BusinessType? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.selected;
+  }
+
+  @override
+  void didUpdateWidget(_BusinessTypeSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected != oldWidget.selected) {
+      _selected = widget.selected;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+    if (widget.isLoading) {
+      return SizedBox(
+        height: size.height * 0.04,
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (widget.error != null) {
+      return _FetchErrorTile(
+        message: widget.error!,
+        onRetry: widget.onRetry,
+        size: size,
+      );
+    }
+
+    if (widget.businessTypes.isEmpty) {
+      return Text(
+        'No business types available',
+        style: TextStyle(
+          fontSize: size.width * 0.032,
+          color: AppColors.textSecondary,
+        ),
+      );
+    }
+
     return Wrap(
       spacing: size.width * 0.02,
       runSpacing: size.height * 0.01,
-      children: BusinessType.values.map((type) {
-        final isSelected = selected == type;
+      children: widget.businessTypes.map((type) {
+        final isSelected = _selected?.id == type.id;
         return GestureDetector(
-          onTap: () => onChanged(type),
+          onTap: () {
+            setState(() => _selected = type);
+            widget.onChanged(type);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
@@ -268,7 +339,7 @@ class _BusinessTypeSelector extends StatelessWidget {
               ),
             ),
             child: Text(
-              type.label,
+              type.name,
               style: TextStyle(
                 fontSize: size.width * 0.032,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -278,6 +349,73 @@ class _BusinessTypeSelector extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _FetchErrorTile extends StatelessWidget {
+  final String message;
+  final VoidCallback? onRetry;
+  final Size size;
+
+  const _FetchErrorTile({
+    required this.message,
+    required this.size,
+    this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: size.width * 0.04,
+        vertical: size.height * 0.012,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(size.width * 0.025),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, color: AppColors.error, size: size.width * 0.045),
+          SizedBox(width: size.width * 0.025),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: size.width * 0.03,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+          if (onRetry != null) ...[
+            SizedBox(width: size.width * 0.02),
+            GestureDetector(
+              onTap: onRetry,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: size.width * 0.03,
+                  vertical: size.height * 0.006,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(size.width * 0.02),
+                ),
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontSize: size.width * 0.028,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

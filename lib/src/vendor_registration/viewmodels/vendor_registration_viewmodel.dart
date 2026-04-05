@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
@@ -50,6 +51,13 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     final authState = _authViewmodel.state;
 
     if (authState is VendorRegistered) {
+      // Scrub credentials now that registration succeeded.
+      _state = _state.copyWith(
+        businessDetails: _state.businessDetails.copyWith(
+          password: '',
+          confirmPassword: '',
+        ),
+      );
       // Backend returns the user — check phoneVerified to decide next step.
       final user = _currentUserProvider.user;
       if (user != null && user.phoneVerified) {
@@ -60,8 +68,17 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         );
         notifyListeners();
       } else {
-        // Normal path — proceed to OTP step.
-        goToStep(VendorRegistrationStep.verifySubmit);
+        // Normal path — go to OTP step and auto-send the code immediately
+        // so the user lands straight on the input fields, not a button screen.
+        _state = _state.copyWith(
+          status: VendorRegistrationStatus.loading,
+          currentStep: VendorRegistrationStep.verifySubmit,
+          errorMessage: null,
+        );
+        notifyListeners();
+        _authViewmodel.resetState();
+        _authViewmodel.sendOtp('${Config.defaultCountryCode}${_state.businessDetails.phone}');
+        return;
       }
       _authViewmodel.resetState();
     } else if (authState is OTPSent) {
@@ -91,11 +108,15 @@ class VendorRegistrationViewModel extends ChangeNotifier {
           isResumeFlow: true,
           errorMessage: null,
           currentStep: VendorRegistrationStep.verifySubmit,
+          businessDetails: _state.businessDetails.copyWith(
+            password: '',
+            confirmPassword: '',
+          ),
         );
         notifyListeners();
         _authViewmodel.resetState();
         // Kick off OTP send — result handled by next _onAuthStateChanged cycle.
-        _authViewmodel.sendOtp(_state.businessDetails.phone);
+        _authViewmodel.sendOtp('${Config.defaultCountryCode}${_state.businessDetails.phone}');
       } else {
         _state = _state.copyWith(
           status: VendorRegistrationStatus.error,
@@ -105,6 +126,32 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         _authViewmodel.resetState();
       }
     }
+  }
+
+  // ── Business Types (fetched from API) ──
+
+  Future<void> loadBusinessTypes() async {
+    _state = _state.copyWith(isBusinessTypesLoading: true, businessTypesError: null);
+    notifyListeners();
+
+    final result = await _homeRepository.getBusinessTypes();
+
+    result.fold(
+      (failure) {
+        _state = _state.copyWith(
+          isBusinessTypesLoading: false,
+          businessTypesError: failure.message,
+        );
+      },
+      (businessTypes) {
+        _state = _state.copyWith(
+          isBusinessTypesLoading: false,
+          availableBusinessTypes: businessTypes.where((t) => t.isActive).toList(),
+        );
+      },
+    );
+
+    notifyListeners();
   }
 
   // ── Cuisine Types (fetched from API) ──
@@ -245,15 +292,20 @@ class VendorRegistrationViewModel extends ChangeNotifier {
 
     final b = _state.businessDetails;
     final o = _state.operationalDetails;
-    final p = _state.payoutDetails;
+
+    // The phone field stores bare digits (e.g. 544548232) with the country
+    // code shown only as a UI prefix. Prepend it before sending to the server
+    // which expects the full E.164 form (+233544548232).
+    final fullPhone = '${Config.defaultCountryCode}${b.phone}';
 
     await _authViewmodel.vendorRegister(
       email: b.email,
-      phone: b.phone,
+      phone: fullPhone,
       password: b.password,
       confirmPassword: b.confirmPassword,
+      
       businessName: b.businessName,
-      businessType: b.businessType?.name ?? '',
+      businessTypeID: b.businessType?.id ?? '',
       contactPersonName: b.contactPersonName,
       businessAddress: b.businessAddress,
       city: b.city,
@@ -265,11 +317,13 @@ class VendorRegistrationViewModel extends ChangeNotifier {
       closingTime: o.closingTime,
       operatingDays: o.operatingDays.map((d) => d.toLowerCase()).toList(),
       estimatedPrepTimeMinutes: o.estimatedPrepTimeMinutes,
-      bankName: p.bankName,
-      accountNumber: p.accountNumber,
-      accountName: p.accountName,
-      branchCode: p.branchCode ?? '',
     );
+
+    // Credentials are scrubbed in _onAuthStateChanged once the outcome is known
+    // (success → VendorRegistered, resume → isAlreadyExists branch).
+    // Scrubbing here unconditionally caused retries to fail validation because
+    // the state had an empty password before the field's focus listener could
+    // re-emit the controller value.
     // Result handled by _onAuthStateChanged
   }
 
@@ -278,15 +332,17 @@ class VendorRegistrationViewModel extends ChangeNotifier {
   Future<void> sendOtp() async {
     _state = _state.copyWith(status: VendorRegistrationStatus.loading);
     notifyListeners();
-    await _authViewmodel.sendOtp(_state.businessDetails.phone);
+    final fullPhone = '${Config.defaultCountryCode}${_state.businessDetails.phone}';
+    await _authViewmodel.sendOtp(fullPhone);
     // Result (OTPSent / AuthError) handled by _onAuthStateChanged
   }
 
   Future<void> verifyOtp(String otp) async {
     _state = _state.copyWith(status: VendorRegistrationStatus.loading);
     notifyListeners();
+    final fullPhone = '${Config.defaultCountryCode}${_state.businessDetails.phone}';
     await _authViewmodel.verifyOtp(
-      phone: _state.businessDetails.phone,
+      phone: fullPhone,
       otp: otp,
     );
     // Result (OTPVerified / AuthError) handled by _onAuthStateChanged

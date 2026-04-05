@@ -1,5 +1,5 @@
+import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
 import 'package:equatable/equatable.dart';
-import 'vendor_enums.dart';
 
 /// Data model for Step 1 - Business Details
 class BusinessDetailsData extends Equatable {
@@ -62,8 +62,8 @@ class BusinessDetailsData extends Equatable {
     return {
       'email': email,
       'phone': phone,
-      'password': password,
-      'confirm_password': confirmPassword,
+      // password and confirmPassword are intentionally excluded from toMap()
+      // to prevent credentials appearing in logs, analytics, or crash reports.
       'role': 'vendor',
       'business_name': businessName,
       'business_type': businessType?.name,
@@ -82,8 +82,8 @@ class BusinessDetailsData extends Equatable {
     contactPersonName,
     phone,
     email,
-    password,
-    confirmPassword,
+    // password and confirmPassword excluded from props to prevent
+    // credentials appearing in Equatable toString() output.
     businessAddress,
     city,
     description,
