@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:flutter/material.dart';

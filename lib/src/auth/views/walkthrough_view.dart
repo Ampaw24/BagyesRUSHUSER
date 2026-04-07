@@ -18,7 +18,12 @@ class _WalkThroughState extends State<WalkThrough> {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
-      body: WillPopScope(
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (onWillPop()) exit(0);
+        },
         child: Container(
           width: width,
           height: height,
@@ -46,7 +51,7 @@ class _WalkThroughState extends State<WalkThrough> {
                   ),
                 ],
               ),
-              Container(
+              SizedBox(
                 width: width - fixPadding * 4.0,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -111,18 +116,11 @@ class _WalkThroughState extends State<WalkThrough> {
             ],
           ),
         ),
-        onWillPop: () async {
-          bool backStatus = onWillPop();
-          if (backStatus) {
-            exit(0);
-          }
-          return false;
-        },
       ),
     );
   }
 
-  getItems(String image, String title, String desc) {
+  Row getItems(String image, String title, String desc) {
     double width = MediaQuery.of(context).size.width;
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -146,7 +144,7 @@ class _WalkThroughState extends State<WalkThrough> {
         widthSpace,
         widthSpace,
         widthSpace,
-        Container(
+        SizedBox(
           width: width - (fixPadding * 4.0 + 70.0 + 30.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -168,9 +166,10 @@ class _WalkThroughState extends State<WalkThrough> {
     );
   }
 
-  onWillPop() {
+  bool onWillPop() {
     DateTime now = DateTime.now();
-    if (now.difference(currentBackPressTime!) > Duration(seconds: 2)) {
+    if (currentBackPressTime == null ||
+        now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
       currentBackPressTime = now;
       Fluttertoast.showToast(
         msg: 'Press Back Once Again to Exit.',

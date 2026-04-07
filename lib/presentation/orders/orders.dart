@@ -55,7 +55,7 @@ class _OrdersState extends State<Orders> {
   @override
   void initState() {
     super.initState();
-    this.getOrders(context);
+    getOrders(context);
   }
 
   @override
@@ -72,7 +72,7 @@ class _OrdersState extends State<Orders> {
     );
   }
 
-  mainView() {
+  ListView mainView() {
     double width = MediaQuery.of(context).size.width;
     return ListView(
       children: [
@@ -104,7 +104,7 @@ class _OrdersState extends State<Orders> {
     );
   }
 
-  activeOrder() {
+  Container activeOrder() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       padding: EdgeInsets.all(fixPadding * 2.0),
@@ -149,7 +149,7 @@ class _OrdersState extends State<Orders> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
+              SizedBox(
                 width: (width - (fixPadding * 6.0 + 6.0)) / 2.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -170,7 +170,7 @@ class _OrdersState extends State<Orders> {
                       ),
                     ),
                     widthSpace,
-                    Container(
+                    SizedBox(
                       width:
                           ((width - (fixPadding * 6.0 + 6.0)) / 2.0) -
                           30.0 -
@@ -192,7 +192,7 @@ class _OrdersState extends State<Orders> {
                 ),
               ),
               Container(width: 1.0, height: 40.0, color: Colors.grey[300]),
-              Container(
+              SizedBox(
                 width: (width - (fixPadding * 6.0 + 6.0)) / 2.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -213,7 +213,7 @@ class _OrdersState extends State<Orders> {
                       ),
                     ),
                     widthSpace,
-                    Container(
+                    SizedBox(
                       width:
                           ((width - (fixPadding * 6.0 + 6.0)) / 2.0) -
                           30.0 -
@@ -303,7 +303,7 @@ class _OrdersState extends State<Orders> {
     );
   }
 
-  pastOrder() {
+  Container pastOrder() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       padding: EdgeInsets.all(fixPadding * 2.0),
@@ -348,7 +348,7 @@ class _OrdersState extends State<Orders> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
+              SizedBox(
                 width: (width - (fixPadding * 6.0 + 6.0)) / 2.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -369,7 +369,7 @@ class _OrdersState extends State<Orders> {
                       ),
                     ),
                     widthSpace,
-                    Container(
+                    SizedBox(
                       width:
                           ((width - (fixPadding * 6.0 + 6.0)) / 2.0) -
                           30.0 -
@@ -391,7 +391,7 @@ class _OrdersState extends State<Orders> {
                 ),
               ),
               Container(width: 1.0, height: 40.0, color: Colors.grey[300]),
-              Container(
+              SizedBox(
                 width: (width - (fixPadding * 6.0 + 6.0)) / 2.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -412,7 +412,7 @@ class _OrdersState extends State<Orders> {
                       ),
                     ),
                     widthSpace,
-                    Container(
+                    SizedBox(
                       width:
                           ((width - (fixPadding * 6.0 + 6.0)) / 2.0) -
                           30.0 -

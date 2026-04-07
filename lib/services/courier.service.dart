@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:bagyesrushappusernew/constant/baseurl.dart';
 
-Future<http.Response> placeCustomerOrder(token, data) {
+Future<http.Response> placeCustomerOrder(String token, Map<String, dynamic> data) {
   var headers = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer $token',
@@ -15,7 +15,7 @@ Future<http.Response> placeCustomerOrder(token, data) {
   );
 }
 
-Future<http.Response> getCustomerOrders(token, id) {
+Future<http.Response> getCustomerOrders(String token, String id) {
   var headers = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer $token',

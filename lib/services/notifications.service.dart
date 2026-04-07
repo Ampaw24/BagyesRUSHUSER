@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:bagyesrushappusernew/constant/baseurl.dart';
 
-Future<http.Response> getCustomerNotifications(token, id) {
+Future<http.Response> getCustomerNotifications(String token, String id) {
   var headers = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer $token',
@@ -13,7 +13,7 @@ Future<http.Response> getCustomerNotifications(token, id) {
       headers: headers);
 }
 
-Future<http.Response> updateNotification(token, data) {
+Future<http.Response> updateNotification(String token, Map<String, dynamic> data) {
   var headers = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer $token',

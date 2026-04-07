@@ -110,7 +110,7 @@ class HomeRepository {
         'HomeRepository.getVendors → categoryId=${categoryId ?? 'all'}');
     try {
       final queryParams = <String, dynamic>{
-        if (categoryId != null) 'category_id': categoryId,
+        'category_id': ?categoryId,
       };
       final response = await _client.get(
         ApiEndpoints.vendors,

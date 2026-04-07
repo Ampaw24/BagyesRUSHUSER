@@ -129,7 +129,7 @@ class _TrackOrderState extends State<TrackOrder> {
                             ],
                           ),
                           widthSpace,
-                          Container(
+                          SizedBox(
                             width:
                                 width - (fixPadding * 4.0 + 10.0 + 30.0 + 50.0),
                             child: Column(
@@ -271,7 +271,7 @@ class _TrackOrderState extends State<TrackOrder> {
     );
   }
 
-  getDevider() {
+  Container getDevider() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       width: width,

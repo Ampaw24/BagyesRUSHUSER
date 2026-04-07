@@ -1,5 +1,4 @@
 import 'package:bagyesrushappusernew/constant/constant.dart';
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/core/router/router.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +15,7 @@ class _PaymentState extends State<Payment> {
       skrill = false,
       cashOn = false;
 
-  successOrderDialog() {
+  void successOrderDialog() {
     CustomDialog.showSuccess(
       context: context,
       title: 'Success!',
@@ -90,7 +89,7 @@ class _PaymentState extends State<Payment> {
     );
   }
 
-  getPaymentTile(String title, String imgPath) {
+  InkWell getPaymentTile(String title, String imgPath) {
     return InkWell(
       onTap: () {
         if (title == 'Pay on Delivery') {
@@ -176,7 +175,7 @@ class _PaymentState extends State<Payment> {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Container(
+                SizedBox(
                   width: 70.0,
                   child: Image.asset(
                     imgPath,

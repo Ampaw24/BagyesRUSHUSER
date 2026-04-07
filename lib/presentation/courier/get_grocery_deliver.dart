@@ -138,18 +138,16 @@ class _GetGroceryDeliverState extends State<GetGroceryDeliver> {
                     ],
                   ),
                 ),
-                Container(
-                  child: TabBar(
-                    indicatorColor: primaryColor,
-                    indicatorPadding: EdgeInsets.only(right: 15.0, left: 15.0),
-                    isScrollable: true,
-                    tabs: [
-                      Tab(text: 'Bestseller'.toUpperCase()),
-                      Tab(text: 'Dairy'.toUpperCase()),
-                      Tab(text: 'Fruits'.toUpperCase()),
-                      Tab(text: 'Bevarages'.toUpperCase()),
-                    ],
-                  ),
+                TabBar(
+                  indicatorColor: primaryColor,
+                  indicatorPadding: EdgeInsets.only(right: 15.0, left: 15.0),
+                  isScrollable: true,
+                  tabs: [
+                    Tab(text: 'Bestseller'.toUpperCase()),
+                    Tab(text: 'Dairy'.toUpperCase()),
+                    Tab(text: 'Fruits'.toUpperCase()),
+                    Tab(text: 'Bevarages'.toUpperCase()),
+                  ],
                 ),
               ],
             ),
@@ -167,7 +165,7 @@ class _GetGroceryDeliverState extends State<GetGroceryDeliver> {
     );
   }
 
-  itemList() {
+  ListView itemList() {
     double width = MediaQuery.of(context).size.width;
     return ListView.builder(
       itemCount: itemListData.length,
@@ -193,7 +191,7 @@ class _GetGroceryDeliverState extends State<GetGroceryDeliver> {
                 fit: BoxFit.fitHeight,
               ),
               widthSpace,
-              Container(
+              SizedBox(
                 width: width - (fixPadding * 4.0 + 75.0 + 10.0 + 100.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -247,50 +245,99 @@ class _GetGroceryDeliverState extends State<GetGroceryDeliver> {
   }
 
   // Bottom Sheet for Add Item to Cart Starts Here
-  void _addToCartBottomSheet(context) {
+  void _addToCartBottomSheet(BuildContext context) {
     showModalBottomSheet(
         context: context,
         backgroundColor: scaffoldBgColor,
         builder: (BuildContext bc) {
           double width = MediaQuery.of(context).size.width;
           return StatefulBuilder(builder: (context, setState) {
-            return Container(
-              child: Wrap(
-                children: <Widget>[
-                  Padding(
-                    padding: EdgeInsets.all(fixPadding * 2.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Image.asset(
-                          'assets/customize.png',
-                          width: 70.0,
-                          height: 70.0,
-                          fit: BoxFit.fitWidth,
-                        ),
-                        IconButton(
-                          icon:
-                              Icon(Icons.close, color: blackColor, size: 22.0),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
+            return Wrap(
+              children: <Widget>[
+                Padding(
+                  padding: EdgeInsets.all(fixPadding * 2.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Image.asset(
+                        'assets/customize.png',
+                        width: 70.0,
+                        height: 70.0,
+                        fit: BoxFit.fitWidth,
+                      ),
+                      IconButton(
+                        icon:
+                            Icon(Icons.close, color: blackColor, size: 22.0),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
                   ),
-                  Padding(
-                    padding: EdgeInsets.only(left: fixPadding * 2.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Customize',
-                          style: blackExtraLargeTextStyle,
-                        ),
-                        heightSpace,
-                        Row(
+                ),
+                Padding(
+                  padding: EdgeInsets.only(left: fixPadding * 2.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Customize',
+                        style: blackExtraLargeTextStyle,
+                      ),
+                      heightSpace,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 18.0,
+                            height: 18.0,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border:
+                                  Border.all(width: 1.0, color: Colors.green),
+                            ),
+                            child: Container(
+                              width: 12.0,
+                              height: 12.0,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  color: Colors.green),
+                            ),
+                          ),
+                          SizedBox(width: 5.0),
+                          Text(
+                            'Best Plus Egg',
+                            style: greySmallTextStyle,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  height: fixPadding * 3.0,
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                      left: fixPadding * 2.0, right: fixPadding * 2.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Choice of quantity',
+                          style: blackHeadingTextStyle),
+                      heightSpace,
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            option1 = true;
+                            option2 = false;
+                          });
+                        },
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -299,8 +346,8 @@ class _GetGroceryDeliverState extends State<GetGroceryDeliver> {
                               height: 18.0,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                border:
-                                    Border.all(width: 1.0, color: Colors.green),
+                                border: Border.all(
+                                    width: 1.0, color: Colors.green),
                               ),
                               child: Container(
                                 width: 12.0,
@@ -310,240 +357,189 @@ class _GetGroceryDeliverState extends State<GetGroceryDeliver> {
                                     color: Colors.green),
                               ),
                             ),
-                            SizedBox(width: 5.0),
+                            widthSpace,
+                            Container(
+                              width: 18.0,
+                              height: 18.0,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(9.0),
+                                border: Border.all(
+                                    width: 1.0,
+                                    color: (option1)
+                                        ? primaryColor
+                                        : Colors.grey[500]!),
+                              ),
+                              child: Container(
+                                width: 12.0,
+                                height: 12.0,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6.0),
+                                  color: (option1)
+                                      ? primaryColor
+                                      : Colors.transparent,
+                                ),
+                              ),
+                            ),
+                            widthSpace,
+                            Text('10 Pieces', style: inputTextStyle),
+                            widthSpace,
+                            Text(
+                              '\$5',
+                              style: greySmallTextStyle,
+                            ),
+                          ],
+                        ),
+                      ),
+                      heightSpace,
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            option2 = true;
+                            option1 = false;
+                          });
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 18.0,
+                              height: 18.0,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    width: 1.0, color: Colors.green),
+                              ),
+                              child: Container(
+                                width: 12.0,
+                                height: 12.0,
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    color: Colors.green),
+                              ),
+                            ),
+                            widthSpace,
+                            Container(
+                              width: 18.0,
+                              height: 18.0,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(9.0),
+                                border: Border.all(
+                                    width: 1.0,
+                                    color: (option2)
+                                        ? primaryColor
+                                        : Colors.grey[500]!),
+                              ),
+                              child: Container(
+                                width: 12.0,
+                                height: 12.0,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6.0),
+                                  color: (option2)
+                                      ? primaryColor
+                                      : Colors.transparent,
+                                ),
+                              ),
+                            ),
+                            widthSpace,
+                            Text('20 Pieces', style: inputTextStyle),
+                            widthSpace,
+                            Text(
+                              '\$8',
+                              style: greySmallTextStyle,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  height: fixPadding * 1.0,
+                ),
+                Material(
+                  elevation: 7.0,
+                  color: whiteColor,
+                  child: Container(
+                    width: width,
+                    padding: EdgeInsets.all(fixPadding * 2.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
                             Text(
                               'Best Plus Egg',
                               style: greySmallTextStyle,
+                            ),
+                            Text(
+                              '+1 more',
+                              style: greySmallTextStyle,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 15.0),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Item Total',
+                                  style: blackHeadingTextStyle,
+                                ),
+                                SizedBox(width: 5.0),
+                                Container(
+                                  width: 10.0,
+                                  height: 10.0,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(5.0),
+                                    color: Colors.grey[400]!,
+                                  ),
+                                ),
+                                SizedBox(width: 5.0),
+                                Text(
+                                  '\$5',
+                                  style: priceTextStyle,
+                                ),
+                              ],
+                            ),
+                            InkWell(
+                              onTap: () {
+                                Navigator.pop(context);
+                                AppNavigator.toCart(context);
+                              },
+                              child: Container(
+                                width: 120.0,
+                                padding: EdgeInsets.all(fixPadding * 0.6),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20.0),
+                                  color: primaryColor,
+                                ),
+                                child: Text(
+                                  'Add Item',
+                                  style: whiteBottonTextStyle,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    height: fixPadding * 3.0,
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                        left: fixPadding * 2.0, right: fixPadding * 2.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Choice of quantity',
-                            style: blackHeadingTextStyle),
-                        heightSpace,
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              option1 = true;
-                              option2 = false;
-                            });
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 18.0,
-                                height: 18.0,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                      width: 1.0, color: Colors.green),
-                                ),
-                                child: Container(
-                                  width: 12.0,
-                                  height: 12.0,
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      color: Colors.green),
-                                ),
-                              ),
-                              widthSpace,
-                              Container(
-                                width: 18.0,
-                                height: 18.0,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(9.0),
-                                  border: Border.all(
-                                      width: 1.0,
-                                      color: (option1)
-                                          ? primaryColor
-                                          : Colors.grey[500]!),
-                                ),
-                                child: Container(
-                                  width: 12.0,
-                                  height: 12.0,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(6.0),
-                                    color: (option1)
-                                        ? primaryColor
-                                        : Colors.transparent,
-                                  ),
-                                ),
-                              ),
-                              widthSpace,
-                              Text('10 Pieces', style: inputTextStyle),
-                              widthSpace,
-                              Text(
-                                '\$5',
-                                style: greySmallTextStyle,
-                              ),
-                            ],
-                          ),
-                        ),
-                        heightSpace,
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              option2 = true;
-                              option1 = false;
-                            });
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 18.0,
-                                height: 18.0,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                      width: 1.0, color: Colors.green),
-                                ),
-                                child: Container(
-                                  width: 12.0,
-                                  height: 12.0,
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      color: Colors.green),
-                                ),
-                              ),
-                              widthSpace,
-                              Container(
-                                width: 18.0,
-                                height: 18.0,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(9.0),
-                                  border: Border.all(
-                                      width: 1.0,
-                                      color: (option2)
-                                          ? primaryColor
-                                          : Colors.grey[500]!),
-                                ),
-                                child: Container(
-                                  width: 12.0,
-                                  height: 12.0,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(6.0),
-                                    color: (option2)
-                                        ? primaryColor
-                                        : Colors.transparent,
-                                  ),
-                                ),
-                              ),
-                              widthSpace,
-                              Text('20 Pieces', style: inputTextStyle),
-                              widthSpace,
-                              Text(
-                                '\$8',
-                                style: greySmallTextStyle,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    height: fixPadding * 1.0,
-                  ),
-                  Material(
-                    elevation: 7.0,
-                    color: whiteColor,
-                    child: Container(
-                      width: width,
-                      padding: EdgeInsets.all(fixPadding * 2.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Best Plus Egg',
-                                style: greySmallTextStyle,
-                              ),
-                              Text(
-                                '+1 more',
-                                style: greySmallTextStyle,
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 15.0),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Item Total',
-                                    style: blackHeadingTextStyle,
-                                  ),
-                                  SizedBox(width: 5.0),
-                                  Container(
-                                    width: 10.0,
-                                    height: 10.0,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5.0),
-                                      color: Colors.grey[400]!,
-                                    ),
-                                  ),
-                                  SizedBox(width: 5.0),
-                                  Text(
-                                    '\$5',
-                                    style: priceTextStyle,
-                                  ),
-                                ],
-                              ),
-                              InkWell(
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  AppNavigator.toCart(context);
-                                },
-                                child: Container(
-                                  width: 120.0,
-                                  padding: EdgeInsets.all(fixPadding * 0.6),
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20.0),
-                                    color: primaryColor,
-                                  ),
-                                  child: Text(
-                                    'Add Item',
-                                    style: whiteBottonTextStyle,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           });
         });

@@ -195,7 +195,7 @@ class Profile extends StatelessWidget {
     );
   }
 
-  getTile(Icon icon, String title) {
+  Row getTile(Icon icon, String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,

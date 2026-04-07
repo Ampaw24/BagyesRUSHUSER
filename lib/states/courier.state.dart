@@ -12,7 +12,7 @@ class IOrder {
 class CourierState with ChangeNotifier {
   IOrder orderPayload = IOrder();
 
-  get oPayload => orderPayload;
+  IOrder get oPayload => orderPayload;
 
   void setOrderPayload(IOrder data) {
     orderPayload.img = data.img;

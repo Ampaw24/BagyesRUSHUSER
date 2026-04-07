@@ -79,8 +79,15 @@ final GoRouter appRouter = GoRouter(
       return AppRoutes.login;
     }
 
-    // 2. Authenticated user trying to access auth pages → home
+    // 2. Authenticated user trying to access auth pages → role-based home
     if (hasToken && isPublicRoute && location != AppRoutes.splash) {
+      final sl = GetIt.instance;
+      if (sl.isRegistered<CurrentUserProvider>()) {
+        final user = sl<CurrentUserProvider>().user;
+        if (user != null && user.role == 'vendor') {
+          return AppRoutes.vendorHome;
+        }
+      }
       return AppRoutes.home;
     }
 

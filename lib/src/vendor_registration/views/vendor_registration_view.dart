@@ -64,8 +64,8 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         context: context,
         title: 'Registration Successful!',
         subtitle:
-            'Your account is ready. Log in and complete your document verification from your dashboard.',
-        onConfirm: () => context.go(AppRoutes.login),
+            'Your account is ready. Complete your document verification from your dashboard.',
+        onConfirm: () => context.go(AppRoutes.vendorHome),
       );
     } else if (state.status == VendorRegistrationStatus.error &&
         state.errorMessage != null) {

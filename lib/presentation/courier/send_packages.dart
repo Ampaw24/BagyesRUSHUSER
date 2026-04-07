@@ -104,7 +104,7 @@ class _SendPackagesState extends State<SendPackages> {
     var token = user.token;
     var id = user.id;
     if (payload.img == '') return;
-    final data = new Map<String, String>();
+    final data = <String, String>{};
     data['img'] = payload.img;
     data['weight'] = payload.weight;
     data['pickUpLocation'] = payload.pickUpLocation;
@@ -207,7 +207,7 @@ class _SendPackagesState extends State<SendPackages> {
     );
   }
 
-  selectPackageTypeScreen() {
+  ListView selectPackageTypeScreen() {
     double width = MediaQuery.of(context).size.width;
     return ListView(
       children: [
@@ -226,7 +226,7 @@ class _SendPackagesState extends State<SendPackages> {
                     payload.packageType = 'documents';
                   });
                 },
-                child: Container(
+                child: SizedBox(
                   width: (width - (fixPadding * 6.0)) / 2.0,
                   child: Column(
                     children: [
@@ -296,7 +296,7 @@ class _SendPackagesState extends State<SendPackages> {
                     payload.packageType = 'parcel';
                   });
                 },
-                child: Container(
+                child: SizedBox(
                   width: (width - (fixPadding * 6.0)) / 2.0,
                   child: Column(
                     children: [
@@ -361,7 +361,7 @@ class _SendPackagesState extends State<SendPackages> {
     );
   }
 
-  enterPackageSizeWeightScreen() {
+  ListView enterPackageSizeWeightScreen() {
     double width = MediaQuery.of(context).size.width;
     return ListView(
       children: [
@@ -469,12 +469,12 @@ class _SendPackagesState extends State<SendPackages> {
   }
 
   // Pickup Address Screen Start
-  selectPickupAddressScreenCode() {
+  ListView selectPickupAddressScreenCode() {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
     return ListView(
       children: [
-        Container(
+        SizedBox(
           width: width,
           height: height - 85.0,
           child: Center(
@@ -622,12 +622,12 @@ class _SendPackagesState extends State<SendPackages> {
   // Pickup Address Screen End
 
   // Delivery Address Screen Start
-  selectDeliveryAddressScreenCode() {
+  ListView selectDeliveryAddressScreenCode() {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
     return ListView(
       children: [
-        Container(
+        SizedBox(
           width: width,
           height: height - 85.0,
           child: Center(
@@ -772,7 +772,7 @@ class _SendPackagesState extends State<SendPackages> {
   // Delivery Address Screen End
 
   // Confirm Screen Start
-  confirmScreenCode() {
+  Scaffold confirmScreenCode() {
     double width = MediaQuery.of(context).size.width;
     return Scaffold(
       bottomSheet: Wrap(
@@ -794,7 +794,7 @@ class _SendPackagesState extends State<SendPackages> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Pickup Start
-                      Container(
+                      SizedBox(
                         width: (width - (fixPadding * 6.0)) / 2.0,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
@@ -811,7 +811,7 @@ class _SendPackagesState extends State<SendPackages> {
                       ),
                       // Pickup End
                       // Delivery Start
-                      Container(
+                      SizedBox(
                         width: (width - (fixPadding * 6.0)) / 2.0,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
@@ -842,7 +842,7 @@ class _SendPackagesState extends State<SendPackages> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Size Start
-                      Container(
+                      SizedBox(
                         width: (width - (fixPadding * 6.0)) / 2.0,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
@@ -859,7 +859,7 @@ class _SendPackagesState extends State<SendPackages> {
                       ),
                       // Size End
                       // Weight Start
-                      Container(
+                      SizedBox(
                         width: (width - (fixPadding * 6.0)) / 2.0,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
@@ -911,7 +911,7 @@ class _SendPackagesState extends State<SendPackages> {
   // Confirm Screen End
 
   // Back Button Start
-  backButton() {
+  InkWell backButton() {
     double width = MediaQuery.of(context).size.width;
     return InkWell(
       onTap: () {
@@ -957,7 +957,7 @@ class _SendPackagesState extends State<SendPackages> {
   // Back Button End
 
   // Continue Button Start
-  continueButton() {
+  InkWell continueButton() {
     double width = MediaQuery.of(context).size.width;
     return InkWell(
       onTap: () {

@@ -27,11 +27,11 @@ class _RouteMapState extends State<RouteMap> {
   late LatLng sourceLocatioon;
   late LatLng destLocatioon;
 
-  Completer<GoogleMapController> _controller = Completer();
+  final Completer<GoogleMapController> _controller = Completer();
   // this set will hold my markers
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   // this will hold the generated polylines
-  Set<Polyline> _polylines = {};
+  final Set<Polyline> _polylines = {};
   // this will hold each polyline coordinate as Lat and Lng pairs
   List<LatLng> polylineCoordinates = [];
   // this is the key object - the PolylinePoints
@@ -113,7 +113,7 @@ class _RouteMapState extends State<RouteMap> {
     });
   }
 
-  setPolylines() async {
+  Future<void> setPolylines() async {
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       googleApiKey: googleAPIKey,
       request: PolylineRequest(
@@ -131,9 +131,9 @@ class _RouteMapState extends State<RouteMap> {
     if (result.points.isNotEmpty) {
       // loop through all PointLatLng points and convert them
       // to a list of LatLng, required by the Polyline
-      result.points.forEach((PointLatLng point) {
+      for (var point in result.points) {
         polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
+      }
     }
 
     setState(() {

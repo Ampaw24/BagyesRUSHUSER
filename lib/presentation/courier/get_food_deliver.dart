@@ -120,7 +120,7 @@ class _GetFoodDeliverState extends State<GetFoodDeliver> {
                       fit: BoxFit.fitHeight,
                     ),
                     widthSpace,
-                    Container(
+                    SizedBox(
                       width: (width - (fixPadding * 6.0 + 10.0 + 100.0)),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,

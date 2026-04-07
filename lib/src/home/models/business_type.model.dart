@@ -25,7 +25,7 @@ class BusinessType extends Equatable {
 
     BusinessType copyWith({
         String? name,
-        dynamic? description,
+        dynamic description,
         bool? isActive,
         num? displayOrder,
         String? id,

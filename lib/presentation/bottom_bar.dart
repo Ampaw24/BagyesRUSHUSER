@@ -63,7 +63,7 @@ class _BottomBarState extends State<BottomBar> {
     );
   }
 
-  onWillPop() {
+  bool onWillPop() {
     DateTime now = DateTime.now();
     if (currentBackPressTime == null ||
         now.difference(currentBackPressTime!) > Duration(seconds: 2)) {

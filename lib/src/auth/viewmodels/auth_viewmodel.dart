@@ -162,8 +162,8 @@ class AuthViewmodel extends ViewModel<AuthState> {
         emit(AuthError.fromFailure(failure));
       },
       (response) {
-        appLogger.i('AuthViewmodel.sendOtp → OTPSent');
         _otpResponse = response;
+        appLogger.i('AuthViewmodel.sendOtp → OTPSent\n  response: $response');
         emit(const OTPSent());
       },
     );

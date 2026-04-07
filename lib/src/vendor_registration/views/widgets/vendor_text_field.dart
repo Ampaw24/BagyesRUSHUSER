@@ -43,7 +43,7 @@ class VendorTextField extends StatefulWidget {
 
 class _VendorTextFieldState extends State<VendorTextField> {
   late final FocusNode _focusNode;
-  bool _isFocused = false;
+  bool isFocused = false;
 
   @override
   void initState() {
@@ -60,7 +60,7 @@ class _VendorTextFieldState extends State<VendorTextField> {
   }
 
   void _handleFocusChange() {
-    setState(() => _isFocused = _focusNode.hasFocus);
+    setState(() => isFocused = _focusNode.hasFocus);
   }
 
   @override

@@ -16,8 +16,8 @@ class AppState with ChangeNotifier {
   IUser user = IUser();
   ISignup signupData = ISignup();
 
-  get userInfo => user;
-  get payload => signupData;
+  IUser get userInfo => user;
+  ISignup get payload => signupData;
 
   void setPayload(ISignup data) {
     signupData.otp = data.otp;

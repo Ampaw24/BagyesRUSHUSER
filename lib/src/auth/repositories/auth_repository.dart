@@ -210,7 +210,11 @@ class AuthRepository {
       );
 
       if ([200, 201].contains(response.statusCode)) {
-        appLogger.i('AuthRepository.sendOtp → OTP dispatched');
+        appLogger.i(
+          'AuthRepository.sendOtp → success\n'
+          '  status : ${response.statusCode}\n'
+          '  data   : ${response.data}',
+        );
         return Right(response.data as DataMap);
       }
 

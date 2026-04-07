@@ -2,7 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Config {
   Config._();
-  static final String GMAPIKEY =
+  static final String mapsApiKey =
       dotenv.env['GOOGLE_MAPS_API_KEY'] ?? ''; //Goofle Maps API Key
 
   static final String baseUrl = dotenv.env['DEV_BASE_URL'] ?? '';

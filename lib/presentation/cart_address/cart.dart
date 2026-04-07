@@ -10,13 +10,13 @@ class Cart extends StatefulWidget {
 class _CartState extends State<Cart> {
   int number = 1;
 
-  increamentNumber() {
+  void increamentNumber() {
     setState(() {
       number = number + 1;
     });
   }
 
-  decreamentNumber() {
+  void decreamentNumber() {
     if (number == 1) {
     } else {
       setState(() {
@@ -84,7 +84,7 @@ class _CartState extends State<Cart> {
                       ),
                     ),
                     SizedBox(width: 5.0),
-                    Container(
+                    SizedBox(
                       width: width - (fixPadding * 4.0 + 10.0 + 34.0 + 30.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -105,7 +105,6 @@ class _CartState extends State<Cart> {
                               ),
                             ],
                           ),
-                          //TODO::  Found bug
                           Text(
                               '2nd Floor, Park Plaza, Park Plaza, 215, Indira Nagar',
                               overflow: TextOverflow.ellipsis,
@@ -116,7 +115,7 @@ class _CartState extends State<Cart> {
                     SizedBox(width: 5.0),
                     InkWell(
                       onTap: () {},
-                      child: Container(
+                      child: SizedBox(
                         width: 30.0,
                         child: Icon(
                           Icons.edit,
@@ -197,7 +196,7 @@ class _CartState extends State<Cart> {
     );
   }
 
-  itemList() {
+  Container itemList() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       padding: EdgeInsets.all(fixPadding * 2.0),
@@ -220,7 +219,7 @@ class _CartState extends State<Cart> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
+              SizedBox(
                 width: (width - (fixPadding * 6.0)) / 2.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -242,7 +241,7 @@ class _CartState extends State<Cart> {
                       ),
                     ),
                     SizedBox(width: 5.0),
-                    Container(
+                    SizedBox(
                       width:
                           ((width - (fixPadding * 6.0)) / 2.0) - (18.0 + 5.0),
                       child: Column(
@@ -267,7 +266,7 @@ class _CartState extends State<Cart> {
                                 borderRadius: BorderRadius.circular(20.0),
                                 border: Border.all(
                                     width: 0.2,
-                                    color: greyColor.withOpacity(0.6)),
+                                    color: greyColor.withValues(alpha:153)),
                                 boxShadow: <BoxShadow>[
                                   BoxShadow(
                                     blurRadius: 1.0,
@@ -298,7 +297,7 @@ class _CartState extends State<Cart> {
                   ],
                 ),
               ),
-              Container(
+              SizedBox(
                 width: (width - (fixPadding * 8.0)) / 2.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -310,7 +309,7 @@ class _CartState extends State<Cart> {
                         color: whiteColor,
                         borderRadius: BorderRadius.circular(20.0),
                         border: Border.all(
-                            width: 0.2, color: primaryColor.withOpacity(0.6)),
+                            width: 0.2, color: primaryColor.withValues(alpha:153)),
                         boxShadow: <BoxShadow>[
                           BoxShadow(
                             blurRadius: 1.0,
@@ -367,7 +366,7 @@ class _CartState extends State<Cart> {
     );
   }
 
-  blankSpace() {
+  Container blankSpace() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       width: width,
@@ -376,7 +375,7 @@ class _CartState extends State<Cart> {
     );
   }
 
-  thinDivider() {
+  Container thinDivider() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       width: width - fixPadding * 4.0,
@@ -385,7 +384,7 @@ class _CartState extends State<Cart> {
     );
   }
 
-  invoice() {
+  Container invoice() {
     double width = MediaQuery.of(context).size.width;
     return Container(
       padding: EdgeInsets.all(fixPadding * 2.0),
@@ -482,7 +481,7 @@ class _CartState extends State<Cart> {
             padding: EdgeInsets.all(fixPadding * 0.5),
             width: width - fixPadding * 4.0,
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.15),
+              color: primaryColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10.0),
               border: Border.all(width: 1.0, color: primaryColor),
             ),

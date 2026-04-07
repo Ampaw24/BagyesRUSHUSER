@@ -52,7 +52,7 @@ class _NotificationsState extends State<Notifications> {
   @override
   void initState() {
     super.initState();
-    this.getNotifications(context);
+    getNotifications(context);
   }
 
   // final notificationList = [
@@ -89,9 +89,9 @@ class _NotificationsState extends State<Notifications> {
     );
   }
 
-  noticesView() {
+  Widget noticesView() {
     double width = MediaQuery.of(context).size.width;
-    return (notificationList.length == 0)
+    return (notificationList.isEmpty)
         ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -140,16 +140,16 @@ class _NotificationsState extends State<Notifications> {
                             alignment: Alignment.topLeft,
                             padding: EdgeInsets.all(10.0),
                             child: CircleAvatar(
+                              radius: 40.0,
                               child: Icon(
                                 (item['type'] == 'order')
                                     ? Icons.local_shipping
                                     : Icons.local_offer,
                                 size: 30.0,
                               ),
-                              radius: 40.0,
                             ),
                           ),
-                          Container(
+                          SizedBox(
                             width: width - 130.0,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
