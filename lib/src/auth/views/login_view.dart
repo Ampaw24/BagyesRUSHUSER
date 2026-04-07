@@ -66,10 +66,21 @@ class _LoginViewState extends State<LoginView>
       }
     } else if (vm.state is AuthError) {
       final error = vm.state as AuthError;
+      final isPhoneUnverified = error.message
+          .toLowerCase()
+          .contains('phone') && error.message.toLowerCase().contains('verif');
       CustomDialog.showError(
         context: context,
         title: error.title,
         subtitle: error.message,
+        confirmText: isPhoneUnverified ? 'Proceed to Verify' : 'OK',
+        onConfirm: isPhoneUnverified
+            ? () {
+                final phone = _phoneController.text.trim();
+                context.read<AuthViewmodel>().sendOtp('+233$phone');
+                context.push(AppRoutes.otp);
+              }
+            : null,
       );
     }
   }

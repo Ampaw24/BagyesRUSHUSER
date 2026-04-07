@@ -50,14 +50,12 @@ class DioInterceptor extends Interceptor {
       }
     }
 
-    // Redact sensitive headers and body for auth endpoints
-    final isAuthEndpoint = _authExclusions.any((e) => path.contains(e));
     final safeHeaders = Map<String, dynamic>.from(options.headers)
       ..remove('Authorization');
     _log.d(
       '[REQUEST] ${options.method} ${options.uri}\n'
       'Headers: $safeHeaders\n'
-      'Body: ${isAuthEndpoint ? '[REDACTED]' : (options.data ?? 'none')}\n'
+      'Body: ${options.data ?? 'none'}\n'
       'Query: ${options.queryParameters}',
     );
 
@@ -66,11 +64,9 @@ class DioInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    final respPath = response.requestOptions.path;
-    final isAuthResp = _authExclusions.any((e) => respPath.contains(e));
     _log.d(
       '[RESPONSE] ${response.statusCode} ${response.requestOptions.uri}\n'
-      'Data: ${isAuthResp ? '[REDACTED]' : response.data}',
+      'Data: ${response.data}',
     );
     super.onResponse(response, handler);
   }
@@ -80,13 +76,11 @@ class DioInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final isAuthErr = _authExclusions.any((e) =>
-        err.requestOptions.path.contains(e));
     _log.e(
       '[ERROR] ${err.type.name} ${err.requestOptions.uri}\n'
       'Status: ${err.response?.statusCode}\n'
       'Message: ${err.message}\n'
-      'Response: ${isAuthErr ? '[REDACTED]' : err.response?.data}',
+      'Response: ${err.response?.data}',
       error: err,
     );
 

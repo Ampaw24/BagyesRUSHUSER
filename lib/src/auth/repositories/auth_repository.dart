@@ -52,6 +52,12 @@ class AuthRepository {
     try {
       final response = await _client.post(ApiEndpoints.signup, data: data);
 
+      appLogger.d(
+        'AuthRepository.signup → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
@@ -70,7 +76,13 @@ class AuthRepository {
       appLogger.w('AuthRepository.signup → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
-      appLogger.e('AuthRepository.signup → DioException', error: e);
+      appLogger.e(
+        'AuthRepository.signup → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
       return NetworkUtils.handleException(
@@ -128,6 +140,12 @@ class AuthRepository {
         data: data,
       );
 
+      appLogger.d(
+        'AuthRepository.vendorRegister → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
@@ -148,7 +166,13 @@ class AuthRepository {
       );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
-      appLogger.e('AuthRepository.vendorRegister → DioException', error: e);
+      appLogger.e(
+        'AuthRepository.vendorRegister → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
       return NetworkUtils.handleException(
@@ -171,6 +195,13 @@ class AuthRepository {
         data: {'phone': phoneNumber, 'password': password},
       );
 
+      appLogger.d(
+        'AuthRepository.login → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  headers: ${response.headers}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
@@ -189,7 +220,13 @@ class AuthRepository {
       appLogger.w('AuthRepository.login → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
-      appLogger.e('AuthRepository.login → DioException', error: e);
+      appLogger.e(
+        'AuthRepository.login → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
       return NetworkUtils.handleException(
@@ -209,19 +246,27 @@ class AuthRepository {
         data: {'phone': phone},
       );
 
+      appLogger.d(
+        'AuthRepository.sendOtp → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
-        appLogger.i(
-          'AuthRepository.sendOtp → success\n'
-          '  status : ${response.statusCode}\n'
-          '  data   : ${response.data}',
-        );
+        appLogger.i('AuthRepository.sendOtp → success');
         return Right(response.data as DataMap);
       }
 
       appLogger.w('AuthRepository.sendOtp → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
-      appLogger.e('AuthRepository.sendOtp → DioException', error: e);
+      appLogger.e(
+        'AuthRepository.sendOtp → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
       return NetworkUtils.handleException(
@@ -244,6 +289,12 @@ class AuthRepository {
         data: {'phone': phone, 'otp': otp},
       );
 
+      appLogger.d(
+        'AuthRepository.verifyOtp → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
         appLogger.i('AuthRepository.verifyOtp → verified');
         return const Right(null);
@@ -252,7 +303,13 @@ class AuthRepository {
       appLogger.w('AuthRepository.verifyOtp → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
-      appLogger.e('AuthRepository.verifyOtp → DioException', error: e);
+      appLogger.e(
+        'AuthRepository.verifyOtp → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
       return NetworkUtils.handleException(

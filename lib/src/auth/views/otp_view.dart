@@ -710,13 +710,23 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
   // ── OTP submission ────────────────────────────────────────────────────────
 
+  /// Returns the phone number for OTP calls.
+  /// Prefers the signed-in user's phone; falls back to the phone stored in
+  /// the viewmodel when the user arrived from the "phone not verified" login
+  /// flow (where CurrentUserProvider has no user yet).
+  String get _phone {
+    final fromProvider = context.read<CurrentUserProvider>().user?.phone ?? '';
+    if (fromProvider.isNotEmpty) return fromProvider;
+    return context.read<AuthViewmodel>().pendingPhone ?? '';
+  }
+
   void _submitOtp() {
     if (!_input.isFilled) {
       _handleError(_Strings.errorIncomplete);
       return;
     }
 
-    final phone = context.read<CurrentUserProvider>().user?.phone ?? '';
+    final phone = _phone;
     final otp   = _input.otp; // capture before clear
 
     // Security: wipe fields immediately — OTP must not linger in widget state.
@@ -727,8 +737,7 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
   void _resendOtp() {
     if (!_resendTimer.canResend) return;
-    final phone = context.read<CurrentUserProvider>().user?.phone ?? '';
-    context.read<AuthViewmodel>().sendOtp(phone);
+    context.read<AuthViewmodel>().sendOtp(_phone);
   }
 
   // ── State transitions ─────────────────────────────────────────────────────

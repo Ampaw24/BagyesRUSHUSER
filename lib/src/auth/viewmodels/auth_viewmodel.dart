@@ -24,6 +24,12 @@ class AuthViewmodel extends ViewModel<AuthState> {
   // Temporary signup data stored across OTP flow
   DataMap? _pendingSignupData;
 
+  // Phone number used in the last sendOtp call — read by OTPView when the
+  // user arrives from a flow where CurrentUserProvider has no user yet
+  // (e.g. login → "phone not verified" → Proceed to Verify).
+  String? _pendingPhone;
+  String? get pendingPhone => _pendingPhone;
+
   void storeSignupData(DataMap data) {
     _pendingSignupData = data;
   }
@@ -151,6 +157,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
   }
 
   Future<void> sendOtp(String phone) async {
+    _pendingPhone = phone.trim();
     appLogger.d('AuthViewmodel.sendOtp → initiated');
     emit(const RequestingOTP());
 
@@ -301,6 +308,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     _currentUserProvider.clearUser();
     _otpResponse = null;
     _pendingSignupData = null;
+    _pendingPhone = null;
 
     result.fold(
       (failure) {
