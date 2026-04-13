@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/data/repositories/profile_repository_impl.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/repositories/i_profile_repository.dart';
@@ -7,7 +9,9 @@ import 'package:bagyesrushappusernew/features/consumer/profile/presentation/stat
 // ─── Repository provider ──────────────────────────────────────────────────
 
 final profileRepositoryProvider = Provider<IProfileRepository>(
-  (_) => ProfileRepositoryImpl(),
+  (_) => ProfileRepositoryImpl(
+    currentUserProvider: GetIt.instance<CurrentUserProvider>(),
+  ),
 );
 
 // ─── Profile ViewModel ────────────────────────────────────────────────────

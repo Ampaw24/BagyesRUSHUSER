@@ -1,14 +1,12 @@
-import 'dart:convert';
-
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:hugeicons/hugeicons.dart';
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/services/auth.service.dart';
+import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-
-import '../../states/app.state.dart';
 
 class EditProfile extends StatefulWidget {
   @override
@@ -16,19 +14,35 @@ class EditProfile extends StatefulWidget {
 }
 
 class _EditProfileState extends State<EditProfile> {
-  final _nameController = TextEditingController(text: 'Ellison Perry');
-  final _phoneController = TextEditingController(text: '123456789');
-  final _emailController = TextEditingController(text: 'test@abc.com');
-  final _oldPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
+  final _nameController    = TextEditingController();
+  final _phoneController   = TextEditingController();
+  final _emailController   = TextEditingController();
+  final _oldPasswordController     = TextEditingController();
+  final _newPasswordController     = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _loading = false;
-  bool _obscureOld = true;
-  bool _obscureNew = true;
+  bool _loading        = false;
+  bool _obscureOld     = true;
+  bool _obscureNew     = true;
   bool _obscureConfirm = true;
+  bool _sessionLoaded  = false;
 
-  IUser user = IUser();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_sessionLoaded) return;
+    _sessionLoaded = true;
+    final user = context.read<CurrentUserProvider>().user;
+    if (user != null) {
+      final first = user.profile?.firstName ?? '';
+      final last  = user.profile?.lastName  ?? '';
+      _nameController.text  = '$first $last'.trim();
+      // Phone is stored as +233XXXXXXXXX — show only the 9-digit part
+      final raw = user.phone;
+      _phoneController.text = raw.startsWith('+233') ? raw.substring(4) : raw;
+      _emailController.text = user.email;
+    }
+  }
 
   @override
   void dispose() {
@@ -42,57 +56,40 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> _saveProfile(BuildContext context) async {
-    user = context.read<AppState>().userInfo;
-    final token = user.token;
-    final id = user.id;
-    final appState = context.read<AppState>();
+    final currentUser = context.read<CurrentUserProvider>().user;
+    if (currentUser == null) return;
 
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
+    final fullName = _nameController.text.trim();
+    final email    = _emailController.text.trim();
+    final phone    = _phoneController.text.trim();
 
-    if (name.isEmpty && email.isEmpty) {
-      CustomDialog.showError(
-        context: context,
-        title: 'Oops!',
-        subtitle: 'No changes to save.',
-      );
-      return;
-    }
-
-    Map<String, dynamic> data = {};
-    if (name.isNotEmpty) data['name'] = name;
-    if (email.isNotEmpty) data['email'] = email;
+    final parts     = fullName.split(' ');
+    final firstName = parts.first;
+    final lastName  = parts.length > 1 ? parts.skip(1).join(' ') : '';
 
     setState(() => _loading = true);
 
-    try {
-      final Map<String, dynamic> response = await updateUser(token, {
-        "id": id,
-        "data": data,
-      }).then((value) => jsonDecode(value.body));
+    final result = await GetIt.instance<AuthRepository>().updateProfile(
+      firstName: firstName,
+      lastName:  lastName,
+      email:     email,
+      phone:     phone.isNotEmpty ? '+233$phone' : currentUser.phone,
+    );
 
-      if (!mounted) return;
-      setState(() => _loading = false);
+    if (!mounted) return;
+    setState(() => _loading = false);
 
-      if (response['success'] == true) {
-        appState.loadProfile(() => setState(() {}));
-        Navigator.pop(this.context);
-      } else {
-        CustomDialog.showError(
-          context: this.context,
-          title: 'Oops!',
-          subtitle: response['message'] ?? 'Something went wrong.',
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      CustomDialog.showError(
-        context: this.context,
-        title: 'Oops!',
-        subtitle: e.toString(),
-      );
-    }
+    result.fold(
+      (failure) => CustomDialog.showError(
+        context: context,
+        title: 'Update Failed',
+        subtitle: failure.message,
+      ),
+      (updatedUser) {
+        context.read<CurrentUserProvider>().setUser(updatedUser);
+        Navigator.pop(context);
+      },
+    );
   }
 
   @override
@@ -111,7 +108,7 @@ class _EditProfileState extends State<EditProfile> {
             surfaceTintColor: Colors.transparent,
             leading: IconButton(
               icon: Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(w * 0.015),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
@@ -151,11 +148,11 @@ class _EditProfileState extends State<EditProfile> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Save',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 15,
+                            fontSize: (w * 0.038).clamp(13.0, 16.0),
                           ),
                         ),
                       ),
@@ -191,7 +188,7 @@ class _EditProfileState extends State<EditProfile> {
                       child: TextFormField(
                         controller: _nameController,
                         style: TextStyle(
-                          fontSize: w * 0.038,
+                          fontSize: (w * 0.038).clamp(13.0, 16.0),
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -199,7 +196,7 @@ class _EditProfileState extends State<EditProfile> {
                         textInputAction: TextInputAction.next,
                       ),
                     ),
-                    _FieldDivider(),
+                    _FieldDivider(w: w),
                     _FieldRow(
                       icon: HugeIcons.strokeRoundedMail01,
                       iconColor: const Color(0xFF3182CE),
@@ -208,7 +205,7 @@ class _EditProfileState extends State<EditProfile> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         style: TextStyle(
-                          fontSize: w * 0.038,
+                          fontSize: (w * 0.038).clamp(13.0, 16.0),
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -216,7 +213,7 @@ class _EditProfileState extends State<EditProfile> {
                         textInputAction: TextInputAction.next,
                       ),
                     ),
-                    _FieldDivider(),
+                    _FieldDivider(w: w),
                     _FieldRow(
                       icon: HugeIcons.strokeRoundedSmartPhone01,
                       iconColor: AppColors.success,
@@ -230,7 +227,7 @@ class _EditProfileState extends State<EditProfile> {
                           _NoLeadingZeroFormatter(),
                         ],
                         style: TextStyle(
-                          fontSize: w * 0.038,
+                          fontSize: (w * 0.038).clamp(13.0, 16.0),
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -256,7 +253,7 @@ class _EditProfileState extends State<EditProfile> {
                         controller: _oldPasswordController,
                         obscureText: _obscureOld,
                         style: TextStyle(
-                          fontSize: w * 0.038,
+                          fontSize: (w * 0.038).clamp(13.0, 16.0),
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -276,7 +273,7 @@ class _EditProfileState extends State<EditProfile> {
                         textInputAction: TextInputAction.next,
                       ),
                     ),
-                    _FieldDivider(),
+                    _FieldDivider(w: w),
                     _FieldRow(
                       icon: HugeIcons.strokeRoundedPasswordValidation,
                       iconColor: const Color(0xFF805AD5),
@@ -285,7 +282,7 @@ class _EditProfileState extends State<EditProfile> {
                         controller: _newPasswordController,
                         obscureText: _obscureNew,
                         style: TextStyle(
-                          fontSize: w * 0.038,
+                          fontSize: (w * 0.038).clamp(13.0, 16.0),
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -305,7 +302,7 @@ class _EditProfileState extends State<EditProfile> {
                         textInputAction: TextInputAction.next,
                       ),
                     ),
-                    _FieldDivider(),
+                    _FieldDivider(w: w),
                     _FieldRow(
                       icon: HugeIcons.strokeRoundedCheckmarkCircle01,
                       iconColor: AppColors.info,
@@ -314,7 +311,7 @@ class _EditProfileState extends State<EditProfile> {
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirm,
                         style: TextStyle(
-                          fontSize: w * 0.038,
+                          fontSize: (w * 0.038).clamp(13.0, 16.0),
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -343,7 +340,7 @@ class _EditProfileState extends State<EditProfile> {
                 // ── Save button ──
                 SizedBox(
                   width: double.infinity,
-                  height: w * 0.14,
+                  height: (w * 0.14).clamp(48.0, 62.0),
                   child: ElevatedButton(
                     onPressed: _loading ? null : () => _saveProfile(context),
                     style: ElevatedButton.styleFrom(
@@ -375,8 +372,9 @@ class _EditProfileState extends State<EditProfile> {
                               Text(
                                 'Save Changes',
                                 style: TextStyle(
-                                  fontSize: w * 0.042,
+                                  fontSize: (w * 0.042).clamp(14.0, 18.0),
                                   fontWeight: FontWeight.w800,
+                                  
                                 ),
                               ),
                             ],
@@ -428,7 +426,7 @@ class _EditProfileState extends State<EditProfile> {
             Text(
               'Update Profile Photo',
               style: TextStyle(
-                fontSize: w * 0.043,
+                fontSize: (w * 0.043).clamp(14.0, 18.0),
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
@@ -464,6 +462,7 @@ class _EditProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarRadius = (w * 0.14).clamp(50.0, 80.0);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -510,7 +509,7 @@ class _EditProfileHero extends StatelessWidget {
                           ],
                         ),
                         child: CircleAvatar(
-                          radius: w * 0.14,
+                          radius: avatarRadius,
                           backgroundColor: Colors.white.withValues(alpha: 0.25),
                           child: HugeIcon(
                             icon: HugeIcons.strokeRoundedUser,
@@ -545,7 +544,7 @@ class _EditProfileHero extends StatelessWidget {
                   'Tap to change photo',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.75),
-                    fontSize: w * 0.03,
+                    fontSize: (w * 0.03).clamp(11.0, 14.0),
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -570,7 +569,7 @@ class _FormSection extends StatelessWidget {
     return Text(
       label.toUpperCase(),
       style: TextStyle(
-        fontSize: w * 0.03,
+        fontSize: (w * 0.03).clamp(10.0, 13.0),
         fontWeight: FontWeight.w800,
         color: AppColors.textHint,
         letterSpacing: 1.2,
@@ -603,11 +602,13 @@ class _FormCard extends StatelessWidget {
 }
 
 class _FieldDivider extends StatelessWidget {
-  const _FieldDivider();
+  final double w;
+  const _FieldDivider({required this.w});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 80),
+      padding: EdgeInsets.only(left: w * 0.22),
       child: Divider(height: 1, color: AppColors.divider),
     );
   }
@@ -634,7 +635,6 @@ class _FieldRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Huge icon
           Container(
             width: w * 0.1,
             height: w * 0.1,
@@ -654,7 +654,7 @@ class _FieldRow extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: w * 0.028,
+                    fontSize: (w * 0.028).clamp(10.0, 12.0),
                     fontWeight: FontWeight.w600,
                     color: AppColors.textHint,
                     letterSpacing: 0.4,
@@ -718,7 +718,7 @@ class _BottomSheetOption extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: w * 0.038,
+                  fontSize: (w * 0.038).clamp(13.0, 16.0),
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),

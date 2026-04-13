@@ -405,6 +405,60 @@ class AuthRepository {
     }
   }
 
+  ResultFuture<User> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+  }) async {
+    appLogger.d('AuthRepository.updateProfile → initiated');
+    try {
+      final response = await _client.patch(
+        ApiEndpoints.customerUpdate,
+        data: {
+          'first_name': firstName,
+          'last_name': lastName,
+          'email': email,
+          'phone': phone,
+        },
+      );
+
+      appLogger.d(
+        'AuthRepository.updateProfile → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
+            response.data as DataMap;
+        final userJson = payload['user'] as DataMap? ?? payload;
+        final user = User.fromJson(userJson);
+        appLogger.i('AuthRepository.updateProfile → success id=${user.id}');
+        return Right(user);
+      }
+
+      appLogger.w('AuthRepository.updateProfile → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'AuthRepository.updateProfile → DioException\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'updateProfile',
+      );
+    }
+  }
+
   /// Logs the user out by invalidating the server session first (while the
   /// token is still available), then clearing all local state.
   ResultFuture<void> logout() async {

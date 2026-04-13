@@ -5,6 +5,7 @@ import 'package:flutter/services.dart'
     show FilteringTextInputFormatter, TextInputFormatter, TextEditingValue;
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/constant.dart';
 import '../../../core/common/app/current_user_provider.dart';
@@ -81,20 +82,36 @@ class _SignupViewState extends State<SignupView>
     if (!mounted) return;
     final vm = context.read<AuthViewmodel>();
     final state = vm.state;
-    _submitting = false;
 
     if (state is Registered) {
+      _submitting = false;
+      _registrationComplete = true;
       vm.resetState();
       final phone = context.read<CurrentUserProvider>().user?.phone ?? '';
-      AppNavigator.toOtp(context);
+      // Automatically send OTP after successful signup — navigate only once
+      // we know whether the send succeeded or failed.
       vm.sendOtp(phone);
-    } else if (state is AuthError) {
+    } else if (state is OTPSent && _registrationComplete) {
+      // sendOtp succeeded → navigate to OTP entry screen so user can verify.
+      _registrationComplete = false;
       vm.resetState();
-      CustomDialog.showError(
-        context: context,
-        title: state.title,
-        subtitle: state.message,
-      );
+      AppNavigator.toOtp(context);
+    } else if (state is AuthError) {
+      _submitting = false;
+      final postRegistration = _registrationComplete;
+      _registrationComplete = false;
+      vm.resetState();
+      if (postRegistration) {
+        // sendOtp failed after registration → take user to the screen that
+        // lets them manually trigger OTP delivery with a button press.
+        context.go(AppRoutes.kycVerification);
+      } else {
+        CustomDialog.showError(
+          context: context,
+          title: state.title,
+          subtitle: state.message,
+        );
+      }
     }
   }
 
@@ -271,6 +288,10 @@ class _SignupViewState extends State<SignupView>
   }
 
   bool _submitting = false;
+
+  /// Set to true once signup succeeds so we can tell the difference between
+  /// a signup failure and a post-signup sendOtp failure in [_onAuthStateChanged].
+  bool _registrationComplete = false;
 
   void _submitSignup() {
     if (_submitting) return;
