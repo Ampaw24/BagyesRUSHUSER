@@ -9,6 +9,11 @@ class AvailableRidersStep extends StatelessWidget {
   final List<RiderModel> riders;
   final String? selectedRiderId;
   final double distanceKm;
+
+  /// Additional surcharge for multi-stop bookings (GHS). Zero for
+  /// single-delivery — keeps the widget backwards-compatible.
+  final double extraStopSurchargeGhs;
+
   final ValueChanged<String> onRiderSelected;
 
   const AvailableRidersStep({
@@ -16,6 +21,7 @@ class AvailableRidersStep extends StatelessWidget {
     required this.riders,
     required this.selectedRiderId,
     required this.distanceKm,
+    this.extraStopSurchargeGhs = 0.0,
     required this.onRiderSelected,
   });
 
@@ -25,13 +31,15 @@ class AvailableRidersStep extends StatelessWidget {
     final minCost = riders.isEmpty
         ? 0.0
         : riders
-            .map((r) => r.totalCost(distanceKm))
-            .reduce((a, b) => a < b ? a : b);
+                .map((r) => r.totalCost(distanceKm))
+                .reduce((a, b) => a < b ? a : b) +
+            extraStopSurchargeGhs;
     final maxCost = riders.isEmpty
         ? 0.0
         : riders
-            .map((r) => r.totalCost(distanceKm))
-            .reduce((a, b) => a > b ? a : b);
+                .map((r) => r.totalCost(distanceKm))
+                .reduce((a, b) => a > b ? a : b) +
+            extraStopSurchargeGhs;
 
     return ListView(
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.04),
@@ -70,6 +78,7 @@ class AvailableRidersStep extends StatelessWidget {
           (rider) => RiderCard(
             rider: rider,
             distanceKm: distanceKm,
+            extraStopSurchargeGhs: extraStopSurchargeGhs,
             isSelected: rider.id == selectedRiderId,
             onTap: () => onRiderSelected(rider.id),
           ),
@@ -177,6 +186,8 @@ class _StatItem extends StatelessWidget {
           Text(
             value,
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: w * 0.033,
               fontWeight: FontWeight.w800,

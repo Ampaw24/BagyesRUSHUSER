@@ -4,8 +4,13 @@ import 'package:bagyesrushappusernew/constant/app_theme.dart';
 class FoodCategory {
   final String label;
   final String emoji;
+  final String? imageUrl;
 
-  const FoodCategory({required this.label, required this.emoji});
+  const FoodCategory({
+    required this.label,
+    required this.emoji,
+    this.imageUrl,
+  });
 
   static const List<FoodCategory> all = [
     FoodCategory(label: 'All', emoji: '🍽️'),
@@ -35,6 +40,8 @@ class FoodCategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final iconSize = w * 0.055;
+    final hasImage = category.imageUrl != null && category.imageUrl!.isNotEmpty;
 
     return GestureDetector(
       onTap: onTap,
@@ -55,10 +62,41 @@ class FoodCategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              category.emoji,
-              style: TextStyle(fontSize: w * 0.038),
-            ),
+            if (hasImage)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(iconSize),
+                child: Image.network(
+                  // force HTTPS — iOS ATS blocks plain HTTP URLs silently
+                  category.imageUrl!.replaceFirst('http://', 'https://'),
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.cover,
+                  // show emoji while the image is fetching
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return SizedBox(
+                      width: iconSize,
+                      height: iconSize,
+                      child: Center(
+                        child: Text(
+                          category.emoji,
+                          style: TextStyle(fontSize: w * 0.038),
+                        ),
+                      ),
+                    );
+                  },
+                  // show emoji if the image fails (bad URL, 404, etc.)
+                  errorBuilder: (context, error, stackTrace) => Text(
+                    category.emoji,
+                    style: TextStyle(fontSize: w * 0.038),
+                  ),
+                ),
+              )
+            else
+              Text(
+                category.emoji,
+                style: TextStyle(fontSize: w * 0.038),
+              ),
             SizedBox(width: w * 0.015),
             Text(
               category.label,

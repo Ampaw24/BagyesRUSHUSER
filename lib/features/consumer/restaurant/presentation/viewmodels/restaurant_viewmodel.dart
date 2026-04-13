@@ -3,6 +3,9 @@ import 'package:bagyesrushappusernew/features/consumer/restaurant/data/repositor
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/repositories/i_restaurant_repository.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
 
 // ─── Repository provider ──────────────────────────────────────────────────
 
@@ -29,6 +32,32 @@ final restaurantsProvider =
   return ref.watch(restaurantRepositoryProvider).getRestaurants(
         category: category,
       );
+});
+
+// ─── Categories (from API) ────────────────────────────────────────────────
+
+final categoriesProvider = FutureProvider<List<FoodCategory>>((ref) async {
+  final repo = sl<HomeRepository>();
+  final result = await repo.getCategories();
+  return result.fold(
+    (_) => FoodCategory.all, // fallback to static list on error
+    (categories) {
+      final apiChips = categories
+          .expand((c) => c.categories)
+          .where((e) => e.isActive)
+          .toList()
+        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
+      return [
+        const FoodCategory(label: 'All', emoji: '🍽️'),
+        ...apiChips.map((e) => FoodCategory(
+              label: e.name,
+              emoji: '',
+              imageUrl: e.imageUrl.isNotEmpty ? e.imageUrl : null,
+            )),
+      ];
+    },
+  );
 });
 
 // ─── Nearby restaurants ───────────────────────────────────────────────────

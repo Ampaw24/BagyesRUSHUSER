@@ -510,22 +510,50 @@ class _HomeDiscoveryTabState extends ConsumerState<_HomeDiscoveryTab> {
         SliverToBoxAdapter(
           child: SizedBox(
             height: w * 0.115,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-              itemCount: FoodCategory.all.length,
-              separatorBuilder: (_, s) => SizedBox(width: w * 0.025),
-              itemBuilder: (ctx, i) {
-                final cat = FoodCategory.all[i];
-                return FoodCategoryChip(
-                  category: cat,
-                  isSelected: selectedCategory == cat.label,
-                  onTap: () {
-                    ref.read(selectedCategoryProvider.notifier).state =
-                        cat.label;
-                  },
-                );
-              },
+            child: ref.watch(categoriesProvider).when(
+              loading: () => ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                itemCount: FoodCategory.all.length,
+                separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+                itemBuilder: (_, i) => FoodCategoryChip(
+                  category: FoodCategory.all[i],
+                  isSelected: selectedCategory == FoodCategory.all[i].label,
+                  onTap: () {},
+                ),
+              ),
+              error: (_, _) => ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                itemCount: FoodCategory.all.length,
+                separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+                itemBuilder: (_, i) {
+                  final cat = FoodCategory.all[i];
+                  return FoodCategoryChip(
+                    category: cat,
+                    isSelected: selectedCategory == cat.label,
+                    onTap: () => ref
+                        .read(selectedCategoryProvider.notifier)
+                        .state = cat.label,
+                  );
+                },
+              ),
+              data: (categories) => ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                itemCount: categories.length,
+                separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+                itemBuilder: (_, i) {
+                  final cat = categories[i];
+                  return FoodCategoryChip(
+                    category: cat,
+                    isSelected: selectedCategory == cat.label,
+                    onTap: () => ref
+                        .read(selectedCategoryProvider.notifier)
+                        .state = cat.label,
+                  );
+                },
+              ),
             ),
           ),
         ),

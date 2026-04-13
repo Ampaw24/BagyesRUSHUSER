@@ -62,6 +62,8 @@ class PackageDetailsStep extends StatefulWidget {
   final ValueChanged<int> onImageRemoved;
   final ValueChanged<String> onWeightChanged;
   final int maxImages;
+  final bool fragile;
+  final ValueChanged<bool> onFragileChanged;
 
   const PackageDetailsStep({
     super.key,
@@ -71,6 +73,8 @@ class PackageDetailsStep extends StatefulWidget {
     required this.onImageRemoved,
     required this.onWeightChanged,
     required this.maxImages,
+    required this.fragile,
+    required this.onFragileChanged,
   });
 
   @override
@@ -265,7 +269,7 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
         ),
         SizedBox(height: w * 0.015),
         Text(
-          'Add up to ${widget.maxImages} photos and select your package size.',
+          'Add photos and select your package size.',
           style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
         ),
         SizedBox(height: w * 0.06),
@@ -304,6 +308,10 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 
         SizedBox(height: w * 0.025),
         _SizeRestrictionNote(w: w, maxImages: widget.maxImages),
+        if (widget.images.isNotEmpty) ...[
+          SizedBox(height: w * 0.025),
+          _MultiItemHint(w: w),
+        ],
 
         SizedBox(height: w * 0.07),
 
@@ -371,6 +379,19 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 
         SizedBox(height: w * 0.025),
         _MaxWeightNote(w: w),
+
+        SizedBox(height: w * 0.07),
+
+        // ── Handle with care ──────────────────────────────────────────────────
+        _sectionLabel('Handle with care', w),
+        SizedBox(height: w * 0.03),
+        _FragileToggle(
+          fragile: widget.fragile,
+          onChanged: widget.onFragileChanged,
+          w: w,
+        ),
+
+        SizedBox(height: w * 0.04),
       ],
     );
   }
@@ -444,6 +465,153 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
           color: AppColors.textPrimary,
         ),
       );
+}
+
+// ── Fragile toggle ────────────────────────────────────────────────────────────
+
+class _FragileToggle extends StatelessWidget {
+  final bool fragile;
+  final ValueChanged<bool> onChanged;
+  final double w;
+
+  const _FragileToggle({
+    required this.fragile,
+    required this.onChanged,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onChanged(!fragile);
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.04,
+          vertical: w * 0.038,
+        ),
+        decoration: BoxDecoration(
+          color: fragile
+              ? AppColors.error.withValues(alpha: 0.06)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(w * 0.035),
+          border: Border.all(
+            color: fragile
+                ? AppColors.error.withValues(alpha: 0.4)
+                : AppColors.border,
+            width: fragile ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: w * 0.1,
+              height: w * 0.1,
+              decoration: BoxDecoration(
+                color: fragile
+                    ? AppColors.error.withValues(alpha: 0.1)
+                    : AppColors.border.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '🫧',
+                  style: TextStyle(fontSize: w * 0.045),
+                ),
+              ),
+            ),
+            SizedBox(width: w * 0.035),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fragile item',
+                    style: TextStyle(
+                      fontSize: w * 0.036,
+                      fontWeight: FontWeight.w700,
+                      color: fragile
+                          ? AppColors.error
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: w * 0.006),
+                  Text(
+                    'Mark this if contents can break easily',
+                    style: TextStyle(
+                      fontSize: w * 0.03,
+                      color: AppColors.textSecondary,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: w * 0.03),
+            Switch.adaptive(
+              value: fragile,
+              onChanged: (v) {
+                HapticFeedback.lightImpact();
+                onChanged(v);
+              },
+              activeThumbColor: AppColors.error,
+              activeTrackColor: AppColors.error.withValues(alpha: 0.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Multi-item hint ───────────────────────────────────────────────────────────
+
+class _MultiItemHint extends StatelessWidget {
+  final double w;
+  const _MultiItemHint({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: w * 0.035,
+        vertical: w * 0.028,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.info.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lightbulb_outline_rounded,
+            size: w * 0.038,
+            color: AppColors.info,
+          ),
+          SizedBox(width: w * 0.025),
+          Expanded(
+            child: Text(
+              'Sending different items to multiple locations? '
+              'Add a separate photo for each item — you can tag '
+              'which photo belongs to each stop on the next screen.',
+              style: TextStyle(
+                fontSize: w * 0.031,
+                color: AppColors.info,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Category tile ─────────────────────────────────────────────────────────────

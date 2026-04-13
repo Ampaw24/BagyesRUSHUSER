@@ -23,6 +23,11 @@ import 'vendor_orders_view.dart';
 import 'vendor_menu_view.dart';
 import 'vendor_earnings_view.dart';
 import '../model/dummy_orders.dart';
+import 'package:provider/provider.dart';
+import '../../auth/viewmodels/auth_viewmodel.dart';
+import '../../../states/app.state.dart';
+import '../../../services/auth.service.dart' show ISignup;
+import '../../../core/widgets/custom_dialogs.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -135,6 +140,33 @@ class _VendorHomeState extends State<VendorHome> {
     );
   }
 
+  void _handleLogout() {
+    _closeDrawer();
+    CustomDialog.showConfirmation(
+      context: context,
+      title: 'Logout',
+      subtitle: 'Are you sure you want to log out?',
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      onConfirm: () async {
+        if (!mounted) return;
+
+        // Clear MVVM auth session
+        await context.read<AuthViewmodel>().logout();
+
+        if (!mounted) return;
+
+        // Clear legacy AppState user data
+        final appState = context.read<AppState>();
+        appState.setUser(IUser());
+        appState.setPayload(ISignup());
+
+        // Navigate to login, replacing the entire stack
+        context.go(AppRoutes.login);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -215,7 +247,7 @@ class _VendorHomeState extends State<VendorHome> {
                 onPrivacyPolicy: () {},
                 onHelpSupport: () {},
                 onDeleteAccount: _showDeleteAccountDialog,
-                onLogout: () {},
+                onLogout: _handleLogout,
               ),
           ],
         ),

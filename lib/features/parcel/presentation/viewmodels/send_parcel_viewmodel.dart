@@ -4,6 +4,7 @@ import 'dart:math' show cos, sqrt, asin, max;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../data/models/delivery_stop.dart';
 import '../../data/models/rider_model.dart';
 
 // ── Step enum ────────────────────────────────────────────────────────────────
@@ -27,12 +28,21 @@ class SendParcelState {
   final String weightText;
   final LatLng? pickupLatLng;
   final String pickupAddress;
-  final LatLng? deliveryLatLng;
-  final String deliveryAddress;
+
+  /// One or more delivery destinations. Always has at least one entry.
+  /// Users may add up to [SendParcelNotifier.maxStops] stops.
+  final List<DeliveryStop> deliveryStops;
+
   final List<RiderModel> availableRiders;
   final String? selectedRiderId;
+
+  /// Total route distance: pickup → stop1 → stop2 → … → stopN (km).
   final double distanceKm;
   final bool isLoadingRiders;
+
+  /// Whether the package contains fragile items — shown to the rider.
+  /// Matches the booking-level toggle used by Lalamove and GrabExpress.
+  final bool fragile;
 
   const SendParcelState({
     this.currentStep = ParcelStep.packageType,
@@ -42,18 +52,31 @@ class SendParcelState {
     this.weightText = '',
     this.pickupLatLng,
     this.pickupAddress = '',
-    this.deliveryLatLng,
-    this.deliveryAddress = '',
+    this.deliveryStops = const [DeliveryStop(id: 'stop_0')],
     this.availableRiders = const [],
     this.selectedRiderId,
     this.distanceKm = 0.0,
     this.isLoadingRiders = false,
+    this.fragile = false,
   });
+
+  // ── Computed ───────────────────────────────────────────────────────────────
 
   RiderModel? get selectedRider =>
       availableRiders.where((r) => r.id == selectedRiderId).firstOrNull;
 
-  double get totalCostGhs => selectedRider?.totalCost(distanceKm) ?? 0.0;
+  /// Additional fee for every stop beyond the first.
+  double get extraStopSurchargeGhs {
+    final extra = (deliveryStops.length - 1).clamp(0, 99);
+    return extra * SendParcelNotifier.perStopFeeGhs;
+  }
+
+  /// Full cost including base fee, distance charge, and per-stop surcharge.
+  double get totalCostGhs {
+    final rider = selectedRider;
+    if (rider == null) return 0.0;
+    return rider.totalCost(distanceKm) + extraStopSurchargeGhs;
+  }
 
   bool get canProceed {
     switch (currentStep) {
@@ -64,7 +87,9 @@ class SendParcelState {
       case ParcelStep.pickupLocation:
         return pickupLatLng != null && pickupAddress.isNotEmpty;
       case ParcelStep.deliveryLocation:
-        return deliveryLatLng != null && deliveryAddress.isNotEmpty;
+        // All stops must be complete; at least one must exist.
+        return deliveryStops.isNotEmpty &&
+            deliveryStops.every((s) => s.isComplete);
       case ParcelStep.availableRiders:
         return selectedRiderId != null;
       case ParcelStep.summary:
@@ -80,12 +105,12 @@ class SendParcelState {
     String? weightText,
     LatLng? pickupLatLng,
     String? pickupAddress,
-    LatLng? deliveryLatLng,
-    String? deliveryAddress,
+    List<DeliveryStop>? deliveryStops,
     List<RiderModel>? availableRiders,
     String? selectedRiderId,
     double? distanceKm,
     bool? isLoadingRiders,
+    bool? fragile,
   }) =>
       SendParcelState(
         currentStep: currentStep ?? this.currentStep,
@@ -95,12 +120,12 @@ class SendParcelState {
         weightText: weightText ?? this.weightText,
         pickupLatLng: pickupLatLng ?? this.pickupLatLng,
         pickupAddress: pickupAddress ?? this.pickupAddress,
-        deliveryLatLng: deliveryLatLng ?? this.deliveryLatLng,
-        deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+        deliveryStops: deliveryStops ?? this.deliveryStops,
         availableRiders: availableRiders ?? this.availableRiders,
         selectedRiderId: selectedRiderId ?? this.selectedRiderId,
         distanceKm: distanceKm ?? this.distanceKm,
         isLoadingRiders: isLoadingRiders ?? this.isLoadingRiders,
+        fragile: fragile ?? this.fragile,
       );
 }
 
@@ -108,6 +133,18 @@ class SendParcelState {
 
 class SendParcelNotifier extends StateNotifier<SendParcelState> {
   SendParcelNotifier() : super(const SendParcelState());
+
+  /// Maximum number of delivery stops a user may add.
+  static const int maxStops = 5;
+
+  static const int maxImages = 5;
+
+  /// Extra fee charged per stop beyond the first, in GHS.
+  static const double perStopFeeGhs = 2.0;
+
+  /// Monotonically increasing counter — ensures stop IDs are never recycled
+  /// after a remove+add cycle, preventing stale `_StopCardState` reuse.
+  int _stopCounter = 1;
 
   // ── Step navigation ──────────────────────────────────────────────────────
 
@@ -119,9 +156,10 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
 
     final nextStep = steps[next];
 
-    // When moving to riders step, compute distance and generate mock riders.
+    // When entering the riders step, compute the total route distance and
+    // generate mock riders sized for that distance.
     if (nextStep == ParcelStep.availableRiders) {
-      final dist = _haversine(state.pickupLatLng!, state.deliveryLatLng!);
+      final dist = _calculateTotalRouteDistance();
       final riders = _generateRiders(dist);
       state = state.copyWith(
         currentStep: nextStep,
@@ -147,8 +185,6 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
 
   // ── Package details ──────────────────────────────────────────────────────
 
-  static const int maxImages = 5;
-
   void addPackageImages(List<File> newFiles, List<String> newBase64List) {
     final updatedFiles = [...state.packageImages, ...newFiles];
     final updatedBase64 = [...state.imageBase64List, ...newBase64List];
@@ -166,13 +202,69 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
 
   void setWeight(String weight) => state = state.copyWith(weightText: weight);
 
-  // ── Locations ────────────────────────────────────────────────────────────
+  void setFragile(bool value) => state = state.copyWith(fragile: value);
+
+  // ── Pickup location ───────────────────────────────────────────────────────
 
   void setPickupLocation(LatLng latLng, String address) =>
       state = state.copyWith(pickupLatLng: latLng, pickupAddress: address);
 
-  void setDeliveryLocation(LatLng latLng, String address) =>
-      state = state.copyWith(deliveryLatLng: latLng, deliveryAddress: address);
+  // ── Delivery stops ────────────────────────────────────────────────────────
+
+  /// Updates the location of an existing stop identified by [id].
+  void updateDeliveryStop(String id, LatLng latLng, String address) {
+    final stops = state.deliveryStops
+        .map((s) => s.id == id ? s.copyWith(latLng: latLng, address: address) : s)
+        .toList();
+    state = state.copyWith(deliveryStops: stops);
+  }
+
+  /// Appends a blank stop. No-op when [maxStops] is already reached OR
+  /// when the current last stop is not yet complete (prevents orphaned stops).
+  void addDeliveryStop() {
+    if (state.deliveryStops.length >= maxStops) return;
+    if (state.deliveryStops.isNotEmpty && !state.deliveryStops.last.isComplete) {
+      return;
+    }
+    final newId = 'stop_${_stopCounter++}';
+    final stops = [...state.deliveryStops, DeliveryStop(id: newId)];
+    state = state.copyWith(deliveryStops: stops);
+  }
+
+  /// Updates the optional item details for the stop identified by [id].
+  /// Called on every keystroke / qty tap — no explicit "save" needed.
+  void updateDeliveryStopDetails(
+    String id, {
+    required String itemDescription,
+    required int quantity,
+    required String recipientName,
+    required String recipientPhone,
+    required String specialInstructions,
+    required List<int> selectedImageIndices,
+  }) {
+    final stops = state.deliveryStops
+        .map(
+          (s) => s.id == id
+              ? s.copyWith(
+                  itemDescription: itemDescription,
+                  quantity: quantity,
+                  recipientName: recipientName,
+                  recipientPhone: recipientPhone,
+                  specialInstructions: specialInstructions,
+                  selectedImageIndices: selectedImageIndices,
+                )
+              : s,
+        )
+        .toList();
+    state = state.copyWith(deliveryStops: stops);
+  }
+
+  /// Removes the stop with [id]. No-op when only one stop remains.
+  void removeDeliveryStop(String id) {
+    if (state.deliveryStops.length <= 1) return;
+    final stops = state.deliveryStops.where((s) => s.id != id).toList();
+    state = state.copyWith(deliveryStops: stops);
+  }
 
   // ── Rider selection ──────────────────────────────────────────────────────
 
@@ -180,6 +272,19 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
       state = state.copyWith(selectedRiderId: riderId);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Calculates the total route distance:
+  /// pickup → stop[0] → stop[1] → … → stop[n-1]
+  double _calculateTotalRouteDistance() {
+    final stops = state.deliveryStops;
+    if (stops.isEmpty || state.pickupLatLng == null) return 0.0;
+
+    double total = _haversine(state.pickupLatLng!, stops.first.latLng!);
+    for (int i = 0; i < stops.length - 1; i++) {
+      total += _haversine(stops[i].latLng!, stops[i + 1].latLng!);
+    }
+    return total;
+  }
 
   double _haversine(LatLng a, LatLng b) {
     const p = 0.017453292519943295;

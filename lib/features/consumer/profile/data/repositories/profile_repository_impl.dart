@@ -1,38 +1,45 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/repositories/i_profile_repository.dart';
 
 class ProfileRepositoryImpl implements IProfileRepository {
-  
-  ConsumerProfile _profile = const ConsumerProfile(
-    id: 'u1',
-    fullName: 'Ampaw Justice',
-    email: 'john@bagyesrush.com',
-    isVerified: true,
-    orderCount: 14,
-    reviewCount: 6,
-    walletBalance: 45,
-  );
+  ProfileRepositoryImpl({required CurrentUserProvider currentUserProvider})
+    : _currentUserProvider = currentUserProvider;
+
+  final CurrentUserProvider _currentUserProvider;
 
   @override
   Future<ConsumerProfile> getProfile() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _profile;
+    final user = _currentUserProvider.user;
+    if (user == null) {
+      throw Exception('No authenticated user found.');
+    }
+
+    final firstName = user.profile?.firstName ?? '';
+    final lastName = user.profile?.lastName ?? '';
+    final fullName = '$firstName $lastName'.trim();
+
+    return ConsumerProfile(
+      id: user.id,
+      fullName: fullName.isNotEmpty ? fullName : user.email,
+      email: user.email,
+      avatarUrl: user.profile?.profilePictureUrl,
+      isVerified: user.phoneVerified,
+      orderCount: 0,
+      reviewCount: 0,
+      walletBalance: 0,
+    );
   }
 
   @override
   Future<ConsumerProfile> updateProfile(ConsumerProfile profile) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _profile = profile;
-    return _profile;
+    // Local optimistic update — wire to a real API call when the endpoint exists.
+    return profile;
   }
 
   @override
-  Future<void> logout() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-  }
+  Future<void> logout() async {}
 
   @override
-  Future<void> deleteAccount() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-  }
+  Future<void> deleteAccount() async {}
 }

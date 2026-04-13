@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -56,8 +57,33 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
 
       final latLng = LatLng(position.latitude, position.longitude);
       widget.onLocationSelected(latLng, address);
+    } on LocationServiceDisabledException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location services are disabled. Enable GPS and try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } on PermissionDeniedException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permission denied. Please allow access in Settings.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } catch (_) {
-      // Silently ignore — user will see empty state and can search manually.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not detect location. Try searching for your address.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLocating = false);
     }
@@ -126,7 +152,6 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _AddressSearchSheet(
-        w: w,
         onAddressEntered: (address) {
           // Fallback: use Accra coords with the typed address until Maps is wired up
           const fallback = LatLng(5.6037, -0.1870);
@@ -320,17 +345,6 @@ class _SelectedAddressCard extends StatelessWidget {
                           height: 1.4,
                         ),
                       ),
-                      if (latLng != null) ...[
-                        SizedBox(height: w * 0.01),
-                        Text(
-                          '${latLng!.latitude.toStringAsFixed(4)}, '
-                          '${latLng!.longitude.toStringAsFixed(4)}',
-                          style: TextStyle(
-                            fontSize: w * 0.028,
-                            color: AppColors.textHint,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -368,13 +382,9 @@ class _SelectedAddressCard extends StatelessWidget {
 // ── Address search bottom sheet ───────────────────────────────────────────────
 
 class _AddressSearchSheet extends StatefulWidget {
-  final double w;
   final ValueChanged<String> onAddressEntered;
 
-  const _AddressSearchSheet({
-    required this.w,
-    required this.onAddressEntered,
-  });
+  const _AddressSearchSheet({required this.onAddressEntered});
 
   @override
   State<_AddressSearchSheet> createState() => _AddressSearchSheetState();
@@ -398,7 +408,7 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final w = widget.w;
+    final w = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Container(
@@ -445,6 +455,8 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
             controller: _ctrl,
             autofocus: true,
             textInputAction: TextInputAction.done,
+            maxLength: 200,
+            maxLengthEnforcement: MaxLengthEnforcement.enforced,
             onSubmitted: (_) => _confirm(),
             style: TextStyle(
               fontSize: w * 0.04,

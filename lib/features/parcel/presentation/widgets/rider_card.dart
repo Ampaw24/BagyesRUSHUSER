@@ -7,6 +7,10 @@ import '../../data/models/rider_model.dart';
 class RiderCard extends StatelessWidget {
   final RiderModel rider;
   final double distanceKm;
+
+  /// Per-stop surcharge already computed by the parent (0.0 for single delivery).
+  final double extraStopSurchargeGhs;
+
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -14,6 +18,7 @@ class RiderCard extends StatelessWidget {
     super.key,
     required this.rider,
     required this.distanceKm,
+    this.extraStopSurchargeGhs = 0.0,
     required this.isSelected,
     required this.onTap,
   });
@@ -21,7 +26,7 @@ class RiderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final cost = rider.totalCost(distanceKm);
+    final cost = rider.totalCost(distanceKm) + extraStopSurchargeGhs;
 
     return GestureDetector(
       onTap: onTap,

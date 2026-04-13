@@ -20,14 +20,12 @@ import 'src/vendor/viewmodel/settings_viewmodel.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-
   // Phase 1 — legacy vendor/onboarding services
   await di.init();
 
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,
   //           AuthRepository, AuthViewmodel); guarded with isRegistered checks.
   await AppInitializer.initialize();
-
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

@@ -6,6 +6,7 @@ import '../../../../constant/app_theme.dart';
 import '../../../../core/router/app_navigator.dart';
 import '../viewmodels/send_parcel_viewmodel.dart';
 import '../widgets/available_riders_step.dart';
+import '../widgets/delivery_stops_step.dart';
 import '../widgets/location_picker_step.dart';
 import '../widgets/package_details_step.dart';
 import '../widgets/package_type_step.dart';
@@ -142,6 +143,8 @@ class SendParcelView extends ConsumerWidget {
           onImageRemoved: notifier.removePackageImage,
           onWeightChanged: notifier.setWeight,
           maxImages: SendParcelNotifier.maxImages,
+          fragile: state.fragile,
+          onFragileChanged: notifier.setFragile,
         );
 
       case ParcelStep.pickupLocation:
@@ -154,12 +157,31 @@ class SendParcelView extends ConsumerWidget {
         );
 
       case ParcelStep.deliveryLocation:
-        return LocationPickerStep(
-          title: 'Delivery Location',
-          subtitle: 'Where should your package be delivered?',
-          selectedLatLng: state.deliveryLatLng,
-          selectedAddress: state.deliveryAddress,
-          onLocationSelected: notifier.setDeliveryLocation,
+        return DeliveryStopsStep(
+          stops: state.deliveryStops,
+          packageImages: state.packageImages,
+          onStopUpdated: notifier.updateDeliveryStop,
+          onAddStop: notifier.addDeliveryStop,
+          onStopRemoved: notifier.removeDeliveryStop,
+          onStopDetailsChanged: (
+            id, {
+            required itemDescription,
+            required quantity,
+            required recipientName,
+            required recipientPhone,
+            required specialInstructions,
+            required selectedImageIndices,
+          }) =>
+              notifier.updateDeliveryStopDetails(
+            id,
+            itemDescription: itemDescription,
+            quantity: quantity,
+            recipientName: recipientName,
+            recipientPhone: recipientPhone,
+            specialInstructions: specialInstructions,
+            selectedImageIndices: selectedImageIndices,
+          ),
+          maxStops: SendParcelNotifier.maxStops,
         );
 
       case ParcelStep.availableRiders:
@@ -167,6 +189,7 @@ class SendParcelView extends ConsumerWidget {
           riders: state.availableRiders,
           selectedRiderId: state.selectedRiderId,
           distanceKm: state.distanceKm,
+          extraStopSurchargeGhs: state.extraStopSurchargeGhs,
           onRiderSelected: notifier.selectRider,
         );
 
@@ -175,14 +198,13 @@ class SendParcelView extends ConsumerWidget {
           packageType: state.packageType ?? 'parcel',
           weightText: state.weightText,
           pickupAddress: state.pickupAddress,
-          deliveryAddress: state.deliveryAddress,
-          sourceLat: state.pickupLatLng!.latitude,
-          sourceLng: state.pickupLatLng!.longitude,
-          destLat: state.deliveryLatLng!.latitude,
-          destLng: state.deliveryLatLng!.longitude,
+          deliveryStops: state.deliveryStops,
           distanceKm: state.distanceKm,
+          extraStopSurchargeGhs: state.extraStopSurchargeGhs,
           selectedRider: state.selectedRider,
           totalCostGhs: state.totalCostGhs,
+          fragile: state.fragile,
+          packageImages: state.packageImages,
         );
     }
   }
