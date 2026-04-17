@@ -47,5 +47,9 @@ app.*.map.json
 # Claude Code
 .claude/
 
+# Environment secrets
+.env
+.env.*
+
 # Markdown docs
 *.md

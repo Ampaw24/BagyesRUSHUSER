@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import '../../../../core/widgets/map_location_picker_sheet.dart';
 
 class LocationPickerStep extends StatefulWidget {
   final String title;
@@ -37,7 +37,17 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.deniedForever) return;
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission permanently denied. Enable it in Settings.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
 
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -150,12 +160,14 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddressSearchSheet(
-        onAddressEntered: (address) {
-          // Fallback: use Accra coords with the typed address until Maps is wired up
-          const fallback = LatLng(5.6037, -0.1870);
-          widget.onLocationSelected(fallback, address);
+      builder: (_) => MapLocationPickerSheet(
+        title: widget.title,
+        initialPosition: widget.selectedLatLng,
+        onConfirm: (latLng, address) {
+          widget.onLocationSelected(latLng, address);
         },
       ),
     );
@@ -379,112 +391,3 @@ class _SelectedAddressCard extends StatelessWidget {
   }
 }
 
-// ── Address search bottom sheet ───────────────────────────────────────────────
-
-class _AddressSearchSheet extends StatefulWidget {
-  final ValueChanged<String> onAddressEntered;
-
-  const _AddressSearchSheet({required this.onAddressEntered});
-
-  @override
-  State<_AddressSearchSheet> createState() => _AddressSearchSheetState();
-}
-
-class _AddressSearchSheetState extends State<_AddressSearchSheet> {
-  final _ctrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _confirm() {
-    final text = _ctrl.text.trim();
-    if (text.isEmpty) return;
-    Navigator.pop(context);
-    widget.onAddressEntered(text);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
-    return Container(
-      margin: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.04 + bottomInset),
-      padding: EdgeInsets.all(w * 0.05),
-      decoration: BoxDecoration(
-        color: AppColors.scaffold,
-        borderRadius: BorderRadius.circular(w * 0.05),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Handle
-          Center(
-            child: Container(
-              width: w * 0.1,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          SizedBox(height: w * 0.045),
-          Text(
-            'Enter Address',
-            style: TextStyle(
-              fontSize: w * 0.045,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: w * 0.02),
-          Text(
-            'Type a street, neighbourhood, or landmark.',
-            style: TextStyle(
-              fontSize: w * 0.033,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: w * 0.04),
-          TextField(
-            controller: _ctrl,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            maxLength: 200,
-            maxLengthEnforcement: MaxLengthEnforcement.enforced,
-            onSubmitted: (_) => _confirm(),
-            style: TextStyle(
-              fontSize: w * 0.04,
-              color: AppColors.textPrimary,
-              fontFamily: 'Mukta',
-            ),
-            decoration: InputDecoration(
-              hintText: 'e.g. Accra Mall, East Legon',
-              prefixIcon: Padding(
-                padding: EdgeInsets.all(w * 0.03),
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedLocation01,
-                  color: AppColors.primary,
-                  size: w * 0.05,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: w * 0.04),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _confirm,
-              child: const Text('Confirm Location'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

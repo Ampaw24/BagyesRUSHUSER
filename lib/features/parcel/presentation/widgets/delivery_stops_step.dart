@@ -2,12 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import '../../../../core/widgets/map_location_picker_sheet.dart';
 import '../../data/models/delivery_stop.dart';
 import '../viewmodels/send_parcel_viewmodel.dart';
 
@@ -61,66 +60,69 @@ class DeliveryStopsStep extends StatelessWidget {
         stops.last.isComplete &&
         stops.length < maxStops;
 
-    return ListView(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         w * 0.05,
         w * 0.05,
         w * 0.05,
         w * 0.1,
       ),
-      children: [
-        // ── Header ────────────────────────────────────────────────────────────
-        Text(
-          'Delivery Location',
-          style: TextStyle(
-            fontSize: w * 0.055,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──────────────────────────────────────────────────────────
+          Text(
+            'Delivery Location',
+            style: TextStyle(
+              fontSize: w * 0.055,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
-        SizedBox(height: w * 0.015),
-        Text(
-          stops.length > 1
-              ? 'Managing ${stops.length} stops — one rider handles all.'
-              : 'Where should your package be delivered?',
-          style: TextStyle(
-            fontSize: w * 0.035,
-            color: AppColors.textSecondary,
-            height: 1.4,
+          SizedBox(height: w * 0.015),
+          Text(
+            stops.length > 1
+                ? 'Managing ${stops.length} stops — one rider handles all.'
+                : 'Where should your package be delivered?',
+            style: TextStyle(
+              fontSize: w * 0.035,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
-        ),
 
-        SizedBox(height: w * 0.05),
+          SizedBox(height: w * 0.05),
 
-        // ── Stop cards ────────────────────────────────────────────────────────
-        for (int i = 0; i < stops.length; i++) ...[
-          _StopCard(
-            key: ValueKey(stops[i].id),
-            stop: stops[i],
-            index: i,
-            canRemove: stops.length > 1,
-            packageImages: packageImages,
-            onLocationSet: (latLng, address) =>
-                onStopUpdated(stops[i].id, latLng, address),
-            onDetailsChanged: onStopDetailsChanged,
-            onRemove: () => onStopRemoved(stops[i].id),
+          // ── Stop cards ───────────────────────────────────────────────────────
+          for (int i = 0; i < stops.length; i++) ...[
+            _StopCard(
+              key: ValueKey(stops[i].id),
+              stop: stops[i],
+              index: i,
+              canRemove: stops.length > 1,
+              packageImages: packageImages,
+              onLocationSet: (latLng, address) =>
+                  onStopUpdated(stops[i].id, latLng, address),
+              onDetailsChanged: onStopDetailsChanged,
+              onRemove: () => onStopRemoved(stops[i].id),
+            ),
+            SizedBox(height: w * 0.03),
+          ],
+
+          // ── Add another stop — animated reveal ───────────────────────────────
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            child: canAdd
+                ? _AddStopButton(
+                    stopCount: stops.length,
+                    maxStops: maxStops,
+                    onTap: onAddStop,
+                  )
+                : const SizedBox.shrink(),
           ),
-          SizedBox(height: w * 0.03),
         ],
-
-        // ── Add another stop — animated reveal ────────────────────────────────
-        AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          child: canAdd
-              ? _AddStopButton(
-                  stopCount: stops.length,
-                  maxStops: maxStops,
-                  onTap: onAddStop,
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -563,9 +565,15 @@ class _StopCardState extends State<_StopCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => _StopLocationSheet(
-        onLocationSelected: widget.onLocationSet,
+      builder: (_) => MapLocationPickerSheet(
+        title: 'Set Delivery Location',
+        initialPosition: widget.stop.latLng,
+        onConfirm: (latLng, address) {
+          widget.onLocationSet(latLng, address);
+        },
       ),
     );
   }
@@ -896,288 +904,3 @@ class _AddStopButton extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Location picker bottom sheet (GPS + search in one sheet)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StopLocationSheet extends StatefulWidget {
-  final void Function(LatLng latLng, String address) onLocationSelected;
-
-  const _StopLocationSheet({required this.onLocationSelected});
-
-  @override
-  State<_StopLocationSheet> createState() => _StopLocationSheetState();
-}
-
-class _StopLocationSheetState extends State<_StopLocationSheet> {
-  final _ctrl = TextEditingController();
-  bool _isLocating = false;
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _useCurrentLocation() async {
-    setState(() => _isLocating = true);
-    try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.deniedForever) return;
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      final place = placemarks.isNotEmpty ? placemarks.first : null;
-      final address = place != null
-          ? '${place.street ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}'
-              .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
-              .replaceAll(RegExp(r',\s*,'), ',')
-          : '${position.latitude.toStringAsFixed(5)}, '
-              '${position.longitude.toStringAsFixed(5)}';
-
-      final latLng = LatLng(position.latitude, position.longitude);
-
-      if (!mounted) return;
-      Navigator.pop(context);
-      widget.onLocationSelected(latLng, address);
-    } on LocationServiceDisabledException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location services are disabled. Enable GPS and try again.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } on PermissionDeniedException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location permission denied. Please allow access in Settings.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not detect location. Try searching for your address.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLocating = false);
-    }
-  }
-
-  void _confirmAddress() {
-    final text = _ctrl.text.trim();
-    if (text.isEmpty) return;
-    const fallback = LatLng(5.6037, -0.1870);
-    Navigator.pop(context);
-    widget.onLocationSelected(fallback, text);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        w * 0.04,
-        0,
-        w * 0.04,
-        w * 0.04 + bottomInset,
-      ),
-      padding: EdgeInsets.fromLTRB(
-        w * 0.055,
-        w * 0.04,
-        w * 0.055,
-        w * 0.05,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.scaffold,
-        borderRadius: BorderRadius.circular(w * 0.055),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: w * 0.1,
-              height: w * 0.01,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(w * 0.005),
-              ),
-            ),
-          ),
-          SizedBox(height: w * 0.045),
-          Text(
-            'Set Delivery Location',
-            style: TextStyle(
-              fontSize: w * 0.048,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              fontFamily: 'Mukta',
-            ),
-          ),
-          SizedBox(height: w * 0.008),
-          Text(
-            'Use your GPS or type an address below.',
-            style: TextStyle(
-              fontSize: w * 0.033,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: w * 0.04),
-
-          // ── GPS button ─────────────────────────────────────────────────────
-          GestureDetector(
-            onTap: _isLocating ? null : _useCurrentLocation,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: EdgeInsets.symmetric(
-                horizontal: w * 0.045,
-                vertical: w * 0.042,
-              ),
-              decoration: BoxDecoration(
-                color: _isLocating
-                    ? AppColors.primary.withValues(alpha: 0.7)
-                    : AppColors.primary,
-                borderRadius: BorderRadius.circular(w * 0.035),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  if (_isLocating)
-                    SizedBox(
-                      width: w * 0.052,
-                      height: w * 0.052,
-                      child: const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  else
-                    HugeIcon(
-                      icon: HugeIcons.strokeRoundedMapsLocation01,
-                      color: Colors.white,
-                      size: w * 0.052,
-                    ),
-                  SizedBox(width: w * 0.035),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isLocating
-                              ? 'Detecting location…'
-                              : 'Use My Current Location',
-                          style: TextStyle(
-                            fontSize: w * 0.038,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        if (!_isLocating) ...[
-                          SizedBox(height: w * 0.005),
-                          Text(
-                            'Detect your position automatically',
-                            style: TextStyle(
-                              fontSize: w * 0.029,
-                              color: Colors.white.withValues(alpha: 0.75),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (!_isLocating)
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.white.withValues(alpha: 0.7),
-                      size: w * 0.038,
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          SizedBox(height: w * 0.035),
-
-          Row(
-            children: [
-              Expanded(child: Divider(color: AppColors.border, thickness: 1)),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.03),
-                child: Text(
-                  'or search',
-                  style: TextStyle(
-                    fontSize: w * 0.031,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-              Expanded(child: Divider(color: AppColors.border, thickness: 1)),
-            ],
-          ),
-
-          SizedBox(height: w * 0.035),
-
-          TextField(
-            controller: _ctrl,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _confirmAddress(),
-            style: TextStyle(
-              fontSize: w * 0.038,
-              color: AppColors.textPrimary,
-              fontFamily: 'Mukta',
-            ),
-            decoration: InputDecoration(
-              hintText: 'e.g. Accra Mall, East Legon',
-              prefixIcon: Padding(
-                padding: EdgeInsets.all(w * 0.03),
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedLocation01,
-                  color: AppColors.primary,
-                  size: w * 0.048,
-                ),
-              ),
-            ),
-          ),
-
-          SizedBox(height: w * 0.04),
-
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _confirmAddress,
-              child: const Text('Confirm Location'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

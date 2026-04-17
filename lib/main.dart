@@ -36,7 +36,6 @@ void main() async {
           providers: [
             // ── Global state ────────────────────────────────────────────────
             ChangeNotifierProvider(create: (_) => AppState()),
-
             // ── Auth + current user (new MVVM pattern) ──────────────────────
             ...AppProviders.allProviders,
 
