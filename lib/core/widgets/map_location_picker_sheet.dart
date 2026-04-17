@@ -70,6 +70,11 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
   bool _isSearching = false;
   Timer? _debounce;
 
+  // When the user picks a suggestion we already have a rich address from the
+  // Places API.  This flag tells _onCameraIdle to skip the reverse-geocode
+  // that would otherwise overwrite it with a less-detailed string.
+  bool _skipNextReverseGeocode = false;
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
@@ -116,25 +121,46 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
         position.longitude,
       );
       if (!mounted) return;
-      final place = placemarks.isNotEmpty ? placemarks.first : null;
+      final p = placemarks.isNotEmpty ? placemarks.first : null;
       setState(() {
-        _address = place != null
-            ? '${place.street ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}'
-                .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
-                .replaceAll(RegExp(r',\s*,'), ',')
-            : '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+        _address = p != null ? _buildAddress(p, position) : _coordFallback(position);
       });
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _address =
-              '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
-        });
-      }
+      if (mounted) setState(() => _address = _coordFallback(position));
     } finally {
       if (mounted) setState(() => _isReverseGeocoding = false);
     }
   }
+
+  /// Builds the richest possible address string from a [Placemark].
+  /// Priority: street + neighbourhood + city → area + city → city + region.
+  String _buildAddress(Placemark p, LatLng pos) {
+    final street      = _nonEmpty(p.street ?? p.thoroughfare);
+    final sub         = _nonEmpty(p.subLocality);
+    final locality    = _nonEmpty(p.locality);
+    final subAdmin    = _nonEmpty(p.subAdministrativeArea);
+    final admin       = _nonEmpty(p.administrativeArea);
+    final country     = _nonEmpty(p.country);
+
+    final parts = <String>[];
+
+    if (street != null)   parts.add(street);
+    if (sub != null)      parts.add(sub);
+    if (locality != null) parts.add(locality);
+
+    // If we only have region-level info, include it for context.
+    if (parts.isEmpty && subAdmin != null) parts.add(subAdmin);
+    if (parts.length < 2 && admin != null) parts.add(admin);
+    if (parts.isEmpty && country != null)  parts.add(country);
+
+    return parts.isNotEmpty ? parts.join(', ') : _coordFallback(pos);
+  }
+
+  String? _nonEmpty(String? s) =>
+      (s != null && s.trim().isNotEmpty) ? s.trim() : null;
+
+  String _coordFallback(LatLng pos) =>
+      '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}';
 
   // ── Camera events ──────────────────────────────────────────────────────────
 
@@ -151,6 +177,11 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     setState(() => _isCameraMoving = false);
     HapticFeedback.mediumImpact();
     _pinAnim.reverse();
+    if (_skipNextReverseGeocode) {
+      // A Places API address was already set by _selectPrediction — keep it.
+      _skipNextReverseGeocode = false;
+      return;
+    }
     _reverseGeocode(_center);
   }
 
@@ -258,17 +289,25 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     setState(() {
       _showPredictions = false;
       _searchCtrl.text = '';
+      // Show the suggestion description immediately while we fetch details.
       _address = prediction.description;
     });
 
     LatLng? latLng;
+    String? richAddress;
 
-    // 1. Try Google Places details first.
+    // 1. Google Places Details — gives both coordinates AND a formatted address.
     if (!prediction.placeId.contains(',')) {
-      latLng = await PlacesService.fetchPlaceLatLng(prediction.placeId);
+      final detail = await PlacesService.fetchPlaceDetail(prediction.placeId);
+      if (detail != null) {
+        latLng      = detail.latLng;
+        richAddress = detail.formattedAddress.isNotEmpty
+            ? detail.formattedAddress
+            : null;
+      }
     }
 
-    // 2. Fallback: placeId is a "lat,lng" string (set by geocoding fallback above).
+    // 2. Fallback: placeId encoded as "lat,lng" (from the geocoding fallback).
     if (latLng == null && prediction.placeId.contains(',')) {
       try {
         final parts = prediction.placeId.split(',');
@@ -276,7 +315,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       } catch (_) {}
     }
 
-    // 3. Last resort: geocode the description text.
+    // 3. Last resort: geocode the description text directly.
     if (latLng == null) {
       try {
         final locations = await locationFromAddress(prediction.description);
@@ -296,7 +335,16 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       return;
     }
 
-    // Move the map — _onCameraIdle will update _center and reverse-geocode.
+    // Use the rich Places API address if available; otherwise keep the
+    // suggestion description already shown.  Either way, skip the reverse
+    // geocode that _onCameraIdle would otherwise trigger so the good address
+    // is never overwritten by a coarser one.
+    if (richAddress != null && mounted) {
+      setState(() => _address = richAddress!);
+    }
+    _skipNextReverseGeocode = true;
+
+    // Move the map — _onCameraIdle will fire but skip reverse-geocoding.
     _center = latLng;
     final controller = await _mapController.future;
     await controller.animateCamera(
