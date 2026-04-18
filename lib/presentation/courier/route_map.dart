@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:bagyesrushappusernew/constant/key.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../constant/config.dart';
 import '../../core/enums/map_style_type.dart';
 import '../../core/services/map_style_service.dart';
 
@@ -40,7 +40,7 @@ class _RouteMapState extends State<RouteMap> {
   // this is the key object - the PolylinePoints
   // which generates every polyline between start and finish
   late PolylinePoints polylinePoints;
-  String googleAPIKey = googleMapKey;
+  String googleAPIKey = Config.mapsApiKey;
   // for my custom icons
   BitmapDescriptor? sourceIcon;
   BitmapDescriptor? destinationIcon;

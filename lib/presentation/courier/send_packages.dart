@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:bagyesrushappusernew/constant/constant.dart';
 import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/constant/key.dart';
+import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
 import 'package:bagyesrushappusernew/core/router/router.dart';
 import 'package:bagyesrushappusernew/services/courier.service.dart';
@@ -490,7 +490,7 @@ class _SendPackagesState extends State<SendPackages> {
                       MaterialPageRoute(
                         builder: (context) {
                           return PlacePicker(
-                            apiKey: googleMapKey,
+                            apiKey: Config.mapsApiKey,
                             initialPosition: SendPackages.kInitialPosition,
                             useCurrentLocation: true,
                             selectInitialPosition: true,
@@ -643,7 +643,7 @@ class _SendPackagesState extends State<SendPackages> {
                       MaterialPageRoute(
                         builder: (context) {
                           return PlacePicker(
-                            apiKey: googleMapKey,
+                            apiKey: Config.mapsApiKey,
                             initialPosition: SendPackages.kInitialPosition,
                             useCurrentLocation: true,
                             selectInitialPosition: true,
