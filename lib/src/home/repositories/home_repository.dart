@@ -102,6 +102,32 @@ class HomeRepository {
 
   //-- Categories ends here --//
 
+///["Get all items for home pages users"]
+///TODO:: Update model class here 
+ResultFuture<List<CategoryElement>> getAllItems() async {
+  appLogger.d('HomeRepository.getAllItems → initiated');
+  try {
+    final response = await _client.get(ApiEndpoints.items);
+
+    if (response.statusCode == 200) {
+      final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+          response.data as List<dynamic>;
+      final items = payload.map((e) => CategoryElement.fromJson(e as DataMap)).toList();
+      appLogger.i(
+          'HomeRepository.getAllItems → loaded ${items.length} items');
+      return Right(items);
+    }
+
+    appLogger.w('HomeRepository.getAllItems → HTTP ${response.statusCode}');
+    return NetworkUtils.handleDioResponseError(response);
+  } on DioException catch (e) {
+    appLogger.e('HomeRepository.getAllItems → DioException', error: e);
+    return NetworkUtils.handleDioException(e);
+  } catch (e, s) {
+    return NetworkUtils.handleException(e, s,
+        repositoryName: 'HomeRepository', methodName: 'getAllItems');
+  }
+}
 
   // ─── Vendors ───────────────────────────────────────────────────────────────
 

@@ -18,6 +18,7 @@ abstract final class ApiEndpoints {
   static const String refreshToken = '/auth/refresh-token';
   static const String otpSend = '/otp/send';
   static const String otpVerify = '/otp/verify';
+  static const String items = '/items';
 
   /// `GET /auth/me`
   static String customerDetails(String id) => '/auth/me';

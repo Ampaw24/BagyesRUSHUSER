@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,12 +36,11 @@ class ConsumerProfileView extends ConsumerWidget {
       ),
       body: switch (profileState) {
         ProfileLoading() => const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          ),
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
         ProfileError(:final message) => Center(child: Text(message)),
         ProfileLoaded(:final profile) ||
-        ProfileUpdating(:final profile) =>
-          _ProfileBody(profile: profile, w: w),
+        ProfileUpdating(:final profile) => _ProfileBody(profile: profile, w: w),
       },
     );
   }
@@ -61,7 +61,9 @@ class _ProfileBody extends ConsumerWidget {
         w * 0.05,
         w * 0.02,
         w * 0.05,
-        w * 0.06 + MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight,
+        w * 0.06 +
+            MediaQuery.of(context).padding.bottom +
+            kBottomNavigationBarHeight,
       ),
       children: [
         // ── Avatar + name ──
@@ -181,7 +183,7 @@ class _ProfileBody extends ConsumerWidget {
           label: 'Wallet & Rewards',
           onTap: () => context.push(AppRoutes.wallet),
         ),
-     //TODO: Add support & privacy policy screens
+        //TODO: Add support & privacy policy screens
         // SizedBox(height: w * 0.02),
         // _SectionLabel('Support'),s
         // _ProfileTile(
@@ -206,33 +208,21 @@ class _ProfileBody extends ConsumerWidget {
     );
   }
 
+
+//TODO:FIx Dark screen here on logout tap
   void _confirmLogout(BuildContext context, WidgetRef ref) {
-    final w = MediaQuery.sizeOf(context).width;
-    showDialog(
+    CustomDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(w * 0.05),
-        ),
-        title: const Text('Log out?'),
-        content: const Text('You will be returned to the login screen.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await ref.read(profileProvider.notifier).logout();
-              if (context.mounted) context.go(AppRoutes.login);
-            },
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Log out'),
-          ),
-        ],
-      ),
+      title: "Logout?",
+      subtitle:
+          "You sure want to logout?\nYou will be returned to the login screen.",
+      onConfirm: () async {
+        Navigator.of(context).pop();
+        await ref.read(profileProvider.notifier).logout();
+        if (context.mounted) context.go(AppRoutes.login);
+      },
+      confirmText: 'Log out',
+      cancelText: 'Cancel',
     );
   }
 }

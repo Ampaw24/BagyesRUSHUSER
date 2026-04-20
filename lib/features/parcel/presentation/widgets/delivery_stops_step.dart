@@ -38,7 +38,8 @@ class DeliveryStopsStep extends StatelessWidget {
     required String recipientPhone,
     required String specialInstructions,
     required List<int> selectedImageIndices,
-  }) onStopDetailsChanged;
+  })
+  onStopDetailsChanged;
   final int maxStops;
 
   const DeliveryStopsStep({
@@ -56,17 +57,11 @@ class DeliveryStopsStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
-    final canAdd = stops.isNotEmpty &&
-        stops.last.isComplete &&
-        stops.length < maxStops;
+    final canAdd =
+        stops.isNotEmpty && stops.last.isComplete && stops.length < maxStops;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        w * 0.05,
-        w * 0.05,
-        w * 0.05,
-        w * 0.1,
-      ),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -145,7 +140,8 @@ class _StopCard extends StatefulWidget {
     required String recipientPhone,
     required String specialInstructions,
     required List<int> selectedImageIndices,
-  }) onDetailsChanged;
+  })
+  onDetailsChanged;
   final VoidCallback onRemove;
 
   const _StopCard({
@@ -240,7 +236,7 @@ class _StopCardState extends State<_StopCard> {
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: isSet
-            ? AppColors.success.withValues(alpha: 0.04)
+            ? AppColors.success.withValues(alpha: 0.02)
             : AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(w * 0.04),
         border: Border.all(
@@ -252,7 +248,7 @@ class _StopCardState extends State<_StopCard> {
         boxShadow: isSet
             ? [
                 BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.06),
+                  color: AppColors.success.withValues(alpha: 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -405,15 +401,19 @@ class _StopCardState extends State<_StopCard> {
                                 Image.file(
                                   widget.packageImages[i],
                                   fit: BoxFit.cover,
-                                  cacheWidth: (w * 0.18 *
-                                          MediaQuery.devicePixelRatioOf(
-                                              context))
-                                      .round(),
+                                  cacheWidth:
+                                      (w *
+                                              0.18 *
+                                              MediaQuery.devicePixelRatioOf(
+                                                context,
+                                              ))
+                                          .round(),
                                 ),
                                 if (selected)
                                   Container(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.35),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.35,
+                                    ),
                                     child: Center(
                                       child: Container(
                                         width: w * 0.07,
@@ -614,10 +614,7 @@ class _DetailLabel extends StatelessWidget {
           SizedBox(width: w * 0.015),
           Text(
             '($hint)',
-            style: TextStyle(
-              fontSize: w * 0.028,
-              color: AppColors.textHint,
-            ),
+            style: TextStyle(fontSize: w * 0.028, color: AppColors.textHint),
           ),
         ],
       ],
@@ -903,4 +900,3 @@ class _AddStopButton extends StatelessWidget {
     );
   }
 }
-
