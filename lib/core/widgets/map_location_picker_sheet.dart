@@ -132,15 +132,13 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     }
   }
 
-  /// Builds the richest possible address string from a [Placemark].
-  /// Priority: street + neighbourhood + city → area + city → city + region.
   String _buildAddress(Placemark p, LatLng pos) {
-    final street      = _nonEmpty(p.street ?? p.thoroughfare);
-    final sub         = _nonEmpty(p.subLocality);
-    final locality    = _nonEmpty(p.locality);
-    final subAdmin    = _nonEmpty(p.subAdministrativeArea);
-    final admin       = _nonEmpty(p.administrativeArea);
-    final country     = _nonEmpty(p.country);
+    final street   = _nonEmpty(p.street ?? p.thoroughfare);
+    final sub      = _nonEmpty(p.subLocality);
+    final locality = _nonEmpty(p.locality);
+    final subAdmin = _nonEmpty(p.subAdministrativeArea);
+    final admin    = _nonEmpty(p.administrativeArea);
+    final country  = _nonEmpty(p.country);
 
     final parts = <String>[];
 
@@ -148,7 +146,6 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     if (sub != null)      parts.add(sub);
     if (locality != null) parts.add(locality);
 
-    // If we only have region-level info, include it for context.
     if (parts.isEmpty && subAdmin != null) parts.add(subAdmin);
     if (parts.length < 2 && admin != null) parts.add(admin);
     if (parts.isEmpty && country != null)  parts.add(country);
@@ -178,7 +175,6 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     HapticFeedback.mediumImpact();
     _pinAnim.reverse();
     if (_skipNextReverseGeocode) {
-      // A Places API address was already set by _selectPrediction — keep it.
       _skipNextReverseGeocode = false;
       return;
     }
@@ -243,7 +239,6 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       return;
     }
 
-    // Show loading state immediately so user knows something is happening.
     setState(() {
       _isSearching = true;
       _showPredictions = true;
@@ -251,14 +246,11 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     });
 
     _debounce = Timer(const Duration(milliseconds: 350), () async {
-      // 1. Try Google Places autocomplete first.
       var results = await PlacesService.autocomplete(
         text,
         locationBias: _center,
       );
 
-      // 2. Fallback: if Places API returned nothing (key missing / quota),
-      //    try native geocoding so the feature works without a Places key.
       if (results.isEmpty) {
         try {
           final locations = await locationFromAddress(text);
@@ -268,16 +260,13 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
               description: text,
             );
           }).toList();
-        } catch (_) {
-          // Geocoding also failed — results stays empty.
-        }
+        } catch (_) {}
       }
 
       if (mounted) {
         setState(() {
           _predictions = results;
           _isSearching = false;
-          // Keep dropdown open to show results or "no results" message.
           _showPredictions = true;
         });
       }
@@ -289,14 +278,12 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     setState(() {
       _showPredictions = false;
       _searchCtrl.text = '';
-      // Show the suggestion description immediately while we fetch details.
       _address = prediction.description;
     });
 
     LatLng? latLng;
     String? richAddress;
 
-    // 1. Google Places Details — gives both coordinates AND a formatted address.
     if (!prediction.placeId.contains(',')) {
       final detail = await PlacesService.fetchPlaceDetail(prediction.placeId);
       if (detail != null) {
@@ -307,7 +294,6 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       }
     }
 
-    // 2. Fallback: placeId encoded as "lat,lng" (from the geocoding fallback).
     if (latLng == null && prediction.placeId.contains(',')) {
       try {
         final parts = prediction.placeId.split(',');
@@ -315,7 +301,6 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       } catch (_) {}
     }
 
-    // 3. Last resort: geocode the description text directly.
     if (latLng == null) {
       try {
         final locations = await locationFromAddress(prediction.description);
@@ -335,16 +320,11 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       return;
     }
 
-    // Use the rich Places API address if available; otherwise keep the
-    // suggestion description already shown.  Either way, skip the reverse
-    // geocode that _onCameraIdle would otherwise trigger so the good address
-    // is never overwritten by a coarser one.
     if (richAddress != null && mounted) {
       setState(() => _address = richAddress!);
     }
     _skipNextReverseGeocode = true;
 
-    // Move the map — _onCameraIdle will fire but skip reverse-geocoding.
     _center = latLng;
     final controller = await _mapController.future;
     await controller.animateCamera(
@@ -364,62 +344,63 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
     final screenHeight = MediaQuery.sizeOf(context).height;
 
     return PopScope(
       canPop: false,
       child: Container(
         height: screenHeight * 0.93,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.scaffold,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.05)),
         ),
         child: Column(
           children: [
-            _buildHandle(),
-            _buildHeader(context),
-            _buildSearchBar(),
-            if (_showPredictions) _buildPredictionsList(),
-            Expanded(child: _buildMap()),
-            _buildBottomBar(),
+            _buildHandle(w),
+            _buildHeader(context, w),
+            _buildSearchBar(w),
+            if (_showPredictions) _buildPredictionsList(w),
+            Expanded(child: _buildMap(w)),
+            _buildBottomBar(w),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHandle() {
+  Widget _buildHandle(double w) {
     return Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 4),
+      padding: EdgeInsets.only(top: w * 0.025, bottom: w * 0.01),
       child: Center(
         child: Container(
-          width: 40,
-          height: 4,
+          width: w * 0.1,
+          height: w * 0.01,
           decoration: BoxDecoration(
             color: AppColors.border,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(w * 0.005),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, double w) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 8, 10),
+      padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.015, w * 0.02, w * 0.025),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: w * 0.05),
             onPressed: () => Navigator.of(context).pop(),
             color: AppColors.textPrimary,
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: w * 0.01),
           Expanded(
             child: Text(
               widget.title,
-              style: const TextStyle(
-                fontSize: 17,
+              style: TextStyle(
+                fontSize: w * 0.043,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
               ),
@@ -430,32 +411,35 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(double w) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.02),
       child: TextField(
         controller: _searchCtrl,
         focusNode: _searchFocus,
         textInputAction: TextInputAction.search,
-        style: const TextStyle(
-          fontSize: 15,
+        style: TextStyle(
+          fontSize: w * 0.038,
           color: AppColors.textPrimary,
           fontFamily: 'Mukta',
         ),
         decoration: InputDecoration(
           hintText: 'Search streets, areas, landmarks…',
           prefixIcon: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(w * 0.03),
             child: HugeIcon(
               icon: HugeIcons.strokeRoundedSearch01,
               color: AppColors.primary,
-              size: 20,
+              size: w * 0.05,
             ),
           ),
           suffixIcon: _searchCtrl.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close_rounded,
-                      size: 18, color: AppColors.textHint),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: w * 0.045,
+                    color: AppColors.textHint,
+                  ),
                   onPressed: () {
                     _searchCtrl.clear();
                     setState(() {
@@ -468,64 +452,64 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
               : null,
           filled: true,
           fillColor: AppColors.surfaceVariant,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: w * 0.04,
+            vertical: w * 0.035,
+          ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(w * 0.03),
             borderSide: const BorderSide(color: AppColors.border),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(w * 0.03),
             borderSide: const BorderSide(color: AppColors.border),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 1.5),
+            borderRadius: BorderRadius.circular(w * 0.03),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPredictionsList() {
+  Widget _buildPredictionsList(double w) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      constraints: const BoxConstraints(maxHeight: 260),
+      margin: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.015),
+      constraints: BoxConstraints(maxHeight: w * 0.65),
       decoration: BoxDecoration(
         color: AppColors.scaffold,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(w * 0.03),
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            blurRadius: w * 0.03,
+            offset: Offset(0, w * 0.01),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(w * 0.03),
         child: _isSearching
-            // Loading state
-            ? const Padding(
-                padding: EdgeInsets.all(20),
+            ? Padding(
+                padding: EdgeInsets.all(w * 0.05),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
+                      width: w * 0.045,
+                      height: w * 0.045,
+                      child: const CircularProgressIndicator(
                         strokeWidth: 2,
                         color: AppColors.primary,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: w * 0.03),
                     Text(
                       'Searching…',
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: w * 0.034,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -533,25 +517,28 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                 ),
               )
             : _predictions.isEmpty
-                // No results state
-                ? const Padding(
-                    padding: EdgeInsets.all(20),
+                ? Padding(
+                    padding: EdgeInsets.all(w * 0.05),
                     child: Row(
                       children: [
-                        Icon(Icons.search_off_rounded,
-                            size: 18, color: AppColors.textHint),
-                        SizedBox(width: 10),
-                        Text(
-                          'No places found. Try a different search.',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            color: AppColors.textHint,
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: w * 0.045,
+                          color: AppColors.textHint,
+                        ),
+                        SizedBox(width: w * 0.025),
+                        Expanded(
+                          child: Text(
+                            'No places found. Try a different search.',
+                            style: TextStyle(
+                              fontSize: w * 0.034,
+                              color: AppColors.textHint,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   )
-                // Results list
                 : ListView.separated(
                     shrinkWrap: true,
                     physics: const ClampingScrollPhysics(),
@@ -563,18 +550,23 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                       return InkWell(
                         onTap: () => _selectPrediction(p),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: w * 0.035,
+                            vertical: w * 0.03,
+                          ),
                           child: Row(
                             children: [
-                              const Icon(Icons.location_on_outlined,
-                                  size: 18, color: AppColors.primary),
-                              const SizedBox(width: 10),
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: w * 0.045,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(width: w * 0.025),
                               Expanded(
                                 child: Text(
                                   p.description,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
+                                  style: TextStyle(
+                                    fontSize: w * 0.034,
                                     color: AppColors.textPrimary,
                                     height: 1.3,
                                   ),
@@ -592,7 +584,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     );
   }
 
-  Widget _buildMap() {
+  Widget _buildMap(double w) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -619,9 +611,9 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
         IgnorePointer(
           child: AnimatedBuilder(
             animation: _elevation,
-            builder: (_, __) {
+            builder: (_, _) {
               final t = _elevation.value;
-              final liftY = t * -16.0;
+              final liftY = t * -(w * 0.04);
               final scale = 1.0 + t * 0.12;
               final groundScaleX = 1.0 - t * 0.6;
               final groundOpacity = (0.22 - t * 0.12).clamp(0.0, 1.0);
@@ -636,10 +628,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                       scale: scale,
                       alignment: Alignment.bottomCenter,
                       child: CustomPaint(
-                        size: const Size(
-                          _MapPinPainter.pinWidth,
-                          _MapPinPainter.pinHeight,
-                        ),
+                        size: Size(w * 0.118, w * 0.169),
                         painter: _MapPinPainter(
                           color: AppColors.primary,
                           elevation: t,
@@ -652,11 +641,11 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                   Transform.scale(
                     scaleX: groundScaleX,
                     child: Container(
-                      width: 16,
-                      height: 5,
+                      width: w * 0.04,
+                      height: w * 0.013,
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: groundOpacity),
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(w * 0.007),
                       ),
                     ),
                   ),
@@ -668,38 +657,41 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
 
         // ── GPS FAB ───────────────────────────────────────────────────────────
         Positioned(
-          right: 14,
-          bottom: 14,
+          right: w * 0.035,
+          bottom: w * 0.035,
           child: FloatingActionButton.small(
             heroTag: 'map_gps_fab',
             backgroundColor: AppColors.scaffold,
             elevation: 4,
             onPressed: _isLocating ? null : _goToMyLocation,
             child: _isLocating
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
+                ? SizedBox(
+                    width: w * 0.045,
+                    height: w * 0.045,
+                    child: const CircularProgressIndicator(
                       strokeWidth: 2,
                       color: AppColors.primary,
                     ),
                   )
-                : const Icon(Icons.my_location_rounded,
-                    color: AppColors.primary, size: 20),
+                : Icon(
+                    Icons.my_location_rounded,
+                    color: AppColors.primary,
+                    size: w * 0.05,
+                  ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(double w) {
     final hasAddress = _address.isNotEmpty;
     return Container(
       padding: EdgeInsets.fromLTRB(
-        16,
-        14,
-        16,
-        14 + MediaQuery.of(context).padding.bottom,
+        w * 0.04,
+        w * 0.035,
+        w * 0.04,
+        w * 0.035 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: const BoxDecoration(
         color: AppColors.scaffold,
@@ -713,30 +705,37 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: EdgeInsets.all(w * 0.0175),
                 decoration: BoxDecoration(
                   color: AppColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.location_on_rounded,
-                    color: AppColors.success, size: 18),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  color: AppColors.success,
+                  size: w * 0.045,
+                ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: w * 0.025),
               Expanded(
                 child: _isReverseGeocoding
-                    ? const Row(
+                    ? Row(
                         children: [
                           SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppColors.textHint),
+                            width: w * 0.035,
+                            height: w * 0.035,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.textHint,
+                            ),
                           ),
-                          SizedBox(width: 8),
+                          SizedBox(width: w * 0.02),
                           Text(
                             'Detecting address…',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.textHint),
+                              fontSize: w * 0.033,
+                              color: AppColors.textHint,
+                            ),
                           ),
                         ],
                       )
@@ -745,7 +744,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                             ? _address
                             : 'Move the map to pick a location',
                         style: TextStyle(
-                          fontSize: 13.5,
+                          fontSize: w * 0.034,
                           color: hasAddress
                               ? AppColors.textPrimary
                               : AppColors.textHint,
@@ -757,7 +756,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: w * 0.03),
 
           // Confirm button
           SizedBox(
@@ -768,15 +767,18 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: AppColors.border,
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                padding: EdgeInsets.symmetric(vertical: w * 0.038),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(w * 0.03),
                 ),
                 elevation: 0,
               ),
-              child: const Text(
+              child: Text(
                 'Confirm Location',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontSize: w * 0.038,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -806,11 +808,6 @@ class _MapPinPainter extends CustomPainter {
   final double elevation;
 
   const _MapPinPainter({required this.color, required this.elevation});
-
-  // Only the canvas size is declared here — everything inside paint() is
-  // derived from size.width / size.height so it scales to any dimension.
-  static const double pinWidth  = 46.0;
-  static const double pinHeight = 66.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -891,9 +888,9 @@ class _MapPinPainter extends CustomPainter {
     );
 
     // ── 7. Thin needle ────────────────────────────────────────────────────────
-    final baseY      = cy + r - h * 0.015;
-    final halfW      = w * 0.065;
-    final tipY       = h;
+    final baseY       = cy + r - h * 0.015;
+    final halfW       = w * 0.065;
+    final tipY        = h;
     final needleColor = Color.lerp(color, Colors.black, 0.32)!;
 
     // Needle shadow

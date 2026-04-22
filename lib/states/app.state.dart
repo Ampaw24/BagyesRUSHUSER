@@ -28,7 +28,7 @@ class AppState with ChangeNotifier {
     user.id = data.id;
   }
 
-  void setUser(data) {
+  void setUser(IUser data) {
     user = data;
   }
 

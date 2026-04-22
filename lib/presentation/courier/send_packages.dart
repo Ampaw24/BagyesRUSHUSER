@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -60,7 +61,8 @@ class _SendPackagesState extends State<SendPackages> {
   bool deliveryAddress = false;
 
   // Calculate Distance Between two Locations
-  double calculateDistance(lat1, lon1, lat2, lon2) {
+
+  double calculateDistance(double lat1, lon1, lat2, lon2) {
     var p = 0.017453292519943295;
     var c = cos;
     var a =
@@ -237,13 +239,13 @@ class _SendPackagesState extends State<SendPackages> {
                           bottom: fixPadding * 2.0,
                         ),
                         decoration: BoxDecoration(
-                          color: greyColor.withOpacity(0.07),
+                          color: greyColor.withValues(alpha: 0.07),
                           borderRadius: BorderRadius.circular(20.0),
                           border: Border.all(
                             width: 0.8,
                             color: (documents)
                                 ? primaryColor
-                                : greyColor.withOpacity(0.2),
+                                : greyColor.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Container(
@@ -307,13 +309,13 @@ class _SendPackagesState extends State<SendPackages> {
                           bottom: fixPadding * 2.0,
                         ),
                         decoration: BoxDecoration(
-                          color: greyColor.withOpacity(0.07),
+                          color: greyColor.withValues(alpha: 0.07),
                           borderRadius: BorderRadius.circular(20.0),
                           border: Border.all(
                             width: 0.8,
                             color: (parcel)
                                 ? primaryColor
-                                : greyColor.withOpacity(0.2),
+                                : greyColor.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Container(
@@ -524,10 +526,10 @@ class _SendPackagesState extends State<SendPackages> {
                                                     "Pick This Place",
                                                   ),
                                                   onPressed: () {
-                                                    print(
+                                                    log(
                                                       selectedPlace!
                                                           .geometry!
-                                                          .location,
+                                                          .location.toString()
                                                     );
                                                     Navigator.pop(
                                                       context,
@@ -581,7 +583,7 @@ class _SendPackagesState extends State<SendPackages> {
                           borderRadius: BorderRadius.circular(5.0),
                           border: Border.all(
                             width: 0.8,
-                            color: greyColor.withOpacity(0.6),
+                            color: greyColor.withValues(alpha: 0.6),
                           ),
                         ),
                         child: TextField(
@@ -731,7 +733,7 @@ class _SendPackagesState extends State<SendPackages> {
                           borderRadius: BorderRadius.circular(5.0),
                           border: Border.all(
                             width: 0.8,
-                            color: greyColor.withOpacity(0.6),
+                            color: greyColor.withValues(alpha: 0.6),
                           ),
                         ),
                         child: TextField(

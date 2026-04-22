@@ -181,7 +181,7 @@ class _NotificationsState extends State<Notifications> {
                   ),
                 ),
               );
-            },
+            },     
           );
   }
 }

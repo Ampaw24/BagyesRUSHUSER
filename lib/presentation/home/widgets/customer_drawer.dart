@@ -160,17 +160,17 @@ class _CustomerDrawerState extends State<CustomerDrawer>
           ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(w * 0.07),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 40,
-                offset: const Offset(8, 4),
+                blurRadius: w * 0.1,
+                offset: Offset(w * 0.02, w * 0.01),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(w * 0.07),
             child: Column(
               children: [
                 DrawerHeader(
@@ -229,13 +229,13 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 fadeAnim: _staggeredFade(4),
                                 slideAnim: _staggeredSlide(4),
                               ),
-                              DrawerTile(
-                                icon: HugeIcons.strokeRoundedMoneyBag01,
-                                label: 'Invite Friends',
-                                onTap: widget.onInviteFriends,
-                                fadeAnim: _staggeredFade(5),
-                                slideAnim: _staggeredSlide(5),
-                              ),
+                              // DrawerTile(
+                              //   icon: HugeIcons.strokeRoundedMoneyBag01,
+                              //   label: 'Invite Friends',
+                              //   onTap: widget.onInviteFriends,
+                              //   fadeAnim: _staggeredFade(5),
+                              //   slideAnim: _staggeredSlide(5),
+                              // ),
                               DrawerTile(
                                 icon: HugeIcons.strokeRoundedShieldKey,
                                 label: 'Privacy Policy',
@@ -340,7 +340,7 @@ class DrawerHeader extends StatelessWidget {
                 padding: EdgeInsets.all(w * 0.018),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(w * 0.025),
                 ),
                 child: HugeIcon(
                   icon: HugeIcons.strokeRoundedCancel01,
@@ -466,7 +466,7 @@ class DrawerTile extends StatelessWidget {
                     padding: EdgeInsets.all(w * 0.02),
                     decoration: BoxDecoration(
                       color: iconColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(w * 0.025),
                     ),
                     child: HugeIcon(
                       icon: icon,
