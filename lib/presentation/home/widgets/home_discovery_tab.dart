@@ -342,7 +342,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
         // ── Food categories ──
         SliverToBoxAdapter(
           child: SizedBox(
-            height: w * 0.115,
+            height: w * 0.088,
             child: ref
                 .watch(categoriesProvider)
                 .when(

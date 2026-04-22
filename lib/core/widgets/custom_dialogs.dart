@@ -215,7 +215,7 @@ class _CustomDialogState extends State<CustomDialog>
       case DialogType.warning:
         return const Color(0xFFE65100);
       case DialogType.confirmation:
-        return const Color(0xFF5C35D4);
+        return const Color(0xFFD32F2F);
       case DialogType.info:
         return const Color(0xFF0056D2);
     }
@@ -232,7 +232,7 @@ class _CustomDialogState extends State<CustomDialog>
       case DialogType.warning:
         return HugeIcons.strokeRoundedAlert01;
       case DialogType.confirmation:
-        return HugeIcons.strokeRoundedHelpCircle;
+        return HugeIcons.strokeRoundedAlert01;
       case DialogType.info:
         return HugeIcons.strokeRoundedInformationCircle;
     }

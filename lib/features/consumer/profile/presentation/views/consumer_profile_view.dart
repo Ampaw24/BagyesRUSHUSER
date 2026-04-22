@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/states/profile_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/viewmodels/profile_viewmodel.dart';
+import 'package:bagyesrushappusernew/services/auth.service.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/states/app.state.dart';
 
 class ConsumerProfileView extends ConsumerWidget {
   const ConsumerProfileView({super.key});
@@ -209,7 +213,6 @@ class _ProfileBody extends ConsumerWidget {
   }
 
 
-//TODO:FIx Dark screen here on logout tap
   void _confirmLogout(BuildContext context, WidgetRef ref) {
     CustomDialog.showConfirmation(
       context: context,
@@ -217,9 +220,12 @@ class _ProfileBody extends ConsumerWidget {
       subtitle:
           "You sure want to logout?\nYou will be returned to the login screen.",
       onConfirm: () async {
-        Navigator.of(context).pop();
-        await ref.read(profileProvider.notifier).logout();
-        if (context.mounted) context.go(AppRoutes.login);
+        if (!context.mounted) return;
+        await context.read<AuthViewmodel>().logout();
+        if (!context.mounted) return;
+        context.read<AppState>().setUser(IUser());
+        context.read<AppState>().setPayload(ISignup());
+        context.go(AppRoutes.login);
       },
       confirmText: 'Log out',
       cancelText: 'Cancel',
