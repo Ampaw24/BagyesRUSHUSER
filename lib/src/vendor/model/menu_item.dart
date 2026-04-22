@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 
 class MenuItem extends Equatable {
   final String id;
@@ -12,6 +13,9 @@ class MenuItem extends Equatable {
   final int prepTimeMinutes;
   final bool isFeatured;
   final bool isOutOfStock;
+  final List<AddonGroup> addonGroups;
+  final int minimumOrderQty;
+  final int? maximumOrderQty;
 
   const MenuItem({
     required this.id,
@@ -25,6 +29,9 @@ class MenuItem extends Equatable {
     this.prepTimeMinutes = 15,
     this.isFeatured = false,
     this.isOutOfStock = false,
+    this.addonGroups = const [],
+    this.minimumOrderQty = 1,
+    this.maximumOrderQty,
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
@@ -40,6 +47,11 @@ class MenuItem extends Equatable {
       prepTimeMinutes: json['prep_time_minutes'] as int? ?? 15,
       isFeatured: json['is_featured'] as bool? ?? false,
       isOutOfStock: json['is_out_of_stock'] as bool? ?? false,
+      addonGroups: (json['addon_groups'] as List<dynamic>? ?? [])
+          .map((e) => AddonGroup.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      minimumOrderQty: json['minimum_order_qty'] as int? ?? 1,
+      maximumOrderQty: json['maximum_order_qty'] as int?,
     );
   }
 
@@ -56,6 +68,9 @@ class MenuItem extends Equatable {
       'prep_time_minutes': prepTimeMinutes,
       'is_featured': isFeatured,
       'is_out_of_stock': isOutOfStock,
+      'addon_groups': addonGroups.map((g) => g.toJson()).toList(),
+      'minimum_order_qty': minimumOrderQty,
+      if (maximumOrderQty != null) 'maximum_order_qty': maximumOrderQty,
     };
   }
 
@@ -71,6 +86,10 @@ class MenuItem extends Equatable {
     int? prepTimeMinutes,
     bool? isFeatured,
     bool? isOutOfStock,
+    List<AddonGroup>? addonGroups,
+    int? minimumOrderQty,
+    int? maximumOrderQty,
+    bool clearMaxOrderQty = false,
   }) {
     return MenuItem(
       id: id ?? this.id,
@@ -84,6 +103,10 @@ class MenuItem extends Equatable {
       prepTimeMinutes: prepTimeMinutes ?? this.prepTimeMinutes,
       isFeatured: isFeatured ?? this.isFeatured,
       isOutOfStock: isOutOfStock ?? this.isOutOfStock,
+      addonGroups: addonGroups ?? this.addonGroups,
+      minimumOrderQty: minimumOrderQty ?? this.minimumOrderQty,
+      maximumOrderQty:
+          clearMaxOrderQty ? null : (maximumOrderQty ?? this.maximumOrderQty),
     );
   }
 
@@ -100,5 +123,8 @@ class MenuItem extends Equatable {
         prepTimeMinutes,
         isFeatured,
         isOutOfStock,
+        addonGroups,
+        minimumOrderQty,
+        maximumOrderQty,
       ];
 }

@@ -61,6 +61,25 @@ class CartItemTile extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
+                // Selected addons
+                if (cartItem.selectedAddons.isNotEmpty) ...[
+                  SizedBox(height: w * 0.006),
+                  ...cartItem.selectedAddons.map(
+                    (addon) {
+                      final qtyPrefix = addon.quantity > 1 ? '${addon.quantity}× ' : '';
+                      final priceStr = addon.additionalPrice > 0
+                          ? ' (GHS ${(addon.additionalPrice * addon.quantity).toStringAsFixed(2)})'
+                          : '';
+                      return Text(
+                        '+ $qtyPrefix${addon.optionName}$priceStr',
+                        style: TextStyle(
+                          fontSize: w * 0.027,
+                          color: AppColors.textSecondary,
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 if (cartItem.specialInstructions != null &&
                     cartItem.specialInstructions!.isNotEmpty) ...[
                   SizedBox(height: w * 0.007),
@@ -79,7 +98,9 @@ class CartItemTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'GHS ${item.price.toStringAsFixed(2)}',
+                      cartItem.addonsTotalPerUnit > 0
+                          ? 'GHS ${(item.price + cartItem.addonsTotalPerUnit).toStringAsFixed(2)} each'
+                          : 'GHS ${item.price.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: w * 0.033,
                         color: AppColors.textSecondary,

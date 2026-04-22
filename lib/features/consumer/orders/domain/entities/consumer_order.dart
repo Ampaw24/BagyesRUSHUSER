@@ -1,6 +1,8 @@
 /// Consumer-side order domain entity.
 library;
 
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
+
 enum OrderStatus {
   pending,
   accepted,
@@ -44,14 +46,29 @@ class OrderItem {
   final int quantity;
   final double unitPrice;
 
+  /// Snapshot of selected addons at order time.
+  final List<SelectedAddon> addons;
+
   const OrderItem({
     required this.menuItemId,
     required this.name,
     required this.quantity,
     required this.unitPrice,
+    this.addons = const [],
   });
 
-  double get lineTotal => unitPrice * quantity;
+  double get addonsUnitTotal =>
+      addons.fold(0.0, (sum, a) => sum + a.additionalPrice);
+
+  double get lineTotal => (unitPrice + addonsUnitTotal) * quantity;
+
+  Map<String, dynamic> toJson() => {
+        'menu_item_id': menuItemId,
+        'name': name,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'addons': addons.map((a) => a.toJson()).toList(),
+      };
 }
 
 class ConsumerOrder {

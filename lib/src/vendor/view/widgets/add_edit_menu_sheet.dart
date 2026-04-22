@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../../constant/app_theme.dart';
+import '../../../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../../model/menu_item.dart';
 import '../../viewmodel/menu_viewmodel.dart';
 
@@ -59,6 +60,11 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
   bool _isOutOfStock = false;
   XFile? _pickedImage;
 
+  // Addon state
+  List<AddonGroup> _addonGroups = [];
+  int _minimumOrderQty = 1;
+  int? _maximumOrderQty;
+
   bool get _isEditing => widget.item != null;
 
   @override
@@ -78,6 +84,9 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
       _isFeatured = item.isFeatured;
       _isAvailable = item.isAvailable;
       _isOutOfStock = item.isOutOfStock;
+      _addonGroups = List<AddonGroup>.from(item.addonGroups);
+      _minimumOrderQty = item.minimumOrderQty;
+      _maximumOrderQty = item.maximumOrderQty;
     }
   }
 
@@ -98,9 +107,11 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.05)),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(w * 0.05)),
           ),
-          padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, w * 0.06),
+          padding: EdgeInsets.fromLTRB(
+              w * 0.05, w * 0.04, w * 0.05, w * 0.06),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -162,6 +173,9 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
       'is_featured': _isFeatured,
       'is_available': _isAvailable,
       'is_out_of_stock': _isOutOfStock,
+      'addon_groups': _addonGroups.map((g) => g.toJson()).toList(),
+      'minimum_order_qty': _minimumOrderQty,
+      if (_maximumOrderQty != null) 'maximum_order_qty': _maximumOrderQty,
       if (_pickedImage != null) 'local_image_path': _pickedImage!.path,
       if (_isEditing && _pickedImage == null && widget.item?.imageUrl != null)
         'image_url': widget.item!.imageUrl,
@@ -175,6 +189,17 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
     }
 
     if (context.mounted) Navigator.of(context).pop();
+  }
+
+  void _showAddGroupDialog() {
+    showDialog<AddonGroup>(
+      context: context,
+      builder: (ctx) => _AddGroupDialog(),
+    ).then((group) {
+      if (group != null) {
+        setState(() => _addonGroups.add(group));
+      }
+    });
   }
 
   @override
@@ -330,7 +355,7 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                                       horizontal: w * 0.03,
                                     ),
                                     child: Text(
-                                      '₦',
+                                      '₵',
                                       style: TextStyle(
                                         fontSize: w * 0.042,
                                         fontWeight: FontWeight.w700,
@@ -427,6 +452,127 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                     ),
                     SizedBox(height: w * 0.04),
 
+                    // ── Order Quantity Limits ──
+                    _SectionLabel(label: 'Order Quantity Limits', w: w),
+                    SizedBox(height: w * 0.02),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Min Qty',
+                                style: TextStyle(
+                                  fontSize: w * 0.03,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              SizedBox(height: w * 0.015),
+                              _PrepTimeStepper(
+                                value: _minimumOrderQty,
+                                step: 1,
+                                minValue: 1,
+                                unit: '',
+                                onChanged: (v) =>
+                                    setState(() => _minimumOrderQty = v),
+                                w: w,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: w * 0.04),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Max Qty (optional)',
+                                style: TextStyle(
+                                  fontSize: w * 0.03,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              SizedBox(height: w * 0.015),
+                              TextFormField(
+                                initialValue: _maximumOrderQty?.toString(),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                style: TextStyle(fontSize: w * 0.038),
+                                decoration: InputDecoration(
+                                  hintText: '—',
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: w * 0.03,
+                                    vertical: w * 0.035,
+                                  ),
+                                ),
+                                onChanged: (v) {
+                                  final parsed = int.tryParse(v);
+                                  setState(() =>
+                                      _maximumOrderQty = parsed);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: w * 0.04),
+
+                    // ── Addons ──
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SectionLabel(label: 'Addons', w: w),
+                        ),
+                        if (_addonGroups.isNotEmpty)
+                          Text(
+                            '${_addonGroups.length} group${_addonGroups.length > 1 ? 's' : ''}',
+                            style: TextStyle(
+                              fontSize: w * 0.03,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: w * 0.02),
+
+                    // Addon group editors
+                    ..._addonGroups.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final group = entry.value;
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: w * 0.03),
+                        child: _AddonGroupEditor(
+                          group: group,
+                          onChanged: (updated) => setState(
+                              () => _addonGroups[index] = updated),
+                          onDelete: () =>
+                              setState(() => _addonGroups.removeAt(index)),
+                          w: w,
+                        ),
+                      );
+                    }),
+
+                    // Add group button
+                    OutlinedButton.icon(
+                      onPressed: _showAddGroupDialog,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Addon Group'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(w * 0.025),
+                        ),
+                        minimumSize: Size(double.infinity, w * 0.12),
+                      ),
+                    ),
+                    SizedBox(height: w * 0.04),
+
                     // ── Toggles ──
                     _ToggleRow(
                       icon: Icons.star_rounded,
@@ -477,7 +623,8 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                                 ? SizedBox(
                                     width: w * 0.055,
                                     height: w * 0.055,
-                                    child: const CircularProgressIndicator(
+                                    child:
+                                        const CircularProgressIndicator(
                                       strokeWidth: 2,
                                       color: Colors.white,
                                     ),
@@ -502,6 +649,438 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Addon Group Editor ────────────────────────────────────────────────────────
+
+class _AddonGroupEditor extends StatefulWidget {
+  final AddonGroup group;
+  final ValueChanged<AddonGroup> onChanged;
+  final VoidCallback onDelete;
+  final double w;
+
+  const _AddonGroupEditor({
+    required this.group,
+    required this.onChanged,
+    required this.onDelete,
+    required this.w,
+  });
+
+  @override
+  State<_AddonGroupEditor> createState() => _AddonGroupEditorState();
+}
+
+class _AddonGroupEditorState extends State<_AddonGroupEditor> {
+  bool _expanded = true;
+
+  void _addOption() {
+    final newOption = AddonOption(
+      id: 'opt_${DateTime.now().millisecondsSinceEpoch}',
+      name: '',
+      additionalPrice: 0,
+    );
+    widget.onChanged(widget.group.copyWith(
+      options: [...widget.group.options, newOption],
+    ));
+  }
+
+  void _updateOption(int index, AddonOption updated) {
+    final options = List<AddonOption>.from(widget.group.options);
+    options[index] = updated;
+    widget.onChanged(widget.group.copyWith(options: options));
+  }
+
+  void _removeOption(int index) {
+    final options = List<AddonOption>.from(widget.group.options)
+      ..removeAt(index);
+    widget.onChanged(widget.group.copyWith(options: options));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.w;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          // Group header
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(w * 0.03),
+              bottom: _expanded
+                  ? Radius.zero
+                  : Radius.circular(w * 0.03),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.04,
+                vertical: w * 0.03,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.group.name.isEmpty
+                              ? 'Unnamed Group'
+                              : widget.group.name,
+                          style: TextStyle(
+                            fontSize: w * 0.036,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: w * 0.005),
+                        Row(
+                          children: [
+                            if (widget.group.isRequired)
+                              _GroupBadge(
+                                label: 'Required',
+                                color: AppColors.primary,
+                                w: w,
+                              ),
+                            if (widget.group.isRequired)
+                              SizedBox(width: w * 0.015),
+                            _GroupBadge(
+                              label: widget.group.maxSelections == 1
+                                  ? 'Single choice'
+                                  : 'Up to ${widget.group.maxSelections}',
+                              color: AppColors.textSecondary,
+                              w: w,
+                            ),
+                            SizedBox(width: w * 0.015),
+                            Text(
+                              '${widget.group.options.length} option${widget.group.options.length != 1 ? 's' : ''}',
+                              style: TextStyle(
+                                fontSize: w * 0.028,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppColors.error,
+                      size: w * 0.05,
+                    ),
+                    onPressed: widget.onDelete,
+                  ),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textSecondary,
+                    size: w * 0.05,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (_expanded) ...[
+            Divider(height: 1, color: AppColors.border),
+
+            // Option rows
+            ...widget.group.options.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final opt = entry.value;
+              return _OptionRow(
+                option: opt,
+                onChanged: (updated) => _updateOption(idx, updated),
+                onDelete: () => _removeOption(idx),
+                w: w,
+              );
+            }),
+
+            // Add option button
+            TextButton.icon(
+              onPressed: _addOption,
+              icon: Icon(Icons.add, size: w * 0.04),
+              label: Text(
+                'Add Option',
+                style: TextStyle(fontSize: w * 0.033),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                padding: EdgeInsets.symmetric(
+                  horizontal: w * 0.04,
+                  vertical: w * 0.025,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  final double w;
+
+  const _GroupBadge({
+    required this.label,
+    required this.color,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: w * 0.015,
+        vertical: w * 0.003,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: w * 0.026,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _OptionRow extends StatefulWidget {
+  final AddonOption option;
+  final ValueChanged<AddonOption> onChanged;
+  final VoidCallback onDelete;
+  final double w;
+
+  const _OptionRow({
+    required this.option,
+    required this.onChanged,
+    required this.onDelete,
+    required this.w,
+  });
+
+  @override
+  State<_OptionRow> createState() => _OptionRowState();
+}
+
+class _OptionRowState extends State<_OptionRow> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _priceCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.option.name);
+    _priceCtrl = TextEditingController(
+      text: widget.option.additionalPrice > 0
+          ? widget.option.additionalPrice.toStringAsFixed(2)
+          : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _priceCtrl.dispose();
+    super.dispose();
+  }
+
+  void _emit() {
+    final price =
+        double.tryParse(_priceCtrl.text.trim()) ?? 0.0;
+    widget.onChanged(widget.option.copyWith(
+      name: _nameCtrl.text.trim(),
+      additionalPrice: price,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.w;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.02, w * 0.025, w * 0.02),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: TextField(
+              controller: _nameCtrl,
+              onChanged: (_) => _emit(),
+              textCapitalization: TextCapitalization.words,
+              style: TextStyle(fontSize: w * 0.034),
+              decoration: InputDecoration(
+                hintText: 'Option name',
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: w * 0.025,
+                  vertical: w * 0.025,
+                ),
+                isDense: true,
+              ),
+            ),
+          ),
+          SizedBox(width: w * 0.025),
+          Expanded(
+            flex: 3,
+            child: TextField(
+              controller: _priceCtrl,
+              onChanged: (_) => _emit(),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+              ],
+              style: TextStyle(fontSize: w * 0.034),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                prefixText: 'GH₵ ',
+                prefixStyle: TextStyle(
+                  fontSize: w * 0.03,
+                  color: AppColors.textSecondary,
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: w * 0.025,
+                  vertical: w * 0.025,
+                ),
+                isDense: true,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.remove_circle_outline_rounded,
+              color: AppColors.error,
+              size: w * 0.045,
+            ),
+            onPressed: widget.onDelete,
+            padding: EdgeInsets.zero,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Add Group Dialog ──────────────────────────────────────────────────────────
+
+class _AddGroupDialog extends StatefulWidget {
+  const _AddGroupDialog();
+
+  @override
+  State<_AddGroupDialog> createState() => _AddGroupDialogState();
+}
+
+class _AddGroupDialogState extends State<_AddGroupDialog> {
+  final _nameCtrl = TextEditingController();
+  bool _isRequired = false;
+  int _maxSelections = 1;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(w * 0.04),
+      ),
+      title: const Text('New Addon Group'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _nameCtrl,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Group name *',
+              hintText: 'e.g. Choose Protein',
+            ),
+          ),
+          SizedBox(height: w * 0.04),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Max selections',
+                  style: TextStyle(fontSize: w * 0.034),
+                ),
+              ),
+              _PrepTimeStepper(
+                value: _maxSelections,
+                step: 1,
+                minValue: 1,
+                unit: '',
+                onChanged: (v) =>
+                    setState(() => _maxSelections = v),
+                w: w * 0.55,
+              ),
+            ],
+          ),
+          SizedBox(height: w * 0.02),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Required',
+                  style: TextStyle(fontSize: w * 0.034),
+                ),
+              ),
+              Switch(
+                value: _isRequired,
+                onChanged: (v) =>
+                    setState(() => _isRequired = v),
+                activeTrackColor: AppColors.primary,
+                activeThumbColor: Colors.white,
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final name = _nameCtrl.text.trim();
+            if (name.isEmpty) return;
+            Navigator.of(context).pop(
+              AddonGroup(
+                id: 'grp_${DateTime.now().millisecondsSinceEpoch}',
+                name: name,
+                isRequired: _isRequired,
+                minSelections: _isRequired ? 1 : 0,
+                maxSelections: _maxSelections,
+                options: const [],
+              ),
+            );
+          },
+          child: const Text('Add'),
+        ),
+      ],
     );
   }
 }
@@ -549,9 +1128,10 @@ class _ImageUploadArea extends StatelessWidget {
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(w * 0.04),
         border: Border.all(
-          color: hasImage ? AppColors.primary.withValues(alpha: 0.3) : AppColors.border,
+          color: hasImage
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : AppColors.border,
           width: hasImage ? 1.5 : 1,
-          style: hasImage ? BorderStyle.solid : BorderStyle.solid,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -568,10 +1148,8 @@ class _ImageUploadArea extends StatelessWidget {
                   Image.network(
                     existingUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) =>
-                        _emptyState(w),
+                    errorBuilder: (ctx, err, stack) => _emptyState(w),
                   ),
-                // Change photo overlay
                 Positioned(
                   bottom: w * 0.03,
                   right: w * 0.03,
@@ -683,9 +1261,8 @@ class _CategorySelector extends StatelessWidget {
                       : AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(w * 0.025),
                   border: Border.all(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.border,
+                    color:
+                        isSelected ? AppColors.primary : AppColors.border,
                   ),
                 ),
                 child: Text(
@@ -711,11 +1288,17 @@ class _PrepTimeStepper extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
   final double w;
+  final int step;
+  final int minValue;
+  final String unit;
 
   const _PrepTimeStepper({
     required this.value,
     required this.onChanged,
     required this.w,
+    this.step = 5,
+    this.minValue = 5,
+    this.unit = 'm',
   });
 
   @override
@@ -732,13 +1315,13 @@ class _PrepTimeStepper extends StatelessWidget {
           _StepBtn(
             icon: Icons.remove,
             onTap: () {
-              if (value > 5) onChanged(value - 5);
+              if (value > minValue) onChanged(value - step);
             },
             w: w,
           ),
           Expanded(
             child: Text(
-              '${value}m',
+              '$value$unit',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: w * 0.038,
@@ -749,7 +1332,7 @@ class _PrepTimeStepper extends StatelessWidget {
           ),
           _StepBtn(
             icon: Icons.add,
-            onTap: () => onChanged(value + 5),
+            onTap: () => onChanged(value + step),
             w: w,
           ),
         ],

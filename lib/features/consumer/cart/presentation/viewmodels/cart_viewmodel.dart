@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/domain/entities/cart_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 
@@ -17,7 +18,7 @@ class CartViewModel extends Notifier<CartState> {
     MenuItem item, {
     int quantity = 1,
     String? instructions,
-    List<String> customizations = const [],
+    List<SelectedAddon> selectedAddons = const [],
   }) {
     if (state.restaurantId != null && state.restaurantId != restaurant.id) {
       return false;
@@ -38,7 +39,7 @@ class CartViewModel extends Notifier<CartState> {
           item: item,
           quantity: quantity,
           specialInstructions: instructions,
-          selectedCustomizationIds: customizations,
+          selectedAddons: selectedAddons,
         ),
       ];
     }
@@ -79,6 +80,7 @@ class CartViewModel extends Notifier<CartState> {
     MenuItem item, {
     int quantity = 1,
     String? instructions,
+    List<SelectedAddon> selectedAddons = const [],
   }) {
     state = CartState(
       restaurantId: restaurant.id,
@@ -90,6 +92,7 @@ class CartViewModel extends Notifier<CartState> {
           item: item,
           quantity: quantity,
           specialInstructions: instructions,
+          selectedAddons: selectedAddons,
         ),
       ],
     );

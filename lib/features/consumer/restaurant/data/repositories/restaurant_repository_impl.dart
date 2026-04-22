@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/repositories/i_restaurant_repository.dart';
@@ -285,6 +286,34 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       description: 'Smoky party jollof rice with grilled or fried chicken',
       imageUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400',
       price: 55.00, category: 'Rice Dishes', isPopular: true,
+      minimumOrderQty: 1,
+      addonGroups: [
+        AddonGroup(
+          id: 'r2_m1_g1',
+          name: 'Add Protein',
+          isRequired: false,
+          minSelections: 0,
+          maxSelections: 2,
+          options: [
+            AddonOption(id: 'r2_m1_o1', name: 'Extra Chicken', additionalPrice: 20.00),
+            AddonOption(id: 'r2_m1_o2', name: 'Fried Egg', additionalPrice: 8.00),
+            AddonOption(id: 'r2_m1_o3', name: 'Smoked Fish', additionalPrice: 15.00),
+            AddonOption(id: 'r2_m1_o4', name: 'Sausage', additionalPrice: 12.00),
+          ],
+        ),
+        AddonGroup(
+          id: 'r2_m1_g2',
+          name: 'Choose Side',
+          isRequired: true,
+          minSelections: 1,
+          maxSelections: 1,
+          options: [
+            AddonOption(id: 'r2_m1_o5', name: 'Fried Plantain', additionalPrice: 0.00),
+            AddonOption(id: 'r2_m1_o6', name: 'Coleslaw', additionalPrice: 5.00),
+            AddonOption(id: 'r2_m1_o7', name: 'Kelewele', additionalPrice: 8.00),
+          ],
+        ),
+      ],
     ),
     MenuItem(
       id: 'r2_m2', restaurantId: 'r2',
@@ -471,6 +500,33 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       description: 'Double smashed patty, American cheese, pickles & special sauce',
       imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400',
       price: 85.00, category: 'Burgers', isPopular: true,
+      addonGroups: [
+        AddonGroup(
+          id: 'r7_m1_g1',
+          name: 'Choose Bun',
+          isRequired: true,
+          minSelections: 1,
+          maxSelections: 1,
+          options: [
+            AddonOption(id: 'r7_m1_o1', name: 'Brioche Bun', additionalPrice: 0.00),
+            AddonOption(id: 'r7_m1_o2', name: 'Sesame Bun', additionalPrice: 0.00),
+            AddonOption(id: 'r7_m1_o3', name: 'Lettuce Wrap (GF)', additionalPrice: 0.00),
+          ],
+        ),
+        AddonGroup(
+          id: 'r7_m1_g2',
+          name: 'Extras',
+          isRequired: false,
+          minSelections: 0,
+          maxSelections: 3,
+          options: [
+            AddonOption(id: 'r7_m1_o4', name: 'Extra Cheese', additionalPrice: 8.00),
+            AddonOption(id: 'r7_m1_o5', name: 'Bacon Strips', additionalPrice: 15.00),
+            AddonOption(id: 'r7_m1_o6', name: 'Avocado', additionalPrice: 12.00),
+            AddonOption(id: 'r7_m1_o7', name: 'Jalapeños', additionalPrice: 5.00),
+          ],
+        ),
+      ],
     ),
     MenuItem(
       id: 'r7_m2', restaurantId: 'r7',
@@ -504,6 +560,33 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       description: 'Frozen acai blend with granola, banana & fresh berries',
       imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400',
       price: 65.00, category: 'Bowls', isPopular: true,
+      addonGroups: [
+        AddonGroup(
+          id: 'r8_m1_g1',
+          name: 'Add Toppings',
+          isRequired: false,
+          minSelections: 0,
+          maxSelections: 4,
+          options: [
+            AddonOption(id: 'r8_m1_o1', name: 'Peanut Butter', additionalPrice: 5.00),
+            AddonOption(id: 'r8_m1_o2', name: 'Honey Drizzle', additionalPrice: 3.00),
+            AddonOption(id: 'r8_m1_o3', name: 'Chia Seeds', additionalPrice: 5.00),
+            AddonOption(id: 'r8_m1_o4', name: 'Coconut Flakes', additionalPrice: 4.00),
+            AddonOption(id: 'r8_m1_o5', name: 'Extra Granola', additionalPrice: 6.00),
+          ],
+        ),
+        AddonGroup(
+          id: 'r8_m1_g2',
+          name: 'Bowl Size',
+          isRequired: true,
+          minSelections: 1,
+          maxSelections: 1,
+          options: [
+            AddonOption(id: 'r8_m1_o6', name: 'Regular', additionalPrice: 0.00),
+            AddonOption(id: 'r8_m1_o7', name: 'Large (+GHS 15)', additionalPrice: 15.00),
+          ],
+        ),
+      ],
     ),
     MenuItem(
       id: 'r8_m2', restaurantId: 'r8',

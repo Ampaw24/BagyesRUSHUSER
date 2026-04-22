@@ -1,32 +1,35 @@
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 
-/// A single item in the cart, wrapping a [MenuItem] with quantity and options.
+/// A single item in the cart, wrapping a [MenuItem] with quantity and addons.
 class CartItem {
   final MenuItem item;
   final int quantity;
   final String? specialInstructions;
-  final List<String> selectedCustomizationIds;
+  final List<SelectedAddon> selectedAddons;
 
   const CartItem({
     required this.item,
     required this.quantity,
     this.specialInstructions,
-    this.selectedCustomizationIds = const [],
+    this.selectedAddons = const [],
   });
 
-  double get lineTotal => item.price * quantity;
+  double get addonsTotalPerUnit =>
+      selectedAddons.fold(0.0, (sum, a) => sum + a.totalPrice);
+
+  double get lineTotal => (item.price + addonsTotalPerUnit) * quantity;
 
   CartItem copyWith({
     int? quantity,
     String? specialInstructions,
-    List<String>? selectedCustomizationIds,
+    List<SelectedAddon>? selectedAddons,
   }) {
     return CartItem(
       item: item,
       quantity: quantity ?? this.quantity,
       specialInstructions: specialInstructions ?? this.specialInstructions,
-      selectedCustomizationIds:
-          selectedCustomizationIds ?? this.selectedCustomizationIds,
+      selectedAddons: selectedAddons ?? this.selectedAddons,
     );
   }
 
@@ -37,4 +40,3 @@ class CartItem {
   @override
   int get hashCode => item.id.hashCode;
 }
-

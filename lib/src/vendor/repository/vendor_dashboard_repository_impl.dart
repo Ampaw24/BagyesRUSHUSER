@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/network_utility.dart';
+import '../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../model/vendor_order.dart';
 import '../model/menu_item.dart';
 import '../model/earnings_data.dart';
@@ -246,6 +247,57 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       return Left(
         ServerFailure(
           response.data['message'] ?? 'Failed to delete menu item',
+        ),
+      );
+    } on DioException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Network error'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, MenuItem>> upsertAddonGroups(
+    String menuItemId,
+    List<AddonGroup> groups,
+  ) async {
+    try {
+      final response = await _networkUtility.dio.put(
+        ApiEndpoints.vendorMenuItemAddonGroups(menuItemId),
+        data: {'addon_groups': groups.map((g) => g.toJson()).toList()},
+      );
+      if (response.data['success'] == true) {
+        return Right(
+          MenuItem.fromJson(response.data['data'] as Map<String, dynamic>),
+        );
+      }
+      return Left(
+        ServerFailure(
+          response.data['message'] ?? 'Failed to update addon groups',
+        ),
+      );
+    } on DioException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Network error'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> deleteAddonGroup(
+    String menuItemId,
+    String groupId,
+  ) async {
+    try {
+      final response = await _networkUtility.dio.delete(
+        ApiEndpoints.vendorMenuItemAddonGroup(menuItemId, groupId),
+      );
+      if (response.data['success'] == true) {
+        return const Right(true);
+      }
+      return Left(
+        ServerFailure(
+          response.data['message'] ?? 'Failed to delete addon group',
         ),
       );
     } on DioException catch (e) {

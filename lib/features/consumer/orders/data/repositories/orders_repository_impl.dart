@@ -32,6 +32,7 @@ class OrdersRepositoryImpl implements IOrdersRepository {
                 name: ci.item.name,
                 quantity: ci.quantity,
                 unitPrice: ci.item.price,
+                addons: ci.selectedAddons,
               ))
           .toList(),
       status: OrderStatus.pending,

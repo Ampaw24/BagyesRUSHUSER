@@ -1,33 +1,7 @@
 /// Menu item domain entity.
 library;
 
-class CustomizationOption {
-  final String id;
-  final String name;
-  final double additionalPrice;
-
-  const CustomizationOption({
-    required this.id,
-    required this.name,
-    required this.additionalPrice,
-  });
-}
-
-class MenuItemCustomization {
-  final String id;
-  final String name;
-  final List<CustomizationOption> options;
-  final bool isRequired;
-  final int maxSelections;
-
-  const MenuItemCustomization({
-    required this.id,
-    required this.name,
-    required this.options,
-    this.isRequired = false,
-    this.maxSelections = 1,
-  });
-}
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 
 class MenuItem {
   final String id;
@@ -39,7 +13,9 @@ class MenuItem {
   final String category;
   final bool isAvailable;
   final bool isPopular;
-  final List<MenuItemCustomization> customizations;
+  final List<AddonGroup> addonGroups;
+  final int minimumOrderQty;
+  final int? maximumOrderQty;
 
   const MenuItem({
     required this.id,
@@ -51,8 +27,29 @@ class MenuItem {
     required this.category,
     this.isAvailable = true,
     this.isPopular = false,
-    this.customizations = const [],
+    this.addonGroups = const [],
+    this.minimumOrderQty = 1,
+    this.maximumOrderQty,
   });
+
+  bool get hasAddons => addonGroups.isNotEmpty;
+
+  factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
+        id: json['id'] as String? ?? '',
+        restaurantId: json['restaurant_id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        imageUrl: json['image_url'] as String? ?? '',
+        price: (json['price'] as num? ?? 0).toDouble(),
+        category: json['category'] as String? ?? '',
+        isAvailable: json['is_available'] as bool? ?? true,
+        isPopular: json['is_popular'] as bool? ?? false,
+        addonGroups: (json['addon_groups'] as List<dynamic>? ?? [])
+            .map((e) => AddonGroup.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        minimumOrderQty: json['minimum_order_qty'] as int? ?? 1,
+        maximumOrderQty: json['maximum_order_qty'] as int?,
+      );
 
   @override
   bool operator ==(Object other) =>

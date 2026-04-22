@@ -52,6 +52,18 @@ abstract final class ApiEndpoints {
   /// `PUT /vendors/menu/:id`  |  `DELETE /vendors/menu/:id`
   static String vendorMenuItem(String id) => '/vendors/menu/$id';
 
+  /// `GET /PUT /vendors/menu/:itemId/addon-groups`
+  static String vendorMenuItemAddonGroups(String itemId) =>
+      '/vendors/menu/$itemId/addon-groups';
+
+  /// `DELETE /vendors/menu/:itemId/addon-groups/:groupId`
+  static String vendorMenuItemAddonGroup(String itemId, String groupId) =>
+      '/vendors/menu/$itemId/addon-groups/$groupId';
+
+  /// `GET /vendors/:vendorId/menu/:itemId/addon-groups`
+  static String consumerMenuItemAddons(String vendorId, String itemId) =>
+      '/vendors/$vendorId/menu/$itemId/addon-groups';
+
   // ─── Vendor Payment Methods ────────────────────────────────────────────────
   static const String vendorPaymentMethods = '/vendors/payment-methods';
 

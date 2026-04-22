@@ -8,19 +8,24 @@ class MenuItemCard extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onRemove;
 
+  /// When non-null, tapping the card or the add button opens the addon sheet
+  /// instead of adding directly to the cart.
+  final VoidCallback? onTapCard;
+
   const MenuItemCard({
     super.key,
     required this.item,
     required this.cartQuantity,
     required this.onAdd,
     required this.onRemove,
+    this.onTapCard,
   });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
-    return Container(
+    final cardContent = Container(
       margin: EdgeInsets.only(bottom: w * 0.035),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -31,7 +36,8 @@ class MenuItemCard extends StatelessWidget {
         children: [
           // ── Image ──
           ClipRRect(
-            borderRadius: BorderRadius.horizontal(left: Radius.circular(w * 0.035)),
+            borderRadius:
+                BorderRadius.horizontal(left: Radius.circular(w * 0.035)),
             child: SizedBox(
               width: w * 0.3,
               height: w * 0.28,
@@ -40,8 +46,7 @@ class MenuItemCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
                   color: AppColors.shimmerBase,
-                  child: const Icon(Icons.fastfood,
-                      color: AppColors.textHint),
+                  child: const Icon(Icons.fastfood, color: AppColors.textHint),
                 ),
               ),
             ),
@@ -92,6 +97,18 @@ class MenuItemCard extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
+                  // Customisable badge
+                  if (item.hasAddons) ...[
+                    SizedBox(height: w * 0.008),
+                    Text(
+                      'Customisable',
+                      style: TextStyle(
+                        fontSize: w * 0.026,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
                   SizedBox(height: w * 0.02),
                   Row(
                     children: [
@@ -113,11 +130,15 @@ class MenuItemCard extends StatelessWidget {
                           ),
                         )
                       else if (cartQuantity == 0)
-                        _AddButton(onAdd: onAdd)
+                        _AddButton(
+                          // If item has addons, both the card and the + button
+                          // open the addon sheet.
+                          onAdd: item.hasAddons ? (onTapCard ?? onAdd) : onAdd,
+                        )
                       else
                         _QuantityControl(
                           quantity: cartQuantity,
-                          onAdd: onAdd,
+                          onAdd: item.hasAddons ? (onTapCard ?? onAdd) : onAdd,
                           onRemove: onRemove,
                         ),
                     ],
@@ -129,6 +150,11 @@ class MenuItemCard extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTapCard != null) {
+      return GestureDetector(onTap: onTapCard, child: cardContent);
+    }
+    return cardContent;
   }
 }
 
@@ -177,7 +203,8 @@ class _QuantityControl extends StatelessWidget {
               border: Border.all(color: AppColors.primary),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.remove, color: AppColors.primary, size: w * 0.035),
+            child: Icon(Icons.remove,
+                color: AppColors.primary, size: w * 0.035),
           ),
         ),
         SizedBox(width: w * 0.025),

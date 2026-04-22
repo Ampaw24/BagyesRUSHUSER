@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
+import '../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../model/menu_item.dart';
 import '../model/dummy_menu.dart';
 import '../repository/vendor_dashboard_repository.dart';
@@ -238,6 +239,27 @@ class MenuViewModel extends ViewModel<MenuState> {
         final updatedList =
             state.items.map((i) => i.id == updated.id ? updated : i).toList();
         emit(state.copyWith(items: updatedList));
+      },
+    );
+  }
+
+  Future<void> upsertAddonGroups(
+    String menuItemId,
+    List<AddonGroup> groups,
+  ) async {
+    emit(state.copyWith(pendingOperation: MenuOperation.updating));
+    final result = await _repository.upsertAddonGroups(menuItemId, groups);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          clearPendingOperation: true,
+          errorMessage: failure.message,
+        ),
+      ),
+      (updated) {
+        final updatedList =
+            state.items.map((i) => i.id == updated.id ? updated : i).toList();
+        emit(state.copyWith(clearPendingOperation: true, items: updatedList));
       },
     );
   }

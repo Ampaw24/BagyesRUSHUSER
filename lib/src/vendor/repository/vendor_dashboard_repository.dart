@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
+import '../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../model/vendor_order.dart';
 import '../model/menu_item.dart';
 import '../model/earnings_data.dart';
@@ -31,6 +32,18 @@ abstract class VendorDashboardRepository {
     Map<String, dynamic> data,
   );
   Future<Either<Failure, bool>> deleteMenuItem(String id);
+
+  /// Full-replace all addon groups for a menu item (PUT).
+  Future<Either<Failure, MenuItem>> upsertAddonGroups(
+    String menuItemId,
+    List<AddonGroup> groups,
+  );
+
+  /// Remove a single addon group from a menu item.
+  Future<Either<Failure, bool>> deleteAddonGroup(
+    String menuItemId,
+    String groupId,
+  );
 
   // ── Earnings ──
   Future<Either<Failure, EarningsData>> fetchEarnings({String? period});

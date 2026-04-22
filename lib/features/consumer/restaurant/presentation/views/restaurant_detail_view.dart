@@ -7,9 +7,11 @@ import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/item_addon_sheet.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/menu_item_card.dart';
 
 class RestaurantDetailView extends ConsumerStatefulWidget {
@@ -41,16 +43,44 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     setState(() {});
   }
 
-  void _onAddItem(Restaurant restaurant, MenuItem item) {
+  Future<void> _onAddItem(Restaurant restaurant, MenuItem item) async {
     final cart = ref.read(cartProvider);
-    if (cart.restaurantId != null && cart.restaurantId != restaurant.id) {
-      _showReplaceCartDialog(restaurant, item);
-      return;
+    final hasConflict =
+        cart.restaurantId != null && cart.restaurantId != restaurant.id;
+
+    if (item.hasAddons) {
+      final result = await ItemAddonSheet.show(context, item);
+      if (result == null || !mounted) return;
+      if (hasConflict) {
+        _showReplaceCartDialog(
+          restaurant,
+          item,
+          quantity: result.quantity,
+          selectedAddons: result.selectedAddons,
+        );
+        return;
+      }
+      ref.read(cartProvider.notifier).addItem(
+            restaurant,
+            item,
+            quantity: result.quantity,
+            selectedAddons: result.selectedAddons,
+          );
+    } else {
+      if (hasConflict) {
+        _showReplaceCartDialog(restaurant, item);
+        return;
+      }
+      ref.read(cartProvider.notifier).addItem(restaurant, item);
     }
-    ref.read(cartProvider.notifier).addItem(restaurant, item);
   }
 
-  void _showReplaceCartDialog(Restaurant restaurant, MenuItem item) {
+  void _showReplaceCartDialog(
+    Restaurant restaurant,
+    MenuItem item, {
+    int quantity = 1,
+    List<SelectedAddon> selectedAddons = const [],
+  }) {
     final w = MediaQuery.sizeOf(context).width;
     showDialog(
       context: context,
@@ -71,9 +101,12 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref
-                  .read(cartProvider.notifier)
-                  .clearAndAdd(restaurant, item);
+              ref.read(cartProvider.notifier).clearAndAdd(
+                    restaurant,
+                    item,
+                    quantity: quantity,
+                    selectedAddons: selectedAddons,
+                  );
             },
             child: const Text('Replace'),
           ),
@@ -297,6 +330,9 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                       onRemove: () => ref
                           .read(cartProvider.notifier)
                           .updateQuantity(item.id, qty - 1),
+                      onTapCard: item.hasAddons
+                          ? () => _onAddItem(restaurant, item)
+                          : null,
                     );
                   },
                 );
