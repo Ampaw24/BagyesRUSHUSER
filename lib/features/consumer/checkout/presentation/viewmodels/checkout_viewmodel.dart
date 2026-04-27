@@ -10,7 +10,7 @@ import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewm
 class CheckoutViewModel extends Notifier<CheckoutState> {
   @override
   CheckoutState build() => const CheckoutIdle(
-        form: CheckoutForm(deliveryAddress: '12 Osu Badu St, Accra'),
+        form: CheckoutForm(),
       );
 
   CheckoutForm get _currentForm {
@@ -18,7 +18,7 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
     if (s is CheckoutIdle) return s.form;
     if (s is CheckoutPlacing) return s.form;
     if (s is CheckoutError) return s.form;
-    return const CheckoutForm(deliveryAddress: '12 Osu Badu St, Accra');
+    return const CheckoutForm();
   }
 
   void updateAddress(String address) {

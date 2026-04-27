@@ -27,20 +27,49 @@ class RestaurantDetailView extends ConsumerStatefulWidget {
 class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     with TickerProviderStateMixin {
   TabController? _tabController;
-  List<String> _menuCategories = [];
+  int _lastCategoryCount = 0;
+
+  /// Key for the cart FAB — used to trigger bounce animations.
+  final GlobalKey<_CartFabState> _cartFabKey = GlobalKey<_CartFabState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for menu data changes outside of build() to avoid
+    // setState-during-build lifecycle violations.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenForMenuChanges();
+    });
+  }
+
+  /// Attach a listener to the menu provider so tab init happens outside
+  /// of the render pipeline.
+  void _listenForMenuChanges() {
+    ref.listenManual(
+      restaurantMenuProvider(widget.restaurantId),
+      (prev, next) {
+        next.whenData((menu) {
+          final categories = menu.keys.toList();
+          if (categories.length != _lastCategoryCount && categories.isNotEmpty) {
+            _rebuildTabController(categories.length);
+          }
+        });
+      },
+      fireImmediately: true,
+    );
+  }
+
+  void _rebuildTabController(int count) {
+    _tabController?.dispose();
+    _lastCategoryCount = count;
+    _tabController = TabController(length: count, vsync: this);
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
     _tabController?.dispose();
     super.dispose();
-  }
-
-  void _initTabs(List<String> categories) {
-    if (_menuCategories == categories) return;
-    _menuCategories = categories;
-    _tabController?.dispose();
-    _tabController = TabController(length: categories.length, vsync: this);
-    setState(() {});
   }
 
   Future<void> _onAddItem(Restaurant restaurant, MenuItem item) async {
@@ -73,6 +102,10 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
       }
       ref.read(cartProvider.notifier).addItem(restaurant, item);
     }
+
+    // Haptic feedback + bounce animation on the cart FAB
+    HapticFeedback.lightImpact();
+    _cartFabKey.currentState?.bounce();
   }
 
   void _showReplaceCartDialog(
@@ -107,6 +140,8 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                     quantity: quantity,
                     selectedAddons: selectedAddons,
                   );
+              HapticFeedback.lightImpact();
+              _cartFabKey.currentState?.bounce();
             },
             child: const Text('Replace'),
           ),
@@ -143,8 +178,8 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
               error: (e, _) =>
                   _buildBody(context, restaurant, const {}, cart, w),
               data: (menu) {
-                final categories = menu.keys.toList();
-                if (categories.isNotEmpty) _initTabs(categories);
+                // Tab controller is now managed via ref.listenManual
+                // in initState — no setState inside build.
                 return _buildBody(context, restaurant, menu, cart, w);
               },
             );
@@ -153,7 +188,14 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
         // ── Cart FAB ──
         floatingActionButton: cart.isEmpty
             ? null
-            : _CartFab(cart: cart, onTap: () => context.push(AppRoutes.cart)),
+            : _CartFab(
+                key: _cartFabKey,
+                cart: cart,
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  context.push(AppRoutes.cart);
+                },
+              ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       ),
     );
@@ -190,11 +232,15 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
             background: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  restaurant.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: AppColors.shimmerBase,
+                // Hero-wrap the restaurant image for smooth transition
+                Hero(
+                  tag: 'restaurant_image_${restaurant.id}',
+                  child: Image.network(
+                    restaurant.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      color: AppColors.shimmerBase,
+                    ),
                   ),
                 ),
                 const DecoratedBox(
@@ -327,9 +373,12 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                       item: item,
                       cartQuantity: qty,
                       onAdd: () => _onAddItem(restaurant, item),
-                      onRemove: () => ref
-                          .read(cartProvider.notifier)
-                          .updateQuantity(item.id, qty - 1),
+                      onRemove: () {
+                        HapticFeedback.lightImpact();
+                        ref
+                            .read(cartProvider.notifier)
+                            .updateQuantity(item.id, qty - 1);
+                      },
                       onTapCard: item.hasAddons
                           ? () => _onAddItem(restaurant, item)
                           : null,
@@ -372,75 +421,121 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _CartFab extends StatelessWidget {
+/// Cart floating action button with bounce animation on item add.
+class _CartFab extends StatefulWidget {
   final CartState cart;
   final VoidCallback onTap;
 
-  const _CartFab({required this.cart, required this.onTap});
+  const _CartFab({super.key, required this.cart, required this.onTap});
+
+  @override
+  State<_CartFab> createState() => _CartFabState();
+}
+
+class _CartFabState extends State<_CartFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bounceCtrl;
+  late final Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _bounceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scaleAnim = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.08), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.08, end: 0.95), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.95, end: 1.0), weight: 30),
+    ]).animate(CurvedAnimation(parent: _bounceCtrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _bounceCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Trigger a bounce animation — called from parent via GlobalKey.
+  void bounce() {
+    _bounceCtrl.forward(from: 0);
+  }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: w * 0.05,
-            vertical: w * 0.04,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(w * 0.04),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: w * 0.025,
-                  vertical: w * 0.008,
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.05,
+              vertical: w * 0.04,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(w * 0.04),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${cart.totalItems}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: w * 0.032,
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: w * 0.025,
+                    vertical: w * 0.008,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, anim) => ScaleTransition(
+                      scale: anim,
+                      child: child,
+                    ),
+                    child: Text(
+                      '${widget.cart.totalItems}',
+                      key: ValueKey(widget.cart.totalItems),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: w * 0.032,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(width: w * 0.025),
-              Expanded(
-                child: Text(
-                  'View Cart',
+                SizedBox(width: w * 0.025),
+                Expanded(
+                  child: Text(
+                    'View Cart',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: w * 0.038,
+                    ),
+                  ),
+                ),
+                Text(
+                  'GHS ${widget.cart.total.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     fontSize: w * 0.038,
                   ),
                 ),
-              ),
-              Text(
-                'GHS ${cart.total.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: w * 0.038,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

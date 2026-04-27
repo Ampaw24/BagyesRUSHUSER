@@ -367,9 +367,9 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                       return FoodCategoryChip(
                         category: cat,
                         isSelected: selectedCategory == cat.label,
-                        onTap: () =>
-                            ref.read(selectedCategoryProvider.notifier).state =
-                                cat.label,
+                        onTap: () => ref
+                            .read(selectedCategoryProvider.notifier)
+                            .updateCategory(cat.label),
                       );
                     },
                   ),
@@ -383,9 +383,9 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                       return FoodCategoryChip(
                         category: cat,
                         isSelected: selectedCategory == cat.label,
-                        onTap: () =>
-                            ref.read(selectedCategoryProvider.notifier).state =
-                                cat.label,
+                        onTap: () => ref
+                            .read(selectedCategoryProvider.notifier)
+                            .updateCategory(cat.label),
                       );
                     },
                   ),

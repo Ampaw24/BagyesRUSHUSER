@@ -39,7 +39,10 @@ class RestaurantCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Cover image ──
-            _CoverImage(restaurant: restaurant, width: width),
+            Hero(
+              tag: 'restaurant_image_${restaurant.id}',
+              child: _CoverImage(restaurant: restaurant, width: width),
+            ),
             // ── Info ──
             Padding(
               padding: EdgeInsets.all(w * 0.03),
@@ -147,7 +150,10 @@ class RestaurantListCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CoverImage(restaurant: restaurant, width: w, height: w * 0.44),
+            Hero(
+              tag: 'restaurant_image_${restaurant.id}',
+              child: _CoverImage(restaurant: restaurant, width: w, height: w * 0.44),
+            ),
             Padding(
               padding: EdgeInsets.all(w * 0.04),
               child: Column(

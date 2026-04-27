@@ -8,6 +8,9 @@ import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entitie
 // ─── Cart ViewModel ────────────────────────────────────────────────────────
 
 class CartViewModel extends Notifier<CartState> {
+  /// Maximum length for special instructions to prevent abuse.
+  static const int _maxInstructionLength = 500;
+
   @override
   CartState build() => const CartState.empty();
 
@@ -75,6 +78,19 @@ class CartViewModel extends Notifier<CartState> {
     state = state.copyWith(items: updated);
   }
 
+  /// Update the restaurant-level special instructions / note.
+  /// Input is sanitized: trimmed, capped at [_maxInstructionLength] chars,
+  /// and control characters are stripped.
+  void updateSpecialInstructions(String value) {
+    final sanitized = value
+        .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '') // strip control chars
+        .trim();
+    final capped = sanitized.length > _maxInstructionLength
+        ? sanitized.substring(0, _maxInstructionLength)
+        : sanitized;
+    state = state.copyWith(specialInstructions: capped);
+  }
+
   void clearAndAdd(
     Restaurant restaurant,
     MenuItem item, {
@@ -108,3 +124,4 @@ final cartProvider =
 final cartItemCountProvider = Provider<int>((ref) {
   return ref.watch(cartProvider).totalItems;
 });
+
