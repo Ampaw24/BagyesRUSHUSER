@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/data/repositories/restaurant_repository_impl.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
@@ -13,9 +15,29 @@ final restaurantRepositoryProvider = Provider<IRestaurantRepository>(
   (_) => RestaurantRepositoryImpl(),
 );
 
-// ─── Selected category ────────────────────────────────────────────────────
+// ─── Selected category (debounced) ───────────────────────────────────────
 
-final selectedCategoryProvider = StateProvider<String>((ref) => 'All');
+final selectedCategoryProvider =
+    NotifierProvider<SelectedCategoryNotifier, String>(
+  SelectedCategoryNotifier.new,
+);
+
+class SelectedCategoryNotifier extends Notifier<String> {
+  Timer? _debounce;
+
+  @override
+  String build() {
+    ref.onDispose(() => _debounce?.cancel());
+    return 'All';
+  }
+
+  void updateCategory(String category) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      state = category;
+    });
+  }
+}
 
 // ─── Featured restaurants (promo banners) ────────────────────────────────
 

@@ -8,12 +8,17 @@ class CartState {
   final List<CartItem> items;
   final double deliveryFee;
 
+  /// Restaurant-level special instructions / note entered by the user.
+  /// Sanitized before being sent to the API.
+  final String specialInstructions;
+
   const CartState({
     this.restaurantId,
     this.restaurantName,
     this.restaurantImageUrl,
     this.items = const [],
     this.deliveryFee = 0,
+    this.specialInstructions = '',
   });
 
   const CartState.empty()
@@ -21,7 +26,8 @@ class CartState {
         restaurantName = null,
         restaurantImageUrl = null,
         items = const [],
-        deliveryFee = 0;
+        deliveryFee = 0,
+        specialInstructions = '';
 
   bool get isEmpty => items.isEmpty;
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
@@ -30,12 +36,16 @@ class CartState {
   double get serviceFee => subtotal * 0.05;
   double get total => subtotal + deliveryFee + serviceFee;
 
+  /// Whether the user has entered a restaurant note.
+  bool get hasSpecialInstructions => specialInstructions.trim().isNotEmpty;
+
   CartState copyWith({
     String? restaurantId,
     String? restaurantName,
     String? restaurantImageUrl,
     List<CartItem>? items,
     double? deliveryFee,
+    String? specialInstructions,
   }) {
     return CartState(
       restaurantId: restaurantId ?? this.restaurantId,
@@ -43,6 +53,7 @@ class CartState {
       restaurantImageUrl: restaurantImageUrl ?? this.restaurantImageUrl,
       items: items ?? this.items,
       deliveryFee: deliveryFee ?? this.deliveryFee,
+      specialInstructions: specialInstructions ?? this.specialInstructions,
     );
   }
 }

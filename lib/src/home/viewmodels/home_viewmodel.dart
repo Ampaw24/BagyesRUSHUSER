@@ -33,6 +33,30 @@ class HomeViewmodel extends ViewModel<HomeState> {
     );
   }
 
+  //Home page Path 1
+  //Get Ads banner for courier homepage
+    Future<void> getHomePageBanners() async {
+      appLogger.d('HomeViewmodel.getHomePageBanners → initiated');
+      emit(const HomeLoading());
+  
+      final result = await _repository.getHomePageBanners();
+  
+      result.fold(
+        (failure) {
+          appLogger.w(
+              'HomeViewmodel.getHomePageBanners → error: ${failure.message}');
+          emit(HomeError.fromFailure(failure));
+        },
+        (banners) {
+          appLogger.i(
+              'HomeViewmodel.getHomePageBanners → loaded ${banners.banners.length} banners');
+          emit(HomePageBannersLoaded(banners));
+        },
+      );
+    }
+    //Ads banner for courier homepage End
+    
+
   Future<void> getCategoryById(String id) async {
     appLogger.d('HomeViewmodel.getCategoryById → id=$id');
     emit(const HomeLoading());

@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/src/home/models/ads_banner.dart';
 import 'package:equatable/equatable.dart';
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
 import 'package:bagyesrushappusernew/src/home/models/category.dart';
@@ -82,6 +83,15 @@ final class OrderLoaded extends HomeState {
 
   @override
   List<Object?> get props => [order];
+}
+
+final class HomePageBannersLoaded extends HomeState {
+  const HomePageBannersLoaded(this.banners);
+
+  final AdBannerModel banners;
+
+  @override
+  List<Object?> get props => [banners];
 }
 
 final class OrderPlaced extends HomeState {

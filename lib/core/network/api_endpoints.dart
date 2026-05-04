@@ -41,6 +41,10 @@ abstract final class ApiEndpoints {
   static const String vendorProfile = '/vendors/profile';
   static const String vendorAccount = '/vendors/account';
 
+  //home-page Path 1
+  static const String adsBanners = '/banners';
+  static const String vendors = '/vendors';
+
   /// `PATCH /vendors/orders/:orderId/status`
   static String vendorOrderStatus(String orderId) =>
       '/vendors/orders/$orderId/status';
@@ -83,7 +87,6 @@ abstract final class ApiEndpoints {
   // ─── Customer Home ─────────────────────────────────────────────────────────
   static const String categories = '/categories';
   static const String businessTypes = '/business-types';
-  static const String vendors = '/vendors';
   static const String customerOrders = '/orders';
 
   /// `GET /vendors/:id`
