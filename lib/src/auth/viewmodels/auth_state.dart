@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
+import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
 
 sealed class AuthState extends Equatable {
   const AuthState();
@@ -55,6 +56,14 @@ final class AuthError extends AuthState {
 
   @override
   List<Object> get props => [message, title];
+}
+
+final class BusinessTypesFetched extends AuthState {
+  const BusinessTypesFetched(this.businessTypes);
+  final List<BusinessTypeModel> businessTypes;
+
+  @override
+  List<Object> get props => [businessTypes];
 }
 
 final class NetworkError extends AuthError {

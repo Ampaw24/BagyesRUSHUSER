@@ -2,9 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
 import '../utils/network_utility.dart';
+import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/src/orders/repositories/orders_repository.dart';
+import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import '../../src/home/repositories/home_repository.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
+import '../../src/home/viewmodels/home_viewmodel.dart';
 import '../../src/vendor_registration/repositories/vendor_repository.dart';
 import '../../src/vendor_registration/repositories/vendor_repository_impl.dart';
 import '../../src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
@@ -12,7 +17,7 @@ import '../../src/vendor_registration/viewmodels/step_validator.dart';
 import '../../src/vendor/repository/vendor_dashboard_repository.dart';
 import '../../src/vendor/repository/vendor_dashboard_repository_impl.dart';
 import '../../src/vendor/viewmodel/dashboard_viewmodel.dart';
-import '../../src/vendor/viewmodel/orders_viewmodel.dart';
+import '../../src/vendor/viewmodel/orders_viewmodel.dart' as vendor_orders;
 import '../../src/vendor/viewmodel/menu_viewmodel.dart';
 import '../../src/vendor/viewmodel/earnings_viewmodel.dart';
 import '../../src/vendor/viewmodel/settings_viewmodel.dart';
@@ -55,14 +60,19 @@ Future<void> init() async {
   );
 
   // ── Validators ──────────────────────────────────────────────────────────────
+  sl.registerLazySingleton(() => AuthRepository(client: sl(), cacheHelper: sl()));
+  sl.registerLazySingleton(() => OrdersRepository(client: sl()));
   sl.registerLazySingleton(() => StepValidator());
 
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
+  sl.registerFactory(() => AuthViewmodel(repository: sl(), currentUserProvider: sl()));
+  sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => OnboardingViewModel(sl()));
+  sl.registerFactory(() => HomeViewmodel(repository: sl()));
   sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => DashboardViewModel(sl()));
-  sl.registerFactory(() => OrdersViewModel(sl()));
+  sl.registerFactory(() => vendor_orders.OrdersViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));
   sl.registerFactory(() => EarningsViewModel());
   sl.registerFactory(() => SettingsViewModel(sl()));

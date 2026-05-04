@@ -47,8 +47,8 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
 
   void _autoscrollBanner() {
     if (!mounted || !_bannerController.hasClients) return;
-    final featured = ref.read(featuredRestaurantsProvider);
-    final count = (featured.valueOrNull?.length ?? 0) + 1;
+    final banners = ref.read(homeBannersProvider);
+    final count = banners.valueOrNull?.banners.length ?? 0;
     if (count < 2) return;
     final next = (_bannerIndex + 1) % count;
     _bannerController.animateToPage(

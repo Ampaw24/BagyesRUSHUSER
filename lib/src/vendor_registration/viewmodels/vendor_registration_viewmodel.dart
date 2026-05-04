@@ -125,33 +125,26 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         notifyListeners();
         _authViewmodel.resetState();
       }
+    } else if (authState is BusinessTypesFetched) {
+      _state = _state.copyWith(
+        isBusinessTypesLoading: false,
+        availableBusinessTypes:
+            authState.businessTypes.where((t) => t.isActive).toList(),
+      );
+      notifyListeners();
+      _authViewmodel.resetState();
     }
   }
 
-  // ── Business Types (fetched from API) ──
-
   Future<void> loadBusinessTypes() async {
-    _state = _state.copyWith(isBusinessTypesLoading: true, businessTypesError: null);
-    notifyListeners();
-
-    final result = await _homeRepository.getBusinessTypes();
-
-    result.fold(
-      (failure) {
-        _state = _state.copyWith(
-          isBusinessTypesLoading: false,
-          businessTypesError: failure.message,
-        );
-      },
-      (businessTypes) {
-        _state = _state.copyWith(
-          isBusinessTypesLoading: false,
-          availableBusinessTypes: businessTypes.where((t) => t.isActive).toList(),
-        );
-      },
+    _state = _state.copyWith(
+      isBusinessTypesLoading: true,
+      businessTypesError: null,
     );
-
     notifyListeners();
+
+    await _authViewmodel.fetchBusinessTypes();
+    // Result handled in _onAuthStateChanged
   }
 
   // ── Cuisine Types (fetched from API) ──

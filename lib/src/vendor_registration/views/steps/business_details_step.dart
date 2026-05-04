@@ -1,5 +1,5 @@
 import 'package:bagyesrushappusernew/constant/config.dart';
-import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
+import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../constant/app_theme.dart';
@@ -10,7 +10,7 @@ import '../widgets/vendor_text_field.dart';
 class BusinessDetailsStep extends StatefulWidget {
   final BusinessDetailsData data;
   final ValueChanged<BusinessDetailsData> onChanged;
-  final List<BusinessType> businessTypes;
+  final List<BusinessTypeModel> businessTypes;
   final bool isLoadingBusinessTypes;
   final String? businessTypesError;
   final VoidCallback? onRetryBusinessTypes;
@@ -245,12 +245,12 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
 // StatefulWidget so selection is reflected immediately via local state,
 // independent of whether the parent rebuild cycle has fired.
 class _BusinessTypeSelector extends StatefulWidget {
-  final BusinessType? selected;
-  final List<BusinessType> businessTypes;
+  final BusinessTypeModel? selected;
+  final List<BusinessTypeModel> businessTypes;
   final bool isLoading;
   final String? error;
   final VoidCallback? onRetry;
-  final ValueChanged<BusinessType> onChanged;
+  final ValueChanged<BusinessTypeModel> onChanged;
 
   const _BusinessTypeSelector({
     required this.selected,
@@ -266,7 +266,7 @@ class _BusinessTypeSelector extends StatefulWidget {
 }
 
 class _BusinessTypeSelectorState extends State<_BusinessTypeSelector> {
-  late BusinessType? _selected;
+  late BusinessTypeModel? _selected;
 
   @override
   void initState() {

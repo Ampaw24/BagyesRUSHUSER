@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
+import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
 import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'vendor_enums.dart';
 import 'business_details_data.dart';
@@ -31,7 +31,7 @@ class VendorRegistrationState extends Equatable {
   final String? categoriesError;
 
   // Business types fetched from API
-  final List<BusinessType> availableBusinessTypes;
+  final List<BusinessTypeModel> availableBusinessTypes;
   final bool isBusinessTypesLoading;
   final String? businessTypesError;
 
@@ -79,7 +79,7 @@ class VendorRegistrationState extends Equatable {
     List<CategoryElement>? availableCategories,
     bool? isCategoriesLoading,
     String? categoriesError,
-    List<BusinessType>? availableBusinessTypes,
+    List<BusinessTypeModel>? availableBusinessTypes,
     bool? isBusinessTypesLoading,
     String? businessTypesError,
   }) {

@@ -7,30 +7,21 @@ import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant
 
 class BannerItem {
   final String imagePath;
-  final bool isAsset;
   final String? title;
   final String? subtitle;
   final String? promoText;
+  final String actionType;
+  final String actionTarget;
 
   const BannerItem({
     required this.imagePath,
-    this.isAsset = false,
     this.title,
     this.subtitle,
     this.promoText,
+    this.actionType = '',
+    this.actionTarget = '',
   });
 }
-
-/// Local asset banners — add or remove entries here to manage static slides.
-const localBanners = [
-  BannerItem(
-    imagePath: 'assets/restaurant/foodbanner.jpg',
-    isAsset: true,
-    title: 'Order Your Favourite',
-    subtitle: 'Fresh meals delivered fast',
-    promoText: 'FREE DELIVERY TODAY',
-  ),
-];
 
 class PromoBannerSection extends ConsumerWidget {
   final PageController controller;
@@ -47,9 +38,9 @@ class PromoBannerSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final w = MediaQuery.sizeOf(context).width;
-    final featured = ref.watch(featuredRestaurantsProvider);
+    final bannersAsync = ref.watch(homeBannersProvider);
 
-    return featured.when(
+    return bannersAsync.when(
       loading: () => Container(
         margin: EdgeInsets.symmetric(horizontal: w * 0.05),
         height: w * 0.45,
@@ -58,21 +49,20 @@ class PromoBannerSection extends ConsumerWidget {
           borderRadius: BorderRadius.circular(w * 0.045),
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (restaurants) {
-        final banners = [
-          ...localBanners,
-          ...restaurants.map(
-            (r) => BannerItem(
-              imagePath: r.imageUrl,
-              isAsset: false,
-              title: r.name,
-              subtitle:
-                  '${r.deliveryTimeLabel} · GHS ${r.deliveryFee.toStringAsFixed(0)} delivery',
-              promoText: r.promoText,
-            ),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (adModel) {
+        final banners = adModel.banners.map(
+          (b) => BannerItem(
+            imagePath: b.imageUrl,
+            title: b.title,
+            subtitle: b.subtitle,
+            promoText: b.ctaLabel.isNotEmpty ? b.ctaLabel : null,
+            actionType: b.actionType,
+            actionTarget: b.actionTarget,
           ),
-        ];
+        ).toList();
+
+        if (banners.isEmpty) return const SizedBox.shrink();
 
         return Column(
           children: [
@@ -85,13 +75,14 @@ class PromoBannerSection extends ConsumerWidget {
                 itemBuilder: (ctx, i) {
                   final banner = banners[i];
                   return GestureDetector(
-                    onTap: !banner.isAsset
-                        ? () => context.push(
-                            AppRoutes.restaurantDetailPath(
-                              restaurants[i - localBanners.length].id,
-                            ),
-                          )
-                        : null,
+                    onTap: () {
+                      if (banner.actionType == 'restaurant' &&
+                          banner.actionTarget.isNotEmpty) {
+                        context.push(
+                          AppRoutes.restaurantDetailPath(banner.actionTarget),
+                        );
+                      }
+                    },
                     child: Container(
                       margin: EdgeInsets.symmetric(horizontal: w * 0.05),
                       decoration: BoxDecoration(
@@ -109,9 +100,6 @@ class PromoBannerSection extends ConsumerWidget {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            if (banner.isAsset)
-                              Image.asset(banner.imagePath, fit: BoxFit.cover)
-                            else
                               Image.network(
                                 banner.imagePath,
                                 fit: BoxFit.cover,

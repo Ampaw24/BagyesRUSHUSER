@@ -1,10 +1,10 @@
-import 'package:bagyesrushappusernew/src/home/models/business_type.model.dart';
+import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
 import 'package:equatable/equatable.dart';
 
 /// Data model for Step 1 - Business Details
 class BusinessDetailsData extends Equatable {
   final String businessName;
-  final BusinessType? businessType;
+  final BusinessTypeModel? businessType;
   final String contactPersonName;
   final String phone;
   final String email;
@@ -31,7 +31,7 @@ class BusinessDetailsData extends Equatable {
 
   BusinessDetailsData copyWith({
     String? businessName,
-    BusinessType? businessType,
+    BusinessTypeModel? businessType,
     String? contactPersonName,
     String? phone,
     String? email,

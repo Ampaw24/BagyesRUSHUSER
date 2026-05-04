@@ -155,7 +155,26 @@ class AuthViewmodel extends ViewModel<AuthState> {
       },
     );
   }
+  
 
+  Future<void> fetchBusinessTypes() async {
+    appLogger.d('AuthViewmodel.fetchBusinessTypes → initiated');
+    emit(const AuthLoading());
+
+    final result = await _repository.fetchBusinessTypes();
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.fetchBusinessTypes → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (businessTypes) {
+        appLogger.i('AuthViewmodel.fetchBusinessTypes → BusinessTypesFetched');
+        emit(BusinessTypesFetched(businessTypes));
+      },
+    );
+  }
+  
   Future<void> sendOtp(String phone) async {
     _pendingPhone = phone.trim();
     appLogger.d('AuthViewmodel.sendOtp → initiated');
