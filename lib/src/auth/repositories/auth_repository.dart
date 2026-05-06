@@ -94,7 +94,7 @@ class AuthRepository {
       );
     }
   }
-//[vendor registration]
+  //[vendor registration]
 
   ResultFuture<User> vendorRegister({
     required String email,
@@ -185,15 +185,17 @@ class AuthRepository {
       );
     }
   }
-//[/vendor registration end]
-///Provide business type for vendor registeration
+
+  //[/vendor registration end]
+  ///Provide business type for vendor registeration
   ResultFuture<List<BusinessTypeModel>> fetchBusinessTypes() async {
     appLogger.d('AuthRepository.fetchBusinessTypes → initiated');
     try {
       final response = await _client.get(ApiEndpoints.businessTypes);
 
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+        final payload =
+            (response.data as DataMap)['data'] as List<dynamic>? ??
             response.data as List<dynamic>;
         final businessTypes = payload
             .map((e) => BusinessTypeModel.fromJson(e as DataMap))
@@ -220,11 +222,7 @@ class AuthRepository {
       );
     }
   }
-//Business Type fetching ends here
-
-
-
-
+  //Business Type fetching ends here
 
   ResultFuture<User> login({
     required String phoneNumber,
@@ -421,7 +419,6 @@ class AuthRepository {
         ApiEndpoints.refreshToken,
         data: {'refresh_token': storedRefreshToken},
       );
-
       if ([200, 201].contains(response.statusCode)) {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
@@ -431,7 +428,6 @@ class AuthRepository {
         appLogger.i('AuthRepository.refreshToken → new tokens cached');
         return const Right(null);
       }
-
       appLogger.w('AuthRepository.refreshToken → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {

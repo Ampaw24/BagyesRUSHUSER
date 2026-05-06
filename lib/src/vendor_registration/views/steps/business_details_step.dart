@@ -38,6 +38,26 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
   late TextEditingController _cityCtrl;
   late TextEditingController _descriptionCtrl;
   late TextEditingController _tinCtrl;
+  String? _selectedRegion;
+
+  static const List<String> _ghanaRegions = [
+    'Ahafo',
+    'Ashanti',
+    'Bono',
+    'Bono East',
+    'Central',
+    'Eastern',
+    'Greater Accra',
+    'North East',
+    'Northern',
+    'Oti',
+    'Savannah',
+    'Upper East',
+    'Upper West',
+    'Volta',
+    'Western',
+    'Western North',
+  ];
 
   late FocusNode _nameFocus;
   late FocusNode _contactFocus;
@@ -59,6 +79,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     _cityCtrl = TextEditingController(text: widget.data.city);
     _descriptionCtrl = TextEditingController(text: widget.data.description ?? '');
     _tinCtrl = TextEditingController(text: widget.data.taxIdentificationNumber ?? '');
+    _selectedRegion = widget.data.city.isEmpty ? null : widget.data.city;
 
     _nameFocus = FocusNode()..addListener(() { if (!_nameFocus.hasFocus) _emit(); });
     _contactFocus = FocusNode()..addListener(() { if (!_contactFocus.hasFocus) _emit(); });
@@ -101,7 +122,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         phone: _phoneCtrl.text,
         email: _emailCtrl.text,
         businessAddress: _addressCtrl.text,
-        city: _cityCtrl.text,
+        city: _selectedRegion ?? '',
         description: _descriptionCtrl.text,
         taxIdentificationNumber: _tinCtrl.text,
       ),
@@ -211,12 +232,23 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         ),
         SizedBox(height: size.height * 0.022),
 
-        // City
-        VendorTextField(
-          label: 'City',
-          hint: 'e.g. Accra',
-          controller: _cityCtrl,
-          focusNode: _cityFocus,
+        // Region (replacing City)
+        Text(
+          'Region',
+          style: TextStyle(
+            fontSize: size.width * 0.034,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: size.height * 0.008),
+        _RegionSelector(
+          selected: _selectedRegion,
+          regions: _ghanaRegions,
+          onChanged: (region) {
+            setState(() => _selectedRegion = region);
+            _emit();
+          },
         ),
         SizedBox(height: size.height * 0.022),
 
@@ -428,5 +460,157 @@ class _NoLeadingZeroFormatter extends TextInputFormatter {
   ) {
     if (newValue.text.startsWith('0')) return oldValue;
     return newValue;
+  }
+}
+
+class _RegionSelector extends StatelessWidget {
+  final String? selected;
+  final List<String> regions;
+  final ValueChanged<String> onChanged;
+
+  const _RegionSelector({
+    required this.selected,
+    required this.regions,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return GestureDetector(
+      onTap: () => _showRegionPicker(context),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: size.width * 0.04,
+          vertical: size.height * 0.016,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(size.width * 0.03),
+          border: Border.all(
+            color: selected != null ? AppColors.primary : AppColors.border,
+            width: selected != null ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              selected ?? 'Select your region',
+              style: TextStyle(
+                fontSize: size.width * 0.038,
+                color: selected != null
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+                fontWeight: selected != null ? FontWeight.w500 : FontWeight.w400,
+              ),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: selected != null ? AppColors.primary : AppColors.textSecondary,
+              size: size.width * 0.06,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRegionPicker(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 20),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              'Select Region',
+              style: TextStyle(
+                fontSize: size.width * 0.045,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: size.height * 0.02),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+                itemCount: regions.length,
+                itemBuilder: (context, index) {
+                  final region = regions[index];
+                  final isSelected = region == selected;
+                  return GestureDetector(
+                    onTap: () {
+                      onChanged(region);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.04,
+                        vertical: size.height * 0.018,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary.withValues(alpha: 0.08)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: isSelected ? AppColors.primary : Colors.transparent,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            region,
+                            style: TextStyle(
+                              fontSize: size.width * 0.038,
+                              fontWeight:
+                                  isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.primary,
+                              size: size.width * 0.05,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ),
+      ),
+    );
   }
 }

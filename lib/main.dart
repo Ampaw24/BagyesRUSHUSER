@@ -26,6 +26,7 @@ void main() async {
 
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,
   //           AuthRepository, AuthViewmodel); guarded with isRegistered checks.
+
   await AppInitializer.initialize();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -39,7 +40,6 @@ void main() async {
             ChangeNotifierProvider(create: (_) => AppState()),
             // ── Auth + current user (new MVVM pattern) ──────────────────────
             ...AppProviders.allProviders,
-
             // ── Other feature viewmodels ────────────────────────────────────
             ChangeNotifierProvider(create: (_) => sl<OnboardingViewModel>()),
             ChangeNotifierProvider(
