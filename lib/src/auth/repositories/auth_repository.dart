@@ -55,8 +55,7 @@ class AuthRepository {
 
       appLogger.d(
         'AuthRepository.signup → RAW RESPONSE\n'
-        '  status : ${response.statusCode}\n'
-        '  data   : ${response.data}',
+        '  status : ${response.statusCode}',
       );
 
       if ([200, 201].contains(response.statusCode)) {
@@ -102,6 +101,7 @@ class AuthRepository {
     required String password,
     required String confirmPassword,
     required String businessName,
+    required String businessType,
     required String businessTypeId,
     required String contactPersonName,
     required String businessAddress,
@@ -123,19 +123,21 @@ class AuthRepository {
       "confirm_password": confirmPassword,
       "role": "vendor",
       "business_name": businessName,
+      "business_type": businessType,
       "business_type_id": businessTypeId,
       "contact_person_name": contactPersonName,
       "business_address": businessAddress,
       "city": city,
       "description": description,
       "tax_identification_number": taxIdentificationNumber,
-      "cuisine_types": cuisineTypes,
+      "cuisine_types": cuisineTypes.map((e) => e.trim().toLowerCase()).toList(),
       "delivery_radius_km": deliveryRadiusKm,
       "opening_time": openingTime,
       "closing_time": closingTime,
       "operating_days": operatingDays,
       "estimated_prep_time_minutes": estimatedPrepTimeMinutes,
     };
+    appLogger.d('AuthRepository.vendorRegister → PAYLOAD: $data');
     try {
       final response = await _client.post(
         ApiEndpoints.vendorRegister,
@@ -144,8 +146,7 @@ class AuthRepository {
 
       appLogger.d(
         'AuthRepository.vendorRegister → RAW RESPONSE\n'
-        '  status : ${response.statusCode}\n'
-        '  data   : ${response.data}',
+        '  status : ${response.statusCode}',
       );
 
       if ([200, 201].contains(response.statusCode)) {
@@ -237,9 +238,7 @@ class AuthRepository {
 
       appLogger.d(
         'AuthRepository.login → RAW RESPONSE\n'
-        '  status : ${response.statusCode}\n'
-        '  headers: ${response.headers}\n'
-        '  data   : ${response.data}',
+        '  status : ${response.statusCode}',
       );
 
       if ([200, 201].contains(response.statusCode)) {
@@ -288,8 +287,7 @@ class AuthRepository {
 
       appLogger.d(
         'AuthRepository.sendOtp → RAW RESPONSE\n'
-        '  status : ${response.statusCode}\n'
-        '  data   : ${response.data}',
+        '  status : ${response.statusCode}',
       );
 
       if ([200, 201].contains(response.statusCode)) {
@@ -463,8 +461,7 @@ class AuthRepository {
 
       appLogger.d(
         'AuthRepository.updateProfile → RAW RESPONSE\n'
-        '  status : ${response.statusCode}\n'
-        '  data   : ${response.data}',
+        '  status : ${response.statusCode}',
       );
 
       if ([200, 201].contains(response.statusCode)) {

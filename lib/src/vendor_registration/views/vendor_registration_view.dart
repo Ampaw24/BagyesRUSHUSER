@@ -26,8 +26,7 @@ class VendorRegistrationView extends StatefulWidget {
   const VendorRegistrationView({super.key});
 
   @override
-  State<VendorRegistrationView> createState() =>
-      _VendorRegistrationViewState();
+  State<VendorRegistrationView> createState() => _VendorRegistrationViewState();
 }
 
 class _VendorRegistrationViewState extends State<VendorRegistrationView>
@@ -91,11 +90,11 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     );
     _headerSlide =
         Tween<Offset>(begin: const Offset(0, -0.15), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _headerController,
-        curve: const Interval(0.1, 0.7, curve: Curves.easeOutCubic),
-      ),
-    );
+          CurvedAnimation(
+            parent: _headerController,
+            curve: const Interval(0.1, 0.7, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _contentController = AnimationController(
       vsync: this,
@@ -109,11 +108,11 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     );
     _contentSlide =
         Tween<Offset>(begin: const Offset(0.05, 0), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _contentController,
-        curve: const Interval(0.1, 0.8, curve: Curves.easeOutCubic),
-      ),
-    );
+          CurvedAnimation(
+            parent: _contentController,
+            curve: const Interval(0.1, 0.8, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _headerController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -128,7 +127,9 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
 
   @override
   void dispose() {
-    context.read<VendorRegistrationViewModel>().removeListener(_onVmStateChanged);
+    context.read<VendorRegistrationViewModel>().removeListener(
+      _onVmStateChanged,
+    );
     _headerController.dispose();
     _contentController.dispose();
     super.dispose();
@@ -196,15 +197,9 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     // OTP flow — isOtpSent/isOtpVerified/status change after registration
     // submits and the server responds; without these the VerificationStep
     // never receives updated props and stays stuck on the pre-send state.
-    context.select(
-      (VendorRegistrationViewModel vm) => vm.state.isOtpSent,
-    );
-    context.select(
-      (VendorRegistrationViewModel vm) => vm.state.isOtpVerified,
-    );
-    context.select(
-      (VendorRegistrationViewModel vm) => vm.state.status,
-    );
+    context.select((VendorRegistrationViewModel vm) => vm.state.isOtpSent);
+    context.select((VendorRegistrationViewModel vm) => vm.state.isOtpVerified);
+    context.select((VendorRegistrationViewModel vm) => vm.state.status);
 
     return Scaffold(
       backgroundColor: scaffoldBgColor,
@@ -293,16 +288,18 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
         GestureDetector(
           onTap: () => _handleBack(vm),
           child: Container(
-            width: size.width * 0.1,
-            height: size.width * 0.1,
+            width: size.width * 0.085,
+            height: size.width * 0.085,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.surfaceVariant,
-              border: Border.all(color: AppColors.border),
+              color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+              border: Border.all(
+                color: AppColors.border.withValues(alpha: 0.5),
+              ),
             ),
-            child: HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowLeft01,
-              size: size.width * 0.05,
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: size.width * 0.038,
               color: AppColors.textPrimary,
             ),
           ),
@@ -313,7 +310,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
             'Vendor Registration',
             style: TextStyle(
               fontSize: size.width * 0.048,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -349,9 +346,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size.width * 0.025),
         color: AppColors.error.withValues(alpha: 0.08),
-        border: Border.all(
-          color: AppColors.error.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

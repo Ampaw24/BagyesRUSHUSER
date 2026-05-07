@@ -23,7 +23,9 @@ class _PaymentState extends State<Payment> {
     );
 
     Future.delayed(const Duration(milliseconds: 3000), () {
-      AppNavigator.toHome(context);
+      if (mounted) {
+        AppNavigator.toHome(context);
+      }
     });
   }
 

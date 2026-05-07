@@ -41,7 +41,8 @@ class DioInterceptor extends Interceptor {
     });
 
     final path = options.path;
-    final needsToken = !_authExclusions.any((e) => path.contains(e));
+    final isAuth = _authExclusions.any((e) => path.contains(e));
+    final needsToken = !isAuth;
 
     if (needsToken) {
       final token = Cache.instance.sessionToken;
@@ -52,10 +53,14 @@ class DioInterceptor extends Interceptor {
 
     final safeHeaders = Map<String, dynamic>.from(options.headers)
       ..remove('Authorization');
+
+    // Redact body for auth-sensitive endpoints
+    final logBody = isAuth ? '{REDACTED}' : (options.data ?? 'none');
+
     _log.d(
       '[REQUEST] ${options.method} ${options.uri}\n'
       'Headers: $safeHeaders\n'
-      'Body: ${options.data ?? 'none'}\n'
+      'Body: $logBody\n'
       'Query: ${options.queryParameters}',
     );
 
@@ -64,9 +69,13 @@ class DioInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final path = response.requestOptions.path;
+    final isAuth = _authExclusions.any((e) => path.contains(e));
+    final logData = isAuth ? '{REDACTED}' : response.data;
+
     _log.d(
       '[RESPONSE] ${response.statusCode} ${response.requestOptions.uri}\n'
-      'Data: ${response.data}',
+      'Data: $logData',
     );
     super.onResponse(response, handler);
   }
@@ -76,15 +85,18 @@ class DioInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
+    final path = err.requestOptions.path;
+    final isAuth = _authExclusions.any((e) => path.contains(e));
+    final logResponse = isAuth ? '{REDACTED}' : err.response?.data;
+
     _log.e(
       '[ERROR] ${err.type.name} ${err.requestOptions.uri}\n'
       'Status: ${err.response?.statusCode}\n'
       'Message: ${err.message}\n'
-      'Response: ${err.response?.data}',
+      'Response: $logResponse',
       error: err,
     );
 
-    final path = err.requestOptions.path;
     final isAuthExcluded = _authExclusions.any((e) => path.contains(e));
 
     // Attempt token refresh on 401 for authenticated routes

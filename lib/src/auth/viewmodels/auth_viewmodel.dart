@@ -106,6 +106,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String password,
     required String confirmPassword,
     required String businessName,
+    required String businessType,
     required String businessTypeID,
     required String contactPersonName,
     required String businessAddress,
@@ -129,6 +130,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
       password: password,
       confirmPassword: confirmPassword,
       businessName: businessName,
+      businessType: businessType,
       businessTypeId: businessTypeID,
       contactPersonName: contactPersonName,
       businessAddress: businessAddress,
@@ -189,7 +191,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
       },
       (response) {
         _otpResponse = response;
-        appLogger.i('AuthViewmodel.sendOtp → OTPSent\n  response: $response');
+        appLogger.i('AuthViewmodel.sendOtp → OTPSent');
         emit(const OTPSent());
       },
     );

@@ -40,9 +40,16 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
   late String _closingTime;
   late int _estimatedPrepTimeMinutes;
 
+  // Keys to prevent "Duplicate keys found" error in AnimatedSwitcher 
+  // during rapid slider movements.
+  Key _radiusKey = UniqueKey();
+  Key _prepTimeKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
+    _deliveryRadiusKm = -1; // Dummy to trigger key refresh on first sync
+    _estimatedPrepTimeMinutes = -1; // Dummy to trigger key refresh on first sync
     _syncFromData(widget.data);
   }
 
@@ -51,18 +58,36 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
     super.didUpdateWidget(oldWidget);
     // Only re-sync if data was changed externally (e.g. VM reset),
     // not from our own _emit calls.
-    if (widget.data != oldWidget.data) {
+    if (widget.data != oldWidget.data || widget.availableCategories != oldWidget.availableCategories) {
       _syncFromData(widget.data);
     }
   }
 
   void _syncFromData(OperationalDetailsData data) {
-    _cuisineTypes = List<String>.from(data.cuisineTypes);
+    _cuisineTypes = data.cuisineTypes.map((item) {
+      // If the item matches an ID in availableCategories, convert it to the name.
+      // This handles the transition from ID-based to name-based storage.
+      try {
+        final cat = widget.availableCategories.firstWhere((c) => c.id == item);
+        return cat.name.toLowerCase();
+      } catch (_) {
+        return item;
+      }
+    }).toSet().toList();
     _operatingDays = List<String>.from(data.operatingDays);
-    _deliveryRadiusKm = data.deliveryRadiusKm;
+    
+    if (_deliveryRadiusKm != data.deliveryRadiusKm) {
+      _deliveryRadiusKm = data.deliveryRadiusKm;
+      _radiusKey = UniqueKey();
+    }
+    
     _openingTime = data.openingTime;
     _closingTime = data.closingTime;
-    _estimatedPrepTimeMinutes = data.estimatedPrepTimeMinutes;
+    
+    if (_estimatedPrepTimeMinutes != data.estimatedPrepTimeMinutes) {
+      _estimatedPrepTimeMinutes = data.estimatedPrepTimeMinutes;
+      _prepTimeKey = UniqueKey();
+    }
   }
 
   void _emit() {
@@ -133,7 +158,7 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
             spacing: size.width * 0.02,
             runSpacing: size.height * 0.008,
             children: widget.availableCategories.map((category) {
-              final apiValue = category.name;
+              final apiValue = category.name.toLowerCase();
               final isSelected = _cuisineTypes.contains(apiValue);
               return GestureDetector(
                 onTap: () {
@@ -191,7 +216,7 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
               duration: const Duration(milliseconds: 200),
               child: Text(
                 '${_deliveryRadiusKm.toStringAsFixed(1)} km',
-                key: ValueKey(_deliveryRadiusKm),
+                key: _radiusKey,
                 style: TextStyle(
                   fontSize: size.width * 0.034,
                   fontWeight: FontWeight.w600,
@@ -214,8 +239,23 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
             min: 1,
             max: 30,
             divisions: 58,
-            onChanged: (val) => setState(() => _deliveryRadiusKm = val),
+            onChanged: (val) {
+              if (val != _deliveryRadiusKm) {
+                setState(() {
+                  _deliveryRadiusKm = val;
+                  _radiusKey = UniqueKey();
+                });
+              }
+            },
             onChangeEnd: (_) => _emit(),
+          ),
+        ),
+        Text(
+          'Set your delivery reach. A smaller radius ensures faster delivery and better food quality for your customers.',
+          style: TextStyle(
+            fontSize: size.width * 0.028,
+            color: AppColors.textSecondary,
+            height: 1.4,
           ),
         ),
 
@@ -275,7 +315,7 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
               duration: const Duration(milliseconds: 200),
               child: Text(
                 '$_estimatedPrepTimeMinutes min',
-                key: ValueKey(_estimatedPrepTimeMinutes),
+                key: _prepTimeKey,
                 style: TextStyle(
                   fontSize: size.width * 0.034,
                   fontWeight: FontWeight.w600,
@@ -298,7 +338,15 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
             min: 5,
             max: 120,
             divisions: 23,
-            onChanged: (val) => setState(() => _estimatedPrepTimeMinutes = val.round()),
+            onChanged: (val) {
+              final rounded = val.round();
+              if (rounded != _estimatedPrepTimeMinutes) {
+                setState(() {
+                  _estimatedPrepTimeMinutes = rounded;
+                  _prepTimeKey = UniqueKey();
+                });
+              }
+            },
             onChangeEnd: (_) => _emit(),
           ),
         ),

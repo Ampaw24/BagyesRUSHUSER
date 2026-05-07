@@ -48,14 +48,14 @@ class CacheHelper {
   Future<void> cacheUserId(String id) async {
     await _secureStorage.write(key: _userIdKey, value: id);
     Cache.instance.setUserId(id);
-    appLogger.d('CacheHelper: userId cached → $id');
+    appLogger.d('CacheHelper: userId cached');
   }
 
   Future<String?> getUserId() async {
     final id = await _secureStorage.read(key: _userIdKey);
     if (id != null) {
       Cache.instance.setUserId(id);
-      appLogger.d('CacheHelper: userId restored from storage → $id');
+      appLogger.d('CacheHelper: userId restored from storage');
     }
     return id;
   }

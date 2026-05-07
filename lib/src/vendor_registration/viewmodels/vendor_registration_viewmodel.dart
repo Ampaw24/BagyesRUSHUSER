@@ -98,7 +98,7 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     } else if (authState is AuthError) {
       // Detect "phone already exists / already registered" — resume path.
       final msg = authState.message.toLowerCase();
-      final isAlreadyExists = _kAlreadyExistsPatterns.any(msg.contains);
+      final isAlreadyExists = _kAlreadyExistsPatterns.any(msg.contains) && !msg.contains('email');
 
       if (isAlreadyExists && _state.currentStep == VendorRegistrationStep.createPassword) {
         // Account exists but phone is unverified. Skip re-registration,
@@ -298,6 +298,7 @@ class VendorRegistrationViewModel extends ChangeNotifier {
       confirmPassword: b.confirmPassword,
       
       businessName: b.businessName,
+      businessType: b.businessType?.name ?? '',
       businessTypeID: b.businessType?.id ?? '',
       contactPersonName: b.contactPersonName,
       businessAddress: b.businessAddress,

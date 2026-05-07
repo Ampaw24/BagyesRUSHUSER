@@ -39,6 +39,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
   late TextEditingController _descriptionCtrl;
   late TextEditingController _tinCtrl;
   String? _selectedRegion;
+  BusinessTypeModel? _selectedBusinessType;
 
   static const List<String> _ghanaRegions = [
     'Ahafo',
@@ -77,18 +78,47 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     _emailCtrl = TextEditingController(text: widget.data.email);
     _addressCtrl = TextEditingController(text: widget.data.businessAddress);
     _cityCtrl = TextEditingController(text: widget.data.city);
-    _descriptionCtrl = TextEditingController(text: widget.data.description ?? '');
-    _tinCtrl = TextEditingController(text: widget.data.taxIdentificationNumber ?? '');
+    _descriptionCtrl = TextEditingController(
+      text: widget.data.description ?? '',
+    );
+    _tinCtrl = TextEditingController(
+      text: widget.data.taxIdentificationNumber ?? '',
+    );
     _selectedRegion = widget.data.city.isEmpty ? null : widget.data.city;
+    _selectedBusinessType = widget.data.businessType;
 
-    _nameFocus = FocusNode()..addListener(() { if (!_nameFocus.hasFocus) _emit(); });
-    _contactFocus = FocusNode()..addListener(() { if (!_contactFocus.hasFocus) _emit(); });
-    _phoneFocus = FocusNode()..addListener(() { if (!_phoneFocus.hasFocus) _emit(); });
-    _emailFocus = FocusNode()..addListener(() { if (!_emailFocus.hasFocus) _emit(); });
-    _addressFocus = FocusNode()..addListener(() { if (!_addressFocus.hasFocus) _emit(); });
-    _cityFocus = FocusNode()..addListener(() { if (!_cityFocus.hasFocus) _emit(); });
-    _descriptionFocus = FocusNode()..addListener(() { if (!_descriptionFocus.hasFocus) _emit(); });
-    _tinFocus = FocusNode()..addListener(() { if (!_tinFocus.hasFocus) _emit(); });
+    _nameFocus = FocusNode()
+      ..addListener(() {
+        if (!_nameFocus.hasFocus) _emit();
+      });
+    _contactFocus = FocusNode()
+      ..addListener(() {
+        if (!_contactFocus.hasFocus) _emit();
+      });
+    _phoneFocus = FocusNode()
+      ..addListener(() {
+        if (!_phoneFocus.hasFocus) _emit();
+      });
+    _emailFocus = FocusNode()
+      ..addListener(() {
+        if (!_emailFocus.hasFocus) _emit();
+      });
+    _addressFocus = FocusNode()
+      ..addListener(() {
+        if (!_addressFocus.hasFocus) _emit();
+      });
+    _cityFocus = FocusNode()
+      ..addListener(() {
+        if (!_cityFocus.hasFocus) _emit();
+      });
+    _descriptionFocus = FocusNode()
+      ..addListener(() {
+        if (!_descriptionFocus.hasFocus) _emit();
+      });
+    _tinFocus = FocusNode()
+      ..addListener(() {
+        if (!_tinFocus.hasFocus) _emit();
+      });
   }
 
   @override
@@ -123,6 +153,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         email: _emailCtrl.text,
         businessAddress: _addressCtrl.text,
         city: _selectedRegion ?? '',
+        businessType: _selectedBusinessType,
         description: _descriptionCtrl.text,
         taxIdentificationNumber: _tinCtrl.text,
       ),
@@ -156,13 +187,14 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         ),
         SizedBox(height: size.height * 0.008),
         _BusinessTypeSelector(
-          selected: widget.data.businessType,
+          selected: _selectedBusinessType,
           businessTypes: widget.businessTypes,
           isLoading: widget.isLoadingBusinessTypes,
           error: widget.businessTypesError,
           onRetry: widget.onRetryBusinessTypes,
           onChanged: (type) {
-            widget.onChanged(widget.data.copyWith(businessType: type));
+            setState(() => _selectedBusinessType = type);
+            _emit();
           },
         ),
         SizedBox(height: size.height * 0.022),
@@ -254,7 +286,7 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
 
         // Description (optional)
         VendorTextField(
-          label: 'Business Description (optional)',
+          label: 'Business Description ',
           hint: 'Tell customers what makes your food special...',
           controller: _descriptionCtrl,
           focusNode: _descriptionFocus,
@@ -411,7 +443,11 @@ class _FetchErrorTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.wifi_off_rounded, color: AppColors.error, size: size.width * 0.045),
+          Icon(
+            Icons.wifi_off_rounded,
+            color: AppColors.error,
+            size: size.width * 0.045,
+          ),
           SizedBox(width: size.width * 0.025),
           Expanded(
             child: Text(
@@ -504,12 +540,16 @@ class _RegionSelector extends StatelessWidget {
                 color: selected != null
                     ? AppColors.textPrimary
                     : AppColors.textSecondary,
-                fontWeight: selected != null ? FontWeight.w500 : FontWeight.w400,
+                fontWeight: selected != null
+                    ? FontWeight.w500
+                    : FontWeight.w400,
               ),
             ),
             Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: selected != null ? AppColors.primary : AppColors.textSecondary,
+              color: selected != null
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
               size: size.width * 0.06,
             ),
           ],
@@ -576,7 +616,9 @@ class _RegionSelector extends StatelessWidget {
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.transparent,
                           width: 1,
                         ),
                       ),
@@ -587,8 +629,9 @@ class _RegionSelector extends StatelessWidget {
                             region,
                             style: TextStyle(
                               fontSize: size.width * 0.038,
-                              fontWeight:
-                                  isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                               color: isSelected
                                   ? AppColors.primary
                                   : AppColors.textPrimary,

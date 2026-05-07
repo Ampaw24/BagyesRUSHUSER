@@ -37,4 +37,3 @@ enum VendorRegistrationStatus {
   submitted,
   error,
 }
-
