@@ -149,6 +149,12 @@ class AuthRepository {
         '  status : ${response.statusCode}',
       );
 
+      appLogger.d(
+        'AuthRepository.vendorRegister → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
@@ -287,7 +293,8 @@ class AuthRepository {
 
       appLogger.d(
         'AuthRepository.sendOtp → RAW RESPONSE\n'
-        '  status : ${response.statusCode}',
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
       );
 
       if ([200, 201].contains(response.statusCode)) {

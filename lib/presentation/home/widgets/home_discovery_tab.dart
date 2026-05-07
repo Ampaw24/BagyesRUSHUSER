@@ -17,6 +17,7 @@ import 'promo_banner_section.dart';
 import 'popular_restaurants_row.dart';
 import 'quick_service_chip.dart';
 import 'shimmer_card.dart';
+import '../../../core/utils/location_helper.dart';
 
 class HomeDiscoveryTab extends ConsumerStatefulWidget {
   final VoidCallback? onDrawerTap;
@@ -60,79 +61,13 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
   }
 
   Future<void> _fetchLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          appLogger.w(
-            '[Location] Permission denied (status: $permission) — skipping location fetch',
-          );
-          setState(() => _currentLocation = 'Location unavailable');
-          return;
-        }
-      }
-      _gpsPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-      );
-      appLogger.i(
-        '[Location] Home coordinates — '
-        'lat: ${_gpsPosition!.latitude}, lng: ${_gpsPosition!.longitude}, '
-        'accuracy: ${_gpsPosition!.accuracy.toStringAsFixed(1)} m',
-      );
-      final placemarks = await placemarkFromCoordinates(
-        _gpsPosition!.latitude,
-        _gpsPosition!.longitude,
-      );
-      final place = placemarks.isNotEmpty ? placemarks.first : null;
-      if (place != null) {
-        appLogger.d(
-          '[Location] Placemark fields — '
-          'name: ${place.name} | '
-          'street: ${place.street} | '
-          'subLocality: ${place.subLocality} | '
-          'locality: ${place.locality} | '
-          'subAdminArea: ${place.subAdministrativeArea} | '
-          'adminArea: ${place.administrativeArea} | '
-          'country: ${place.country}',
-        );
-      }
-      final resolved = _resolveAddress(place, _gpsPosition!);
-      appLogger.d('[Location] Resolved address: $resolved');
-      setState(() => _currentLocation = resolved);
-    } catch (e, s) {
-      appLogger.e(
-        '[Location] Failed to fetch home location',
-        error: e,
-        stackTrace: s,
-      );
-      final fallback = _gpsPosition != null
-          ? '${_gpsPosition!.latitude.toStringAsFixed(4)}, ${_gpsPosition!.longitude.toStringAsFixed(4)}'
-          : 'Location unavailable';
-      setState(() => _currentLocation = fallback);
+    final result = await LocationHelper.getCurrentLocation();
+    if (mounted) {
+      setState(() {
+        _currentLocation = result['address'];
+        _gpsPosition = result['position'];
+      });
     }
-  }
-
-  String _resolveAddress(Placemark? p, Position pos) {
-    if (p != null) {
-      final sub = p.subLocality?.isNotEmpty == true ? p.subLocality : null;
-      final locality = p.locality?.isNotEmpty == true ? p.locality : null;
-      final area = p.administrativeArea?.isNotEmpty == true
-          ? p.administrativeArea
-          : null;
-      final country = p.country?.isNotEmpty == true ? p.country : null;
-      final street = p.street?.isNotEmpty == true ? p.street : null;
-
-      if (street != null && locality != null) return '$street, $locality';
-      if (street != null) return street;
-      if (sub != null && locality != null) return '$sub, $locality';
-      if (sub != null) return sub;
-      final parts = [locality, area ?? country].whereType<String>().toList();
-      if (parts.isNotEmpty) return parts.join(', ');
-      if (country != null) return country;
-    }
-    return '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
   }
 
   @override

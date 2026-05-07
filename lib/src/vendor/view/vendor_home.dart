@@ -28,6 +28,7 @@ import '../../auth/viewmodels/auth_viewmodel.dart';
 import '../../../states/app.state.dart';
 import '../../../services/auth.service.dart' show ISignup;
 import '../../../core/widgets/custom_dialogs.dart';
+import '../../../core/utils/location_helper.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -283,41 +284,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   }
 
   Future<void> _fetchLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          setState(() => _currentLocation = 'Location unavailable');
-          return;
-        }
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-      );
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        final parts = <String>[
-          if (place.locality != null && place.locality!.isNotEmpty)
-            place.locality!,
-          if (place.administrativeArea != null &&
-              place.administrativeArea!.isNotEmpty)
-            place.administrativeArea!,
-        ];
-        if (parts.isNotEmpty) {
-          setState(() => _currentLocation = parts.join(', '));
-        }
-      }
-    } catch (_) {
-      setState(() => _currentLocation = 'Location unavailable');
+    final result = await LocationHelper.getCurrentLocation();
+    if (mounted) {
+      setState(() => _currentLocation = result['address']);
     }
   }
 
@@ -368,26 +337,21 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      final result = await LocationHelper.getCurrentLocation();
+      final position = result['position'] as Position?;
+
+      if (position == null) {
         if (mounted) {
           StoreStatusToast.show(
             context,
             isSuccess: false,
-            title: 'Location Permission Denied',
-            subtitle: 'Grant location access so customers can see your store.',
+            title: 'Location Required',
+            subtitle:
+                'Enable location services so customers can find your store.',
           );
         }
         return;
       }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-      );
 
       // Validate that we actually got coordinates
       if (position.latitude == 0.0 && position.longitude == 0.0) {
