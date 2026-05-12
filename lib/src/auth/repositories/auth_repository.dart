@@ -68,6 +68,7 @@ class AuthRepository {
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
         await _cacheHelper.cacheUserId(user.id);
+        await _cacheHelper.cacheUserRole(user.role);
 
         appLogger.i('AuthRepository.signup → success id=${user.id}');
         return Right(user);
@@ -165,6 +166,7 @@ class AuthRepository {
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
         await _cacheHelper.cacheUserId(user.id);
+        await _cacheHelper.cacheUserRole(user.role);
 
         appLogger.i('AuthRepository.vendorRegister → success id=${user.id}');
         return Right(user);
@@ -257,6 +259,7 @@ class AuthRepository {
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
         await _cacheHelper.cacheUserId(user.id);
+        await _cacheHelper.cacheUserRole(user.role);
 
         appLogger.i('AuthRepository.login → success id=${user.id}');
         return Right(user);
@@ -394,6 +397,14 @@ class AuthRepository {
         methodName: 'getUserDetails',
       );
     }
+  }
+
+  Future<String?> getUserId() async {
+    return _cacheHelper.getUserId();
+  }
+
+  Future<String?> getCachedUserRole() async {
+    return _cacheHelper.getUserRole();
   }
 
   /// Exchanges the stored refresh token for a new access + refresh token pair.

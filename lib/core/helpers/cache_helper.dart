@@ -14,6 +14,7 @@ class CacheHelper {
   static const _sessionTokenKey  = 'session_token';
   static const _refreshTokenKey  = 'refresh_token';
   static const _userIdKey        = 'user_id';
+  static const _userRoleKey      = 'user_role';
 
   // ── Session token ──────────────────────────────────────────────────────────
 
@@ -60,12 +61,24 @@ class CacheHelper {
     return id;
   }
 
+  // ── User Role ──────────────────────────────────────────────────────────────
+
+  Future<void> cacheUserRole(String role) async {
+    await _secureStorage.write(key: _userRoleKey, value: role);
+    appLogger.d('CacheHelper: userRole cached');
+  }
+
+  Future<String?> getUserRole() async {
+    return _secureStorage.read(key: _userRoleKey);
+  }
+
   // ── Reset ──────────────────────────────────────────────────────────────────
 
   Future<void> resetSession() async {
     await _secureStorage.delete(key: _sessionTokenKey);
     await _secureStorage.delete(key: _refreshTokenKey);
     await _secureStorage.delete(key: _userIdKey);
+    await _secureStorage.delete(key: _userRoleKey);
     Cache.instance.resetSession();
     appLogger.i('CacheHelper: session cleared');
   }

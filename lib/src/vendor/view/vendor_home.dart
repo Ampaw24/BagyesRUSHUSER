@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/router/app_routes.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/common/app/current_user_provider.dart';
+import '../model/vendor_profile.dart';
 import '../providers/dashboard_provider.dart' show dashboardProvider;
 import 'widgets/vendor_header.dart';
 import 'widgets/store_toggle_card.dart';
@@ -23,7 +25,6 @@ import 'vendor_orders_view.dart';
 import 'vendor_menu_view.dart';
 import 'vendor_earnings_view.dart';
 import '../model/dummy_orders.dart';
-import 'package:provider/provider.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
 import '../../../states/app.state.dart';
 import '../../../services/auth.service.dart' show ISignup;
@@ -170,6 +171,22 @@ class _VendorHomeState extends State<VendorHome> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<CurrentUserProvider>().user;
+    final vendorProfile = user?.profile as VendorProfile?;
+
+    String initials = '??';
+    if (vendorProfile != null) {
+      final name = vendorProfile.businessName;
+      if (name.isNotEmpty) {
+        final parts = name.split(' ');
+        if (parts.length > 1) {
+          initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+        } else {
+          initials = name[0].toUpperCase();
+        }
+      }
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -185,6 +202,8 @@ class _VendorHomeState extends State<VendorHome> {
                 index: _navIndex,
                 children: [
                   _DashboardTab(
+                    vendorProfile: vendorProfile,
+                    initials: initials,
                     onDrawerTap: _openDrawer,
                     onViewAllOrders: () => setState(() => _navIndex = 1),
                     onAvatarTap: _navigateToShopProfile,
@@ -207,10 +226,10 @@ class _VendorHomeState extends State<VendorHome> {
             ),
             if (_drawerOpen)
               VendorDrawer(
-                userName: "Mama's Kitchen",
-                userEmail: 'mama@bagyesrush.com',
-                initials: 'MK',
-                isVerified: true,
+                userName: vendorProfile?.businessName ?? "Vendor",
+                userEmail: user?.email ?? '',
+                initials: initials,
+                isVerified: user?.phoneVerified ?? false,
                 onClose: _closeDrawer,
                 onNotifications: () {
                   _closeDrawer();
@@ -260,10 +279,14 @@ class _VendorHomeState extends State<VendorHome> {
 // ─── Dashboard tab (index 0) ────────────────────────────────────────────
 
 class _DashboardTab extends ConsumerStatefulWidget {
+  final VendorProfile? vendorProfile;
+  final String initials;
   final VoidCallback? onDrawerTap;
   final VoidCallback? onViewAllOrders;
   final VoidCallback? onAvatarTap;
   const _DashboardTab({
+    this.vendorProfile,
+    required this.initials,
     this.onDrawerTap,
     this.onViewAllOrders,
     this.onAvatarTap,
@@ -288,6 +311,20 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     if (mounted) {
       setState(() => _currentLocation = result['address']);
     }
+  }
+
+  String _formatOperatingDays(List<String> days) {
+    if (days.isEmpty) return 'Closed';
+    final dayMap = {
+      'monday': 'Mon',
+      'tuesday': 'Tue',
+      'wednesday': 'Wed',
+      'thursday': 'Thu',
+      'friday': 'Fri',
+      'saturday': 'Sat',
+      'sunday': 'Sun',
+    };
+    return days.map((d) => dayMap[d.toLowerCase()] ?? d).join(', ');
   }
 
   /// Pre-checks internet + location before opening the store.
@@ -398,6 +435,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final w = MediaQuery.sizeOf(context).width;
     final horizontalPad = w * 0.05;
     final sectionGap = w * 0.04;
+    final profile = widget.vendorProfile;
 
     return Column(
       children: [
@@ -413,9 +451,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               VendorHeader(
-                title: "Mama's Kitchen",
-                location: _currentLocation,
-                initials: 'MK',
+                title: profile?.businessName ?? "Vendor Home",
+                location: _currentLocation ?? profile?.businessAddress,
+                initials: widget.initials,
                 onDrawerTap: widget.onDrawerTap,
                 onNotificationTap: () => Navigator.of(context).push(
                   PageRouteBuilder(
@@ -439,14 +477,53 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 ),
                 onAvatarTap: widget.onAvatarTap,
               ),
+
+              // Status Banners
+              if (profile?.status == 'pending_review')
+                _StatusBanner(
+                  icon: HugeIcons.strokeRoundedClock01,
+                  label: 'ACCOUNT PENDING REVIEW',
+                  color: AppColors.warning,
+                  w: w,
+                ),
+              if (profile?.isProfileComplete == false)
+                _StatusBanner(
+                  icon: HugeIcons.strokeRoundedAlertCircle,
+                  label: 'COMPLETE YOUR PROFILE',
+                  color: AppColors.error,
+                  w: w,
+                ),
+
               Padding(
-                padding: EdgeInsets.only(top: w * 0.07),
+                padding: EdgeInsets.only(top: w * 0.04),
                 child: StoreToggleCard(
                   isOpen: state.storeOpen,
                   isLoading: _isTogglingStore,
                   onToggle: _handleStoreToggle,
                 ),
               ),
+
+              // Shop Quick Details
+              if (profile != null)
+                Padding(
+                  padding: EdgeInsets.only(top: w * 0.03),
+                  child: Row(
+                    children: [
+                      _QuickDetail(
+                        icon: HugeIcons.strokeRoundedClock01,
+                        text: '${profile.openingTime} - ${profile.closingTime}',
+                        w: w,
+                      ),
+                      SizedBox(width: w * 0.04),
+                      _QuickDetail(
+                        icon: HugeIcons.strokeRoundedCalendar01,
+                        text: _formatOperatingDays(profile.operatingDays),
+                        w: w,
+                      ),
+                    ],
+                  ),
+                ),
+
               SizedBox(height: sectionGap),
               StatsRow(
                 stats: [
@@ -463,7 +540,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     iconColor: AppColors.accent,
                   ),
                   StatItem(
-                    value: state.avgRating,
+                    value: profile?.rating.toString() ?? state.avgRating,
                     label: 'Avg Rating',
                     icon: HugeIcons.strokeRoundedStarCircle,
                     iconColor: AppColors.warning,
@@ -605,6 +682,92 @@ class _ActiveOrdersLabel extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppColors.primary,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Status Banner ───────────────────────────────────────────────────────
+
+class _StatusBanner extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String label;
+  final Color color;
+  final double w;
+
+  const _StatusBanner({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(top: w * 0.03),
+      padding: EdgeInsets.symmetric(
+        horizontal: w * 0.03,
+        vertical: w * 0.02,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(w * 0.02),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          HugeIcon(icon: icon, color: color, size: w * 0.04),
+          SizedBox(width: w * 0.02),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: w * 0.028,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Quick Detail ────────────────────────────────────────────────────────
+
+class _QuickDetail extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String text;
+  final double w;
+
+  const _QuickDetail({
+    required this.icon,
+    required this.text,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        HugeIcon(
+          icon: icon,
+          color: AppColors.textSecondary,
+          size: w * 0.035,
+        ),
+        SizedBox(width: w * 0.015),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: w * 0.03,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

@@ -1,290 +1,406 @@
 import 'package:equatable/equatable.dart';
 
 class VendorProfile extends Equatable {
-  final String id;
-  final String businessName;
-  final String ownerName;
-  final String phone;
-  final String email;
-  final String address;
-  final String city;
-  final String? logoUrl;
-  final String? coverImageUrl;
-  final String? description;
-  final List<String> cuisineTypes;
-  final String openingTime;
-  final String closingTime;
-  final Map<String, DayHours> weeklyHours;
-  final List<String> operatingDays;
-  final double deliveryRadiusKm;
-  final double minimumOrder;
-  final double deliveryFee;
-  final String estimatedDeliveryTime;
-  final double rating;
-  final int totalReviews;
-  final int totalOrders;
-  final bool isVerified;
-  final bool acceptsPreOrders;
-  final String? instagramUrl;
-  final String? facebookUrl;
-  final String? websiteUrl;
-  final String? tiktokUrl;
-  final DateTime? createdAt;
-
   const VendorProfile({
     required this.id,
+    required this.userId,
     required this.businessName,
-    required this.ownerName,
-    required this.phone,
-    required this.email,
-    required this.address,
+    required this.businessTypeId,
+    required this.contactPersonName,
+    required this.businessAddress,
     required this.city,
+    required this.description,
+    required this.taxIdentificationNumber,
+    required this.cuisineTypes,
+    required this.deliveryRadiusKm,
+    required this.openingTime,
+    required this.closingTime,
+    required this.operatingDays,
+    required this.estimatedPrepTimeMinutes,
+    required this.status,
+    required this.isProfileComplete,
+    required this.name,
+    required this.categories,
+    required this.rating,
+    required this.reviewCount,
+    required this.deliveryTimeMin,
+    required this.deliveryTimeMax,
+    required this.deliveryFee,
+    required this.minOrder,
+    required this.isOpen,
+    required this.isFeatured,
+    required this.isActive,
+    required this.discountPercent,
+    required this.createdAt,
+    required this.updatedAt,
     this.logoUrl,
     this.coverImageUrl,
-    this.description,
-    this.cuisineTypes = const [],
-    this.openingTime = '08:00',
-    this.closingTime = '22:00',
-    this.weeklyHours = const {},
-    this.operatingDays = const [],
-    this.deliveryRadiusKm = 5.0,
-    this.minimumOrder = 0.0,
-    this.deliveryFee = 0.0,
-    this.estimatedDeliveryTime = '30-45 min',
-    this.rating = 0.0,
-    this.totalReviews = 0,
-    this.totalOrders = 0,
-    this.isVerified = false,
-    this.acceptsPreOrders = false,
     this.instagramUrl,
     this.facebookUrl,
-    this.websiteUrl,
     this.tiktokUrl,
-    this.createdAt,
+    this.websiteUrl,
+    this.acceptsPreOrders = false,
+    this.totalOrders = 0,
+    this.phone = '',
+    this.email = '',
   });
+
+  final String id;
+  final String userId;
+  final String businessName;
+  final String businessTypeId;
+  final String contactPersonName;
+  final String businessAddress;
+  final String city;
+  final String description;
+  final String taxIdentificationNumber;
+  final List<String> cuisineTypes;
+  final num deliveryRadiusKm;
+  final String openingTime;
+  final String closingTime;
+  final List<String> operatingDays;
+  final int estimatedPrepTimeMinutes;
+  final String status;
+  final bool isProfileComplete;
+  final String name;
+  final List<dynamic> categories;
+  final num rating;
+  final int reviewCount;
+  final int deliveryTimeMin;
+  final int deliveryTimeMax;
+  final num deliveryFee;
+  final num minOrder;
+  final bool isOpen;
+  final bool isFeatured;
+  final bool isActive;
+  final num discountPercent;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  
+  // Optional fields for UI compatibility
+  final String? logoUrl;
+  final String? coverImageUrl;
+  final String? instagramUrl;
+  final String? facebookUrl;
+  final String? tiktokUrl;
+  final String? websiteUrl;
+  final bool acceptsPreOrders;
+  final int totalOrders;
+  final String phone;
+  final String email;
+
+  // Compatibility Getters
+  String get ownerName => contactPersonName;
+  String get address => businessAddress;
+  num get minimumOrder => minOrder;
+  String get estimatedDeliveryTime => '$deliveryTimeMin-$deliveryTimeMax min';
+  int get totalReviews => reviewCount;
+  bool get isVerified => status == 'active';
+
+  // Static dummy for compatibility
+  static VendorProfile get dummy => VendorProfile(
+        id: 'dummy_id',
+        userId: 'dummy_user_id',
+        businessName: "Mama's Kitchen",
+        businessTypeId: 'dummy_type',
+        contactPersonName: 'Ama Mensah',
+        businessAddress: '15 Oxford Street, Osu',
+        city: 'Accra',
+        description: 'Authentic Ghanaian home-cooked meals.',
+        taxIdentificationNumber: 'TIN123456',
+        cuisineTypes: const ['Ghanaian', 'Local'],
+        deliveryRadiusKm: 5.0,
+        openingTime: '08:00',
+        closingTime: '22:00',
+        operatingDays: const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        estimatedPrepTimeMinutes: 30,
+        status: 'active',
+        isProfileComplete: true,
+        name: "Mama's Kitchen",
+        categories: const [],
+        rating: 4.5,
+        reviewCount: 120,
+        deliveryTimeMin: 30,
+        deliveryTimeMax: 45,
+        deliveryFee: 5.0,
+        minOrder: 20.0,
+        isOpen: true,
+        isFeatured: false,
+        isActive: true,
+        discountPercent: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+  // Calculated fields for UI compatibility
+  Map<String, DayHours> get weeklyHours {
+    final days = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday'
+    ];
+    return {
+      for (final day in days)
+        day: DayHours(
+          open: openingTime,
+          close: closingTime,
+          isClosed: !operatingDays.contains(day.toLowerCase()),
+        ),
+    };
+  }
 
   factory VendorProfile.fromJson(Map<String, dynamic> json) {
     return VendorProfile(
-      id: json['id'] as String? ?? '',
-      businessName: json['business_name'] as String? ?? '',
-      ownerName: json['owner_name'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      address: json['address'] as String? ?? '',
-      city: json['city'] as String? ?? '',
-      logoUrl: json['logo_url'] as String?,
-      coverImageUrl: json['cover_image_url'] as String?,
-      description: json['description'] as String?,
-      cuisineTypes: (json['cuisine_types'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      openingTime: json['opening_time'] as String? ?? '08:00',
-      closingTime: json['closing_time'] as String? ?? '22:00',
-      weeklyHours: (json['weekly_hours'] as Map<String, dynamic>?)?.map(
-            (k, v) => MapEntry(k, DayHours.fromJson(v as Map<String, dynamic>)),
-          ) ??
-          {},
-      operatingDays: (json['operating_days'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      deliveryRadiusKm:
-          (json['delivery_radius_km'] as num?)?.toDouble() ?? 5.0,
-      minimumOrder: (json['minimum_order'] as num?)?.toDouble() ?? 0.0,
-      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0.0,
-      estimatedDeliveryTime:
-          json['estimated_delivery_time'] as String? ?? '30-45 min',
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      totalReviews: json['total_reviews'] as int? ?? 0,
-      totalOrders: json['total_orders'] as int? ?? 0,
-      isVerified: json['is_verified'] as bool? ?? false,
-      acceptsPreOrders: json['accepts_pre_orders'] as bool? ?? false,
-      instagramUrl: json['instagram_url'] as String?,
-      facebookUrl: json['facebook_url'] as String?,
-      websiteUrl: json['website_url'] as String?,
-      tiktokUrl: json['tiktok_url'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
+      id: json["_id"] ?? json["id"] ?? "",
+      userId: json["user_id"] ?? "",
+      businessName: json["business_name"] ?? "",
+      businessTypeId: json["business_type_id"] ?? "",
+      contactPersonName: json["contact_person_name"] ?? "",
+      businessAddress: json["business_address"] ?? "",
+      city: json["city"] ?? "",
+      description: json["description"] ?? "",
+      taxIdentificationNumber: json["tax_identification_number"] ?? "",
+      cuisineTypes: List<String>.from(json["cuisine_types"] ?? []),
+      deliveryRadiusKm: json["delivery_radius_km"] ?? 0,
+      openingTime: json["opening_time"] ?? "08:00",
+      closingTime: json["closing_time"] ?? "22:00",
+      operatingDays: List<String>.from(json["operating_days"] ?? []),
+      estimatedPrepTimeMinutes: json["estimated_prep_time_minutes"] ?? 0,
+      status: json["status"] ?? "",
+      isProfileComplete: json["is_profile_complete"] ?? false,
+      name: json["name"] ?? "",
+      categories: List<dynamic>.from(json["categories"] ?? []),
+      rating: (json["rating"] as num?)?.toDouble() ?? 0.0,
+      reviewCount: json["review_count"] ?? 0,
+      deliveryTimeMin: json["delivery_time_min"] ?? 0,
+      deliveryTimeMax: json["delivery_time_max"] ?? 0,
+      deliveryFee: (json["delivery_fee"] as num?)?.toDouble() ?? 0.0,
+      minOrder: (json["min_order"] as num?)?.toDouble() ?? 0.0,
+      isOpen: json["is_open"] ?? false,
+      isFeatured: json["is_featured"] ?? false,
+      isActive: json["is_active"] ?? false,
+      discountPercent: json["discount_percent"] ?? 0,
+      createdAt: json["created_at"] != null
+          ? DateTime.tryParse(json["created_at"] as String)
           : null,
+      updatedAt: json["updated_at"] != null
+          ? DateTime.tryParse(json["updated_at"] as String)
+          : null,
+      logoUrl: json["logo_url"] as String?,
+      coverImageUrl: json["cover_image_url"] as String?,
+      instagramUrl: json["instagram_url"] as String?,
+      facebookUrl: json["facebook_url"] as String?,
+      tiktokUrl: json["tiktok_url"] as String?,
+      websiteUrl: json["website_url"] as String?,
+      acceptsPreOrders: json["accepts_pre_orders"] ?? false,
+      totalOrders: json["total_orders"] ?? 0,
+      phone: json["phone"] as String? ?? '',
+      email: json["email"] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'business_name': businessName,
-        'owner_name': ownerName,
-        'phone': phone,
-        'email': email,
-        'address': address,
-        'city': city,
-        'logo_url': logoUrl,
-        'cover_image_url': coverImageUrl,
-        'description': description,
-        'cuisine_types': cuisineTypes,
-        'opening_time': openingTime,
-        'closing_time': closingTime,
-        'weekly_hours':
-            weeklyHours.map((k, v) => MapEntry(k, v.toJson())),
-        'operating_days': operatingDays,
-        'delivery_radius_km': deliveryRadiusKm,
-        'minimum_order': minimumOrder,
-        'delivery_fee': deliveryFee,
-        'estimated_delivery_time': estimatedDeliveryTime,
-        'rating': rating,
-        'total_reviews': totalReviews,
-        'total_orders': totalOrders,
-        'is_verified': isVerified,
-        'accepts_pre_orders': acceptsPreOrders,
-        'instagram_url': instagramUrl,
-        'facebook_url': facebookUrl,
-        'website_url': websiteUrl,
-        'tiktok_url': tiktokUrl,
-        'created_at': createdAt?.toIso8601String(),
+        "_id": id,
+        "user_id": userId,
+        "business_name": businessName,
+        "business_type_id": businessTypeId,
+        "contact_person_name": contactPersonName,
+        "business_address": businessAddress,
+        "city": city,
+        "description": description,
+        "tax_identification_number": taxIdentificationNumber,
+        "cuisine_types": cuisineTypes,
+        "delivery_radius_km": deliveryRadiusKm,
+        "opening_time": openingTime,
+        "closing_time": closingTime,
+        "operating_days": operatingDays,
+        "estimated_prep_time_minutes": estimatedPrepTimeMinutes,
+        "status": status,
+        "is_profile_complete": isProfileComplete,
+        "name": name,
+        "categories": categories,
+        "rating": rating,
+        "review_count": reviewCount,
+        "delivery_time_min": deliveryTimeMin,
+        "delivery_time_max": deliveryTimeMax,
+        "delivery_fee": deliveryFee,
+        "min_order": minOrder,
+        "is_open": isOpen,
+        "is_featured": isFeatured,
+        "is_active": isActive,
+        "discount_percent": discountPercent,
+        "created_at": createdAt?.toIso8601String(),
+        "updated_at": updatedAt?.toIso8601String(),
+        "logo_url": logoUrl,
+        "cover_image_url": coverImageUrl,
+        "instagram_url": instagramUrl,
+        "facebook_url": facebookUrl,
+        "tiktok_url": tiktokUrl,
+        "website_url": websiteUrl,
+        "accepts_pre_orders": acceptsPreOrders,
+        "total_orders": totalOrders,
+        "phone": phone,
+        "email": email,
       };
 
   VendorProfile copyWith({
     String? id,
+    String? userId,
     String? businessName,
-    String? ownerName,
-    String? phone,
-    String? email,
-    String? address,
+    String? businessTypeId,
+    String? contactPersonName,
+    String? businessAddress,
     String? city,
-    String? logoUrl,
-    String? coverImageUrl,
     String? description,
+    String? taxIdentificationNumber,
     List<String>? cuisineTypes,
+    num? deliveryRadiusKm,
     String? openingTime,
     String? closingTime,
-    Map<String, DayHours>? weeklyHours,
     List<String>? operatingDays,
-    double? deliveryRadiusKm,
-    double? minimumOrder,
-    double? deliveryFee,
-    String? estimatedDeliveryTime,
-    double? rating,
-    int? totalReviews,
-    int? totalOrders,
-    bool? isVerified,
-    bool? acceptsPreOrders,
+    int? estimatedPrepTimeMinutes,
+    String? status,
+    bool? isProfileComplete,
+    String? name,
+    List<dynamic>? categories,
+    num? rating,
+    int? reviewCount,
+    int? deliveryTimeMin,
+    int? deliveryTimeMax,
+    num? deliveryFee,
+    num? minOrder,
+    bool? isOpen,
+    bool? isFeatured,
+    bool? isActive,
+    num? discountPercent,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? logoUrl,
+    String? coverImageUrl,
     String? instagramUrl,
     String? facebookUrl,
-    String? websiteUrl,
     String? tiktokUrl,
-    DateTime? createdAt,
+    String? websiteUrl,
+    bool? acceptsPreOrders,
+    int? totalOrders,
+    String? phone,
+    String? email,
+    Map<String, DayHours>? weeklyHours,
+    // Compatibility parameters
+    String? ownerName,
+    String? address,
+    num? minimumOrder,
+    String? estimatedDeliveryTime,
   }) {
+    // If weeklyHours is passed, we might want to update operatingDays
+    List<String>? newOperatingDays = operatingDays;
+    String? newOpeningTime = openingTime;
+    String? newClosingTime = closingTime;
+    
+    if (weeklyHours != null) {
+      newOperatingDays = weeklyHours.entries
+          .where((e) => !e.value.isClosed)
+          .map((e) => e.key)
+          .toList();
+      if (weeklyHours.isNotEmpty) {
+        final firstDay = weeklyHours.values.first;
+        newOpeningTime = firstDay.open;
+        newClosingTime = firstDay.close;
+      }
+    }
+
     return VendorProfile(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       businessName: businessName ?? this.businessName,
-      ownerName: ownerName ?? this.ownerName,
-      phone: phone ?? this.phone,
-      email: email ?? this.email,
-      address: address ?? this.address,
+      businessTypeId: businessTypeId ?? this.businessTypeId,
+      contactPersonName: ownerName ?? contactPersonName ?? this.contactPersonName,
+      businessAddress: address ?? businessAddress ?? this.businessAddress,
       city: city ?? this.city,
+      description: description ?? this.description,
+      taxIdentificationNumber: taxIdentificationNumber ?? this.taxIdentificationNumber,
+      cuisineTypes: cuisineTypes ?? this.cuisineTypes,
+      deliveryRadiusKm: deliveryRadiusKm ?? this.deliveryRadiusKm,
+      openingTime: newOpeningTime ?? this.openingTime,
+      closingTime: newClosingTime ?? this.closingTime,
+      operatingDays: newOperatingDays ?? this.operatingDays,
+      estimatedPrepTimeMinutes: estimatedPrepTimeMinutes ?? this.estimatedPrepTimeMinutes,
+      status: status ?? this.status,
+      isProfileComplete: isProfileComplete ?? this.isProfileComplete,
+      name: name ?? this.name,
+      categories: categories ?? this.categories,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      deliveryTimeMin: deliveryTimeMin ?? this.deliveryTimeMin,
+      deliveryTimeMax: deliveryTimeMax ?? this.deliveryTimeMax,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
+      minOrder: minimumOrder ?? minOrder ?? this.minOrder,
+      isOpen: isOpen ?? this.isOpen,
+      isFeatured: isFeatured ?? this.isFeatured,
+      isActive: isActive ?? this.isActive,
+      discountPercent: discountPercent ?? this.discountPercent,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       logoUrl: logoUrl ?? this.logoUrl,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
-      description: description ?? this.description,
-      cuisineTypes: cuisineTypes ?? this.cuisineTypes,
-      openingTime: openingTime ?? this.openingTime,
-      closingTime: closingTime ?? this.closingTime,
-      weeklyHours: weeklyHours ?? this.weeklyHours,
-      operatingDays: operatingDays ?? this.operatingDays,
-      deliveryRadiusKm: deliveryRadiusKm ?? this.deliveryRadiusKm,
-      minimumOrder: minimumOrder ?? this.minimumOrder,
-      deliveryFee: deliveryFee ?? this.deliveryFee,
-      estimatedDeliveryTime:
-          estimatedDeliveryTime ?? this.estimatedDeliveryTime,
-      rating: rating ?? this.rating,
-      totalReviews: totalReviews ?? this.totalReviews,
-      totalOrders: totalOrders ?? this.totalOrders,
-      isVerified: isVerified ?? this.isVerified,
-      acceptsPreOrders: acceptsPreOrders ?? this.acceptsPreOrders,
       instagramUrl: instagramUrl ?? this.instagramUrl,
       facebookUrl: facebookUrl ?? this.facebookUrl,
-      websiteUrl: websiteUrl ?? this.websiteUrl,
       tiktokUrl: tiktokUrl ?? this.tiktokUrl,
-      createdAt: createdAt ?? this.createdAt,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
+      acceptsPreOrders: acceptsPreOrders ?? this.acceptsPreOrders,
+      totalOrders: totalOrders ?? this.totalOrders,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
     );
   }
-
-  /// Dummy profile for UI development
-  static VendorProfile get dummy => VendorProfile(
-        id: 'v_001',
-        businessName: "Mama's Kitchen",
-        ownerName: 'Ama Mensah',
-        phone: '+233 24 123 4567',
-        email: 'mama@bagyesrush.com',
-        address: '15 Oxford Street, Osu',
-        city: 'Accra',
-        description:
-            'Authentic Ghanaian home-cooked meals made with love. '
-            'From jollof rice to banku with tilapia, we bring the taste of home to your doorstep.',
-        cuisineTypes: ['Ghanaian', 'West African', 'Grills'],
-        openingTime: '07:00',
-        closingTime: '22:00',
-        weeklyHours: {
-          'monday': const DayHours(open: '07:00', close: '22:00'),
-          'tuesday': const DayHours(open: '07:00', close: '22:00'),
-          'wednesday': const DayHours(open: '07:00', close: '22:00'),
-          'thursday': const DayHours(open: '07:00', close: '22:00'),
-          'friday': const DayHours(open: '07:00', close: '23:00'),
-          'saturday': const DayHours(open: '08:00', close: '23:00'),
-          'sunday': const DayHours(open: '10:00', close: '20:00', isClosed: true),
-        },
-        operatingDays: [
-          'monday',
-          'tuesday',
-          'wednesday',
-          'thursday',
-          'friday',
-          'saturday',
-        ],
-        deliveryRadiusKm: 8.0,
-        minimumOrder: 25.0,
-        deliveryFee: 5.0,
-        estimatedDeliveryTime: '25-40 min',
-        rating: 4.7,
-        totalReviews: 328,
-        totalOrders: 1254,
-        isVerified: true,
-        acceptsPreOrders: true,
-        instagramUrl: 'mamaskitchen_accra',
-        tiktokUrl: 'mamaskitchen',
-        createdAt: DateTime(2024, 3, 15),
-      );
 
   @override
   List<Object?> get props => [
         id,
+        userId,
         businessName,
-        ownerName,
-        phone,
-        email,
-        address,
+        businessTypeId,
+        contactPersonName,
+        businessAddress,
         city,
-        logoUrl,
-        coverImageUrl,
         description,
+        taxIdentificationNumber,
         cuisineTypes,
+        deliveryRadiusKm,
         openingTime,
         closingTime,
-        weeklyHours,
         operatingDays,
-        deliveryRadiusKm,
-        minimumOrder,
-        deliveryFee,
-        estimatedDeliveryTime,
+        estimatedPrepTimeMinutes,
+        status,
+        isProfileComplete,
+        name,
+        categories,
         rating,
-        totalReviews,
-        totalOrders,
-        isVerified,
-        acceptsPreOrders,
+        reviewCount,
+        deliveryTimeMin,
+        deliveryTimeMax,
+        deliveryFee,
+        minOrder,
+        isOpen,
+        isFeatured,
+        isActive,
+        discountPercent,
+        createdAt,
+        updatedAt,
+        logoUrl,
+        coverImageUrl,
         instagramUrl,
         facebookUrl,
-        websiteUrl,
         tiktokUrl,
-        createdAt,
+        websiteUrl,
+        acceptsPreOrders,
+        totalOrders,
+        phone,
+        email,
       ];
 }
 

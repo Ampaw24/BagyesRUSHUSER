@@ -5,6 +5,7 @@ import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 
 class AuthViewmodel extends ViewModel<AuthState> {
   AuthViewmodel({
@@ -251,11 +252,25 @@ class AuthViewmodel extends ViewModel<AuthState> {
   Future<void> restoreSession() async {
     final token  = Cache.instance.sessionToken;
     final userId = Cache.instance.userId;
+    final role   = await _repository.getCachedUserRole();
 
     if (token == null || userId == null) {
       appLogger.i('AuthViewmodel.restoreSession → no cached session, LoggedOut');
       emit(const LoggedOut());
       return;
+    }
+
+    // If we have a role, set a minimal user so routing works immediately
+    if (role != null) {
+      _currentUserProvider.setUser(User(
+        id: userId,
+        role: role,
+        email: '',
+        phone: '',
+        status: '',
+        phoneVerified: true, // Assume verified until profile says otherwise
+        profile: null,
+      ));
     }
 
     // Mark as logged in immediately based on token presence

@@ -1,57 +1,70 @@
 import 'package:equatable/equatable.dart';
+import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
 class User extends Equatable {
-    const User({
-        required this.id,
-        required this.email,
-        required this.phone,
-        required this.role,
-        required this.status,
-        required this.phoneVerified,
-        required this.profile,
-    });
+  const User({
+    required this.id,
+    required this.email,
+    required this.phone,
+    required this.role,
+    required this.status,
+    required this.phoneVerified,
+    required this.profile,
+  });
 
-    final String id;
-    final String email;
-    final String phone;
-    final String role;
-    final String status;
-    final bool phoneVerified;
-    final Profile? profile;
+  final String id;
+  final String email;
+  final String phone;
+  final String role;
+  final String status;
+  final bool phoneVerified;
+  final dynamic profile;
 
-    User copyWith({
-        String? id,
-        String? email,
-        String? phone,
-        String? role,
-        String? status,
-        bool? phoneVerified,
-        Profile? profile,
-    }) {
-        return User(
-            id: id ?? this.id,
-            email: email ?? this.email,
-            phone: phone ?? this.phone,
-            role: role ?? this.role,
-            status: status ?? this.status,
-            phoneVerified: phoneVerified ?? this.phoneVerified,
-            profile: profile ?? this.profile,
-        );
-    }
+  User copyWith({
+    String? id,
+    String? email,
+    String? phone,
+    String? role,
+    String? status,
+    bool? phoneVerified,
+    dynamic profile,
+  }) {
+    return User(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
+      profile: profile ?? this.profile,
+    );
+  }
 
-    factory User.fromJson(Map<String, dynamic> json){ 
-        return User(
-            id: json["id"] ?? "",
-            email: json["email"] ?? "",
-            phone: json["phone"] ?? "",
-            role: json["role"] ?? "",
-            status: json["status"] ?? "",
-            phoneVerified: json["phone_verified"] ?? false,
-            profile: json["profile"] == null ? null : Profile.fromJson(json["profile"]),
-        );
-    }
+  factory User.fromJson(Map<String, dynamic> json) {
+    final role = json["role"] ?? "";
+    final profileJson = json["profile"];
+    final email = json["email"] ?? "";
+    final phone = json["phone"] ?? "";
+    
+    return User(
+      id: json["id"] ?? "",
+      email: email,
+      phone: phone,
+      role: role,
+      status: json["status"] ?? "",
+      phoneVerified: json["phone_verified"] ?? false,
+      profile: profileJson == null
+          ? null
+          : (role == 'vendor'
+              ? VendorProfile.fromJson(profileJson).copyWith(
+                  email: email,
+                  phone: phone,
+                )
+              : CustomerProfile.fromJson(profileJson)),
+    );
+  }
 
-    Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => {
         "id": id,
         "email": email,
         "phone": phone,
@@ -59,90 +72,97 @@ class User extends Equatable {
         "status": status,
         "phone_verified": phoneVerified,
         "profile": profile?.toJson(),
-    };
+      };
 
-    @override
-    String toString(){
-        return "$id, $email, $phone, $role, $status, $phoneVerified, $profile, ";
-    }
+  @override
+  String toString() {
+    return "$id, $email, $phone, $role, $status, $phoneVerified, $profile, ";
+  }
 
-    @override
-    List<Object?> get props => [
-    id, email, phone, role, status, phoneVerified, profile, ];
+  @override
+  List<Object?> get props => [
+        id,
+        email,
+        phone,
+        role,
+        status,
+        phoneVerified,
+        profile,
+      ];
 }
 
-class Profile extends Equatable {
-   const Profile({
-        required this.id,
-        required this.userId,
-        required this.firstName,
-        required this.lastName,
-        required this.address,
-        required this.profilePictureUrl,
-        required this.referralCode,
-        required this.referralCount,
-        required this.createdAt,
-        required this.updatedAt,
-        required this.v,
-    });
+class CustomerProfile extends Equatable {
+  const CustomerProfile({
+    required this.id,
+    required this.userId,
+    required this.firstName,
+    required this.lastName,
+    required this.address,
+    required this.profilePictureUrl,
+    required this.referralCode,
+    required this.referralCount,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.v,
+  });
 
-    final String id;
-    final String userId;
-    final String firstName;
-    final String lastName;
-    final String address;
-    final String? profilePictureUrl;
-    final String referralCode;
-    final num referralCount;
-    final DateTime? createdAt;
-    final DateTime? updatedAt;
-    final num v;
+  final String id;
+  final String userId;
+  final String firstName;
+  final String lastName;
+  final String address;
+  final String? profilePictureUrl;
+  final String referralCode;
+  final num referralCount;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final num v;
 
-    Profile copyWith({
-        String? id,
-        String? userId,
-        String? firstName,
-        String? lastName,
-        String? address,
-        String? profilePictureUrl,
-        String? referralCode,
-        num? referralCount,
-        DateTime? createdAt,
-        DateTime? updatedAt,
-        num? v,
-    }) {
-        return Profile(
-            id: id ?? this.id,
-            userId: userId ?? this.userId,
-            firstName: firstName ?? this.firstName,
-            lastName: lastName ?? this.lastName,
-            address: address ?? this.address,
-            profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
-            referralCode: referralCode ?? this.referralCode,
-            referralCount: referralCount ?? this.referralCount,
-            createdAt: createdAt ?? this.createdAt,
-            updatedAt: updatedAt ?? this.updatedAt,
-            v: v ?? this.v,
-        );
-    }
+  CustomerProfile copyWith({
+    String? id,
+    String? userId,
+    String? firstName,
+    String? lastName,
+    String? address,
+    String? profilePictureUrl,
+    String? referralCode,
+    num? referralCount,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    num? v,
+  }) {
+    return CustomerProfile(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      address: address ?? this.address,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+      referralCode: referralCode ?? this.referralCode,
+      referralCount: referralCount ?? this.referralCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      v: v ?? this.v,
+    );
+  }
 
-    factory Profile.fromJson(Map<String, dynamic> json){ 
-        return Profile(
-            id: json["_id"] ?? "",
-            userId: json["user_id"] ?? "",
-            firstName: json["first_name"] ?? "",
-            lastName: json["last_name"] ?? "",
-            address: json["address"] ?? "",
-            profilePictureUrl: json["profile_picture_url"] as String?,
-            referralCode: json["referral_code"] ?? "",
-            referralCount: json["referral_count"] ?? 0,
-            createdAt: DateTime.tryParse(json["created_at"] ?? ""),
-            updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
-            v: json["__v"] ?? 0,
-        );
-    }
+  factory CustomerProfile.fromJson(Map<String, dynamic> json) {
+    return CustomerProfile(
+      id: json["_id"] ?? "",
+      userId: json["user_id"] ?? "",
+      firstName: json["first_name"] ?? "",
+      lastName: json["last_name"] ?? "",
+      address: json["address"] ?? "",
+      profilePictureUrl: json["profile_picture_url"] as String?,
+      referralCode: json["referral_code"] ?? "",
+      referralCount: json["referral_count"] ?? 0,
+      createdAt: DateTime.tryParse(json["created_at"] ?? ""),
+      updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
+      v: json["__v"] ?? 0,
+    );
+  }
 
-    Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => {
         "_id": id,
         "user_id": userId,
         "first_name": firstName,
@@ -154,14 +174,26 @@ class Profile extends Equatable {
         "created_at": createdAt?.toIso8601String(),
         "updated_at": updatedAt?.toIso8601String(),
         "__v": v,
-    };
+      };
 
-    @override
-    String toString(){
-        return "$id, $userId, $firstName, $lastName, $address, $profilePictureUrl, $referralCode, $referralCount, $createdAt, $updatedAt, $v, ";
-    }
+  @override
+  String toString() {
+    return "$id, $userId, $firstName, $lastName, $address, $profilePictureUrl, $referralCode, $referralCount, $createdAt, $updatedAt, $v, ";
+  }
 
-    @override
-    List<Object?> get props => [
-    id, userId, firstName, lastName, address, profilePictureUrl, referralCode, referralCount, createdAt, updatedAt, v, ];
+  @override
+  List<Object?> get props => [
+        id,
+        userId,
+        firstName,
+        lastName,
+        address,
+        profilePictureUrl,
+        referralCode,
+        referralCount,
+        createdAt,
+        updatedAt,
+        v,
+      ];
 }
+
