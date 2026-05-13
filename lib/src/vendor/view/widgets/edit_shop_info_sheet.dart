@@ -1,27 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../../constant/app_theme.dart';
+import '../../../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import '../../model/vendor_profile.dart';
 
-const _availableCuisines = [
-  'Ghanaian',
-  'West African',
-  'Nigerian',
-  'Grills',
-  'Chinese',
-  'Indian',
-  'Italian',
-  'Fast Food',
-  'Seafood',
-  'Vegan',
-  'Bakery',
-  'Beverages',
-  'Desserts',
-  'Healthy',
-  'Continental',
-];
-
-class EditShopInfoSheet extends StatefulWidget {
+class EditShopInfoSheet extends ConsumerStatefulWidget {
   final VendorProfile profile;
   final ValueChanged<VendorProfile> onSave;
 
@@ -40,15 +24,17 @@ class EditShopInfoSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => EditShopInfoSheet(profile: profile, onSave: onSave),
+      builder: (_) => ProviderScope(
+        child: EditShopInfoSheet(profile: profile, onSave: onSave),
+      ),
     );
   }
 
   @override
-  State<EditShopInfoSheet> createState() => _EditShopInfoSheetState();
+  ConsumerState<EditShopInfoSheet> createState() => _EditShopInfoSheetState();
 }
 
-class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
+class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
@@ -68,7 +54,7 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
     super.initState();
     final p = widget.profile;
     _nameCtrl = TextEditingController(text: p.businessName);
-    _descCtrl = TextEditingController(text: p.description ?? '');
+    _descCtrl = TextEditingController(text: p.description);
     _ownerCtrl = TextEditingController(text: p.ownerName);
     _phoneCtrl = TextEditingController(text: p.phone);
     _emailCtrl = TextEditingController(text: p.email);
@@ -109,14 +95,18 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
       address: _addressCtrl.text.trim(),
       city: _cityCtrl.text.trim(),
       cuisineTypes: _selectedCuisines,
-      instagramUrl:
-          _instagramCtrl.text.trim().isEmpty ? null : _instagramCtrl.text.trim(),
-      facebookUrl:
-          _facebookCtrl.text.trim().isEmpty ? null : _facebookCtrl.text.trim(),
-      tiktokUrl:
-          _tiktokCtrl.text.trim().isEmpty ? null : _tiktokCtrl.text.trim(),
-      websiteUrl:
-          _websiteCtrl.text.trim().isEmpty ? null : _websiteCtrl.text.trim(),
+      instagramUrl: _instagramCtrl.text.trim().isEmpty
+          ? null
+          : _instagramCtrl.text.trim(),
+      facebookUrl: _facebookCtrl.text.trim().isEmpty
+          ? null
+          : _facebookCtrl.text.trim(),
+      tiktokUrl: _tiktokCtrl.text.trim().isEmpty
+          ? null
+          : _tiktokCtrl.text.trim(),
+      websiteUrl: _websiteCtrl.text.trim().isEmpty
+          ? null
+          : _websiteCtrl.text.trim(),
     );
 
     widget.onSave(updated);
@@ -127,6 +117,7 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final categoriesAsync = ref.watch(categoriesProvider);
 
     return Container(
       constraints: BoxConstraints(
@@ -153,7 +144,12 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
           ),
           // Header
           Padding(
-            padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, w * 0.01),
+            padding: EdgeInsets.fromLTRB(
+              w * 0.05,
+              w * 0.04,
+              w * 0.05,
+              w * 0.01,
+            ),
             child: Row(
               children: [
                 Text(
@@ -284,90 +280,24 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
                     // ── Cuisine Types ──
                     _SectionHeader(label: 'Cuisine Types', w: w),
                     SizedBox(height: w * 0.025),
-                    Wrap(
-                      spacing: w * 0.02,
-                      runSpacing: w * 0.02,
-                      children: _availableCuisines.map((cuisine) {
-                        final selected = _selectedCuisines.contains(cuisine);
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              if (selected) {
-                                _selectedCuisines.remove(cuisine);
-                              } else {
-                                _selectedCuisines.add(cuisine);
-                              }
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: w * 0.035,
-                              vertical: w * 0.02,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(w * 0.05),
-                              border: Border.all(
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                              ),
-                            ),
-                            child: Text(
-                              cuisine,
-                              style: TextStyle(
-                                fontSize: w * 0.03,
-                                fontWeight: FontWeight.w600,
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
+                    categoriesAsync.when(
+                      loading: () => _CuisineSkeletonRow(w: w),
+                      error: (e, s) => _buildCuisineChips(
+                        w: w,
+                        cuisines: _fallbackCuisines,
+                      ),
+                      data: (categories) {
+                        final cuisines = categories
+                            .where((c) => c.label != 'All')
+                            .map((c) => c.label)
+                            .toList();
+                        return _buildCuisineChips(
+                          w: w,
+                          cuisines: cuisines.isEmpty ? _fallbackCuisines : cuisines,
                         );
-                      }).toList(),
+                      },
                     ),
                     SizedBox(height: w * 0.05),
-
-                    // ── Social Links ──
-                    _SectionHeader(label: 'Social Links', w: w),
-                    SizedBox(height: w * 0.025),
-                    _buildField(
-                      controller: _instagramCtrl,
-                      label: 'Instagram',
-                      hint: 'username',
-                      icon: HugeIcons.strokeRoundedInstagram,
-                      w: w,
-                    ),
-                    SizedBox(height: w * 0.035),
-                    _buildField(
-                      controller: _facebookCtrl,
-                      label: 'Facebook',
-                      hint: 'page name or URL',
-                      icon: HugeIcons.strokeRoundedFacebook01,
-                      w: w,
-                    ),
-                    SizedBox(height: w * 0.035),
-                    _buildField(
-                      controller: _tiktokCtrl,
-                      label: 'TikTok',
-                      hint: 'username',
-                      icon: HugeIcons.strokeRoundedTiktok,
-                      w: w,
-                    ),
-                    SizedBox(height: w * 0.035),
-                    _buildField(
-                      controller: _websiteCtrl,
-                      label: 'Website',
-                      hint: 'https://...',
-                      icon: HugeIcons.strokeRoundedGlobe02,
-                      w: w,
-                      keyboardType: TextInputType.url,
-                    ),
-                    SizedBox(height: w * 0.06),
 
                     // ── Save button ──
                     SizedBox(
@@ -391,6 +321,49 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCuisineChips({required double w, required List<String> cuisines}) {
+    return Wrap(
+      spacing: w * 0.02,
+      runSpacing: w * 0.02,
+      children: cuisines.map((cuisine) {
+        final selected = _selectedCuisines.contains(cuisine);
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (selected) {
+                _selectedCuisines.remove(cuisine);
+              } else {
+                _selectedCuisines.add(cuisine);
+              }
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.035,
+              vertical: w * 0.02,
+            ),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primary : AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(w * 0.05),
+              border: Border.all(
+                color: selected ? AppColors.primary : AppColors.border,
+              ),
+            ),
+            child: Text(
+              cuisine,
+              style: TextStyle(
+                fontSize: w * 0.03,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : AppColors.textSecondary,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -437,6 +410,40 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
           validator: validator,
         ),
       ],
+    );
+  }
+}
+
+const _fallbackCuisines = [
+  'Ghanaian',
+  'Fast Food',
+  'Pizza',
+  'Chinese',
+  'Healthy',
+  'Chicken',
+  'Desserts',
+  'Drinks',
+];
+
+class _CuisineSkeletonRow extends StatelessWidget {
+  final double w;
+  const _CuisineSkeletonRow({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: w * 0.02,
+      runSpacing: w * 0.02,
+      children: List.generate(6, (i) {
+        return Container(
+          width: w * (0.18 + (i % 3) * 0.06),
+          height: w * 0.075,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(w * 0.05),
+          ),
+        );
+      }),
     );
   }
 }

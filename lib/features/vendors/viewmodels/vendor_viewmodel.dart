@@ -1,14 +1,14 @@
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/features/vendors/repositories/i_vendor_repository.dart';
+import 'package:bagyesrushappusernew/features/vendors/repositories/vendor_repository.dart';
 import 'package:bagyesrushappusernew/features/vendors/viewmodels/vendor_state.dart';
 
 class VendorViewmodel extends ViewModel<VendorState> {
-  VendorViewmodel({required IVendorRepository repository})
+  VendorViewmodel({required VendorRepository repository})
       : _repository = repository,
         super(const VendorInitial());
 
-  final IVendorRepository _repository;
+  final VendorRepository _repository;
 
   // ── Profile ───────────────────────────────────────────────────────────────
 

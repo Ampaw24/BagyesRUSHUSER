@@ -15,7 +15,7 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
 
   VendorDashboardRepositoryImpl(this._networkUtility);
 
-  // ── Dashboard ─────────────────────────────────────────────────────────
+  ///  ── Dashboard ───────────────────────────
 
   @override
   Future<Either<Failure, Map<String, dynamic>>> fetchDashboardStats() async {

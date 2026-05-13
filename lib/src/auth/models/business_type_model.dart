@@ -26,7 +26,7 @@ class BusinessTypeModel extends Equatable {
     BusinessTypeModel copyWith({
         String? id,
         String? name,
-        dynamic? description,
+        dynamic description,
         bool? isActive,
         num? displayOrder,
         DateTime? createdAt,

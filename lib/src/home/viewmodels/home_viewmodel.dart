@@ -10,9 +10,7 @@ class HomeViewmodel extends ViewModel<HomeState> {
         super(const HomeInitial());
 
   final HomeRepository _repository;
-
-  // ─── Categories ────────────────────────────────────────────────────────────
-
+  // ─── Categories ────────────────
   Future<void> getCategories() async {
     appLogger.d('HomeViewmodel.getCategories → initiated');
     emit(const HomeLoading());
@@ -32,6 +30,10 @@ class HomeViewmodel extends ViewModel<HomeState> {
       },
     );
   }
+void setcategories(){
+  
+
+}
 
   //Home page Path 1
   //Get Ads banner for courier homepage

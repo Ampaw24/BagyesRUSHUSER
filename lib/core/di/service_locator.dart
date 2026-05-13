@@ -25,7 +25,6 @@ import '../../features/vendor_payment_methods/services/payment_api_service.dart'
 import '../../features/vendor_payment_methods/services/otp_service.dart';
 import '../../features/vendor_payment_methods/repositories/payment_repository.dart';
 import '../../features/vendor_payment_methods/repositories/payment_repository_impl.dart';
-import '../../features/vendors/repositories/i_vendor_repository.dart';
 import '../../features/vendors/repositories/vendor_repository.dart' as vendor_feature;
 import '../../features/vendors/viewmodels/vendor_viewmodel.dart';
 import '../../features/vendor_wallet/services/wallet_api_service.dart';
@@ -62,7 +61,7 @@ Future<void> init() async {
     () => WalletRepositoryImpl(sl()),
   );
 
-  sl.registerLazySingleton<IVendorRepository>(
+  sl.registerLazySingleton(
     () => vendor_feature.VendorRepository(client: sl()),
   );
 

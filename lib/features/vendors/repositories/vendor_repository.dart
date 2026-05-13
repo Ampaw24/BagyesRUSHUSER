@@ -9,16 +9,14 @@ import 'package:bagyesrushappusernew/src/vendor/model/menu_item.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/vendor_order.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
-import 'i_vendor_repository.dart';
-
-class VendorRepository implements IVendorRepository {
+class VendorRepository {
   const VendorRepository({required Dio client}) : _client = client;
 
   final Dio _client;
 
   // ── Profile ───────────────────────────────────────────────────────────────
 
-  @override
+
   ResultFuture<VendorProfile> getVendorProfile() async {
     appLogger.d('VendorRepository.getVendorProfile → initiated');
     try {
@@ -42,7 +40,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<VendorProfile> updateVendorProfile(
       Map<String, dynamic> data) async {
     appLogger.d('VendorRepository.updateVendorProfile → fields=${data.keys.join(', ')}');
@@ -72,7 +70,7 @@ class VendorRepository implements IVendorRepository {
 
   // ── Menu Items ────────────────────────────────────────────────────────────
 
-  @override
+
   ResultFuture<List<MenuItem>> getMenuItems() async {
     appLogger.d('VendorRepository.getMenuItems → initiated');
     try {
@@ -98,7 +96,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<MenuItem> createMenuItem(Map<String, dynamic> data) async {
     appLogger.d('VendorRepository.createMenuItem → name=${data['name']}');
     try {
@@ -122,7 +120,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<MenuItem> updateMenuItem(
       String id, Map<String, dynamic> data) async {
     appLogger.d('VendorRepository.updateMenuItem → id=$id');
@@ -150,7 +148,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<MenuItem> toggleMenuItemAvailability(
       String id, bool isAvailable) async {
     appLogger.d(
@@ -183,7 +181,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<bool> deleteMenuItem(String id) async {
     appLogger.d('VendorRepository.deleteMenuItem → id=$id');
     try {
@@ -207,7 +205,7 @@ class VendorRepository implements IVendorRepository {
 
   // ── Orders ────────────────────────────────────────────────────────────────
 
-  @override
+
   ResultFuture<List<VendorOrder>> getOrders({String? status}) async {
     appLogger.d(
         'VendorRepository.getOrders → status=${status ?? 'all'}');
@@ -237,7 +235,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<VendorOrder> getOrderById(String orderId) async {
     appLogger.d('VendorRepository.getOrderById → orderId=$orderId');
     try {
@@ -263,7 +261,7 @@ class VendorRepository implements IVendorRepository {
     }
   }
 
-  @override
+
   ResultFuture<VendorOrder> updateOrderStatus(
       String orderId, String status) async {
     appLogger.d(

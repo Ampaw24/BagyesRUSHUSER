@@ -43,15 +43,13 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
         curve: const Interval(0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _headerSlide = Tween<Offset>(
-      begin: const Offset(0, -0.04),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entryController,
-        curve: const Interval(0, 0.5, curve: Curves.easeOutCubic),
-      ),
-    );
+    _headerSlide =
+        Tween<Offset>(begin: const Offset(0, -0.04), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0, 0.5, curve: Curves.easeOutCubic),
+          ),
+        );
     _scrollController = ScrollController()
       ..addListener(() {
         if (mounted) setState(() => _scrollOffset = _scrollController.offset);
@@ -125,8 +123,8 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final providerProfile = context.watch<CurrentUserProvider>().user?.profile
-        as VendorProfile?;
+    final providerProfile =
+        context.watch<CurrentUserProvider>().user?.profile as VendorProfile?;
     final profile = _localEdits ?? providerProfile;
 
     final w = MediaQuery.sizeOf(context).width;
@@ -138,8 +136,9 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness:
-            collapsedProgress > 0.5 ? Brightness.dark : Brightness.light,
+        statusBarIconBrightness: collapsedProgress > 0.5
+            ? Brightness.dark
+            : Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: AppColors.surface,
@@ -256,16 +255,17 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
                         SizedBox(height: w * 0.04),
 
                         // ── Social Links ──
-                        FadeTransition(
-                          opacity: _staggeredFade(6),
-                          child: SlideTransition(
-                            position: _staggeredSlide(6),
-                            child: _SocialLinksCard(
-                              profile: profile,
-                              onEdit: () => _openEditSheet(profile),
-                            ),
-                          ),
-                        ),
+                        ///Note [To be released as new update]
+                        // FadeTransition(
+                        //   opacity: _staggeredFade(6),
+                        //   child: SlideTransition(
+                        //     position: _staggeredSlide(6),
+                        //     child: _SocialLinksCard(
+                        //       profile: profile,
+                        //       onEdit: () => _openEditSheet(profile),
+                        //     ),
+                        //   ),
+                        // ),
                         SizedBox(height: w * 0.06),
                       ]),
                     ),
@@ -410,10 +410,7 @@ class _NoProfilePlaceholder extends StatelessWidget {
           SizedBox(height: w * 0.015),
           Text(
             'Your shop profile data could not be loaded.',
-            style: TextStyle(
-              fontSize: w * 0.032,
-              color: AppColors.textHint,
-            ),
+            style: TextStyle(fontSize: w * 0.032, color: AppColors.textHint),
             textAlign: TextAlign.center,
           ),
         ],
@@ -519,10 +516,7 @@ class _MissingFieldChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.028,
-        vertical: w * 0.012,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.028, vertical: w * 0.012),
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(w * 0.05),
@@ -727,11 +721,11 @@ class _CoverHeroSection extends StatelessWidget {
                           child: Text(
                             profile.businessName.isNotEmpty
                                 ? profile.businessName
-                                    .split(' ')
-                                    .take(2)
-                                    .map((s) => s.isNotEmpty ? s[0] : '')
-                                    .join()
-                                    .toUpperCase()
+                                      .split(' ')
+                                      .take(2)
+                                      .map((s) => s.isNotEmpty ? s[0] : '')
+                                      .join()
+                                      .toUpperCase()
                                 : 'V',
                             style: TextStyle(
                               fontSize: w * 0.07,
@@ -998,24 +992,26 @@ class _AboutCard extends StatelessWidget {
               spacing: w * 0.02,
               runSpacing: w * 0.02,
               children: profile.cuisineTypes
-                  .map((c) => Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: w * 0.03,
-                          vertical: w * 0.012,
+                  .map(
+                    (c) => Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: w * 0.03,
+                        vertical: w * 0.012,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(w * 0.05),
+                      ),
+                      child: Text(
+                        c,
+                        style: TextStyle(
+                          fontSize: w * 0.028,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
                         ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(w * 0.05),
-                        ),
-                        child: Text(
-                          c,
-                          style: TextStyle(
-                            fontSize: w * 0.028,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ))
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -1108,9 +1104,9 @@ class _BusinessInfoCard extends StatelessWidget {
   }
 
   Widget _divider(double w) => Padding(
-        padding: EdgeInsets.symmetric(vertical: w * 0.02),
-        child: const Divider(color: AppColors.divider, height: 1),
-      );
+    padding: EdgeInsets.symmetric(vertical: w * 0.02),
+    child: const Divider(color: AppColors.divider, height: 1),
+  );
 }
 
 class _InfoRow extends StatelessWidget {
@@ -1211,7 +1207,8 @@ class _OperatingHoursCard extends StatelessWidget {
               children: _dayLabels.entries.map((entry) {
                 final hours = profile.weeklyHours[entry.key];
                 final isToday = entry.key == today;
-                final isClosed = hours?.isClosed ??
+                final isClosed =
+                    hours?.isClosed ??
                     !profile.operatingDays.contains(entry.key);
 
                 return Container(
@@ -1239,8 +1236,9 @@ class _OperatingHoursCard extends StatelessWidget {
                           entry.value,
                           style: TextStyle(
                             fontSize: w * 0.032,
-                            fontWeight:
-                                isToday ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight: isToday
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                             color: isToday
                                 ? AppColors.primary
                                 : AppColors.textPrimary,
@@ -1315,10 +1313,7 @@ class _OperatingHoursCard extends StatelessWidget {
         const Spacer(),
         Text(
           'Daily',
-          style: TextStyle(
-            fontSize: w * 0.03,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: w * 0.03, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -1527,10 +1522,7 @@ class _CuisineTypesCard extends StatelessWidget {
       child: profile.cuisineTypes.isEmpty
           ? Text(
               'No cuisines added yet. Tap edit to add your specialties.',
-              style: TextStyle(
-                fontSize: w * 0.032,
-                color: AppColors.textHint,
-              ),
+              style: TextStyle(fontSize: w * 0.032, color: AppColors.textHint),
             )
           : Wrap(
               spacing: w * 0.025,
@@ -1604,56 +1596,54 @@ class _SocialLinksCard extends StatelessWidget {
       onEdit: onEdit,
       child: links.isEmpty
           ? Text(
-              'Connect your social media to reach more customers.',
-              style: TextStyle(
-                fontSize: w * 0.032,
-                color: AppColors.textHint,
-              ),
+              'Connect your social medi to reach more customers.',
+              style: TextStyle(fontSize: w * 0.032, color: AppColors.textHint),
             )
           : Column(
               children: links
-                  .map((link) => Padding(
-                        padding: EdgeInsets.only(bottom: w * 0.02),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(w * 0.02),
-                              decoration: BoxDecoration(
-                                color: link.color.withValues(alpha: 0.1),
-                                borderRadius:
-                                    BorderRadius.circular(w * 0.02),
-                              ),
-                              child: HugeIcon(
-                                icon: HugeIcons.strokeRoundedLink01,
-                                color: link.color,
-                                size: w * 0.04,
-                              ),
+                  .map(
+                    (link) => Padding(
+                      padding: EdgeInsets.only(bottom: w * 0.02),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(w * 0.02),
+                            decoration: BoxDecoration(
+                              color: link.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(w * 0.02),
                             ),
-                            SizedBox(width: w * 0.03),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  link.platform,
-                                  style: TextStyle(
-                                    fontSize: w * 0.026,
-                                    color: AppColors.textHint,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  link.handle,
-                                  style: TextStyle(
-                                    fontSize: w * 0.032,
-                                    fontWeight: FontWeight.w600,
-                                    color: link.color,
-                                  ),
-                                ),
-                              ],
+                            child: HugeIcon(
+                              icon: HugeIcons.strokeRoundedLink01,
+                              color: link.color,
+                              size: w * 0.04,
                             ),
-                          ],
-                        ),
-                      ))
+                          ),
+                          SizedBox(width: w * 0.03),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                link.platform,
+                                style: TextStyle(
+                                  fontSize: w * 0.026,
+                                  color: AppColors.textHint,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                link.handle,
+                                style: TextStyle(
+                                  fontSize: w * 0.032,
+                                  fontWeight: FontWeight.w600,
+                                  color: link.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
     );
@@ -1701,11 +1691,7 @@ class _ProfileCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              HugeIcon(
-                icon: icon,
-                color: AppColors.primary,
-                size: w * 0.045,
-              ),
+              HugeIcon(icon: icon, color: AppColors.primary, size: w * 0.045),
               SizedBox(width: w * 0.02),
               Text(
                 title,
