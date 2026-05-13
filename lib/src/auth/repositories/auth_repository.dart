@@ -8,6 +8,7 @@ import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
 class AuthRepository {
   const AuthRepository({required Dio client, required CacheHelper cacheHelper})
@@ -403,8 +404,50 @@ class AuthRepository {
     return _cacheHelper.getUserId();
   }
 
+  /// Fetches the vendor-specific profile from `GET /vendors/profile`.
+  ///
+  /// Called during session restore when the authenticated user is a vendor,
+  /// because the generic `/auth/me` endpoint does not include vendor profile
+  /// data (business name, status, isProfileComplete, etc.).
+  ResultFuture<VendorProfile> fetchVendorProfile() async {
+    appLogger.d('AuthRepository.fetchVendorProfile → initiated');
+    try {
+      final response = await _client.get(ApiEndpoints.vendorProfile);
+      if (response.statusCode == 200) {
+        final responseData = response.data as DataMap;
+        final profileJson =
+            responseData['data'] as DataMap? ?? responseData;
+        final profile = VendorProfile.fromJson(profileJson);
+        appLogger.i('AuthRepository.fetchVendorProfile → success');
+        return Right(profile);
+      }
+      appLogger.w(
+        'AuthRepository.fetchVendorProfile → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('AuthRepository.fetchVendorProfile → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'fetchVendorProfile',
+      );
+    }
+  }
+
   Future<String?> getCachedUserRole() async {
     return _cacheHelper.getUserRole();
+  }
+
+  /// Writes [role] back to secure storage so the next cold-start restores the
+  /// correct role even when the profile endpoint omits the field.
+  /// Fire-and-forget — callers should not await this.
+  Future<void> syncUserRole(String role) async {
+    await _cacheHelper.cacheUserRole(role);
+    appLogger.d('AuthRepository.syncUserRole → role=$role synced to storage');
   }
 
   /// Exchanges the stored refresh token for a new access + refresh token pair.

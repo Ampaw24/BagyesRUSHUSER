@@ -3,9 +3,11 @@ import 'package:bagyesrushappusernew/constant/constant.dart';
 import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/common/app/current_user_provider.dart';
+import '../src/auth/repositories/auth_repository.dart';
 import '../src/auth/viewmodels/auth_viewmodel.dart';
 import '../src/auth/viewmodels/auth_state.dart';
 
@@ -66,8 +68,16 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (authState is LoggedIn) {
-      // Route by role
-      final role = currentUser.user?.role ?? '';
+      // Primary: use the role held in memory by CurrentUserProvider.
+      // Fallback: read directly from secure storage in case a background
+      // profile-fetch race cleared the in-memory role before we got here.
+      String role = currentUser.user?.role ?? '';
+      if (role.isEmpty) {
+        role = await GetIt.instance<AuthRepository>().getCachedUserRole() ?? '';
+      }
+
+      if (!mounted) return;
+
       if (role == 'vendor') {
         context.go(AppRoutes.vendorHome);
       } else {

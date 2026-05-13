@@ -44,6 +44,34 @@ class Restaurant {
 
   String get deliveryTimeLabel => '$deliveryTimeMin–$deliveryTimeMax min';
 
+  factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
+        id: json['id'] as String? ?? json['_id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        imageUrl: json['image_url'] as String? ??
+            json['logo_url'] as String? ??
+            json['banner_url'] as String? ??
+            '',
+        cuisineType: json['cuisine_type'] as String? ?? '',
+        categories: (json['categories'] as List<dynamic>? ?? [])
+            .map((e) => e.toString())
+            .toList(),
+        rating: (json['rating'] as num? ?? 0).toDouble(),
+        reviewCount: json['review_count'] as int? ?? 0,
+        deliveryTimeMin: json['delivery_time_min'] as int? ?? 0,
+        deliveryTimeMax: json['delivery_time_max'] as int? ?? 0,
+        deliveryFee: (json['delivery_fee'] as num? ?? 0).toDouble(),
+        minOrder: (json['min_order'] as num? ?? 0).toDouble(),
+        isOpen: json['is_open'] as bool? ?? false,
+        isFeatured: json['is_featured'] as bool? ?? false,
+        address: json['address'] as String? ??
+            json['business_address'] as String? ??
+            '',
+        latitude: (json['latitude'] as num? ?? 0).toDouble(),
+        longitude: (json['longitude'] as num? ?? 0).toDouble(),
+        promoText: json['promo_text'] as String?,
+        discountPercent: (json['discount_percent'] as num?)?.toDouble(),
+      );
+
   @override
   bool operator ==(Object other) =>
       other is Restaurant && other.id == id;

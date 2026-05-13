@@ -429,30 +429,31 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     }
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
     final w = MediaQuery.sizeOf(context).width;
-    final horizontalPad = w * 0.05;
-    final sectionGap = w * 0.04;
+    final h = w * 0.05;
     final profile = widget.vendorProfile;
+    final location = _currentLocation ?? profile?.businessAddress;
 
     return Column(
       children: [
         // ── Fixed top section ──
         Padding(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPad,
-            w * 0.03,
-            horizontalPad,
-            0,
-          ),
+          padding: EdgeInsets.fromLTRB(h, w * 0.02, h, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Icon row: hamburger ── bell + avatar
               VendorHeader(
-                title: profile?.businessName ?? "Vendor Home",
-                location: _currentLocation ?? profile?.businessAddress,
                 initials: widget.initials,
                 onDrawerTap: widget.onDrawerTap,
                 onNotificationTap: () => Navigator.of(context).push(
@@ -460,16 +461,13 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     pageBuilder: (_, anim, _) =>
                         const VendorNotificationsScreen(),
                     transitionsBuilder: (_, anim, _, child) => SlideTransition(
-                      position:
-                          Tween<Offset>(
-                            begin: const Offset(0, -0.06),
-                            end: Offset.zero,
-                          ).animate(
-                            CurvedAnimation(
-                              parent: anim,
-                              curve: Curves.easeOutCubic,
-                            ),
-                          ),
+                      position: Tween<Offset>(
+                        begin: const Offset(0, -0.06),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: anim,
+                        curve: Curves.easeOutCubic,
+                      )),
                       child: FadeTransition(opacity: anim, child: child),
                     ),
                     transitionDuration: const Duration(milliseconds: 320),
@@ -478,53 +476,104 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 onAvatarTap: widget.onAvatarTap,
               ),
 
+              // Greeting + business name
+              SizedBox(height: w * 0.045),
+              Text(
+                _greeting,
+                style: TextStyle(
+                  fontSize: w * 0.034,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: w * 0.008),
+              Text(
+                profile?.businessName ?? 'Vendor',
+                style: TextStyle(
+                  fontSize: w * 0.058,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  height: 1.1,
+                ),
+              ),
+              if (location != null) ...[
+                SizedBox(height: w * 0.012),
+                Row(
+                  children: [
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedLocation01,
+                      color: AppColors.textHint,
+                      size: w * 0.033,
+                    ),
+                    SizedBox(width: w * 0.01),
+                    Expanded(
+                      child: Text(
+                        location,
+                        style: TextStyle(
+                          fontSize: w * 0.03,
+                          color: AppColors.textHint,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
               // Status Banners
               if (profile?.status == 'pending_review')
                 _StatusBanner(
                   icon: HugeIcons.strokeRoundedClock01,
-                  label: 'ACCOUNT PENDING REVIEW',
+                  label: 'Account pending review',
                   color: AppColors.warning,
                   w: w,
                 ),
               if (profile?.isProfileComplete == false)
                 _StatusBanner(
                   icon: HugeIcons.strokeRoundedAlertCircle,
-                  label: 'COMPLETE YOUR PROFILE',
+                  label: 'Complete your profile',
                   color: AppColors.error,
                   w: w,
                 ),
 
-              Padding(
-                padding: EdgeInsets.only(top: w * 0.04),
-                child: StoreToggleCard(
-                  isOpen: state.storeOpen,
-                  isLoading: _isTogglingStore,
-                  onToggle: _handleStoreToggle,
-                ),
+              SizedBox(height: w * 0.045),
+              StoreToggleCard(
+                isOpen: state.storeOpen,
+                isLoading: _isTogglingStore,
+                onToggle: _handleStoreToggle,
               ),
 
-              // Shop Quick Details
-              if (profile != null)
-                Padding(
-                  padding: EdgeInsets.only(top: w * 0.03),
-                  child: Row(
-                    children: [
-                      _QuickDetail(
-                        icon: HugeIcons.strokeRoundedClock01,
-                        text: '${profile.openingTime} - ${profile.closingTime}',
-                        w: w,
+              // Operating hours + days
+              if (profile != null) ...[
+                SizedBox(height: w * 0.028),
+                Row(
+                  children: [
+                    _QuickDetail(
+                      icon: HugeIcons.strokeRoundedClock01,
+                      text: '${profile.openingTime} – ${profile.closingTime}',
+                      w: w,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: w * 0.025),
+                      child: Text(
+                        '·',
+                        style: TextStyle(
+                          color: AppColors.textHint,
+                          fontSize: w * 0.032,
+                        ),
                       ),
-                      SizedBox(width: w * 0.04),
-                      _QuickDetail(
-                        icon: HugeIcons.strokeRoundedCalendar01,
-                        text: _formatOperatingDays(profile.operatingDays),
-                        w: w,
-                      ),
-                    ],
-                  ),
+                    ),
+                    _QuickDetail(
+                      icon: HugeIcons.strokeRoundedCalendar01,
+                      text: _formatOperatingDays(profile.operatingDays),
+                      w: w,
+                    ),
+                  ],
                 ),
+              ],
 
-              SizedBox(height: sectionGap),
+              SizedBox(height: w * 0.04),
               StatsRow(
                 stats: [
                   StatItem(
@@ -547,8 +596,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   ),
                 ],
               ),
-              SizedBox(height: sectionGap),
-              if (DummyOrders.newOrders.isNotEmpty)
+
+              if (DummyOrders.newOrders.isNotEmpty) ...[
+                SizedBox(height: w * 0.04),
                 Builder(
                   builder: (_) {
                     final newest = DummyOrders.newOrders.first;
@@ -563,12 +613,14 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     );
                   },
                 ),
-              SizedBox(height: w * 0.05),
+              ],
+
+              SizedBox(height: w * 0.045),
               _ActiveOrdersLabel(
                 count: DummyOrders.activeOrders.length,
                 onViewAll: widget.onViewAllOrders,
               ),
-              SizedBox(height: w * 0.03),
+              SizedBox(height: w * 0.025),
             ],
           ),
         ),
@@ -607,9 +659,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 )
               : ListView.separated(
                   padding: EdgeInsets.fromLTRB(
-                    horizontalPad,
+                    w * 0.05,
                     0,
-                    horizontalPad,
+                    w * 0.05,
                     w * 0.25,
                   ),
                   itemCount: DummyOrders.activeOrders.length,
@@ -707,28 +759,30 @@ class _StatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: w * 0.03),
+      margin: EdgeInsets.only(top: w * 0.025),
       padding: EdgeInsets.symmetric(
-        horizontal: w * 0.03,
-        vertical: w * 0.02,
+        horizontal: w * 0.035,
+        vertical: w * 0.025,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(w * 0.02),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border(
+          left: BorderSide(color: color, width: 3),
+        ),
       ),
       child: Row(
         children: [
           HugeIcon(icon: icon, color: color, size: w * 0.04),
-          SizedBox(width: w * 0.02),
+          SizedBox(width: w * 0.025),
           Expanded(
             child: Text(
               label,
               style: TextStyle(
-                fontSize: w * 0.028,
-                fontWeight: FontWeight.w800,
+                fontSize: w * 0.03,
+                fontWeight: FontWeight.w700,
                 color: color,
-                letterSpacing: 0.5,
+                letterSpacing: 0.2,
               ),
             ),
           ),

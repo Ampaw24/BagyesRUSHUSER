@@ -285,23 +285,73 @@ class AuthViewmodel extends ViewModel<AuthState> {
   /// If the fetch succeeds, updates [CurrentUserProvider].
   /// If it fails (e.g. poor connectivity), the user stays logged in
   /// and the profile will be retried on next relevant screen.
+  ///
+  /// **Vendor profile gap:** `/auth/me` returns only base user fields — it does
+  /// NOT embed the vendor profile (business name, status, isProfileComplete,
+  /// etc.). For vendor accounts we make a second call to `GET /vendors/profile`
+  /// and merge the result so [VendorHome] has the data it needs on cold start.
+  ///
+  /// **Role preservation:** `/auth/me` may omit the `role` field for vendor
+  /// accounts. We capture the authoritative role before the async gap and
+  /// restore it if the response comes back empty.
   Future<void> _fetchProfileInBackground(String userId) async {
     appLogger.d('AuthViewmodel._fetchProfileInBackground → userId=$userId');
+
+    // Capture role BEFORE the async gap so we can restore it if needed.
+    final knownRole = _currentUserProvider.user?.role ?? '';
+
     final result = await _repository.getUserDetails(userId);
 
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
         appLogger.w(
           'AuthViewmodel._fetchProfileInBackground → '
           'profile fetch failed (non-fatal): ${failure.message}',
         );
       },
-      (user) {
+      (user) async {
+        // Restore role if the base endpoint didn't include it.
+        final resolvedUser =
+            user.role.isNotEmpty ? user : user.copyWith(role: knownRole);
+
+        // For vendor accounts, /auth/me does not embed the vendor profile.
+        // Fetch it separately and merge before updating the provider so the
+        // vendor home screen has all the data it needs on the first render.
+        if (resolvedUser.role == 'vendor' && resolvedUser.profile == null) {
+          final vendorResult = await _repository.fetchVendorProfile();
+          vendorResult.fold(
+            (failure) {
+              appLogger.w(
+                'AuthViewmodel._fetchProfileInBackground → '
+                'vendor profile fetch failed (non-fatal): ${failure.message}',
+              );
+              // Still update with base user data — better than nothing.
+              _currentUserProvider.setUser(resolvedUser);
+            },
+            (vendorProfile) {
+              appLogger.i(
+                'AuthViewmodel._fetchProfileInBackground → '
+                'vendor profile merged for id=${resolvedUser.id}',
+              );
+              _currentUserProvider.setUser(
+                resolvedUser.copyWith(profile: vendorProfile),
+              );
+            },
+          );
+        } else {
+          _currentUserProvider.setUser(resolvedUser);
+        }
+
         appLogger.i(
           'AuthViewmodel._fetchProfileInBackground → '
-          'profile loaded id=${user.id}',
+          'profile loaded id=${resolvedUser.id} role=${resolvedUser.role}',
         );
-        _currentUserProvider.setUser(user);
+
+        // Keep secure storage in sync so the next cold-start restores the
+        // correct role even if the profile endpoint is temporarily unavailable.
+        if (resolvedUser.role.isNotEmpty) {
+          _repository.syncUserRole(resolvedUser.role);
+        }
       },
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
@@ -27,8 +26,8 @@ class HomeDiscoveryTab extends ConsumerStatefulWidget {
 
 class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
   String? _currentLocation;
-  Position? _gpsPosition;
   final PageController _bannerController = PageController();
+  final ScrollController _scrollController = ScrollController();
   int _bannerIndex = 0;
 
   @override
@@ -36,12 +35,24 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     super.initState();
     _fetchLocation();
     Future.delayed(const Duration(seconds: 4), _autoscrollBanner);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _bannerController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    // Trigger load-more when 200px from the bottom
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      final category = ref.read(selectedCategoryProvider);
+      ref.read(vendorListProvider(category).notifier).loadMore();
+    }
   }
 
   void _autoscrollBanner() {
@@ -63,7 +74,6 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     if (mounted) {
       setState(() {
         _currentLocation = result['address'];
-        _gpsPosition = result['position'];
       });
     }
   }
@@ -74,7 +84,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     final h = MediaQuery.sizeOf(context).height;
     final hPad = w * 0.05;
     final selectedCategory = ref.watch(selectedCategoryProvider);
-    final restaurantsAsync = ref.watch(restaurantsProvider);
+    final listAsync = ref.watch(vendorListProvider(selectedCategory));
     final user = context.watch<CurrentUserProvider>().user;
     final firstName = user?.profile?.firstName ?? '';
     final lastName = user?.profile?.lastName ?? '';
@@ -83,6 +93,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
 
     return CustomScrollView(
+      controller: _scrollController,
       slivers: [
         // ── Fixed header ──
         SliverToBoxAdapter(
@@ -241,13 +252,6 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                       onTap: () => AppNavigator.toSendPackages(context),
                     ),
                     SizedBox(width: w * 0.025),
-                    //Todo: Add back grocery delivery when feature is ready and uncomment import at top
-                    // QuickServiceChip(
-                    //   emoji: '🛒',
-                    //   label: 'Grocery',
-                    //   onTap: () => AppNavigator.toGroceryDelivery(context),
-                    // ),
-                    SizedBox(width: w * 0.025),
                     QuickServiceChip(
                       emoji: '💳',
                       label: 'Wallet',
@@ -276,36 +280,9 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
         SliverToBoxAdapter(
           child: SizedBox(
             height: w * 0.088,
-            child: ref
-                .watch(categoriesProvider)
-                .when(
-                  loading: () => ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                    itemCount: FoodCategory.all.length,
-                    separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
-                    itemBuilder: (_, i) => FoodCategoryChip(
-                      category: FoodCategory.all[i],
-                      isSelected: selectedCategory == FoodCategory.all[i].label,
-                      onTap: () {},
-                    ),
-                  ),
-                  error: (_, _) => ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                    itemCount: FoodCategory.all.length,
-                    separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
-                    itemBuilder: (_, i) {
-                      final cat = FoodCategory.all[i];
-                      return FoodCategoryChip(
-                        category: cat,
-                        isSelected: selectedCategory == cat.label,
-                        onTap: () => ref
-                            .read(selectedCategoryProvider.notifier)
-                            .updateCategory(cat.label),
-                      );
-                    },
-                  ),
+            child: ref.watch(categoriesProvider).when(
+                  loading: () => _categoryShimmer(w),
+                  error: (_, _) => _staticCategories(w, selectedCategory),
                   data: (categories) => ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: EdgeInsets.symmetric(horizontal: w * 0.05),
@@ -363,7 +340,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
 
         SliverToBoxAdapter(child: SizedBox(height: w * 0.045)),
 
-        // ── All restaurants (filtered by category) ──
+        // ── Section header ──
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: w * 0.05),
@@ -380,44 +357,242 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
           ),
         ),
         SliverToBoxAdapter(child: SizedBox(height: w * 0.03)),
-        if (restaurantsAsync.isLoading)
-          SliverToBoxAdapter(
-            child: Column(
-              children: List.generate(
-                3,
-                (i) => Padding(
-                  padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.04),
-                  child: ShimmerCard(width: double.infinity, height: w * 0.5),
+
+        // ── Restaurant list (paginated) ──
+        ..._buildRestaurantSliver(context, listAsync, w),
+
+        // ── Load-more indicator ──
+        SliverToBoxAdapter(
+          child: listAsync.valueOrNull?.isLoadingMore == true
+              ? Padding(
+                  padding: EdgeInsets.symmetric(vertical: w * 0.06),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                )
+              : SizedBox(height: h * 0.12),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildRestaurantSliver(
+    BuildContext context,
+    AsyncValue<VendorListState> listAsync,
+    double w,
+  ) {
+    // Loading first page
+    if (listAsync.isLoading && listAsync.valueOrNull == null) {
+      return [
+        SliverToBoxAdapter(
+          child: Column(
+            children: List.generate(
+              3,
+              (i) => Padding(
+                padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.04),
+                child: ShimmerCard(width: double.infinity, height: w * 0.5),
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    // Error (no cached data)
+    if (listAsync.hasError && listAsync.valueOrNull == null) {
+      return [
+        SliverToBoxAdapter(
+          child: _ErrorState(
+            w: w,
+            onRetry: () {
+              final category = ref.read(selectedCategoryProvider);
+              ref.invalidate(vendorListProvider(category));
+            },
+          ),
+        ),
+      ];
+    }
+
+    final state = listAsync.valueOrNull;
+    final restaurants = state?.restaurants ?? [];
+
+    // Empty state
+    if (restaurants.isEmpty) {
+      return [
+        SliverToBoxAdapter(child: _EmptyState(w: w)),
+      ];
+    }
+
+    // Data
+    return [
+      SliverPadding(
+        padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+        sliver: SliverList.builder(
+          itemCount: restaurants.length,
+          itemBuilder: (ctx, i) {
+            final r = restaurants[i];
+            return Padding(
+              padding: EdgeInsets.only(bottom: w * 0.04),
+              child: RestaurantListCard(
+                restaurant: r,
+                onTap: () => context.push(AppRoutes.restaurantDetailPath(r.id)),
+              ),
+            );
+          },
+        ),
+      ),
+    ];
+  }
+
+  Widget _categoryShimmer(double w) => ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+        itemCount: FoodCategory.all.length,
+        separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+        itemBuilder: (_, i) => ShimmerCard(width: w * 0.22, height: w * 0.088),
+      );
+
+  Widget _staticCategories(double w, String selectedCategory) =>
+      ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+        itemCount: FoodCategory.all.length,
+        separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+        itemBuilder: (_, i) {
+          final cat = FoodCategory.all[i];
+          return FoodCategoryChip(
+            category: cat,
+            isSelected: selectedCategory == cat.label,
+            onTap: () => ref
+                .read(selectedCategoryProvider.notifier)
+                .updateCategory(cat.label),
+          );
+        },
+      );
+}
+
+// ─── Empty state ─────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  final double w;
+  const _EmptyState({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: w * 0.12, horizontal: w * 0.08),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: EdgeInsets.all(w * 0.06),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.07),
+              shape: BoxShape.circle,
+            ),
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedRestaurant01,
+              color: AppColors.primary.withValues(alpha: 0.5),
+              size: w * 0.12,
+            ),
+          ),
+          SizedBox(height: w * 0.05),
+          Text(
+            'No restaurants found',
+            style: TextStyle(
+              fontSize: w * 0.045,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: w * 0.02),
+          Text(
+            'We couldn\'t find any restaurants in this category.\nTry a different one.',
+            style: TextStyle(
+              fontSize: w * 0.033,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Error state ─────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  final double w;
+  final VoidCallback onRetry;
+  const _ErrorState({required this.w, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: w * 0.1, horizontal: w * 0.08),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: EdgeInsets.all(w * 0.05),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.07),
+              shape: BoxShape.circle,
+            ),
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedWifiError01,
+              color: AppColors.error.withValues(alpha: 0.6),
+              size: w * 0.1,
+            ),
+          ),
+          SizedBox(height: w * 0.045),
+          Text(
+            'Could not load restaurants',
+            style: TextStyle(
+              fontSize: w * 0.042,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: w * 0.015),
+          Text(
+            'Check your internet connection and try again.',
+            style: TextStyle(
+              fontSize: w * 0.032,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: w * 0.05),
+          GestureDetector(
+            onTap: onRetry,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.06,
+                vertical: w * 0.032,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(w * 0.03),
+              ),
+              child: Text(
+                'Try again',
+                style: TextStyle(
+                  fontSize: w * 0.035,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
             ),
-          )
-        else if (restaurantsAsync.hasError)
-          SliverToBoxAdapter(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(w * 0.05),
-                child: const Text('Could not load restaurants'),
-              ),
-            ),
-          )
-        else
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-            sliver: SliverList.builder(
-              itemCount: restaurantsAsync.value!.length,
-              itemBuilder: (ctx, i) {
-                final r = restaurantsAsync.value![i];
-                return RestaurantListCard(
-                  restaurant: r,
-                  onTap: () =>
-                      context.push(AppRoutes.restaurantDetailPath(r.id)),
-                );
-              },
-            ),
           ),
-        SliverToBoxAdapter(child: SizedBox(height: h * 0.12)),
-      ],
+        ],
+      ),
     );
   }
 }

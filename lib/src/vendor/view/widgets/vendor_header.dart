@@ -3,8 +3,6 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 
 class VendorHeader extends StatelessWidget {
-  final String title;
-  final String? location;
   final String initials;
   final VoidCallback? onDrawerTap;
   final VoidCallback? onNotificationTap;
@@ -12,8 +10,6 @@ class VendorHeader extends StatelessWidget {
 
   const VendorHeader({
     super.key,
-    required this.title,
-    this.location,
     required this.initials,
     this.onDrawerTap,
     this.onNotificationTap,
@@ -28,74 +24,33 @@ class VendorHeader extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: onDrawerTap,
-          child: Container(
-            padding: EdgeInsets.all(w * 0.022),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(w * 0.03),
-            ),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(0, w * 0.01, w * 0.03, w * 0.01),
             child: HugeIcon(
               icon: HugeIcons.strokeRoundedMenu02,
               color: AppColors.textPrimary,
-              size: w * 0.055,
+              size: w * 0.062,
             ),
           ),
         ),
-        SizedBox(width: w * 0.03),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: w * 0.04,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: w * 0.008),
-              Row(
-                children: [
-                  HugeIcon(
-                    icon: HugeIcons.strokeRoundedLocation01,
-                    color: AppColors.textSecondary,
-                    size: w * 0.035,
-                  ),
-                  SizedBox(width: w * 0.01),
-                  Expanded(
-                    child: Text(
-                      location ?? 'Fetching location...',
-                      style: TextStyle(
-                        fontSize: w * 0.03,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        const Spacer(),
         GestureDetector(
           onTap: onNotificationTap,
-          child: Container(
-            padding: EdgeInsets.all(w * 0.022),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(w * 0.03),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.025,
+              vertical: w * 0.01,
             ),
             child: HugeIcon(
               icon: HugeIcons.strokeRoundedNotification01,
               color: AppColors.textPrimary,
-              size: w * 0.055,
+              size: w * 0.062,
             ),
           ),
         ),
-        SizedBox(width: w * 0.025),
+        SizedBox(width: w * 0.01),
         GestureDetector(
           onTap: onAvatarTap,
           child: CircleAvatar(
@@ -105,8 +60,8 @@ class VendorHeader extends StatelessWidget {
               initials,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: w * 0.035,
-                fontWeight: FontWeight.w600,
+                fontSize: w * 0.036,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),

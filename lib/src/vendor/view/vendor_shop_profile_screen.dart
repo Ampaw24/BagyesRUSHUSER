@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/common/app/current_user_provider.dart';
 import '../model/vendor_profile.dart';
 import 'widgets/edit_shop_info_sheet.dart';
 import 'widgets/operating_hours_sheet.dart';
@@ -24,8 +26,8 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
   late final Animation<Offset> _headerSlide;
   late final ScrollController _scrollController;
 
-  // Using dummy data for UI — swap with ViewModel when API is ready
-  VendorProfile _profile = VendorProfile.dummy;
+  // Local edits overlay — null means "use live provider data"
+  VendorProfile? _localEdits;
   double _scrollOffset = 0;
 
   @override
@@ -97,7 +99,7 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     );
     if (picked != null && mounted) {
       setState(() {
-        _profile = _profile.copyWith(coverImageUrl: picked.path);
+        _localEdits = (_currentProfile)?.copyWith(coverImageUrl: picked.path);
       });
     }
   }
@@ -110,13 +112,23 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     );
     if (picked != null && mounted) {
       setState(() {
-        _profile = _profile.copyWith(logoUrl: picked.path);
+        _localEdits = (_currentProfile)?.copyWith(logoUrl: picked.path);
       });
     }
   }
 
+  VendorProfile? get _currentProfile {
+    if (_localEdits != null) return _localEdits;
+    final user = context.read<CurrentUserProvider>().user;
+    return user?.profile as VendorProfile?;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final providerProfile = context.watch<CurrentUserProvider>().user?.profile
+        as VendorProfile?;
+    final profile = _localEdits ?? providerProfile;
+
     final w = MediaQuery.sizeOf(context).width;
     final topPadding = MediaQuery.paddingOf(context).top;
     final coverHeight = w * 0.52;
@@ -133,138 +145,166 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
         backgroundColor: AppColors.surface,
         body: Stack(
           children: [
-            // ── Scrollable content ──
-            CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              slivers: [
-                // ── Cover hero section ──
-                SliverToBoxAdapter(
-                  child: FadeTransition(
-                    opacity: _headerFade,
-                    child: SlideTransition(
-                      position: _headerSlide,
-                      child: _CoverHeroSection(
-                        profile: _profile,
-                        coverHeight: coverHeight,
-                        onEditCover: _pickCoverImage,
-                        onEditLogo: _pickLogo,
+            if (profile == null)
+              _NoProfilePlaceholder(topPadding: topPadding)
+            else
+              CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: FadeTransition(
+                      opacity: _headerFade,
+                      child: SlideTransition(
+                        position: _headerSlide,
+                        child: _CoverHeroSection(
+                          profile: profile,
+                          coverHeight: coverHeight,
+                          onEditCover: _pickCoverImage,
+                          onEditLogo: _pickLogo,
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      w * 0.05,
+                      w * 0.03,
+                      w * 0.05,
+                      w * 0.12,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // ── Completion checklist (only when incomplete) ──
+                        ..._buildCompletionSection(profile, w),
 
-                // ── Profile content ──
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    w * 0.05,
-                    w * 0.03,
-                    w * 0.05,
-                    w * 0.12,
+                        // ── Quick stats ──
+                        FadeTransition(
+                          opacity: _staggeredFade(0),
+                          child: SlideTransition(
+                            position: _staggeredSlide(0),
+                            child: _QuickStatsRow(profile: profile),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.05),
+
+                        // ── About / Description ──
+                        FadeTransition(
+                          opacity: _staggeredFade(1),
+                          child: SlideTransition(
+                            position: _staggeredSlide(1),
+                            child: _AboutCard(
+                              profile: profile,
+                              onEdit: () => _openEditSheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.04),
+
+                        // ── Business Info ──
+                        FadeTransition(
+                          opacity: _staggeredFade(2),
+                          child: SlideTransition(
+                            position: _staggeredSlide(2),
+                            child: _BusinessInfoCard(
+                              profile: profile,
+                              onEdit: () => _openEditSheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.04),
+
+                        // ── Operating Hours ──
+                        FadeTransition(
+                          opacity: _staggeredFade(3),
+                          child: SlideTransition(
+                            position: _staggeredSlide(3),
+                            child: _OperatingHoursCard(
+                              profile: profile,
+                              onEdit: () => _openHoursSheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.04),
+
+                        // ── Delivery Settings ──
+                        FadeTransition(
+                          opacity: _staggeredFade(4),
+                          child: SlideTransition(
+                            position: _staggeredSlide(4),
+                            child: _DeliverySettingsCard(
+                              profile: profile,
+                              onEdit: () => _openDeliverySheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.04),
+
+                        // ── Cuisine Types ──
+                        FadeTransition(
+                          opacity: _staggeredFade(5),
+                          child: SlideTransition(
+                            position: _staggeredSlide(5),
+                            child: _CuisineTypesCard(
+                              profile: profile,
+                              onEdit: () => _openEditSheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.04),
+
+                        // ── Social Links ──
+                        FadeTransition(
+                          opacity: _staggeredFade(6),
+                          child: SlideTransition(
+                            position: _staggeredSlide(6),
+                            child: _SocialLinksCard(
+                              profile: profile,
+                              onEdit: () => _openEditSheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.06),
+                      ]),
+                    ),
                   ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      // ── Quick stats ──
-                      FadeTransition(
-                        opacity: _staggeredFade(0),
-                        child: SlideTransition(
-                          position: _staggeredSlide(0),
-                          child: _QuickStatsRow(profile: _profile),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.05),
+                ],
+              ),
 
-                      // ── About / Description ──
-                      FadeTransition(
-                        opacity: _staggeredFade(1),
-                        child: SlideTransition(
-                          position: _staggeredSlide(1),
-                          child: _AboutCard(
-                            profile: _profile,
-                            onEdit: () => _openEditSheet(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.04),
-
-                      // ── Business Info ──
-                      FadeTransition(
-                        opacity: _staggeredFade(2),
-                        child: SlideTransition(
-                          position: _staggeredSlide(2),
-                          child: _BusinessInfoCard(
-                            profile: _profile,
-                            onEdit: () => _openEditSheet(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.04),
-
-                      // ── Operating Hours ──
-                      FadeTransition(
-                        opacity: _staggeredFade(3),
-                        child: SlideTransition(
-                          position: _staggeredSlide(3),
-                          child: _OperatingHoursCard(
-                            profile: _profile,
-                            onEdit: () => _openHoursSheet(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.04),
-
-                      // ── Delivery Settings ──
-                      FadeTransition(
-                        opacity: _staggeredFade(4),
-                        child: SlideTransition(
-                          position: _staggeredSlide(4),
-                          child: _DeliverySettingsCard(
-                            profile: _profile,
-                            onEdit: () => _openDeliverySheet(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.04),
-
-                      // ── Cuisine Types ──
-                      FadeTransition(
-                        opacity: _staggeredFade(5),
-                        child: SlideTransition(
-                          position: _staggeredSlide(5),
-                          child: _CuisineTypesCard(
-                            profile: _profile,
-                            onEdit: () => _openEditSheet(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.04),
-
-                      // ── Social Links ──
-                      FadeTransition(
-                        opacity: _staggeredFade(6),
-                        child: SlideTransition(
-                          position: _staggeredSlide(6),
-                          child: _SocialLinksCard(
-                            profile: _profile,
-                            onEdit: () => _openEditSheet(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: w * 0.06),
-                    ]),
-                  ),
-                ),
-              ],
-            ),
-
-            // ── Collapsing app bar ──
-            _CollapsingAppBar(
+            // ── Collapsing title bar background (can be transparent/ignored) ──
+            _CollapsingTitleBar(
               progress: collapsedProgress,
               topPadding: topPadding,
-              title: _profile.businessName,
-              onBack: () => Navigator.of(context).pop(),
+              title: profile?.businessName ?? '',
+            ),
+
+            // ── Back button — ALWAYS tappable, never ignored ──
+            Positioned(
+              top: topPadding + w * 0.02,
+              left: w * 0.03,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).pop(),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.all(w * 0.025),
+                  decoration: BoxDecoration(
+                    color: collapsedProgress > 0.5
+                        ? AppColors.surfaceVariant
+                        : Colors.black.withValues(alpha: 0.38),
+                    borderRadius: BorderRadius.circular(w * 0.03),
+                  ),
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedArrowLeft01,
+                    color: collapsedProgress > 0.5
+                        ? AppColors.textPrimary
+                        : Colors.white,
+                    size: w * 0.05,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -272,33 +312,244 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     );
   }
 
-  void _openEditSheet() {
+  List<Widget> _buildCompletionSection(VendorProfile profile, double w) {
+    final missing = _getMissingFields(profile);
+    if (missing.isEmpty) return [];
+    return [
+      FadeTransition(
+        opacity: _staggeredFade(0),
+        child: SlideTransition(
+          position: _staggeredSlide(0),
+          child: _ProfileCompletionCard(missingFields: missing),
+        ),
+      ),
+      SizedBox(height: w * 0.05),
+    ];
+  }
+
+  List<String> _getMissingFields(VendorProfile profile) {
+    final missing = <String>[];
+    if (profile.contactPersonName.isEmpty) missing.add('Contact person name');
+    if (profile.businessAddress.isEmpty) missing.add('Business address');
+    if (profile.city.isEmpty) missing.add('City');
+    if (profile.description.isEmpty) missing.add('Shop description');
+    if (profile.taxIdentificationNumber.isEmpty) missing.add('Tax ID (TIN)');
+    if (profile.cuisineTypes.isEmpty) missing.add('Cuisine types');
+    if (profile.phone.isEmpty) missing.add('Phone number');
+    if (profile.email.isEmpty) missing.add('Email address');
+    if (profile.logoUrl == null || profile.logoUrl!.isEmpty) {
+      missing.add('Shop logo');
+    }
+    if (profile.operatingDays.isEmpty) missing.add('Operating days');
+    if (profile.deliveryRadiusKm == 0) missing.add('Delivery radius');
+    if (profile.minOrder == 0) missing.add('Minimum order amount');
+    if (profile.deliveryFee == 0) missing.add('Delivery fee');
+    return missing;
+  }
+
+  void _openEditSheet(VendorProfile profile) {
     EditShopInfoSheet.show(
       context,
-      profile: _profile,
+      profile: profile,
       onSave: (updated) {
-        setState(() => _profile = updated);
+        setState(() => _localEdits = updated);
       },
     );
   }
 
-  void _openHoursSheet() {
+  void _openHoursSheet(VendorProfile profile) {
     OperatingHoursSheet.show(
       context,
-      profile: _profile,
+      profile: profile,
       onSave: (updated) {
-        setState(() => _profile = updated);
+        setState(() => _localEdits = updated);
       },
     );
   }
 
-  void _openDeliverySheet() {
+  void _openDeliverySheet(VendorProfile profile) {
     DeliverySettingsSheet.show(
       context,
-      profile: _profile,
+      profile: profile,
       onSave: (updated) {
-        setState(() => _profile = updated);
+        setState(() => _localEdits = updated);
       },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── No Profile Placeholder ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _NoProfilePlaceholder extends StatelessWidget {
+  final double topPadding;
+  const _NoProfilePlaceholder({required this.topPadding});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedStore01,
+            color: AppColors.textHint,
+            size: w * 0.14,
+          ),
+          SizedBox(height: w * 0.04),
+          Text(
+            'Profile not available',
+            style: TextStyle(
+              fontSize: w * 0.042,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          SizedBox(height: w * 0.015),
+          Text(
+            'Your shop profile data could not be loaded.',
+            style: TextStyle(
+              fontSize: w * 0.032,
+              color: AppColors.textHint,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── Profile Completion Card ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _ProfileCompletionCard extends StatelessWidget {
+  final List<String> missingFields;
+  const _ProfileCompletionCard({required this.missingFields});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    return Container(
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(w * 0.04),
+        border: Border(left: BorderSide(color: AppColors.warning, width: 3)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warning.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedAlertCircle,
+                color: AppColors.warning,
+                size: w * 0.045,
+              ),
+              SizedBox(width: w * 0.02),
+              Text(
+                'Complete your profile',
+                style: TextStyle(
+                  fontSize: w * 0.038,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: w * 0.025,
+                  vertical: w * 0.008,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(w * 0.05),
+                ),
+                child: Text(
+                  '${missingFields.length} missing',
+                  style: TextStyle(
+                    fontSize: w * 0.026,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: w * 0.025),
+          Text(
+            'Add the following to make your shop visible to customers:',
+            style: TextStyle(
+              fontSize: w * 0.03,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: w * 0.025),
+          Wrap(
+            spacing: w * 0.02,
+            runSpacing: w * 0.018,
+            children: missingFields
+                .map((field) => _MissingFieldChip(label: field))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissingFieldChip extends StatelessWidget {
+  final String label;
+  const _MissingFieldChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: w * 0.028,
+        vertical: w * 0.012,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(w * 0.05),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: w * 0.012,
+            height: w * 0.012,
+            decoration: const BoxDecoration(
+              color: AppColors.warning,
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: w * 0.015),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: w * 0.028,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -330,7 +581,7 @@ class _CoverHeroSection extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Cover image
+          // Cover image — tap to edit
           GestureDetector(
             onTap: onEditCover,
             child: Container(
@@ -351,7 +602,6 @@ class _CoverHeroSection extends StatelessWidget {
                 children: [
                   if (profile.coverImageUrl != null)
                     _buildCoverImage(profile.coverImageUrl!),
-                  // Gradient overlay
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -364,13 +614,25 @@ class _CoverHeroSection extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Edit cover button
+                  // Camera button — top right (always tappable, separate from back button area)
                   Positioned(
                     top: MediaQuery.paddingOf(context).top + w * 0.02,
                     right: w * 0.04,
-                    child: _FloatingIconButton(
-                      icon: HugeIcons.strokeRoundedCamera01,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: onEditCover,
+                      child: Container(
+                        padding: EdgeInsets.all(w * 0.025),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(w * 0.03),
+                        ),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCamera01,
+                          color: Colors.white,
+                          size: w * 0.045,
+                        ),
+                      ),
                     ),
                   ),
                   // Shop name overlay
@@ -415,7 +677,11 @@ class _CoverHeroSection extends StatelessWidget {
                             SizedBox(width: w * 0.01),
                             Flexible(
                               child: Text(
-                                '${profile.address}, ${profile.city}',
+                                [
+                                  if (profile.businessAddress.isNotEmpty)
+                                    profile.businessAddress,
+                                  if (profile.city.isNotEmpty) profile.city,
+                                ].join(', '),
                                 style: TextStyle(
                                   fontSize: w * 0.03,
                                   color: Colors.white.withValues(alpha: 0.85),
@@ -455,7 +721,7 @@ class _CoverHeroSection extends StatelessWidget {
                   ],
                 ),
                 child: ClipOval(
-                  child: profile.logoUrl != null
+                  child: profile.logoUrl != null && profile.logoUrl!.isNotEmpty
                       ? _buildLogoImage(profile.logoUrl!)
                       : Center(
                           child: Text(
@@ -463,7 +729,7 @@ class _CoverHeroSection extends StatelessWidget {
                                 ? profile.businessName
                                     .split(' ')
                                     .take(2)
-                                    .map((w) => w.isNotEmpty ? w[0] : '')
+                                    .map((s) => s.isNotEmpty ? s[0] : '')
                                     .join()
                                     .toUpperCase()
                                 : 'V',
@@ -529,44 +795,19 @@ class _CoverHeroSection extends StatelessWidget {
   }
 }
 
-class _FloatingIconButton extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final VoidCallback onTap;
-
-  const _FloatingIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(w * 0.025),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(w * 0.03),
-        ),
-        child: HugeIcon(icon: icon, color: Colors.white, size: w * 0.045),
-      ),
-    );
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
-// ── Collapsing App Bar ──────────────────────────────────────────────────
+// ── Collapsing Title Bar (background + title only, NO back button) ───────
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _CollapsingAppBar extends StatelessWidget {
+class _CollapsingTitleBar extends StatelessWidget {
   final double progress;
   final double topPadding;
   final String title;
-  final VoidCallback onBack;
 
-  const _CollapsingAppBar({
+  const _CollapsingTitleBar({
     required this.progress,
     required this.topPadding,
     required this.title,
-    required this.onBack,
   });
 
   @override
@@ -579,7 +820,7 @@ class _CollapsingAppBar extends StatelessWidget {
       left: 0,
       right: 0,
       child: IgnorePointer(
-        ignoring: progress < 0.3,
+        ignoring: progress < 0.5,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           height: barHeight,
@@ -598,27 +839,8 @@ class _CollapsingAppBar extends StatelessWidget {
           padding: EdgeInsets.only(top: topPadding),
           child: Row(
             children: [
-              SizedBox(width: w * 0.03),
-              GestureDetector(
-                onTap: onBack,
-                child: Container(
-                  padding: EdgeInsets.all(w * 0.025),
-                  decoration: BoxDecoration(
-                    color: progress > 0.5
-                        ? AppColors.surfaceVariant
-                        : Colors.black.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                  ),
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedArrowLeft01,
-                    color: progress > 0.5
-                        ? AppColors.textPrimary
-                        : Colors.white,
-                    size: w * 0.05,
-                  ),
-                ),
-              ),
-              SizedBox(width: w * 0.04),
+              // Space for the always-visible back button
+              SizedBox(width: w * 0.18),
               Expanded(
                 child: Opacity(
                   opacity: progress,
@@ -633,6 +855,7 @@ class _CollapsingAppBar extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(width: w * 0.04),
             ],
           ),
         ),
@@ -658,14 +881,14 @@ class _QuickStatsRow extends StatelessWidget {
         _StatChip(
           icon: HugeIcons.strokeRoundedStarCircle,
           value: profile.rating.toStringAsFixed(1),
-          label: '${profile.totalReviews} reviews',
+          label: '${profile.reviewCount} reviews',
           iconColor: AppColors.accent,
         ),
         SizedBox(width: w * 0.03),
         _StatChip(
           icon: HugeIcons.strokeRoundedShoppingBag01,
           value: '${profile.totalOrders}',
-          label: 'orders',
+          label: 'total orders',
           iconColor: AppColors.success,
         ),
         SizedBox(width: w * 0.03),
@@ -752,6 +975,7 @@ class _AboutCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final hasDesc = profile.description.isNotEmpty;
 
     return _ProfileCard(
       title: 'About',
@@ -761,12 +985,10 @@ class _AboutCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            profile.description ?? 'Add a description for your shop...',
+            hasDesc ? profile.description : 'Add a description for your shop…',
             style: TextStyle(
               fontSize: w * 0.034,
-              color: profile.description != null
-                  ? AppColors.textPrimary
-                  : AppColors.textHint,
+              color: hasDesc ? AppColors.textPrimary : AppColors.textHint,
               height: 1.5,
             ),
           ),
@@ -825,30 +1047,64 @@ class _BusinessInfoCard extends StatelessWidget {
         children: [
           _InfoRow(
             icon: HugeIcons.strokeRoundedUser,
-            label: 'Owner',
-            value: profile.ownerName,
+            label: 'Contact Person',
+            value: profile.contactPersonName.isNotEmpty
+                ? profile.contactPersonName
+                : '—',
           ),
           _divider(w),
           _InfoRow(
             icon: HugeIcons.strokeRoundedCall,
             label: 'Phone',
-            value: profile.phone,
+            value: profile.phone.isNotEmpty ? profile.phone : '—',
           ),
           _divider(w),
           _InfoRow(
             icon: HugeIcons.strokeRoundedMail01,
             label: 'Email',
-            value: profile.email,
+            value: profile.email.isNotEmpty ? profile.email : '—',
           ),
           _divider(w),
           _InfoRow(
             icon: HugeIcons.strokeRoundedLocation01,
             label: 'Address',
-            value: '${profile.address}, ${profile.city}',
+            value: [
+              if (profile.businessAddress.isNotEmpty) profile.businessAddress,
+              if (profile.city.isNotEmpty) profile.city,
+            ].join(', ').let((v) => v.isEmpty ? '—' : v),
           ),
+          _divider(w),
+          _InfoRow(
+            icon: HugeIcons.strokeRoundedDocumentValidation,
+            label: 'Tax ID (TIN)',
+            value: profile.taxIdentificationNumber.isNotEmpty
+                ? profile.taxIdentificationNumber
+                : '—',
+          ),
+          ...[
+            _divider(w),
+            _InfoRow(
+              icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+              label: 'Account Status',
+              value: _statusLabel(profile.status),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'Active';
+      case 'pending_review':
+        return 'Pending Review';
+      case 'suspended':
+        return 'Suspended';
+      default:
+        return status.isNotEmpty ? status : '—';
+    }
   }
 
   Widget _divider(double w) => Padding(
@@ -871,6 +1127,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final isEmpty = value == '—';
     return Padding(
       padding: EdgeInsets.symmetric(vertical: w * 0.008),
       child: Row(
@@ -905,8 +1162,9 @@ class _InfoRow extends StatelessWidget {
                   value,
                   style: TextStyle(
                     fontSize: w * 0.033,
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                    color: isEmpty ? AppColors.textHint : AppColors.textPrimary,
+                    fontWeight: isEmpty ? FontWeight.w400 : FontWeight.w600,
+                    fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
               ],
@@ -1014,7 +1272,7 @@ class _OperatingHoursCard extends StatelessWidget {
                       Text(
                         isClosed
                             ? 'Closed'
-                            : '${hours?.open ?? profile.openingTime} - ${hours?.close ?? profile.closingTime}',
+                            : '${hours?.open ?? profile.openingTime} – ${hours?.close ?? profile.closingTime}',
                         style: TextStyle(
                           fontSize: w * 0.031,
                           fontWeight: FontWeight.w600,
@@ -1032,6 +1290,12 @@ class _OperatingHoursCard extends StatelessWidget {
   }
 
   Widget _simpleHours(double w) {
+    if (profile.openingTime.isEmpty && profile.closingTime.isEmpty) {
+      return Text(
+        'No hours set yet.',
+        style: TextStyle(fontSize: w * 0.033, color: AppColors.textHint),
+      );
+    }
     return Row(
       children: [
         HugeIcon(
@@ -1041,7 +1305,7 @@ class _OperatingHoursCard extends StatelessWidget {
         ),
         SizedBox(width: w * 0.02),
         Text(
-          '${profile.openingTime} - ${profile.closingTime}',
+          '${profile.openingTime} – ${profile.closingTime}',
           style: TextStyle(
             fontSize: w * 0.036,
             fontWeight: FontWeight.w600,
@@ -1084,29 +1348,46 @@ class _DeliverySettingsCard extends StatelessWidget {
           _DeliveryInfoTile(
             icon: HugeIcons.strokeRoundedMapsLocation01,
             label: 'Delivery Radius',
-            value: '${profile.deliveryRadiusKm} km',
+            value: profile.deliveryRadiusKm > 0
+                ? '${profile.deliveryRadiusKm} km'
+                : '—',
             color: AppColors.info,
           ),
           SizedBox(height: w * 0.025),
           _DeliveryInfoTile(
             icon: HugeIcons.strokeRoundedMoneyBag01,
             label: 'Minimum Order',
-            value: 'GH₵ ${profile.minimumOrder.toStringAsFixed(2)}',
+            value: profile.minOrder > 0
+                ? 'GH₵ ${profile.minOrder.toStringAsFixed(2)}'
+                : '—',
             color: AppColors.accent,
           ),
           SizedBox(height: w * 0.025),
           _DeliveryInfoTile(
             icon: HugeIcons.strokeRoundedDeliveryTruck01,
             label: 'Delivery Fee',
-            value: 'GH₵ ${profile.deliveryFee.toStringAsFixed(2)}',
+            value: profile.deliveryFee > 0
+                ? 'GH₵ ${profile.deliveryFee.toStringAsFixed(2)}'
+                : '—',
             color: AppColors.success,
           ),
           SizedBox(height: w * 0.025),
           _DeliveryInfoTile(
             icon: HugeIcons.strokeRoundedClock01,
             label: 'Est. Delivery Time',
-            value: profile.estimatedDeliveryTime,
+            value: (profile.deliveryTimeMin > 0 || profile.deliveryTimeMax > 0)
+                ? profile.estimatedDeliveryTime
+                : '—',
             color: AppColors.warning,
+          ),
+          SizedBox(height: w * 0.025),
+          _DeliveryInfoTile(
+            icon: HugeIcons.strokeRoundedTime04,
+            label: 'Prep Time',
+            value: profile.estimatedPrepTimeMinutes > 0
+                ? '${profile.estimatedPrepTimeMinutes} min'
+                : '—',
+            color: AppColors.primary,
           ),
           SizedBox(height: w * 0.025),
           Container(
@@ -1189,6 +1470,7 @@ class _DeliveryInfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final isEmpty = value == '—';
     return Row(
       children: [
         Container(
@@ -1214,8 +1496,9 @@ class _DeliveryInfoTile extends StatelessWidget {
           value,
           style: TextStyle(
             fontSize: w * 0.034,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            fontWeight: isEmpty ? FontWeight.w400 : FontWeight.w700,
+            color: isEmpty ? AppColors.textHint : AppColors.textPrimary,
+            fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
           ),
         ),
       ],
@@ -1359,7 +1642,7 @@ class _SocialLinksCard extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '@${link.handle}',
+                                  link.handle,
                                   style: TextStyle(
                                     fontSize: w * 0.032,
                                     fontWeight: FontWeight.w600,
@@ -1473,4 +1756,9 @@ class _ProfileCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// Small utility extension to avoid redundant temp variables
+extension _Let<T> on T {
+  R let<R>(R Function(T) block) => block(this);
 }

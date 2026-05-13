@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 
 class StatItem {
@@ -25,63 +24,75 @@ class StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
-    return Row(
-      children: [
-        for (int i = 0; i < stats.length; i++) ...[
-          if (i > 0) SizedBox(width: w * 0.025),
-          Expanded(child: _StatCard(stat: stats[i])),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(w * 0.04),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
         ],
-      ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            for (int i = 0; i < stats.length; i++) ...[
+              Expanded(child: _StatCell(stat: stats[i])),
+              if (i < stats.length - 1)
+                VerticalDivider(
+                  width: 1,
+                  thickness: 0.5,
+                  color: AppColors.border,
+                  indent: w * 0.04,
+                  endIndent: w * 0.04,
+                ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
+class _StatCell extends StatelessWidget {
   final StatItem stat;
 
-  const _StatCard({required this.stat});
+  const _StatCell({required this.stat});
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final color = stat.iconColor ?? AppColors.primary;
 
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: w * 0.035),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(w * 0.035),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: w * 0.048),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(w * 0.02),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: HugeIcon(
-              icon: stat.icon,
-              color: color,
-              size: w * 0.045,
-            ),
+            width: w * 0.016,
+            height: w * 0.016,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          SizedBox(height: w * 0.015),
+          SizedBox(height: w * 0.018),
           Text(
             stat.value,
             style: TextStyle(
-              fontSize: w * 0.04,
-              fontWeight: FontWeight.w700,
+              fontSize: w * 0.046,
+              fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
             ),
           ),
-          SizedBox(height: w * 0.005),
+          SizedBox(height: w * 0.006),
           Text(
             stat.label,
             style: TextStyle(
               fontSize: w * 0.028,
               color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
