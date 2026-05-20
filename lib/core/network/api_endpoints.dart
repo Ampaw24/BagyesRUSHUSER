@@ -36,7 +36,7 @@ abstract final class ApiEndpoints {
   static const String vendorDashStats = '/vendors/dashboard/stats';
   static const String vendorOrders = '/vendors/orders';
   static const String vendorStoreStatus = '/vendors/store/status';
-  static const String vendorMenu = '/vendors/menu';
+  static const String vendorMenu = '/vendors/menu-items';
   static const String vendorEarnings = '/vendors/earnings';
   static const String vendorProfile = '/vendors/profile';
   static const String vendorAccount = '/vendors/account';
@@ -54,7 +54,8 @@ abstract final class ApiEndpoints {
       '/vendors/menu/$itemId/availability';
 
   /// `PUT /vendors/menu/:id`  |  `DELETE /vendors/menu/:id`
-  static String vendorMenuItem(String id) => '/vendors/menu/$id';
+  /// /vendors/menu-items/69d03d79941f2d4c1b25cd6d_m1
+  static String vendorMenuItem(String id) => '/vendors/menu-items/$id';
 
   /// `GET /PUT /vendors/menu/:itemId/addon-groups`
   static String vendorMenuItemAddonGroups(String itemId) =>

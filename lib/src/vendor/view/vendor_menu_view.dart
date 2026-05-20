@@ -18,20 +18,36 @@ class VendorMenuView extends StatefulWidget {
 class _VendorMenuViewState extends State<VendorMenuView> {
   bool _initialized = false;
   final _searchController = TextEditingController();
+  late final MenuViewModel _vm;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<MenuViewModel>().loadMenu();
-      });
+      _vm = context.read<MenuViewModel>();
+      _vm.addListener(_onVmChanged);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _vm.loadMenu());
+    }
+  }
+
+  void _onVmChanged() {
+    final error = _vm.state.errorMessage;
+    if (error != null && _vm.state.status == MenuStatus.loaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _vm.clearError();
     }
   }
 
   @override
   void dispose() {
+    _vm.removeListener(_onVmChanged);
     _searchController.dispose();
     super.dispose();
   }

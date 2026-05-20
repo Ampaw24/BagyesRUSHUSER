@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../core/errors/failures.dart';
+import '../../../core/errors/failure.dart';
 import '../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../model/vendor_order.dart';
 import '../model/menu_item.dart';
@@ -25,6 +25,10 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, MenuItem>> toggleMenuItemAvailability(
     String itemId,
     bool isAvailable,
+  );
+  Future<Either<Failure, MenuItem>> toggleMenuItemPopular(
+    String id,
+    bool isPopular,
   );
   Future<Either<Failure, MenuItem>> createMenuItem(Map<String, dynamic> data);
   Future<Either<Failure, MenuItem>> updateMenuItem(

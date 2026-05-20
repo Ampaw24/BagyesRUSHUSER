@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../model/menu_item.dart';
-import '../model/dummy_menu.dart';
 import '../repository/vendor_dashboard_repository.dart';
 
 enum MenuStatus { initial, loading, loaded, error }
@@ -149,10 +148,19 @@ class MenuViewModel extends ViewModel<MenuState> {
   MenuViewModel(this._repository) : super(const MenuState());
 
   Future<void> loadMenu() async {
-    emit(state.copyWith(status: MenuStatus.loading));
-    // Simulate network delay — swap with _repository.fetchMenuItems() when API is ready.
-    await Future.delayed(const Duration(milliseconds: 600));
-    emit(state.copyWith(status: MenuStatus.loaded, items: DummyMenu.items));
+    emit(state.copyWith(status: MenuStatus.loading, clearError: true));
+    final result = await _repository.fetchMenuItems();
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: MenuStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
+      (items) => emit(
+        state.copyWith(status: MenuStatus.loaded, items: items),
+      ),
+    );
   }
 
   Future<void> addItem(Map<String, dynamic> data) async {
@@ -229,10 +237,7 @@ class MenuViewModel extends ViewModel<MenuState> {
   }
 
   Future<void> toggleFeatured(String itemId, bool isFeatured) async {
-    final result = await _repository.updateMenuItem(
-      itemId,
-      {'is_featured': isFeatured},
-    );
+    final result = await _repository.toggleMenuItemPopular(itemId, isFeatured);
     result.fold(
       (failure) => emit(state.copyWith(errorMessage: failure.message)),
       (updated) {
@@ -242,6 +247,8 @@ class MenuViewModel extends ViewModel<MenuState> {
       },
     );
   }
+
+  void clearError() => emit(state.copyWith(clearError: true));
 
   Future<void> upsertAddonGroups(
     String menuItemId,

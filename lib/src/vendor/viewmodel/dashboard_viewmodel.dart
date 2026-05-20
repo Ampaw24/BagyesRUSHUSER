@@ -93,7 +93,6 @@ class DashboardViewModel extends ViewModel<DashboardState> {
   Future<void> toggleStore(bool isOpen) async {
     final previous = state.storeOpen;
     emit(state.copyWith(storeOpen: isOpen));
-
     final result = await _repository.toggleStoreStatus(isOpen);
     result.fold(
       (failure) => emit(state.copyWith(
