@@ -18,6 +18,7 @@ abstract final class ApiEndpoints {
   static const String refreshToken = '/auth/refresh-token';
   static const String otpSend = '/otp/send';
   static const String otpVerify = '/otp/verify';
+  static const String forgotPassword = '/auth/reset-password';
   static const String items = '/items';
 
   /// `GET /auth/me`
@@ -26,12 +27,12 @@ abstract final class ApiEndpoints {
   /// `PATCH /customers/update`
   static const String customerUpdate = '/customers/update';
 
-  // ─── Vendor Registration ───────────────────────────────────────────────────.   
+  // ─── Vendor Registration ───────────────────────────────────────────────────.
   static const String vendorRegister = '/auth/register';
-  static const String vendorDocUpload = '/vendors/documents/upload';     
+  static const String vendorDocUpload = '/vendors/documents/upload';
   static const String vendorOtpSend = '/vendors/otp/send';
   static const String vendorOtpVerify = '/vendors/otp/verify';
-   
+
   // ─── Vendor Dashboard ──────────────────────────────────────────────────────
   static const String vendorDashStats = '/vendors/dashboard/stats';
   static const String vendorOrders = '/vendors/orders';

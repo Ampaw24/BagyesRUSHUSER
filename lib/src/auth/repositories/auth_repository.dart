@@ -259,6 +259,8 @@ class AuthRepository {
 
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
+        appLogger.d('AuthRepository.login → user=${user.toJson()}');
+        appLogger.d('AuthRepository.login → payload=${user.id}');
         await _cacheHelper.cacheUserId(user.id);
         await _cacheHelper.cacheUserRole(user.role);
 
@@ -415,8 +417,7 @@ class AuthRepository {
       final response = await _client.get(ApiEndpoints.vendorProfile);
       if (response.statusCode == 200) {
         final responseData = response.data as DataMap;
-        final profileJson =
-            responseData['data'] as DataMap? ?? responseData;
+        final profileJson = responseData['data'] as DataMap? ?? responseData;
         final profile = VendorProfile.fromJson(profileJson);
         appLogger.i('AuthRepository.fetchVendorProfile → success');
         return Right(profile);
@@ -551,6 +552,47 @@ class AuthRepository {
         s,
         repositoryName: 'AuthRepository',
         methodName: 'updateProfile',
+      );
+    }
+  }
+
+  ResultFuture<void> resetPassword({
+    required String phone,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    appLogger.d('AuthRepository.resetPassword → phone=$phone');
+    try {
+      final response = await _client.post(
+        ApiEndpoints.forgotPassword,
+        data: {
+          "phone": phone,
+          "new_password": password,
+          "confirm_new_password": confirmPassword,
+        },
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        appLogger.i('AuthRepository.resetPassword → success');
+        return const Right(null);
+      }
+
+      appLogger.w('AuthRepository.resetPassword → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'AuthRepository.resetPassword → DioException\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'resetPassword',
       );
     }
   }

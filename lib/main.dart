@@ -25,7 +25,7 @@ void main() async {
   await di.init();
 
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,
-  //           AuthRepository, AuthViewmodel); guarded with isRegistered checks.
+  // AuthRepository, AuthViewmodel); guarded with isRegistered checks.
 
   await AppInitializer.initialize();
   SystemChrome.setPreferredOrientations([

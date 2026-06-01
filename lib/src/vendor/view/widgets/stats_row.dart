@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 
 class StatItem {
@@ -24,75 +25,76 @@ class StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(w * 0.04),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
+    return Row(
+      children: [
+        for (int i = 0; i < stats.length; i++) ...[
+          Expanded(child: _StatCard(stat: stats[i])),
+          if (i < stats.length - 1) SizedBox(width: w * 0.035),
         ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            for (int i = 0; i < stats.length; i++) ...[
-              Expanded(child: _StatCell(stat: stats[i])),
-              if (i < stats.length - 1)
-                VerticalDivider(
-                  width: 1,
-                  thickness: 0.5,
-                  color: AppColors.border,
-                  indent: w * 0.04,
-                  endIndent: w * 0.04,
-                ),
-            ],
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
 
-class _StatCell extends StatelessWidget {
+class _StatCard extends StatelessWidget {
   final StatItem stat;
 
-  const _StatCell({required this.stat});
+  const _StatCard({required this.stat});
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final color = stat.iconColor ?? AppColors.primary;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: w * 0.048),
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: w * 0.04, horizontal: w * 0.025),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(w * 0.04),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: w * 0.016,
-            height: w * 0.016,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            padding: EdgeInsets.all(w * 0.015),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: HugeIcon(
+              icon: stat.icon,
+              color: color,
+              size: w * 0.04,
+            ),
           ),
-          SizedBox(height: w * 0.018),
+          SizedBox(height: w * 0.025),
           Text(
             stat.value,
             style: TextStyle(
-              fontSize: w * 0.046,
+              fontSize: (w * 0.04).clamp(14.0, 18.0),
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
+              fontFamily: 'Mukta',
+              letterSpacing: -0.5,
             ),
           ),
-          SizedBox(height: w * 0.006),
+          SizedBox(height: w * 0.005),
           Text(
             stat.label,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: w * 0.028,
+              fontSize: (w * 0.024).clamp(9.0, 12.0),
               color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Mukta',
+              height: 1.1,
             ),
           ),
         ],

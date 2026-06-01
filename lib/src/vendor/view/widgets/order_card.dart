@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../model/vendor_order.dart';
 
@@ -19,218 +20,232 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final statusColor = order.status.color;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(w * 0.04),
-        border: Border.all(color: AppColors.border, width: 0.5),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(w * 0.04),
-        child: Column(
-          children: [
-            // ── Top color accent bar ──
-            Container(
-              height: 3,
-              color: statusColor,
-            ),
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.all(w * 0.04),
-                childrenPadding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.04),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                // ── Collapsed: header summary ──
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ID + type badge + status
-                    Row(
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: AppColors.primary.withValues(alpha: 0.05),
+        ),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.all(w * 0.04),
+          childrenPadding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.04),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          // ── Collapsed: header summary ──
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ID + type badge + status
+              Row(
+                children: [
+                  Text(
+                    '#${order.id}',
+                    style: TextStyle(
+                      fontSize: w * 0.036,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      fontFamily: 'Mukta',
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(width: w * 0.02),
+                  _OrderTypeBadge(type: order.orderType),
+                  const Spacer(),
+                  _StatusBadge(status: order.status),
+                ],
+              ),
+              SizedBox(height: w * 0.04),
+              // Customer + amount
+              Row(
+                children: [
+                  _CustomerAvatar(name: order.customerName, w: w),
+                  SizedBox(width: w * 0.03),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.id,
+                          order.customerName,
                           style: TextStyle(
                             fontSize: w * 0.038,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
+                            fontFamily: 'Mukta',
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(width: w * 0.02),
-                        _OrderTypeBadge(type: order.orderType),
-                        const Spacer(),
-                        _StatusBadge(status: order.status),
-                      ],
-                    ),
-                    SizedBox(height: w * 0.03),
-                    // Customer + amount
-                    Row(
-                      children: [
-                        _CustomerAvatar(name: order.customerName, w: w),
-                        SizedBox(width: w * 0.025),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                order.customerName,
-                                style: TextStyle(
-                                  fontSize: w * 0.034,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: w * 0.005),
-                              Text(
-                                order.timeAgo,
-                                style: TextStyle(
-                                  fontSize: w * 0.028,
-                                  color: AppColors.textHint,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        SizedBox(height: w * 0.002),
                         Text(
-                          order.amount,
+                          order.timeAgo,
                           style: TextStyle(
-                            fontSize: w * 0.042,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                            fontSize: w * 0.03,
+                            color: AppColors.textHint,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: 'Mukta',
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                // ── Expanded: items + note + actions ──
-                children: [
-                  // Items list
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(w * 0.03),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(w * 0.025),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (int i = 0; i < order.itemList.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i < order.itemList.length - 1 ? w * 0.012 : 0,
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: w * 0.05,
-                                  height: w * 0.05,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.08),
-                                    borderRadius: BorderRadius.circular(w * 0.012),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '${order.itemList[i].quantity}x',
-                                      style: TextStyle(
-                                        fontSize: w * 0.024,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: w * 0.02),
-                                Expanded(
-                                  child: Text(
-                                    order.itemList[i].name,
-                                    style: TextStyle(
-                                      fontSize: w * 0.03,
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  order.itemList[i].price,
-                                  style: TextStyle(
-                                    fontSize: w * 0.028,
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                       ],
                     ),
                   ),
-
-                  // Customer note (if any)
-                  if (order.customerNote != null && order.customerNote!.isNotEmpty) ...[
-                    SizedBox(height: w * 0.02),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.sticky_note_2_outlined,
-                          size: w * 0.035,
-                          color: AppColors.accent,
-                        ),
-                        SizedBox(width: w * 0.015),
-                        Expanded(
-                          child: Text(
-                            order.customerNote!,
-                            style: TextStyle(
-                              fontSize: w * 0.028,
-                              color: AppColors.textSecondary,
-                              fontStyle: FontStyle.italic,
+                  Text(
+                    order.amount,
+                    style: TextStyle(
+                      fontSize: w * 0.045,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      fontFamily: 'Mukta',
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // ── Expanded: items + note + actions ──
+          children: [
+            // Divider
+            Container(
+              height: 1,
+              width: double.infinity,
+              color: AppColors.divider,
+              margin: EdgeInsets.only(bottom: w * 0.03),
+            ),
+            // Items list
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(w * 0.035),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(w * 0.03),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (int i = 0; i < order.itemList.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: i < order.itemList.length - 1 ? w * 0.015 : 0,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: w * 0.015, vertical: w * 0.005),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(w * 0.012),
+                            ),
+                            child: Text(
+                              '${order.itemList[i].quantity}x',
+                              style: TextStyle(
+                                fontSize: w * 0.026,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                                fontFamily: 'Mukta',
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  // Action buttons for new orders
-                  if (order.status == OrderStatus.newOrder) ...[
-                    SizedBox(height: w * 0.03),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ActionButton(
-                            label: 'Decline',
-                            color: AppColors.textSecondary,
-                            outlined: true,
-                            onTap: onDecline,
+                          SizedBox(width: w * 0.025),
+                          Expanded(
+                            child: Text(
+                              order.itemList[i].name,
+                              style: TextStyle(
+                                fontSize: w * 0.032,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Mukta',
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        SizedBox(width: w * 0.025),
-                        Expanded(
-                          flex: 2,
-                          child: _ActionButton(
-                            label: 'Accept Order',
-                            color: AppColors.primary,
-                            onTap: onAccept,
+                          Text(
+                            order.itemList[i].price,
+                            style: TextStyle(
+                              fontSize: w * 0.03,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Mukta',
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ],
                 ],
               ),
             ),
+
+            // Customer note (if any)
+            if (order.customerNote != null && order.customerNote!.isNotEmpty) ...[
+              SizedBox(height: w * 0.03),
+              Container(
+                padding: EdgeInsets.all(w * 0.03),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(w * 0.025),
+                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedInformationCircle,
+                      size: w * 0.035,
+                      color: AppColors.accent,
+                    ),
+                    SizedBox(width: w * 0.02),
+                    Expanded(
+                      child: Text(
+                        order.customerNote!,
+                        style: TextStyle(
+                          fontSize: w * 0.03,
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: 'Mukta',
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Action buttons for new orders
+            if (order.status == OrderStatus.newOrder) ...[
+              SizedBox(height: w * 0.04),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ActionButton(
+                      label: 'Decline',
+                      color: AppColors.textSecondary,
+                      outlined: true,
+                      onTap: onDecline,
+                    ),
+                  ),
+                  SizedBox(width: w * 0.03),
+                  Expanded(
+                    flex: 2,
+                    child: _ActionButton(
+                      label: 'Accept Order',
+                      color: AppColors.primary,
+                      onTap: onAccept,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -289,14 +304,14 @@ class _OrderTypeBadge extends StatelessWidget {
     }
   }
 
-  IconData get _icon {
+  List<List<dynamic>> get _icon {
     switch (type) {
       case OrderType.delivery:
-        return Icons.delivery_dining;
+        return HugeIcons.strokeRoundedDeliveryTruck01;
       case OrderType.pickup:
-        return Icons.shopping_bag_outlined;
+        return HugeIcons.strokeRoundedShoppingBag01;
       case OrderType.dineIn:
-        return Icons.restaurant_outlined;
+        return HugeIcons.strokeRoundedRestaurant01;
     }
   }
 
@@ -316,14 +331,15 @@ class _OrderTypeBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, size: w * 0.03, color: AppColors.secondary),
+          HugeIcon(icon: _icon, size: w * 0.03, color: AppColors.secondary),
           SizedBox(width: w * 0.008),
           Text(
             _label,
             style: TextStyle(
               fontSize: w * 0.024,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: AppColors.secondary,
+              fontFamily: 'Mukta',
             ),
           ),
         ],

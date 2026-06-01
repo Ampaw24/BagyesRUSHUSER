@@ -20,6 +20,7 @@ import 'package:bagyesrushappusernew/presentation/invite_friend/invite_friend.da
 import 'package:bagyesrushappusernew/src/auth/views/login_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/signup_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/otp_view.dart';
+import 'package:bagyesrushappusernew/src/auth/views/reset_password_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/walkthrough_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/kyc_verification_view.dart';
 import 'package:bagyesrushappusernew/src/onboarding/views/onboarding_view.dart';
@@ -49,6 +50,7 @@ const _publicRoutes = {
   AppRoutes.login,
   AppRoutes.signup,
   AppRoutes.otp,
+  AppRoutes.resetPassword,
   AppRoutes.vendorRegistration,
 };
 
@@ -127,8 +129,26 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.otp,
       builder: (context, state) {
-        final showSuccess = state.extra as bool? ?? false;
-        return OTPView(showSuccessOnVerify: showSuccess);
+        final extra = state.extra;
+        bool showSuccess = false;
+        bool isForgotPassword = false;
+        if (extra is bool) {
+          showSuccess = extra;
+        } else if (extra is Map<String, dynamic>) {
+          showSuccess = extra['showSuccessOnVerify'] as bool? ?? false;
+          isForgotPassword = extra['isForgotPassword'] as bool? ?? false;
+        }
+        return OTPView(
+          showSuccessOnVerify: showSuccess,
+          isForgotPassword: isForgotPassword,
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.resetPassword,
+      builder: (context, state) {
+        final phone = state.extra as String? ?? '';
+        return ResetPasswordView(phone: phone);
       },
     ),
 

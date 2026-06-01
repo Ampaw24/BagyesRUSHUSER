@@ -72,3 +72,7 @@ final class NetworkError extends AuthError {
   NetworkError.fromFailure(Failure failure)
       : super(message: failure.message, title: failure.title);
 }
+
+final class PasswordResetSuccess extends AuthState {
+  const PasswordResetSuccess();
+}

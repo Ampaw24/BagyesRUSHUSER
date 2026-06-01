@@ -13,6 +13,7 @@ abstract final class AppRoutes {
   static const String signup = '/signup';
   static const String otp = '/otp';
   static const String kycVerification = '/kyc-verification';
+  static const String resetPassword = '/reset-password';
 
   // ── Main app (bottom bar shell) ──
   static const String home = '/home';

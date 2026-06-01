@@ -383,6 +383,32 @@ class AuthViewmodel extends ViewModel<AuthState> {
   /// Resets state to [AuthInitial] after a one-shot action has been handled.
   void resetState() => emit(const AuthInitial());
 
+  Future<void> resetPassword({
+    required String phone,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    appLogger.d('AuthViewmodel.resetPassword → initiated');
+    emit(const AuthLoading());
+
+    final result = await _repository.resetPassword(
+      phone: phone,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.resetPassword → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (_) {
+        appLogger.i('AuthViewmodel.resetPassword → success');
+        emit(const PasswordResetSuccess());
+      },
+    );
+  }
+
   Future<void> logout() async {
     appLogger.d('AuthViewmodel.logout');
     emit(const AuthLoading());

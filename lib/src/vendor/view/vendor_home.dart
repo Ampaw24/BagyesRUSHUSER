@@ -444,240 +444,293 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final profile = widget.vendorProfile;
     final location = _currentLocation ?? profile?.businessAddress;
 
-    return Column(
-      children: [
-        // ── Fixed top section ──
-        Padding(
-          padding: EdgeInsets.fromLTRB(h, w * 0.02, h, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon row: hamburger ── bell + avatar
-              VendorHeader(
-                initials: widget.initials,
-                onDrawerTap: widget.onDrawerTap,
-                onNotificationTap: () => Navigator.of(context).push(
-                  PageRouteBuilder(
-                    pageBuilder: (_, anim, _) =>
-                        const VendorNotificationsScreen(),
-                    transitionsBuilder: (_, anim, _, child) => SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, -0.06),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: anim,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: FadeTransition(opacity: anim, child: child),
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // ── Header & Greeting Section ──
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(h, w * 0.02, h, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                VendorHeader(
+                  initials: widget.initials,
+                  onDrawerTap: widget.onDrawerTap,
+                  onNotificationTap: () => Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (_, anim, _) => const VendorNotificationsScreen(),
+                      transitionsBuilder: (_, anim, _, child) => SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, -0.06),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: anim,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: FadeTransition(opacity: anim, child: child),
+                      ),
+                      transitionDuration: const Duration(milliseconds: 320),
                     ),
-                    transitionDuration: const Duration(milliseconds: 320),
                   ),
+                  onAvatarTap: widget.onAvatarTap,
                 ),
-                onAvatarTap: widget.onAvatarTap,
-              ),
-
-              // Greeting + business name
-              SizedBox(height: w * 0.045),
-              Text(
-                _greeting,
-                style: TextStyle(
-                  fontSize: w * 0.034,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: w * 0.008),
-              Text(
-                profile?.businessName ?? 'Vendor',
-                style: TextStyle(
-                  fontSize: w * 0.058,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                  height: 1.1,
-                ),
-              ),
-              if (location != null) ...[
-                SizedBox(height: w * 0.012),
+                SizedBox(height: w * 0.05),
+                
+                // Greeting + location
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    HugeIcon(
-                      icon: HugeIcons.strokeRoundedLocation01,
-                      color: AppColors.textHint,
-                      size: w * 0.033,
-                    ),
-                    SizedBox(width: w * 0.01),
                     Expanded(
-                      child: Text(
-                        location,
-                        style: TextStyle(
-                          fontSize: w * 0.03,
-                          color: AppColors.textHint,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _greeting,
+                            style: TextStyle(
+                              fontSize: w * 0.036,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Mukta',
+                            ),
+                          ),
+                          Text(
+                            profile?.businessName ?? 'Vendor',
+                            style: TextStyle(
+                              fontSize: w * 0.068,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              height: 1.1,
+                              fontFamily: 'Mukta',
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ],
-
-              // Status Banners
-              if (profile?.status == 'pending_review')
-                _StatusBanner(
-                  icon: HugeIcons.strokeRoundedClock01,
-                  label: 'Account pending review',
-                  color: AppColors.warning,
-                  w: w,
-                ),
-              if (profile?.isProfileComplete == false)
-                _StatusBanner(
-                  icon: HugeIcons.strokeRoundedAlertCircle,
-                  label: 'Complete your profile',
-                  color: AppColors.error,
-                  w: w,
-                ),
-
-              SizedBox(height: w * 0.045),
-              StoreToggleCard(
-                isOpen: state.storeOpen,
-                isLoading: _isTogglingStore,
-                onToggle: _handleStoreToggle,
-              ),
-
-              // Operating hours + days
-              if (profile != null) ...[
-                SizedBox(height: w * 0.028),
-                Row(
-                  children: [
-                    _QuickDetail(
-                      icon: HugeIcons.strokeRoundedClock01,
-                      text: '${profile.openingTime} – ${profile.closingTime}',
-                      w: w,
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.025),
-                      child: Text(
-                        '·',
-                        style: TextStyle(
-                          color: AppColors.textHint,
-                          fontSize: w * 0.032,
+                    if (location != null)
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.015),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(w * 0.05),
+                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            HugeIcon(
+                              icon: HugeIcons.strokeRoundedLocation01,
+                              color: AppColors.primary,
+                              size: w * 0.035,
+                            ),
+                            SizedBox(width: w * 0.015),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: w * 0.25),
+                              child: Text(
+                                location,
+                                style: TextStyle(
+                                  fontSize: w * 0.028,
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Mukta',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    _QuickDetail(
-                      icon: HugeIcons.strokeRoundedCalendar01,
-                      text: _formatOperatingDays(profile.operatingDays),
-                      w: w,
-                    ),
                   ],
                 ),
-              ],
-
-              SizedBox(height: w * 0.04),
-              StatsRow(
-                stats: [
-                  StatItem(
-                    value: state.todayRevenue,
-                    label: "Today's Rev",
-                    icon: HugeIcons.strokeRoundedMoneyBag01,
-                    iconColor: AppColors.success,
+                
+                // Status Banners (compact)
+                if (profile?.status == 'pending_review')
+                  _StatusBanner(
+                    icon: HugeIcons.strokeRoundedClock01,
+                    label: 'Account pending review',
+                    color: AppColors.warning,
+                    w: w,
                   ),
-                  StatItem(
-                    value: '${state.activeOrderCount}',
-                    label: 'Active Orders',
-                    icon: HugeIcons.strokeRoundedFire,
-                    iconColor: AppColors.accent,
+                if (profile?.isProfileComplete == false)
+                  _StatusBanner(
+                    icon: HugeIcons.strokeRoundedAlertCircle,
+                    label: 'Complete your profile',
+                    color: AppColors.error,
+                    w: w,
                   ),
-                  StatItem(
-                    value: profile?.rating.toString() ?? state.avgRating,
-                    label: 'Avg Rating',
-                    icon: HugeIcons.strokeRoundedStarCircle,
-                    iconColor: AppColors.warning,
+                
+                SizedBox(height: w * 0.05),
+                StoreToggleCard(
+                  isOpen: state.storeOpen,
+                  isLoading: _isTogglingStore,
+                  onToggle: _handleStoreToggle,
+                  revenue: state.todayRevenue,
+                  orders: '${state.activeOrderCount}',
+                  rating: profile?.rating.toString() ?? state.avgRating,
+                ),
+                
+                // Quick info chips
+                if (profile != null) ...[
+                  SizedBox(height: w * 0.035),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _DashboardChip(
+                          icon: HugeIcons.strokeRoundedClock01,
+                          label: '${profile.openingTime} – ${profile.closingTime}',
+                          w: w,
+                        ),
+                        SizedBox(width: w * 0.02),
+                        _DashboardChip(
+                          icon: HugeIcons.strokeRoundedCalendar01,
+                          label: _formatOperatingDays(profile.operatingDays),
+                          w: w,
+                        ),
+                        SizedBox(width: w * 0.02),
+                        _DashboardChip(
+                          icon: HugeIcons.strokeRoundedDeliveryTruck01,
+                          label: '${profile.deliveryRadiusKm}km Radius',
+                          w: w,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
 
-              if (DummyOrders.newOrders.isNotEmpty) ...[
-                SizedBox(height: w * 0.04),
-                Builder(
-                  builder: (_) {
-                    final newest = DummyOrders.newOrders.first;
-                    return NewOrderBanner(
-                      orderId: newest.id,
-                      amount: newest.amount,
-                      customerName: newest.customerName,
-                      itemCount: newest.itemList.length,
-                      secondsLeft: 87,
-                      onTap: () {},
-                      onAccept: () {},
-                    );
-                  },
+                if (DummyOrders.newOrders.isNotEmpty) ...[
+                  SizedBox(height: w * 0.05),
+                  Builder(
+                    builder: (_) {
+                      final newest = DummyOrders.newOrders.first;
+                      return NewOrderBanner(
+                        orderId: newest.id,
+                        amount: newest.amount,
+                        customerName: newest.customerName,
+                        itemCount: newest.itemList.length,
+                        secondsLeft: 87,
+                        onTap: () {},
+                        onAccept: () {},
+                      );
+                    },
+                  ),
+                ],
+
+                SizedBox(height: w * 0.06),
+                _ActiveOrdersLabel(
+                  count: DummyOrders.activeOrders.length,
+                  onViewAll: widget.onViewAllOrders,
                 ),
+                SizedBox(height: w * 0.025),
               ],
-
-              SizedBox(height: w * 0.045),
-              _ActiveOrdersLabel(
-                count: DummyOrders.activeOrders.length,
-                onViewAll: widget.onViewAllOrders,
-              ),
-              SizedBox(height: w * 0.025),
-            ],
+            ),
           ),
         ),
 
-        // ── Scrollable orders only ──
-        Expanded(
-          child: DummyOrders.activeOrders.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.receipt_long_rounded,
-                        size: w * 0.14,
-                        color: AppColors.textHint,
-                      ),
-                      SizedBox(height: w * 0.04),
-                      Text(
-                        'No active orders',
-                        style: TextStyle(
-                          fontSize: w * 0.042,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      SizedBox(height: w * 0.015),
-                      Text(
-                        'New orders will appear here',
-                        style: TextStyle(
-                          fontSize: w * 0.032,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                    ],
+        // ── Active Orders List ──
+        if (DummyOrders.activeOrders.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(w * 0.06),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      shape: BoxShape.circle,
+                    ),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedShoppingBag01,
+                      size: w * 0.1,
+                      color: AppColors.textHint.withValues(alpha: 0.5),
+                    ),
                   ),
-                )
-              : ListView.separated(
-                  padding: EdgeInsets.fromLTRB(
-                    w * 0.05,
-                    0,
-                    w * 0.05,
-                    w * 0.25,
+                  SizedBox(height: w * 0.04),
+                  Text(
+                    'No active orders',
+                    style: TextStyle(
+                      fontSize: w * 0.045,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      fontFamily: 'Mukta',
+                    ),
                   ),
-                  itemCount: DummyOrders.activeOrders.length,
-                  separatorBuilder: (_, _) => SizedBox(height: w * 0.03),
-                  itemBuilder: (_, index) {
-                    final order = DummyOrders.activeOrders[index];
-                    return OrderCard(
+                  SizedBox(height: w * 0.01),
+                  Text(
+                    'New orders will appear here',
+                    style: TextStyle(
+                      fontSize: w * 0.034,
+                      color: AppColors.textSecondary,
+                      fontFamily: 'Mukta',
+                    ),
+                  ),
+                  SizedBox(height: w * 0.1), // Spacing for floating bar
+                ],
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final order = DummyOrders.activeOrders[index];
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: w * 0.035),
+                    child: OrderCard(
                       order: order,
                       onTap: () {},
                       onAccept: () {},
                       onDecline: () {},
-                    );
-                  },
-                ),
-        ),
+                    ),
+                  );
+                },
+                childCount: DummyOrders.activeOrders.length,
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+class _DashboardChip extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String label;
+  final double w;
+
+  const _DashboardChip({required this.icon, required this.label, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.018),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: icon, color: AppColors.textSecondary, size: w * 0.035),
+          SizedBox(width: w * 0.018),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: w * 0.028,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Mukta',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -788,43 +841,6 @@ class _StatusBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Quick Detail ────────────────────────────────────────────────────────
-
-class _QuickDetail extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String text;
-  final double w;
-
-  const _QuickDetail({
-    required this.icon,
-    required this.text,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        HugeIcon(
-          icon: icon,
-          color: AppColors.textSecondary,
-          size: w * 0.035,
-        ),
-        SizedBox(width: w * 0.015),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: w * 0.03,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }

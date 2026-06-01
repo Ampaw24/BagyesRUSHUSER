@@ -19,6 +19,7 @@ class CustomerDrawer extends StatefulWidget {
   final VoidCallback? onInviteFriends;
   final VoidCallback? onPrivacyPolicy;
   final VoidCallback? onHelpSupport;
+  final VoidCallback? onResetPassword;
   final VoidCallback? onDeleteAccount;
   final VoidCallback? onLogout;
 
@@ -37,6 +38,7 @@ class CustomerDrawer extends StatefulWidget {
     this.onInviteFriends,
     this.onPrivacyPolicy,
     this.onHelpSupport,
+    this.onResetPassword,
     this.onDeleteAccount,
     this.onLogout,
   });
@@ -250,6 +252,13 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 fadeAnim: _staggeredFade(7),
                                 slideAnim: _staggeredSlide(7),
                               ),
+                              DrawerTile(
+                                icon: HugeIcons.strokeRoundedLock,
+                                label: 'Reset Password',
+                                onTap: widget.onResetPassword,
+                                fadeAnim: _staggeredFade(8),
+                                slideAnim: _staggeredSlide(8),
+                              ),
                             ],
                           ),
                         ),
@@ -266,16 +275,16 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                         label: 'Delete Account',
                         color: AppColors.warning,
                         onTap: widget.onDeleteAccount,
-                        fadeAnim: _staggeredFade(8),
-                        slideAnim: _staggeredSlide(8),
+                        fadeAnim: _staggeredFade(9),
+                        slideAnim: _staggeredSlide(9),
                       ),
                       DrawerTile(
                         icon: HugeIcons.strokeRoundedLogout01,
                         label: 'Logout',
                         color: AppColors.error,
                         onTap: widget.onLogout,
-                        fadeAnim: _staggeredFade(9),
-                        slideAnim: _staggeredSlide(9),
+                        fadeAnim: _staggeredFade(10),
+                        slideAnim: _staggeredSlide(10),
                       ),
                       SizedBox(height: h * 0.015),
                     ],

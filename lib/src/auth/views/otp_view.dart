@@ -564,6 +564,7 @@ class OTPView extends StatefulWidget {
     super.key,
     this.obscureDigits = false,
     this.showSuccessOnVerify = false,
+    this.isForgotPassword = false,
   });
 
   /// Whether each entered digit should be rendered as `•`.
@@ -572,6 +573,9 @@ class OTPView extends StatefulWidget {
   /// When `true`, shows a success dialog after verification before navigating
   /// home. Used when coming from the phone verification / KYC flow.
   final bool showSuccessOnVerify;
+
+  /// When `true`, redirects to ResetPasswordView on successful verification.
+  final bool isForgotPassword;
 
   @override
   State<OTPView> createState() => _OTPViewState();
@@ -775,6 +779,11 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
     setState(() => _isSuccess = true);
     await _successCtrl.forward(from: 0);
     if (!mounted) return;
+
+    if (widget.isForgotPassword) {
+      AppNavigator.toResetPassword(context, _phone);
+      return;
+    }
 
     // Show success dialog when coming from the verification / KYC flow
     if (widget.showSuccessOnVerify) {

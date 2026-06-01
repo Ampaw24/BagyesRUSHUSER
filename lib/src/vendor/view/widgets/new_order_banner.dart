@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 
 class NewOrderBanner extends StatefulWidget {
@@ -48,7 +49,7 @@ class _NewOrderBannerState extends State<NewOrderBanner>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
+    _pulseAnimation = Tween<double>(begin: 0.98, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
@@ -84,12 +85,12 @@ class _NewOrderBannerState extends State<NewOrderBanner>
               end: Alignment.bottomRight,
               colors: [AppColors.primaryDark, AppColors.primary],
             ),
-            borderRadius: BorderRadius.circular(w * 0.04),
+            borderRadius: BorderRadius.circular(w * 0.05),
             boxShadow: [
               BoxShadow(
                 color: AppColors.primary.withValues(alpha: 0.35),
                 blurRadius: 16,
-                offset: const Offset(0, 6),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -120,15 +121,9 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                           '${_remaining}s',
                           style: TextStyle(
                             color: _timerColor,
-                            fontSize: w * 0.04,
+                            fontSize: w * 0.038,
                             fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          'left',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: w * 0.022,
+                            fontFamily: 'Mukta',
                           ),
                         ),
                       ],
@@ -136,7 +131,7 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                   ],
                 ),
               ),
-              SizedBox(width: w * 0.03),
+              SizedBox(width: w * 0.035),
               // Order details
               Expanded(
                 child: Column(
@@ -144,38 +139,41 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.bolt_rounded,
+                        HugeIcon(
+                          icon: HugeIcons.strokeRoundedZap,
                           color: AppColors.accentLight,
-                          size: w * 0.04,
+                          size: w * 0.035,
                         ),
-                        SizedBox(width: w * 0.01),
+                        SizedBox(width: w * 0.015),
                         Text(
                           'NEW ORDER',
                           style: TextStyle(
                             color: AppColors.accentLight,
                             fontSize: w * 0.026,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
+                            fontFamily: 'Mukta',
+                            letterSpacing: 1.0,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: w * 0.01),
+                    SizedBox(height: w * 0.005),
                     Text(
-                      '${widget.orderId}  •  ${widget.amount}',
+                      '#${widget.orderId}  •  ${widget.amount}',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: w * 0.034,
-                        fontWeight: FontWeight.w600,
+                        fontSize: w * 0.036,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Mukta',
                       ),
                     ),
-                    SizedBox(height: w * 0.005),
                     Text(
                       '${widget.customerName}  •  ${widget.itemCount} items',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: w * 0.028,
+                        fontFamily: 'Mukta',
+                        fontWeight: FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -187,19 +185,27 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                 onTap: widget.onAccept,
                 child: Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: w * 0.035,
-                    vertical: w * 0.025,
+                    horizontal: w * 0.045,
+                    vertical: w * 0.02,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(w * 0.03),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     'Accept',
                     style: TextStyle(
                       color: AppColors.primary,
                       fontSize: w * 0.032,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Mukta',
                     ),
                   ),
                 ),

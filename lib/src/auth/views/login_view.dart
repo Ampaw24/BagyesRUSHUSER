@@ -66,9 +66,9 @@ class _LoginViewState extends State<LoginView>
       }
     } else if (vm.state is AuthError) {
       final error = vm.state as AuthError;
-      final isPhoneUnverified = error.message
-          .toLowerCase()
-          .contains('phone') && error.message.toLowerCase().contains('verif');
+      final isPhoneUnverified =
+          error.message.toLowerCase().contains('phone') &&
+          error.message.toLowerCase().contains('verif');
       CustomDialog.showError(
         context: context,
         title: error.title,
@@ -155,6 +155,15 @@ class _LoginViewState extends State<LoginView>
 
   void _showErrorDialog(BuildContext context, String title, String message) {
     CustomDialog.showError(context: context, title: title, subtitle: message);
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _ForgotPasswordSheetContent(),
+    );
   }
 
   @override
@@ -348,6 +357,24 @@ class _LoginViewState extends State<LoginView>
               setState(() => _obscurePassword = !_obscurePassword),
           onSubmitted: (_) => _proceed(context),
         ),
+        SizedBox(height: sw * 0.029),
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () {
+              _showForgotPasswordDialog(context);
+            },
+            child: Text(
+              'Forgot Password?',
+              style: TextStyle(
+                fontFamily: 'Mukta',
+                fontSize: (sw * 0.032).clamp(11.0, 14.0),
+                fontWeight: FontWeight.w600,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -424,6 +451,192 @@ class _LoginViewState extends State<LoginView>
 
 // ── Phone input ───────────────────────────────────────────────────────────────
 
+class _ForgotPasswordSheetContent extends StatefulWidget {
+  const _ForgotPasswordSheetContent({super.key});
+
+  @override
+  State<_ForgotPasswordSheetContent> createState() =>
+      _ForgotPasswordSheetContentState();
+}
+
+class _ForgotPasswordSheetContentState
+    extends State<_ForgotPasswordSheetContent> {
+  late final TextEditingController _phoneController;
+  late final FocusNode _focusNode;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = MediaQuery.of(context).size.width;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Forgot Password',
+                  style: TextStyle(
+                    fontFamily: 'Mukta',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Enter your phone number below. We will send a 5-digit OTP to verify your identity and reset your password.',
+              style: TextStyle(
+                fontFamily: 'Mukta',
+                fontSize: 14,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Phone Number',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ModernPhoneInput(
+              controller: _phoneController,
+              focusNode: _focusNode,
+              screenWidth: sw,
+              enabled: !_isSubmitting,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isSubmitting
+                    ? null
+                    : () async {
+                        final phone = _phoneController.text.trim();
+                        if (phone.length != 9) {
+                          CustomDialog.showError(
+                            context: context,
+                            title: 'Invalid Phone Number',
+                            subtitle:
+                                'Please enter a valid 9-digit phone number.',
+                          );
+                          return;
+                        }
+                        setState(() => _isSubmitting = true);
+                        final fullPhone = '+233$phone';
+                        try {
+                          await context.read<AuthViewmodel>().sendOtp(
+                                fullPhone,
+                              );
+                          if (!context.mounted) return;
+                          
+                          final navigator = Navigator.of(context);
+                          navigator.pop(); // Close bottom sheet
+                          
+                          if (!context.mounted) return;
+                          context.push(
+                            AppRoutes.otp,
+                            extra: {
+                              'showSuccessOnVerify': false,
+                              'isForgotPassword': true,
+                            },
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          CustomDialog.showError(
+                            context: context,
+                            title: 'Error',
+                            subtitle:
+                                'Failed to send verification code. Please try again.',
+                          );
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isSubmitting = false);
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isSubmitting
+                    ? const SpinKitCircle(size: 24, color: Colors.white)
+                    : const Text(
+                        'Send OTP',
+                        style: TextStyle(
+                          fontFamily: 'Mukta',
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NoLeadingZeroFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -460,17 +673,36 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
   @override
   void initState() {
     super.initState();
+    _isFocused = widget.focusNode.hasFocus;
     widget.focusNode.addListener(_onFocusChange);
   }
 
   @override
+  void didUpdateWidget(_ModernPhoneInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      oldWidget.focusNode.removeListener(_onFocusChange);
+      _isFocused = widget.focusNode.hasFocus;
+      widget.focusNode.addListener(_onFocusChange);
+    }
+  }
+
+  @override
   void dispose() {
-    widget.focusNode.removeListener(_onFocusChange);
+    try {
+      widget.focusNode.removeListener(_onFocusChange);
+    } catch (_) {}
     super.dispose();
   }
 
-  void _onFocusChange() =>
-      setState(() => _isFocused = widget.focusNode.hasFocus);
+  void _onFocusChange() {
+    if (!mounted) return;
+    bool hasFocus = false;
+    try {
+      hasFocus = widget.focusNode.hasFocus;
+    } catch (_) {}
+    setState(() => _isFocused = hasFocus);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -583,17 +815,36 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
   @override
   void initState() {
     super.initState();
+    _isFocused = widget.focusNode.hasFocus;
     widget.focusNode.addListener(_onFocusChange);
   }
 
   @override
+  void didUpdateWidget(_ModernPasswordInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      oldWidget.focusNode.removeListener(_onFocusChange);
+      _isFocused = widget.focusNode.hasFocus;
+      widget.focusNode.addListener(_onFocusChange);
+    }
+  }
+
+  @override
   void dispose() {
-    widget.focusNode.removeListener(_onFocusChange);
+    try {
+      widget.focusNode.removeListener(_onFocusChange);
+    } catch (_) {}
     super.dispose();
   }
 
-  void _onFocusChange() =>
-      setState(() => _isFocused = widget.focusNode.hasFocus);
+  void _onFocusChange() {
+    if (!mounted) return;
+    bool hasFocus = false;
+    try {
+      hasFocus = widget.focusNode.hasFocus;
+    } catch (_) {}
+    setState(() => _isFocused = hasFocus);
+  }
 
   @override
   Widget build(BuildContext context) {
