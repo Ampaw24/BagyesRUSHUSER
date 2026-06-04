@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../orders/viewmodels/orders_state.dart';
+import '../../orders/viewmodels/orders_viewmodel.dart';
 import '../model/menu_item.dart';
-import '../viewmodel/menu_viewmodel.dart';
 import 'widgets/menu_item_card.dart';
 import 'widgets/add_edit_menu_sheet.dart';
 
-// ── Main view ─────────────────────────────────────────────────────────────────
+// ── Main view ──────────
 
 class VendorMenuView extends StatefulWidget {
   const VendorMenuView({super.key});
@@ -18,30 +19,33 @@ class VendorMenuView extends StatefulWidget {
 class _VendorMenuViewState extends State<VendorMenuView> {
   bool _initialized = false;
   final _searchController = TextEditingController();
-  late final MenuViewModel _vm;
+  late final OrderViewModel _vm;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      _vm = context.read<MenuViewModel>();
+      _vm = context.read<OrderViewModel>();
       _vm.addListener(_onVmChanged);
       WidgetsBinding.instance.addPostFrameCallback((_) => _vm.loadMenu());
     }
   }
 
   void _onVmChanged() {
-    final error = _vm.state.errorMessage;
-    if (error != null && _vm.state.status == MenuStatus.loaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      _vm.clearError();
+    final state = _vm.state;
+    if (state is MenuLoadedState) {
+      final error = state.errorMessage;
+      if (error != null && state.status == MenuStatus.loaded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _vm.clearError();
+      }
     }
   }
 
@@ -54,7 +58,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
 
   Future<void> _confirmDelete(
     BuildContext context,
-    MenuViewModel vm,
+    OrderViewModel vm,
     MenuItem item,
   ) async {
     final confirmed = await showDialog<bool>(
@@ -104,9 +108,11 @@ class _VendorMenuViewState extends State<VendorMenuView> {
     final h = MediaQuery.sizeOf(context).height;
     final horizontalPad = w * 0.05;
 
-    return Consumer<MenuViewModel>(
+    return Consumer<OrderViewModel>(
       builder: (context, vm, _) {
-        final state = vm.state;
+        final state = vm.state is MenuLoadedState
+            ? vm.state as MenuLoadedState
+            : const MenuLoadedState();
         final items = state.filteredItems;
 
         return Column(
@@ -265,11 +271,16 @@ class _VendorMenuViewState extends State<VendorMenuView> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: horizontalPad),
-                itemCount: menuCategories.length,
+                itemCount: state.categories.isNotEmpty
+                    ? state.categories.length
+                    : menuCategories.length,
                 separatorBuilder: (_, _) =>
                     SizedBox(width: w * 0.02),
                 itemBuilder: (_, i) {
-                  final cat = menuCategories[i];
+                  final cats = state.categories.isNotEmpty
+                      ? state.categories
+                      : menuCategories;
+                  final cat = cats[i];
                   final isSelected = state.selectedCategory == cat;
                   return GestureDetector(
                     onTap: () => vm.setCategory(cat),
@@ -327,8 +338,8 @@ class _VendorMenuViewState extends State<VendorMenuView> {
 
   Widget _buildContent({
     required BuildContext context,
-    required MenuViewModel vm,
-    required MenuState state,
+    required OrderViewModel vm,
+    required MenuLoadedState state,
     required List<MenuItem> items,
     required double w,
     required double h,
@@ -621,7 +632,7 @@ class _StatChip extends StatelessWidget {
 
 class _FeaturedSection extends StatelessWidget {
   final List<MenuItem> items;
-  final MenuViewModel vm;
+  final OrderViewModel vm;
   final void Function(MenuItem) onEdit;
   final void Function(MenuItem) onDelete;
   final double w;
@@ -783,7 +794,7 @@ class _EmptyState extends StatelessWidget {
 // ── Sort button ───────────────────────────────────────────────────────────────
 
 class _SortButton extends StatelessWidget {
-  final MenuViewModel vm;
+  final OrderViewModel vm;
   final double w;
 
   const _SortButton({required this.vm, required this.w});
@@ -798,6 +809,9 @@ class _SortButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = vm.state is MenuLoadedState
+        ? vm.state as MenuLoadedState
+        : const MenuLoadedState();
     return GestureDetector(
       onTap: () => _showMenu(context, w),
       child: Container(
@@ -810,7 +824,7 @@ class _SortButton extends StatelessWidget {
         child: Icon(
           Icons.sort_rounded,
           size: w * 0.05,
-          color: vm.state.sortBy != 'default'
+          color: state.sortBy != 'default'
               ? AppColors.primary
               : AppColors.textSecondary,
         ),
@@ -821,6 +835,9 @@ class _SortButton extends StatelessWidget {
   void _showMenu(BuildContext context, double w) {
     final RenderBox box = context.findRenderObject()! as RenderBox;
     final Offset offset = box.localToGlobal(Offset.zero);
+    final state = vm.state is MenuLoadedState
+        ? vm.state as MenuLoadedState
+        : const MenuLoadedState();
 
     showMenu<String>(
       context: context,
@@ -835,7 +852,7 @@ class _SortButton extends StatelessWidget {
       ),
       elevation: 4,
       items: _options.map((opt) {
-        final isSelected = vm.state.sortBy == opt.$2;
+        final isSelected = state.sortBy == opt.$2;
         return PopupMenuItem<String>(
           value: opt.$2,
           child: Row(

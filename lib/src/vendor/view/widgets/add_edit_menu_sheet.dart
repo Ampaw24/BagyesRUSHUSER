@@ -6,7 +6,8 @@ import 'package:provider/provider.dart';
 import '../../../../../constant/app_theme.dart';
 import '../../../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../../model/menu_item.dart';
-import '../../viewmodel/menu_viewmodel.dart';
+import '../../../orders/viewmodels/orders_viewmodel.dart';
+import '../../../orders/viewmodels/orders_state.dart';
 
 const _categories = [
   'Meals',
@@ -52,7 +53,7 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  String _selectedCategory = _categories.first;
+  late String _selectedCategory;
   List<String> _selectedTags = [];
   int _prepTime = 15;
   bool _isFeatured = false;
@@ -70,15 +71,24 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
   @override
   void initState() {
     super.initState();
+    
+    // Get categories from VM (excluding 'All')
+    final vm = context.read<OrderViewModel>();
+    final state = vm.state is MenuLoadedState 
+        ? vm.state as MenuLoadedState 
+        : const MenuLoadedState();
+    final apiCats = state.categories.where((c) => c != 'All').toList();
+    final cats = apiCats.isNotEmpty ? apiCats : _categories;
+
     final item = widget.item;
     if (item != null) {
       _nameController.text = item.name;
       _priceController.text =
           item.price.replaceAll(RegExp(r'[^\d.]'), '');
       _descriptionController.text = item.description;
-      _selectedCategory = _categories.contains(item.category)
+      _selectedCategory = cats.contains(item.category)
           ? item.category
-          : _categories.first;
+          : cats.first;
       _selectedTags = List<String>.from(item.tags);
       _prepTime = item.prepTimeMinutes;
       _isFeatured = item.isFeatured;
@@ -87,6 +97,8 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
       _addonGroups = List<AddonGroup>.from(item.addonGroups);
       _minimumOrderQty = item.minimumOrderQty;
       _maximumOrderQty = item.maximumOrderQty;
+    } else {
+      _selectedCategory = cats.first;
     }
   }
 
@@ -181,7 +193,7 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
         'image_url': widget.item!.imageUrl,
     };
 
-    final vm = context.read<MenuViewModel>();
+    final vm = context.read<OrderViewModel>();
     if (_isEditing) {
       await vm.updateItem(widget.item!.id, data);
     } else {
@@ -317,11 +329,24 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                     // ── Category ──
                     _SectionLabel(label: 'Category *', w: w),
                     SizedBox(height: w * 0.02),
-                    _CategorySelector(
-                      selected: _selectedCategory,
-                      onChanged: (c) =>
-                          setState(() => _selectedCategory = c),
-                      w: w,
+                    Consumer<OrderViewModel>(
+                      builder: (context, vm, _) {
+                        final state = vm.state is MenuLoadedState
+                            ? vm.state as MenuLoadedState
+                            : const MenuLoadedState();
+                        final apiCats = state.categories
+                            .where((c) => c != 'All')
+                            .toList();
+                        final cats =
+                            apiCats.isNotEmpty ? apiCats : _categories;
+                        return _CategorySelector(
+                          categories: cats,
+                          selected: _selectedCategory,
+                          onChanged: (c) =>
+                              setState(() => _selectedCategory = c),
+                          w: w,
+                        );
+                      },
                     ),
                     SizedBox(height: w * 0.04),
 
@@ -392,6 +417,7 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                                 onChanged: (v) =>
                                     setState(() => _prepTime = v),
                                 w: w,
+                                width: double.infinity,
                               ),
                             ],
                           ),
@@ -609,10 +635,11 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
                     SizedBox(height: w * 0.06),
 
                     // ── Save button ──
-                    Consumer<MenuViewModel>(
+                    Consumer<OrderViewModel>(
                       builder: (context, vm, _) {
-                        final isBusy =
-                            vm.state.pendingOperation != null;
+                        final state = vm.state;
+                        final isBusy = state is MenuLoadedState &&
+                            state.pendingOperation != null;
                         return SizedBox(
                           width: double.infinity,
                           height: w * 0.135,
@@ -1034,7 +1061,8 @@ class _AddGroupDialogState extends State<_AddGroupDialog> {
                 unit: '',
                 onChanged: (v) =>
                     setState(() => _maxSelections = v),
-                w: w * 0.55,
+                w: w,
+                width: w * 0.3,
               ),
             ],
           ),
@@ -1228,11 +1256,13 @@ class _ImageUploadArea extends StatelessWidget {
 }
 
 class _CategorySelector extends StatelessWidget {
+  final List<String> categories;
   final String selected;
   final ValueChanged<String> onChanged;
   final double w;
 
   const _CategorySelector({
+    required this.categories,
     required this.selected,
     required this.onChanged,
     required this.w,
@@ -1243,7 +1273,7 @@ class _CategorySelector extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _categories.map((cat) {
+        children: categories.map((cat) {
           final isSelected = cat == selected;
           return Padding(
             padding: EdgeInsets.only(right: w * 0.02),
@@ -1291,6 +1321,7 @@ class _PrepTimeStepper extends StatelessWidget {
   final int step;
   final int minValue;
   final String unit;
+  final double? width;
 
   const _PrepTimeStepper({
     required this.value,
@@ -1299,11 +1330,13 @@ class _PrepTimeStepper extends StatelessWidget {
     this.step = 5,
     this.minValue = 5,
     this.unit = 'm',
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: width,
       height: w * 0.13,
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
