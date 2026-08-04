@@ -16,6 +16,7 @@ import 'src/vendor/viewmodel/orders_viewmodel.dart';
 import 'src/vendor/viewmodel/menu_viewmodel.dart';
 import 'src/vendor/viewmodel/earnings_viewmodel.dart';
 import 'src/vendor/viewmodel/settings_viewmodel.dart';
+import 'src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
 import 'src/home/viewmodels/home_viewmodel.dart';
 
 void main() async {
@@ -49,6 +50,7 @@ void main() async {
             ChangeNotifierProvider(create: (_) => sl<MenuViewModel>()),
             ChangeNotifierProvider(create: (_) => sl<EarningsViewModel>()),
             ChangeNotifierProvider(create: (_) => sl<SettingsViewModel>()),
+            ChangeNotifierProvider(create: (_) => sl<VendorKycViewModel>()),
             ChangeNotifierProvider(create: (_) => sl<HomeViewmodel>()),
           ],
           child: const MyApp(),

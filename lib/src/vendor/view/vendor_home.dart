@@ -14,11 +14,11 @@ import '../providers/dashboard_provider.dart' show dashboardProvider;
 import 'widgets/vendor_header.dart';
 import 'widgets/store_toggle_card.dart';
 import 'widgets/store_status_toast.dart';
-import 'widgets/stats_row.dart';
 import 'widgets/new_order_banner.dart';
 import 'widgets/order_card.dart';
 import 'widgets/floating_nav_bar.dart';
 import 'widgets/vendor_drawer.dart';
+import 'widgets/kyc_prompt_banner.dart';
 import 'vendor_shop_profile_screen.dart';
 import '../features/notifications/view/screens/vendor_notifications_screen.dart';
 import 'vendor_orders_view.dart';
@@ -546,19 +546,21 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 
                 // Status Banners (compact)
                 if (profile?.status == 'pending_review')
-                  _StatusBanner(
-                    icon: HugeIcons.strokeRoundedClock01,
-                    label: 'Account pending review',
-                    color: AppColors.warning,
-                    w: w,
+                  GestureDetector(
+                    onTap: () => context.push(AppRoutes.vendorKyc),
+                    child: _StatusBanner(
+                      icon: HugeIcons.strokeRoundedClock01,
+                      label: 'Account pending review (Tap to check)',
+                      color: AppColors.warning,
+                      w: w,
+                    ),
                   ),
-                if (profile?.isProfileComplete == false)
-                  _StatusBanner(
-                    icon: HugeIcons.strokeRoundedAlertCircle,
-                    label: 'Complete your profile',
-                    color: AppColors.error,
-                    w: w,
+                if (profile?.isProfileComplete == false) ...[
+                  SizedBox(height: w * 0.025),
+                  KYCPromptBanner(
+                    onTap: () => context.push(AppRoutes.vendorKyc),
                   ),
+                ],
                 
                 SizedBox(height: w * 0.05),
                 StoreToggleCard(

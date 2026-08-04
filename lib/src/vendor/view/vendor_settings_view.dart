@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/router/app_routes.dart';
 import '../viewmodel/settings_viewmodel.dart';
 
 class VendorSettingsView extends StatefulWidget {
@@ -185,6 +187,18 @@ class _VendorSettingsViewState extends State<VendorSettingsView> {
                     title: 'Payout Settings',
                     subtitle: 'Bank & mobile money',
                     onTap: () {},
+                  ),
+                  _SettingsTile(
+                    icon: Icons.verified_user_rounded,
+                    title: 'KYC Verification',
+                    subtitle: profile == null
+                        ? 'Verify identity & business'
+                        : profile.status == 'active'
+                            ? 'Fully verified'
+                            : profile.status == 'pending_review'
+                                ? 'Verification pending review'
+                                : 'Action required (Verify business)',
+                    onTap: () => context.push(AppRoutes.vendorKyc),
                   ),
                   _SettingsTile(
                     icon: Icons.notifications_rounded,

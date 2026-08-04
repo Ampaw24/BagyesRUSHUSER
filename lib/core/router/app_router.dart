@@ -26,6 +26,7 @@ import 'package:bagyesrushappusernew/src/auth/views/kyc_verification_view.dart';
 import 'package:bagyesrushappusernew/src/onboarding/views/onboarding_view.dart';
 import 'package:bagyesrushappusernew/src/vendor_registration/views/vendor_registration_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
+import 'package:bagyesrushappusernew/src/vendor/view/vendor_kyc_view.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
 import 'package:bagyesrushappusernew/features/vendor_wallet/views/screens/wallet_screen.dart';
 import 'package:bagyesrushappusernew/features/courier_wallet/views/screens/courier_wallet_screen.dart';
@@ -60,6 +61,7 @@ const _kycExemptRoutes = {
   AppRoutes.kycVerification,
   AppRoutes.editProfile,
   AppRoutes.profile,
+  AppRoutes.vendorKyc,
 };
 
 final GoRouter appRouter = GoRouter(
@@ -266,6 +268,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.vendorRegistration,
       builder: (context, state) => const VendorRegistrationView(),
+    ),
+    GoRoute(
+      path: AppRoutes.vendorKyc,
+      builder: (context, state) => const VendorKycView(),
     ),
     GoRoute(
       path: AppRoutes.vendorPaymentMethods,

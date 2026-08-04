@@ -21,6 +21,7 @@ import '../../src/vendor/viewmodel/orders_viewmodel.dart' as vendor_orders;
 import '../../src/vendor/viewmodel/menu_viewmodel.dart';
 import '../../src/vendor/viewmodel/earnings_viewmodel.dart';
 import '../../src/vendor/viewmodel/settings_viewmodel.dart';
+import '../../src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
 import '../../features/vendor_payment_methods/services/payment_api_service.dart';
 import '../../features/vendor_payment_methods/services/otp_service.dart';
 import '../../features/vendor_payment_methods/repositories/payment_repository.dart';
@@ -82,5 +83,12 @@ Future<void> init() async {
   sl.registerFactory(() => MenuViewModel(sl()));
   sl.registerFactory(() => EarningsViewModel());
   sl.registerFactory(() => SettingsViewModel(sl()));
+  sl.registerFactory(
+    () => VendorKycViewModel(
+      registrationRepository: sl(),
+      dashboardRepository: sl(),
+      currentUserProvider: sl(),
+    ),
+  );
   sl.registerFactory(() => VendorViewmodel(repository: sl()));
 }

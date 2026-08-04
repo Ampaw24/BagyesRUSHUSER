@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../model/vendor_profile.dart';
 import 'widgets/edit_shop_info_sheet.dart';
@@ -501,6 +503,29 @@ class _ProfileCompletionCard extends StatelessWidget {
             children: missingFields
                 .map((field) => _MissingFieldChip(label: field))
                 .toList(),
+          ),
+          SizedBox(height: w * 0.04),
+          SizedBox(
+            width: double.infinity,
+            height: w * 0.1,
+            child: ElevatedButton.icon(
+              onPressed: () => context.push(AppRoutes.vendorKyc),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warning,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(w * 0.025),
+                ),
+              ),
+              icon: Icon(Icons.verified_user_outlined, size: w * 0.04),
+              label: Text(
+                'Complete KYC Verification',
+                style: TextStyle(
+                  fontSize: w * 0.032,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
         ],
       ),

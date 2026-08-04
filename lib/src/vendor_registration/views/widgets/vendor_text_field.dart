@@ -18,6 +18,7 @@ class VendorTextField extends StatefulWidget {
   final bool enabled;
   final String? errorText;
   final FocusNode? focusNode;
+  final String? Function(String?)? validator;
 
   const VendorTextField({
     super.key,
@@ -35,6 +36,7 @@ class VendorTextField extends StatefulWidget {
     this.enabled = true,
     this.errorText,
     this.focusNode,
+    this.validator,
   });
 
   @override
@@ -92,6 +94,7 @@ class _VendorTextFieldState extends State<VendorTextField> {
           maxLines: widget.maxLines,
           obscureText: widget.obscureText,
           enabled: widget.enabled,
+          validator: widget.validator,
           style: TextStyle(
             fontSize: size.width * 0.038,
             fontWeight: FontWeight.w500,
