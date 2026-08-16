@@ -1,5 +1,7 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/errors/failure.dart';
 import '../model/vendor_order.dart';
 import '../repository/vendor_dashboard_repository.dart';
 import 'package:equatable/equatable.dart';
@@ -99,6 +101,49 @@ class DashboardNotifier extends Notifier<DashboardState> {
       },
     );
   }
+
+  Future<void> _applyOrderAction(
+    String orderId,
+    Future<Either<Failure, VendorOrder>> Function() call, {
+    bool removeFromActive = false,
+  }) async {
+    final result = await call();
+    result.fold(
+      (failure) => state = state.copyWith(errorMessage: failure.message),
+      (updated) {
+        final updatedList = removeFromActive
+            ? state.activeOrders.where((o) => o.id != updated.id).toList()
+            : state.activeOrders
+                .map((o) => o.id == updated.id ? updated : o)
+                .toList();
+        state = state.copyWith(activeOrders: updatedList, errorMessage: null);
+      },
+    );
+  }
+
+  Future<void> acceptOrder(String orderId) =>
+      _applyOrderAction(orderId, () => _repository.acceptOrder(orderId));
+
+  Future<void> rejectOrder(String orderId) => _applyOrderAction(
+      orderId, () => _repository.rejectOrder(orderId),
+      removeFromActive: true);
+
+  Future<void> markPreparing(String orderId) =>
+      _applyOrderAction(orderId, () => _repository.markPreparing(orderId));
+
+  Future<void> markReady(String orderId) =>
+      _applyOrderAction(orderId, () => _repository.markReady(orderId));
+
+  Future<void> markOutForDelivery(String orderId) => _applyOrderAction(
+      orderId, () => _repository.markOutForDelivery(orderId));
+
+  Future<void> markDelivered(String orderId) => _applyOrderAction(
+      orderId, () => _repository.markDelivered(orderId),
+      removeFromActive: true);
+
+  Future<void> cancelOrder(String orderId) => _applyOrderAction(
+      orderId, () => _repository.cancelOrder(orderId),
+      removeFromActive: true);
 
   Future<void> toggleStore(bool isOpen) async {
     final previous = state.storeOpen;

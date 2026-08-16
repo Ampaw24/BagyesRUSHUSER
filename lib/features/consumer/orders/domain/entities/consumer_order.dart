@@ -40,6 +40,50 @@ extension OrderStatusX on OrderStatus {
       this != OrderStatus.delivered && this != OrderStatus.cancelled;
 }
 
+/// Maps the backend's status string to [OrderStatus]. Falls back to
+/// [OrderStatus.pending] for unrecognized values rather than throwing —
+/// verify these against a real `GET customer/orders` response and adjust
+/// if the backend uses different string values.
+OrderStatus _orderStatusFromString(String value) {
+  switch (value) {
+    case 'pending':
+      return OrderStatus.pending;
+    case 'accepted':
+      return OrderStatus.accepted;
+    case 'preparing':
+      return OrderStatus.preparing;
+    case 'ready':
+    case 'ready_for_pickup':
+      return OrderStatus.readyForPickup;
+    case 'picked_up':
+      return OrderStatus.pickedUp;
+    case 'out_for_delivery':
+    case 'on_the_way':
+      return OrderStatus.onTheWay;
+    case 'delivered':
+      return OrderStatus.delivered;
+    case 'cancelled':
+    case 'canceled':
+    case 'rejected':
+      return OrderStatus.cancelled;
+    default:
+      return OrderStatus.pending;
+  }
+}
+
+enum PaymentStatus { pending, paid, failed }
+
+PaymentStatus _paymentStatusFromString(String? value) {
+  switch (value) {
+    case 'paid':
+      return PaymentStatus.paid;
+    case 'failed':
+      return PaymentStatus.failed;
+    default:
+      return PaymentStatus.pending;
+  }
+}
+
 class OrderItem {
   final String menuItemId;
   final String name;
@@ -61,6 +105,17 @@ class OrderItem {
       addons.fold(0.0, (sum, a) => sum + a.additionalPrice);
 
   double get lineTotal => (unitPrice + addonsUnitTotal) * quantity;
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
+        menuItemId: json['menu_item_id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0,
+        addons: (json['addons'] as List<dynamic>?)
+                ?.map((a) => SelectedAddon.fromJson(a as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      );
 
   Map<String, dynamic> toJson() => {
         'menu_item_id': menuItemId,
@@ -90,6 +145,7 @@ class ConsumerOrder {
   final String? driverName;
   final String? driverPhone;
   final String paymentMethod;
+  final PaymentStatus paymentStatus;
 
   const ConsumerOrder({
     required this.id,
@@ -106,6 +162,7 @@ class ConsumerOrder {
     required this.deliveryAddress,
     required this.placedAt,
     required this.paymentMethod,
+    this.paymentStatus = PaymentStatus.pending,
     this.deliveryInstructions,
     this.estimatedDelivery,
     this.driverName,
@@ -113,4 +170,52 @@ class ConsumerOrder {
   });
 
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
+
+  factory ConsumerOrder.fromJson(Map<String, dynamic> json) => ConsumerOrder(
+        id: json['id'].toString(),
+        restaurantId: (json['vendor_id'] ?? json['restaurant_id'])?.toString() ?? '',
+        restaurantName:
+            json['vendor_name'] as String? ?? json['restaurant_name'] as String? ?? '',
+        restaurantImageUrl: json['vendor_image'] as String? ??
+            json['restaurant_image_url'] as String? ??
+            '',
+        items: (json['items'] as List<dynamic>?)
+                ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        status: _orderStatusFromString(json['status'] as String? ?? ''),
+        subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
+        deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0,
+        serviceFee: (json['service_fee'] as num?)?.toDouble() ?? 0,
+        discount: (json['discount'] as num?)?.toDouble() ?? 0,
+        total: (json['total'] as num?)?.toDouble() ?? 0,
+        deliveryAddress: json['delivery_address'] as String? ?? '',
+        deliveryInstructions: json['delivery_instructions'] as String?,
+        placedAt: DateTime.tryParse(
+                json['created_at'] as String? ?? json['placed_at'] as String? ?? '') ??
+            DateTime.now(),
+        estimatedDelivery: json['estimated_delivery'] != null
+            ? DateTime.tryParse(json['estimated_delivery'] as String)
+            : null,
+        driverName: json['driver_name'] as String?,
+        driverPhone: json['driver_phone'] as String?,
+        paymentMethod: json['payment_method'] as String? ?? '',
+        paymentStatus: _paymentStatusFromString(json['payment_status'] as String?),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'vendor_id': restaurantId,
+        'items': items.map((i) => i.toJson()).toList(),
+        'status': status.name,
+        'subtotal': subtotal,
+        'delivery_fee': deliveryFee,
+        'service_fee': serviceFee,
+        'discount': discount,
+        'total': total,
+        'delivery_address': deliveryAddress,
+        'delivery_instructions': deliveryInstructions,
+        'payment_method': paymentMethod,
+        'payment_status': paymentStatus.name,
+      };
 }

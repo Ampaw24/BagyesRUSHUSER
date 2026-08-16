@@ -37,4 +37,37 @@ class VendorNotification {
         isRead: isRead ?? this.isRead,
         type: type,
       );
+
+  /// Maps the backend's notification payload. Field names are inferred from
+  /// the endpoint path alone — verify against a real `GET notifications`
+  /// response and adjust if they don't match.
+  factory VendorNotification.fromJson(Map<String, dynamic> json) {
+    final senderName =
+        json['title'] as String? ?? json['sender_name'] as String? ?? 'Notification';
+    return VendorNotification(
+      id: json['id'].toString(),
+      senderName: senderName,
+      senderInitials: senderName.isNotEmpty ? senderName[0].toUpperCase() : '?',
+      body: json['body'] as String? ?? json['message'] as String? ?? '',
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      isRead: json['is_read'] as bool? ?? json['read_at'] != null,
+      type: _typeFromString(json['type'] as String?),
+    );
+  }
+
+  static VendorNotificationType _typeFromString(String? value) {
+    switch (value) {
+      case 'new_order':
+        return VendorNotificationType.newOrder;
+      case 'order_update':
+        return VendorNotificationType.orderUpdate;
+      case 'payment':
+        return VendorNotificationType.payment;
+      case 'promo':
+        return VendorNotificationType.promo;
+      default:
+        return VendorNotificationType.system;
+    }
+  }
 }

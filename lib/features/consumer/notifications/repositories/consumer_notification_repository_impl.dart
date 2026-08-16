@@ -1,85 +1,80 @@
+import 'package:dio/dio.dart';
+
+import '../../../../core/network/api_endpoints.dart';
 import '../models/consumer_notification.dart';
 import '../models/consumer_conversation.dart';
 import '../models/consumer_chat_message.dart';
 import 'i_consumer_notification_repository.dart';
 
-/// Concrete implementation using local dummy data.
-/// Swap out for an API-backed version without touching any UI code.
+/// Notification-list methods are real, Dio-backed calls. Chat/conversation
+/// methods stay on local dummy data — the backend has no chat endpoints.
 class ConsumerNotificationRepositoryImpl
     implements IConsumerNotificationRepository {
+  ConsumerNotificationRepositoryImpl({required Dio client}) : _client = client;
+
+  final Dio _client;
   static final _now = DateTime.now();
 
   @override
-  List<ConsumerNotification> getNotifications() => [
-        ConsumerNotification(
-          id: 'cn1',
-          senderName: 'BagyesRUSH',
-          senderInitials: 'BR',
-          body: 'Your order #5031 has been placed successfully.',
-          createdAt: _now.subtract(const Duration(minutes: 3)),
-          isRead: false,
-          type: ConsumerNotificationType.orderPlaced,
-        ),
-        ConsumerNotification(
-          id: 'cn2',
-          senderName: 'Green Garden',
-          senderInitials: 'GG',
-          body: 'Your food is being prepared. Estimated time: 20 mins.',
-          createdAt: _now.subtract(const Duration(minutes: 15)),
-          isRead: false,
-          type: ConsumerNotificationType.orderUpdate,
-        ),
-        ConsumerNotification(
-          id: 'cn3',
-          senderName: 'Kofi (Rider)',
-          senderInitials: 'KR',
-          body: 'Your order is out for delivery. Track your rider live.',
-          createdAt: _now.subtract(const Duration(minutes: 40)),
-          isRead: false,
-          type: ConsumerNotificationType.delivery,
-        ),
-        ConsumerNotification(
-          id: 'cn4',
-          senderName: 'BagyesRUSH',
-          senderInitials: 'BR',
-          body: '🎉 20% off your next order! Use code RUSH20 at checkout.',
-          createdAt: _now.subtract(const Duration(hours: 5)),
-          isRead: true,
-          type: ConsumerNotificationType.promo,
-        ),
-        ConsumerNotification(
-          id: 'cn5',
-          senderName: 'Green Garden',
-          senderInitials: 'GG',
-          body: 'Order #5028 has been delivered. Enjoy your meal!',
-          createdAt: _now.subtract(const Duration(days: 1)),
-          isRead: true,
-          type: ConsumerNotificationType.orderUpdate,
-        ),
-        ConsumerNotification(
-          id: 'cn6',
-          senderName: 'BagyesRUSH',
-          senderInitials: 'BR',
-          body: 'App updated: faster checkout and live order tracking.',
-          createdAt: _now.subtract(const Duration(days: 2)),
-          isRead: true,
-          type: ConsumerNotificationType.system,
-        ),
-      ];
+  Future<List<ConsumerNotification>> getNotifications() async {
+    final response = await _client.get(ApiEndpoints.notifications);
+    final list = _dataList(response);
+    return list
+        .map((e) => ConsumerNotification.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 
   @override
-  List<ConsumerNotification> markAsRead(
+  Future<List<ConsumerNotification>> markAsRead(
     List<ConsumerNotification> current,
     String notificationId,
-  ) =>
-      current
-          .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
-          .toList();
+  ) async {
+    await _client.patch(ApiEndpoints.notificationRead(notificationId));
+    return current
+        .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
+        .toList();
+  }
 
   @override
-  List<ConsumerNotification> markAllAsRead(
-          List<ConsumerNotification> current) =>
-      current.map((n) => n.copyWith(isRead: true)).toList();
+  Future<List<ConsumerNotification>> markAllAsRead(
+    List<ConsumerNotification> current,
+  ) async {
+    await _client.patch(ApiEndpoints.notificationsReadAll);
+    return current.map((n) => n.copyWith(isRead: true)).toList();
+  }
+
+  @override
+  Future<void> deleteNotification(String id) async {
+    await _client.delete(ApiEndpoints.notificationById(id));
+  }
+
+  @override
+  Future<int> unreadCount() async {
+    final response = await _client.get(ApiEndpoints.notificationsUnreadCount);
+    final body = response.data;
+    if (body is Map<String, dynamic>) {
+      final data = body['data'];
+      final count = data is Map<String, dynamic> ? data['count'] : body['count'];
+      return (count as num?)?.toInt() ?? 0;
+    }
+    return 0;
+  }
+
+  List<dynamic> _dataList(Response response) {
+    final body = response.data;
+    if (body is List) return body;
+    if (body is Map<String, dynamic>) {
+      final d = body['data'];
+      if (d is List) return d;
+      if (d is Map<String, dynamic>) {
+        final inner = d['data'];
+        if (inner is List) return inner;
+      }
+    }
+    return const [];
+  }
+
+  // ─── Chat/conversations — no backend endpoints exist, stays mocked ────────
 
   @override
   List<ConsumerConversation> getConversations() => [

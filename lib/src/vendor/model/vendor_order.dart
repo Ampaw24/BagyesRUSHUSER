@@ -3,21 +3,52 @@ import 'package:flutter/material.dart';
 import '../../../constant/app_theme.dart';
 
 enum OrderStatus {
-  newOrder('New', AppColors.primary),
+  pending('New', AppColors.primary),
+  accepted('Accepted', AppColors.info),
   preparing('Preparing', AppColors.accent),
-  riderAssigned('Rider Assigned', AppColors.info),
-  completed('Completed', AppColors.success),
+  ready('Ready', AppColors.warning),
+  outForDelivery('Out for Delivery', AppColors.secondary),
+  delivered('Delivered', AppColors.success),
+  rejected('Rejected', AppColors.error),
   cancelled('Cancelled', AppColors.error);
 
   final String label;
   final Color color;
   const OrderStatus(this.label, this.color);
 
+  /// Maps the backend's status string (snake_case action/state names, e.g.
+  /// `out_for_delivery`) to this enum. Falls back to [pending] for unknown
+  /// values rather than throwing, since the UI should never crash on an
+  /// unrecognized status — verify these mappings against a real
+  /// `GET vendor/me/orders` response and adjust if the backend uses
+  /// different string values.
   static OrderStatus fromString(String value) {
-    return OrderStatus.values.firstWhere(
-      (s) => s.name == value,
-      orElse: () => OrderStatus.newOrder,
-    );
+    switch (value) {
+      case 'pending':
+      case 'new':
+        return OrderStatus.pending;
+      case 'accepted':
+      case 'accept':
+        return OrderStatus.accepted;
+      case 'preparing':
+        return OrderStatus.preparing;
+      case 'ready':
+        return OrderStatus.ready;
+      case 'out_for_delivery':
+      case 'outForDelivery':
+        return OrderStatus.outForDelivery;
+      case 'delivered':
+        return OrderStatus.delivered;
+      case 'rejected':
+      case 'reject':
+        return OrderStatus.rejected;
+      case 'cancelled':
+      case 'canceled':
+      case 'cancel':
+        return OrderStatus.cancelled;
+      default:
+        return OrderStatus.pending;
+    }
   }
 }
 

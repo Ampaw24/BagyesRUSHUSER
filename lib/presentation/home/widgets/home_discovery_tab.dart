@@ -247,13 +247,13 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                 Row(
                   children: [
                     QuickServiceChip(
-                      emoji: '📦',
-                      label: 'Send',
+                      icon: Icons.local_shipping_outlined,
+                      label: 'Send Package',
                       onTap: () => AppNavigator.toSendPackages(context),
                     ),
                     SizedBox(width: w * 0.025),
                     QuickServiceChip(
-                      emoji: '💳',
+                      icon: Icons.account_balance_wallet_outlined,
                       label: 'Wallet',
                       onTap: () => context.push(AppRoutes.wallet),
                     ),

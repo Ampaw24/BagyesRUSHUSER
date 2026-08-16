@@ -7,6 +7,7 @@ import 'package:bagyesrushappusernew/constant/baseurl.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
 import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
+import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
@@ -20,6 +21,7 @@ class AppInitializer {
 
   static Future<void> initializeRemaining() async {
     // Firebase, analytics, push notifications — do NOT block splash.
+    await FcmService.initialize();
   }
 
   static Future<void> _initCriticalServices() async {

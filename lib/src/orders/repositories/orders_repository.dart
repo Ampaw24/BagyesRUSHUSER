@@ -265,6 +265,39 @@ class OrdersRepository {
     }
   }
 
+  ResultFuture<MenuItem> uploadMenuItemImage({
+    required String itemId,
+    required String filePath,
+  }) async {
+    appLogger.d('OrdersRepository.uploadMenuItemImage → id=$itemId');
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(filePath),
+      });
+      final response = await _client.post(
+        ApiEndpoints.vendorMenuItemImage(itemId),
+        data: formData,
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final item = MenuItem.fromJson(_dataMap(response));
+        appLogger.i('OrdersRepository.uploadMenuItemImage → success, id=${item.id}');
+        return Right(item);
+      }
+      appLogger.w('OrdersRepository.uploadMenuItemImage → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('OrdersRepository.uploadMenuItemImage → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'OrdersRepository',
+        methodName: 'uploadMenuItemImage',
+      );
+    }
+  }
+
   // ─── Private Helpers ───────────────────────────────────────────────────────
 
   DataMap _dataMap(Response response) {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
@@ -6,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class EditProfile extends StatefulWidget {
@@ -26,6 +29,8 @@ class _EditProfileState extends State<EditProfile> {
   bool _obscureNew     = true;
   bool _obscureConfirm = true;
   bool _sessionLoaded  = false;
+  bool _uploadingAvatar = false;
+  File? _pickedAvatar;
 
   @override
   void didChangeDependencies() {
@@ -69,7 +74,29 @@ class _EditProfileState extends State<EditProfile> {
 
     setState(() => _loading = true);
 
-    final result = await GetIt.instance<AuthRepository>().updateProfile(
+    final authRepo = GetIt.instance<AuthRepository>();
+
+    final oldPassword = _oldPasswordController.text;
+    if (oldPassword.isNotEmpty) {
+      final passwordResult = await authRepo.changePassword(
+        oldPassword: oldPassword,
+        newPassword: _newPasswordController.text,
+        confirmPassword: _confirmPasswordController.text,
+      );
+      if (!mounted) return;
+      final failed = passwordResult.fold((failure) {
+        setState(() => _loading = false);
+        CustomDialog.showError(
+          context: context,
+          title: 'Password Change Failed',
+          subtitle: failure.message,
+        );
+        return true;
+      }, (_) => false);
+      if (failed) return;
+    }
+
+    final result = await authRepo.updateProfile(
       firstName: firstName,
       lastName:  lastName,
       email:     email,
@@ -89,6 +116,41 @@ class _EditProfileState extends State<EditProfile> {
         context.read<CurrentUserProvider>().setUser(updatedUser);
         Navigator.pop(context);
       },
+    );
+  }
+
+  Future<void> _pickAndUploadAvatar(
+    BuildContext sheetContext,
+    ImageSource source,
+  ) async {
+    Navigator.pop(sheetContext);
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 800,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+    await _uploadAvatar(File(picked.path));
+  }
+
+  Future<void> _uploadAvatar(File file) async {
+    setState(() {
+      _pickedAvatar = file;
+      _uploadingAvatar = true;
+    });
+
+    final result = await GetIt.instance<AuthRepository>().uploadAvatar(file.path);
+
+    if (!mounted) return;
+    setState(() => _uploadingAvatar = false);
+
+    result.fold(
+      (failure) => CustomDialog.showError(
+        context: context,
+        title: 'Photo Update Failed',
+        subtitle: failure.message,
+      ),
+      (updatedUser) => context.read<CurrentUserProvider>().setUser(updatedUser),
     );
   }
 
@@ -163,6 +225,13 @@ class _EditProfileState extends State<EditProfile> {
               background: _EditProfileHero(
                 w: w,
                 onTapAvatar: _selectPhotoBottomSheet,
+                localAvatar: _pickedAvatar,
+                avatarUrl: context
+                    .watch<CurrentUserProvider>()
+                    .user
+                    ?.profile
+                    ?.profilePictureUrl,
+                isUploading: _uploadingAvatar,
               ),
             ),
           ),
@@ -436,14 +505,14 @@ class _EditProfileState extends State<EditProfile> {
               icon: HugeIcons.strokeRoundedCamera01,
               label: 'Take a Photo',
               color: AppColors.primary,
-              onTap: () => Navigator.pop(ctx),
+              onTap: () => _pickAndUploadAvatar(ctx, ImageSource.camera),
             ),
             SizedBox(height: w * 0.03),
             _BottomSheetOption(
               icon: HugeIcons.strokeRoundedImage01,
               label: 'Choose from Gallery',
               color: const Color(0xFF805AD5),
-              onTap: () => Navigator.pop(ctx),
+              onTap: () => _pickAndUploadAvatar(ctx, ImageSource.gallery),
             ),
           ],
         ),
@@ -457,8 +526,17 @@ class _EditProfileState extends State<EditProfile> {
 class _EditProfileHero extends StatelessWidget {
   final double w;
   final VoidCallback onTapAvatar;
+  final File? localAvatar;
+  final String? avatarUrl;
+  final bool isUploading;
 
-  const _EditProfileHero({required this.w, required this.onTapAvatar});
+  const _EditProfileHero({
+    required this.w,
+    required this.onTapAvatar,
+    this.localAvatar,
+    this.avatarUrl,
+    this.isUploading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -511,13 +589,36 @@ class _EditProfileHero extends StatelessWidget {
                         child: CircleAvatar(
                           radius: avatarRadius,
                           backgroundColor: Colors.white.withValues(alpha: 0.25),
-                          child: HugeIcon(
-                            icon: HugeIcons.strokeRoundedUser,
-                            size: w * 0.045,
-                            color: Colors.white,
-                          ),
+                          backgroundImage: localAvatar != null
+                              ? FileImage(localAvatar!)
+                              : (avatarUrl != null && avatarUrl!.isNotEmpty
+                                  ? NetworkImage(avatarUrl!) as ImageProvider
+                                  : null),
+                          child: localAvatar == null &&
+                                  (avatarUrl == null || avatarUrl!.isEmpty)
+                              ? HugeIcon(
+                                  icon: HugeIcons.strokeRoundedUser,
+                                  size: w * 0.045,
+                                  color: Colors.white,
+                                )
+                              : null,
                         ),
                       ),
+                      if (isUploading)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black38,
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          ),
+                        ),
                       Container(
                         padding: EdgeInsets.all(w * 0.022),
                         decoration: BoxDecoration(

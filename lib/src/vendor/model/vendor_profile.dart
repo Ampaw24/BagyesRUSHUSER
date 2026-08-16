@@ -155,8 +155,8 @@ class VendorProfile extends Equatable {
 
   factory VendorProfile.fromJson(Map<String, dynamic> json) {
     return VendorProfile(
-      id: json["_id"] ?? json["id"] ?? "",
-      userId: json["user_id"] ?? "",
+      id: (json["_id"] ?? json["id"] ?? "").toString(),
+      userId: (json["user_id"] ?? "").toString(),
       businessName: json["business_name"] ?? "",
       businessTypeId: json["business_type_id"] ?? "",
       contactPersonName: json["contact_person_name"] ?? "",

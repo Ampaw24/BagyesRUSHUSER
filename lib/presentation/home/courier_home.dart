@@ -37,6 +37,14 @@ class _HomeState extends ConsumerState<Home> {
     NavItem(icon: HugeIcons.strokeRoundedUser, label: 'Profile'),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AuthViewmodel>().registerDeviceToken();
+    });
+  }
+
   void _openDrawer() => setState(() => _drawerOpen = true);
   void _closeDrawer() => setState(() => _drawerOpen = false);
 

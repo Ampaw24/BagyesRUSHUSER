@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/di/service_locator.dart';
 import '../models/consumer_notification.dart';
 import '../repositories/i_consumer_notification_repository.dart';
 import '../repositories/consumer_notification_repository_impl.dart';
@@ -7,7 +9,7 @@ import '../repositories/consumer_notification_repository_impl.dart';
 
 final consumerNotificationRepositoryProvider =
     Provider<IConsumerNotificationRepository>(
-  (_) => ConsumerNotificationRepositoryImpl(),
+  (_) => ConsumerNotificationRepositoryImpl(client: sl<Dio>()),
 );
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -44,18 +46,18 @@ class ConsumerNotificationNotifier
     _load();
   }
 
-  void _load() {
-    final items = _repository.getNotifications();
+  Future<void> _load() async {
+    final items = await _repository.getNotifications();
     state = state.copyWith(notifications: items, isLoading: false);
   }
 
-  void markRead(String id) {
-    final updated = _repository.markAsRead(state.notifications, id);
+  Future<void> markRead(String id) async {
+    final updated = await _repository.markAsRead(state.notifications, id);
     state = state.copyWith(notifications: updated);
   }
 
-  void markAllRead() {
-    final updated = _repository.markAllAsRead(state.notifications);
+  Future<void> markAllRead() async {
+    final updated = await _repository.markAllAsRead(state.notifications);
     state = state.copyWith(notifications: updated);
   }
 }

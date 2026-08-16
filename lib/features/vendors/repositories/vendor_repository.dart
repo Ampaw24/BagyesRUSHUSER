@@ -239,9 +239,7 @@ class VendorRepository {
   ResultFuture<VendorOrder> getOrderById(String orderId) async {
     appLogger.d('VendorRepository.getOrderById → orderId=$orderId');
     try {
-      final response = await _client.get(
-        '${ApiEndpoints.vendorOrders}/$orderId',
-      );
+      final response = await _client.get(ApiEndpoints.vendorOrderById(orderId));
 
       if (_isSuccess(response.statusCode)) {
         final payload = _single(response);
@@ -267,10 +265,17 @@ class VendorRepository {
     appLogger.d(
         'VendorRepository.updateOrderStatus → orderId=$orderId status=$status');
     try {
-      final response = await _client.patch(
-        ApiEndpoints.vendorOrderStatus(orderId),
-        data: {'status': status},
-      );
+      final path = switch (status) {
+        'accepted' || 'accept' => ApiEndpoints.vendorOrderAccept(orderId),
+        'rejected' || 'reject' => ApiEndpoints.vendorOrderReject(orderId),
+        'preparing' => ApiEndpoints.vendorOrderPreparing(orderId),
+        'ready' => ApiEndpoints.vendorOrderReady(orderId),
+        'out_for_delivery' || 'outForDelivery' =>
+          ApiEndpoints.vendorOrderOutForDelivery(orderId),
+        'delivered' => ApiEndpoints.vendorOrderDelivered(orderId),
+        _ => ApiEndpoints.vendorOrderCancel(orderId),
+      };
+      final response = await _client.patch(path);
 
       if (_isSuccess(response.statusCode)) {
         final payload = _single(response);

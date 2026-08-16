@@ -1,74 +1,79 @@
+import 'package:dio/dio.dart';
+
+import '../../../../../core/network/api_endpoints.dart';
 import '../models/vendor_notification.dart';
 import '../models/vendor_conversation.dart';
 import '../models/vendor_chat_message.dart';
 import 'i_notification_repository.dart';
 
-/// Concrete implementation using local dummy data.
-/// Swap this out for an API-backed version without touching any UI code.
+/// Notification-list methods are real, Dio-backed calls. Chat/conversation
+/// methods stay on local dummy data — the backend has no chat endpoints.
 class NotificationRepositoryImpl implements INotificationRepository {
+  NotificationRepositoryImpl({required Dio client}) : _client = client;
+
+  final Dio _client;
   static final _now = DateTime.now();
 
   @override
-  List<VendorNotification> getNotifications() => [
-        VendorNotification(
-          id: 'n1',
-          senderName: 'Tucker Ahmed',
-          senderInitials: 'TA',
-          body: 'Placed a new order — 3 items',
-          createdAt: _now.subtract(const Duration(minutes: 5)),
-          isRead: false,
-          type: VendorNotificationType.newOrder,
-        ),
-        VendorNotification(
-          id: 'n2',
-          senderName: 'Jalin Smith',
-          senderInitials: 'JS',
-          body: 'Order #1042 has been delivered',
-          createdAt: _now.subtract(const Duration(hours: 1)),
-          isRead: false,
-          type: VendorNotificationType.orderUpdate,
-        ),
-        VendorNotification(
-          id: 'n3',
-          senderName: 'Royal Bengal',
-          senderInitials: 'RB',
-          body: 'Updated menu — 2 items changed',
-          createdAt: _now.subtract(const Duration(hours: 3)),
-          isRead: true,
-          type: VendorNotificationType.system,
-        ),
-        VendorNotification(
-          id: 'n4',
-          senderName: 'Fakor Yuko',
-          senderInitials: 'FY',
-          body: 'Placed a new order — 5 items',
-          createdAt: _now.subtract(const Duration(hours: 5)),
-          isRead: true,
-          type: VendorNotificationType.newOrder,
-        ),
-        VendorNotification(
-          id: 'n5',
-          senderName: 'BagyesRUSH',
-          senderInitials: 'BR',
-          body: 'Your payout of \$124.50 is on the way',
-          createdAt: _now.subtract(const Duration(days: 1)),
-          isRead: true,
-          type: VendorNotificationType.payment,
-        ),
-      ];
+  Future<List<VendorNotification>> getNotifications() async {
+    final response = await _client.get(ApiEndpoints.notifications);
+    final list = _dataList(response);
+    return list
+        .map((e) => VendorNotification.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 
   @override
-  List<VendorNotification> markAsRead(
+  Future<List<VendorNotification>> markAsRead(
     List<VendorNotification> current,
     String notificationId,
-  ) =>
-      current
-          .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
-          .toList();
+  ) async {
+    await _client.patch(ApiEndpoints.notificationRead(notificationId));
+    return current
+        .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
+        .toList();
+  }
 
   @override
-  List<VendorNotification> markAllAsRead(List<VendorNotification> current) =>
-      current.map((n) => n.copyWith(isRead: true)).toList();
+  Future<List<VendorNotification>> markAllAsRead(
+    List<VendorNotification> current,
+  ) async {
+    await _client.patch(ApiEndpoints.notificationsReadAll);
+    return current.map((n) => n.copyWith(isRead: true)).toList();
+  }
+
+  @override
+  Future<void> deleteNotification(String id) async {
+    await _client.delete(ApiEndpoints.notificationById(id));
+  }
+
+  @override
+  Future<int> unreadCount() async {
+    final response = await _client.get(ApiEndpoints.notificationsUnreadCount);
+    final body = response.data;
+    if (body is Map<String, dynamic>) {
+      final data = body['data'];
+      final count = data is Map<String, dynamic> ? data['count'] : body['count'];
+      return (count as num?)?.toInt() ?? 0;
+    }
+    return 0;
+  }
+
+  List<dynamic> _dataList(Response response) {
+    final body = response.data;
+    if (body is List) return body;
+    if (body is Map<String, dynamic>) {
+      final d = body['data'];
+      if (d is List) return d;
+      if (d is Map<String, dynamic>) {
+        final inner = d['data'];
+        if (inner is List) return inner;
+      }
+    }
+    return const [];
+  }
+
+  // ─── Chat/conversations — no backend endpoints exist, stays mocked ────────
 
   @override
   List<VendorConversation> getConversations() => [

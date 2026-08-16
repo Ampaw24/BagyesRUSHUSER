@@ -1,4 +1,6 @@
+import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import '../../../core/errors/failure.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../model/vendor_order.dart';
 import '../repository/vendor_dashboard_repository.dart';
@@ -60,16 +62,40 @@ class OrdersViewModel extends ViewModel<OrdersState> {
     );
   }
 
-  Future<void> updateOrderStatus(String orderId, String newStatus) async {
-    final result = await _repository.updateOrderStatus(orderId, newStatus);
+  Future<void> _apply(
+    String orderId,
+    Future<Either<Failure, VendorOrder>> Function() call,
+  ) async {
+    final result = await call();
     result.fold(
       (failure) => emit(state.copyWith(errorMessage: failure.message)),
       (updated) {
         final updatedList = state.orders
             .map((o) => o.id == updated.id ? updated : o)
             .toList();
-        emit(state.copyWith(orders: updatedList));
+        emit(state.copyWith(orders: updatedList, errorMessage: null));
       },
     );
   }
+
+  Future<void> accept(String orderId) =>
+      _apply(orderId, () => _repository.acceptOrder(orderId));
+
+  Future<void> reject(String orderId) =>
+      _apply(orderId, () => _repository.rejectOrder(orderId));
+
+  Future<void> markPreparing(String orderId) =>
+      _apply(orderId, () => _repository.markPreparing(orderId));
+
+  Future<void> markReady(String orderId) =>
+      _apply(orderId, () => _repository.markReady(orderId));
+
+  Future<void> markOutForDelivery(String orderId) =>
+      _apply(orderId, () => _repository.markOutForDelivery(orderId));
+
+  Future<void> markDelivered(String orderId) =>
+      _apply(orderId, () => _repository.markDelivered(orderId));
+
+  Future<void> cancel(String orderId) =>
+      _apply(orderId, () => _repository.cancelOrder(orderId));
 }

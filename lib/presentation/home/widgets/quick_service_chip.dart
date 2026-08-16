@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../constant/app_theme.dart';
 
 class QuickServiceChip extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String label;
   final VoidCallback onTap;
 
   const QuickServiceChip({
     super.key,
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.onTap,
   });
@@ -29,7 +29,7 @@ class QuickServiceChip extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: TextStyle(fontSize: w * 0.05)),
+              Icon(icon, size: w * 0.06, color: AppColors.primary),
               SizedBox(height: w * 0.01),
               Text(
                 label,

@@ -14,11 +14,16 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, bool>> toggleStoreStatus(bool isOpen);
 
   // ── Orders ──
+  // The backend exposes 7 separate action routes rather than one generic
+  // status-update endpoint — each method below hits its own route.
   Future<Either<Failure, List<VendorOrder>>> fetchAllOrders({String? status});
-  Future<Either<Failure, VendorOrder>> updateOrderStatus(
-    String orderId,
-    String status,
-  );
+  Future<Either<Failure, VendorOrder>> acceptOrder(String orderId);
+  Future<Either<Failure, VendorOrder>> rejectOrder(String orderId);
+  Future<Either<Failure, VendorOrder>> markPreparing(String orderId);
+  Future<Either<Failure, VendorOrder>> markReady(String orderId);
+  Future<Either<Failure, VendorOrder>> markOutForDelivery(String orderId);
+  Future<Either<Failure, VendorOrder>> markDelivered(String orderId);
+  Future<Either<Failure, VendorOrder>> cancelOrder(String orderId);
 
   // ── Menu ──
   Future<Either<Failure, List<MenuItem>>> fetchMenuItems();
@@ -56,6 +61,9 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, VendorProfile>> fetchVendorProfile();
   Future<Either<Failure, VendorProfile>> updateVendorProfile(
     Map<String, dynamic> data,
+  );
+  Future<Either<Failure, void>> updateOperatingHours(
+    Map<String, DayHours> weeklyHours,
   );
 
   // ── Account ──

@@ -3,14 +3,20 @@ import '../models/consumer_conversation.dart';
 import '../models/consumer_chat_message.dart';
 
 abstract interface class IConsumerNotificationRepository {
-  List<ConsumerNotification> getNotifications();
+  Future<List<ConsumerNotification>> getNotifications();
 
-  List<ConsumerNotification> markAsRead(
+  Future<List<ConsumerNotification>> markAsRead(
     List<ConsumerNotification> current,
     String notificationId,
   );
 
-  List<ConsumerNotification> markAllAsRead(List<ConsumerNotification> current);
+  Future<List<ConsumerNotification>> markAllAsRead(
+    List<ConsumerNotification> current,
+  );
+
+  Future<void> deleteNotification(String id);
+
+  Future<int> unreadCount();
 
   List<ConsumerConversation> getConversations();
 

@@ -163,6 +163,30 @@ class OrderViewModel extends ViewModel<OrdersState> {
     );
   }
 
+  Future<void> uploadItemImage(String itemId, String filePath) async {
+    final currentState = _getMenuState();
+    emit(currentState.copyWith(pendingOperation: MenuOperation.updating));
+
+    final result =
+        await _repository.uploadMenuItemImage(itemId: itemId, filePath: filePath);
+
+    result.fold(
+      (failure) => emit(
+        currentState.copyWith(
+          clearPendingOperation: true,
+          errorMessage: failure.message,
+        ),
+      ),
+      (updated) {
+        final updatedList =
+            currentState.items.map((i) => i.id == updated.id ? updated : i).toList();
+        emit(
+          currentState.copyWith(clearPendingOperation: true, items: updatedList),
+        );
+      },
+    );
+  }
+
   Future<void> toggleAvailability(String itemId, bool isAvailable) async {
     final currentState = _getMenuState();
     final result =

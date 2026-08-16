@@ -97,11 +97,19 @@ class _OrderList extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(
           w * 0.05, w * 0.04, w * 0.05, w * 0.05),
       itemCount: orders.length,
-      itemBuilder: (ctx, i) => _OrderCard(
-        order: orders[i],
-        onTap: () => context.push(
-          AppRoutes.trackOrder,
-          extra: orders[i].id,
+      itemBuilder: (ctx, i) => Consumer(
+        builder: (ctx, ref, _) => _OrderCard(
+          order: orders[i],
+          onTap: () => context.push(
+            AppRoutes.trackOrder,
+            extra: orders[i].id,
+          ),
+          onReorder: () async {
+            await ref.read(ordersProvider.notifier).reorder(orders[i].id);
+            if (ctx.mounted) {
+              context.push(AppRoutes.trackOrder, extra: orders[i].id);
+            }
+          },
         ),
       ),
     );
@@ -111,8 +119,13 @@ class _OrderList extends StatelessWidget {
 class _OrderCard extends StatelessWidget {
   final ConsumerOrder order;
   final VoidCallback onTap;
+  final VoidCallback onReorder;
 
-  const _OrderCard({required this.order, required this.onTap});
+  const _OrderCard({
+    required this.order,
+    required this.onTap,
+    required this.onReorder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -227,22 +240,28 @@ class _OrderCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (order.status.isActive)
-                    Text(
-                      'Track →',
-                      style: TextStyle(
-                        fontSize: w * 0.033,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                    GestureDetector(
+                      onTap: onTap,
+                      child: Text(
+                        'Track →',
+                        style: TextStyle(
+                          fontSize: w * 0.033,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   if (!order.status.isActive &&
                       order.status != OrderStatus.cancelled)
-                    Text(
-                      'Reorder →',
-                      style: TextStyle(
-                        fontSize: w * 0.033,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                    GestureDetector(
+                      onTap: onReorder,
+                      child: Text(
+                        'Reorder →',
+                        style: TextStyle(
+                          fontSize: w * 0.033,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                 ],

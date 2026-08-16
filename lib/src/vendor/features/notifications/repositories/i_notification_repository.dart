@@ -6,16 +6,24 @@ import '../models/vendor_chat_message.dart';
 /// Depends on abstractions, not concretions (Dependency Inversion).
 abstract interface class INotificationRepository {
   /// Returns all notifications for the vendor.
-  List<VendorNotification> getNotifications();
+  Future<List<VendorNotification>> getNotifications();
 
   /// Marks a single notification as read.
-  List<VendorNotification> markAsRead(
+  Future<List<VendorNotification>> markAsRead(
     List<VendorNotification> current,
     String notificationId,
   );
 
   /// Marks all notifications as read.
-  List<VendorNotification> markAllAsRead(List<VendorNotification> current);
+  Future<List<VendorNotification>> markAllAsRead(
+    List<VendorNotification> current,
+  );
+
+  /// Deletes a single notification.
+  Future<void> deleteNotification(String id);
+
+  /// Server-side unread count.
+  Future<int> unreadCount();
 
   /// Returns all conversations.
   List<VendorConversation> getConversations();

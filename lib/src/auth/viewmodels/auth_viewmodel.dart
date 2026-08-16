@@ -1,6 +1,8 @@
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+import 'package:bagyesrushappusernew/core/utils/device_info_utils.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
@@ -354,6 +356,57 @@ class AuthViewmodel extends ViewModel<AuthState> {
         }
       },
     );
+  }
+
+  /// Registers this device's FCM token with the backend so it can receive
+  /// push notifications for the current user.
+  ///
+  /// Called once the user lands on the home screen after a successful login
+  /// or registration (both customer and vendor). Safe to call on every app
+  /// open — skips the network call when the token hasn't changed since the
+  /// last successful registration, and always re-registers after a fresh
+  /// login since [CacheHelper.resetSession] clears the cached token on
+  /// logout, correctly re-associating the device with whichever account
+  /// signs in next.
+  Future<void> registerDeviceToken() async {
+    try {
+      final token = await FcmService.getToken();
+      if (token == null) {
+        appLogger.w('AuthViewmodel.registerDeviceToken → no FCM token available');
+        return;
+      }
+
+      final lastRegisteredToken = await _repository.getCachedDeviceToken();
+      if (lastRegisteredToken == token) {
+        appLogger.d('AuthViewmodel.registerDeviceToken → token already registered');
+        return;
+      }
+
+      final device = await DeviceInfoUtils.getDetails();
+      final result = await _repository.sendDeviceToken(
+        deviceToken: token,
+        platform: device.platform,
+        deviceName: device.deviceName,
+      );
+
+      await result.fold(
+        (failure) async {
+          appLogger.w(
+            'AuthViewmodel.registerDeviceToken → error: ${failure.message}',
+          );
+        },
+        (_) async {
+          await _repository.cacheDeviceToken(token);
+          appLogger.i('AuthViewmodel.registerDeviceToken → device token registered');
+        },
+      );
+    } catch (e, s) {
+      appLogger.e(
+        'AuthViewmodel.registerDeviceToken → unexpected error',
+        error: e,
+        stackTrace: s,
+      );
+    }
   }
 
   /// Explicitly refreshes the access token using the stored refresh token.

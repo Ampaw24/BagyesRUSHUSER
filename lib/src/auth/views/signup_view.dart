@@ -349,34 +349,38 @@ class _SignupViewState extends State<SignupView>
       (vm) => vm.state is AuthLoading,
     );
 
-    return Scaffold(
-      backgroundColor: scaffoldBgColor,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isTablet = constraints.maxWidth > 600;
-            final sw = constraints.maxWidth;
-            final sh = constraints.maxHeight;
-            final horizontalPadding = isTablet ? sw * 0.15 : sw * 0.06;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: scaffoldBgColor,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isTablet = constraints.maxWidth > 600;
+              final sw = constraints.maxWidth;
+              final sh = constraints.maxHeight;
+              final horizontalPadding = isTablet ? sw * 0.15 : sw * 0.06;
 
-            return Column(
-              children: [
-                _buildHeader(sw, sh, horizontalPadding),
-                _buildProgressIndicator(sw, sh, horizontalPadding),
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildStep1(sw, sh, horizontalPadding, loading),
-                      _buildStep2(sw, sh, horizontalPadding, loading),
-                    ],
+              return Column(
+                children: [
+                  _buildHeader(sw, sh, horizontalPadding),
+                  _buildProgressIndicator(sw, sh, horizontalPadding),
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _buildStep1(sw, sh, horizontalPadding, loading),
+                        _buildStep2(sw, sh, horizontalPadding, loading),
+                      ],
+                    ),
                   ),
-                ),
-                _buildBottomSection(sw, sh, horizontalPadding, loading),
-              ],
-            );
-          },
+                  _buildBottomSection(sw, sh, horizontalPadding, loading),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

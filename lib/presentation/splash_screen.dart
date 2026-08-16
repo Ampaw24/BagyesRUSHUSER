@@ -125,14 +125,23 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 children: [
                   Text(
-                    'bagyesRUSH',
+                    'BagyesRush',
                     style: TextStyle(
-                      fontSize: size.width * 0.08,
-                      fontWeight: FontWeight.bold,
+                      fontSize: size.width * 0.1,
+                      fontWeight: FontWeight.w400,
                       color: primaryColor,
-                      letterSpacing: 2,
-                      fontFamily:
-                          'Pacifico', // Using the unique font from constants
+                      letterSpacing: 0.5,
+                      fontFamily: 'Pacifico',
+                    ),
+                  ),
+                  Text(
+                    'Delivery',
+                    style: TextStyle(
+                      fontSize: size.width * 0.05,
+                      fontWeight: FontWeight.w500,
+                      color: primaryColor,
+                      letterSpacing: 1,
+                      fontFamily: 'Mukta',
                     ),
                   ),
                   SizedBox(height: size.height * 0.01),

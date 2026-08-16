@@ -188,7 +188,10 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
       'addon_groups': _addonGroups.map((g) => g.toJson()).toList(),
       'minimum_order_qty': _minimumOrderQty,
       if (_maximumOrderQty != null) 'maximum_order_qty': _maximumOrderQty,
-      if (_pickedImage != null) 'local_image_path': _pickedImage!.path,
+      // On create there's no item id yet to target a dedicated image-upload
+      // endpoint, so the picked image is embedded inline in the create body.
+      if (!_isEditing && _pickedImage != null)
+        'local_image_path': _pickedImage!.path,
       if (_isEditing && _pickedImage == null && widget.item?.imageUrl != null)
         'image_url': widget.item!.imageUrl,
     };
@@ -196,6 +199,11 @@ class _AddEditMenuSheetState extends State<AddEditMenuSheet> {
     final vm = context.read<OrderViewModel>();
     if (_isEditing) {
       await vm.updateItem(widget.item!.id, data);
+      // A newly picked image on an existing item goes through the dedicated
+      // image-upload endpoint instead of the field-update body.
+      if (_pickedImage != null) {
+        await vm.uploadItemImage(widget.item!.id, _pickedImage!.path);
+      }
     } else {
       await vm.addItem(data);
     }

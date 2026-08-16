@@ -15,6 +15,7 @@ class CacheHelper {
   static const _refreshTokenKey  = 'refresh_token';
   static const _userIdKey        = 'user_id';
   static const _userRoleKey      = 'user_role';
+  static const _deviceTokenKey   = 'device_token';
 
   // ── Session token ──────────────────────────────────────────────────────────
 
@@ -72,6 +73,20 @@ class CacheHelper {
     return _secureStorage.read(key: _userRoleKey);
   }
 
+  // ── Device token (FCM) ────────────────────────────────────────────────────
+  // Tracks the last device token successfully registered with the backend
+  // for the current session, so it isn't re-sent on every app open and is
+  // always re-sent for a newly logged-in user (cleared on logout below).
+
+  Future<void> cacheDeviceToken(String token) async {
+    await _secureStorage.write(key: _deviceTokenKey, value: token);
+    appLogger.d('CacheHelper: device token cached');
+  }
+
+  Future<String?> getDeviceToken() async {
+    return _secureStorage.read(key: _deviceTokenKey);
+  }
+
   // ── Reset ──────────────────────────────────────────────────────────────────
 
   Future<void> resetSession() async {
@@ -79,6 +94,7 @@ class CacheHelper {
     await _secureStorage.delete(key: _refreshTokenKey);
     await _secureStorage.delete(key: _userIdKey);
     await _secureStorage.delete(key: _userRoleKey);
+    await _secureStorage.delete(key: _deviceTokenKey);
     Cache.instance.resetSession();
     appLogger.i('CacheHelper: session cleared');
   }

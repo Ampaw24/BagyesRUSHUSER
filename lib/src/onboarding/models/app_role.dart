@@ -55,7 +55,7 @@ class RoleOption {
     ),
     RoleOption(
       role: AppRole.user,
-      title: 'User',
+      title: 'Customer',
       description: 'Order food and get it delivered quickly to your location.',
       ctaText: 'Continue as User',
       iconAsset: AssetImages.userIcon,

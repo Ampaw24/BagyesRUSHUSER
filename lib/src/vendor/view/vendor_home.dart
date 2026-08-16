@@ -24,7 +24,7 @@ import '../features/notifications/view/screens/vendor_notifications_screen.dart'
 import 'vendor_orders_view.dart';
 import 'vendor_menu_view.dart';
 import 'vendor_earnings_view.dart';
-import '../model/dummy_orders.dart';
+import '../model/vendor_order.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
 import '../../../states/app.state.dart';
 import '../../../services/auth.service.dart' show ISignup;
@@ -48,6 +48,14 @@ class _VendorHomeState extends State<VendorHome> {
     NavItem(icon: HugeIcons.strokeRoundedRestaurant01, label: 'Menu'),
     NavItem(icon: HugeIcons.strokeRoundedAnalyticsUp, label: 'Earnings'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AuthViewmodel>().registerDeviceToken();
+    });
+  }
 
   void _openDrawer() => setState(() => _drawerOpen = true);
   void _closeDrawer() => setState(() => _drawerOpen = false);
@@ -304,6 +312,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   void initState() {
     super.initState();
     _fetchLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(dashboardProvider.notifier).loadDashboard();
+    });
   }
 
   Future<void> _fetchLocation() async {
@@ -602,11 +613,12 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   ),
                 ],
 
-                if (DummyOrders.newOrders.isNotEmpty) ...[
+                if (state.activeOrders.any((o) => o.status == OrderStatus.pending)) ...[
                   SizedBox(height: w * 0.05),
                   Builder(
                     builder: (_) {
-                      final newest = DummyOrders.newOrders.first;
+                      final newest = state.activeOrders
+                          .firstWhere((o) => o.status == OrderStatus.pending);
                       return NewOrderBanner(
                         orderId: newest.id,
                         amount: newest.amount,
@@ -614,7 +626,8 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         itemCount: newest.itemList.length,
                         secondsLeft: 87,
                         onTap: () {},
-                        onAccept: () {},
+                        onAccept: () =>
+                            ref.read(dashboardProvider.notifier).acceptOrder(newest.id),
                       );
                     },
                   ),
@@ -622,7 +635,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
 
                 SizedBox(height: w * 0.06),
                 _ActiveOrdersLabel(
-                  count: DummyOrders.activeOrders.length,
+                  count: state.activeOrders.length,
                   onViewAll: widget.onViewAllOrders,
                 ),
                 SizedBox(height: w * 0.025),
@@ -632,7 +645,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         ),
 
         // ── Active Orders List ──
-        if (DummyOrders.activeOrders.isEmpty)
+        if (state.activeOrders.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
@@ -681,18 +694,25 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final order = DummyOrders.activeOrders[index];
+                  final order = state.activeOrders[index];
+                  final notifier = ref.read(dashboardProvider.notifier);
                   return Padding(
                     padding: EdgeInsets.only(bottom: w * 0.035),
                     child: OrderCard(
                       order: order,
                       onTap: () {},
-                      onAccept: () {},
-                      onDecline: () {},
+                      onAccept: () => notifier.acceptOrder(order.id),
+                      onDecline: () => notifier.rejectOrder(order.id),
+                      onMarkPreparing: () => notifier.markPreparing(order.id),
+                      onMarkReady: () => notifier.markReady(order.id),
+                      onMarkOutForDelivery: () =>
+                          notifier.markOutForDelivery(order.id),
+                      onMarkDelivered: () => notifier.markDelivered(order.id),
+                      onCancel: () => notifier.cancelOrder(order.id),
                     ),
                   );
                 },
-                childCount: DummyOrders.activeOrders.length,
+                childCount: state.activeOrders.length,
               ),
             ),
           ),

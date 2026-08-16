@@ -8,6 +8,11 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
+  final VoidCallback? onMarkPreparing;
+  final VoidCallback? onMarkReady;
+  final VoidCallback? onMarkOutForDelivery;
+  final VoidCallback? onMarkDelivered;
+  final VoidCallback? onCancel;
 
   const OrderCard({
     super.key,
@@ -15,6 +20,11 @@ class OrderCard extends StatelessWidget {
     this.onTap,
     this.onAccept,
     this.onDecline,
+    this.onMarkPreparing,
+    this.onMarkReady,
+    this.onMarkOutForDelivery,
+    this.onMarkDelivered,
+    this.onCancel,
   });
 
   @override
@@ -221,35 +231,99 @@ class OrderCard extends StatelessWidget {
               ),
             ],
 
-            // Action buttons for new orders
-            if (order.status == OrderStatus.newOrder) ...[
-              SizedBox(height: w * 0.04),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionButton(
-                      label: 'Decline',
-                      color: AppColors.textSecondary,
-                      outlined: true,
-                      onTap: onDecline,
-                    ),
-                  ),
-                  SizedBox(width: w * 0.03),
-                  Expanded(
-                    flex: 2,
-                    child: _ActionButton(
-                      label: 'Accept Order',
-                      color: AppColors.primary,
-                      onTap: onAccept,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            // Action buttons — exactly one primary next-action per status.
+            ..._buildActions(w),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildActions(double w) {
+    Widget primary(String label, VoidCallback? onTap) => Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: _ActionButton(
+                label: label,
+                color: AppColors.primary,
+                onTap: onTap,
+              ),
+            ),
+          ],
+        );
+
+    Widget? actionRow;
+    switch (order.status) {
+      case OrderStatus.pending:
+        actionRow = Row(
+          children: [
+            Expanded(
+              child: _ActionButton(
+                label: 'Decline',
+                color: AppColors.textSecondary,
+                outlined: true,
+                onTap: onDecline,
+              ),
+            ),
+            SizedBox(width: w * 0.03),
+            Expanded(
+              flex: 2,
+              child: _ActionButton(
+                label: 'Accept Order',
+                color: AppColors.primary,
+                onTap: onAccept,
+              ),
+            ),
+          ],
+        );
+        break;
+      case OrderStatus.accepted:
+        actionRow = primary('Start Preparing', onMarkPreparing);
+        break;
+      case OrderStatus.preparing:
+        actionRow = primary('Mark Ready', onMarkReady);
+        break;
+      case OrderStatus.ready:
+        actionRow = primary('Out for Delivery', onMarkOutForDelivery);
+        break;
+      case OrderStatus.outForDelivery:
+        actionRow = primary('Mark Delivered', onMarkDelivered);
+        break;
+      case OrderStatus.delivered:
+      case OrderStatus.rejected:
+      case OrderStatus.cancelled:
+        actionRow = null;
+        break;
+    }
+
+    final showCancel = onCancel != null &&
+        (order.status == OrderStatus.accepted ||
+            order.status == OrderStatus.preparing ||
+            order.status == OrderStatus.ready);
+
+    if (actionRow == null && !showCancel) return const [];
+
+    return [
+      SizedBox(height: w * 0.04),
+      if (actionRow != null) actionRow,
+      if (showCancel) ...[
+        SizedBox(height: w * 0.02),
+        Center(
+          child: GestureDetector(
+            onTap: onCancel,
+            child: Text(
+              'Cancel order',
+              style: TextStyle(
+                fontSize: w * 0.03,
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ];
   }
 }
 

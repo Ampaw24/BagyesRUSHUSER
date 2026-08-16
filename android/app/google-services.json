@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "782816451697",
+    "project_id": "bagyesrushapp-e0e4f",
+    "storage_bucket": "bagyesrushapp-e0e4f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:782816451697:android:c0e969294730da0d350fd0",
+        "android_client_info": {
+          "package_name": "com.bagye.bagyesrushdelivery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBK1eFzwpRi5YmxraoGy8Hf6STQi-XAjA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

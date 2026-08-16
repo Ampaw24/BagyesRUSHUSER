@@ -141,37 +141,58 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     }
   }
 
-  @override
-  Future<Either<Failure, VendorOrder>> updateOrderStatus(
+  Future<Either<Failure, VendorOrder>> _patchOrderAction(
     String orderId,
-    String status,
+    String action,
+    String Function(String) endpoint,
   ) async {
-    appLogger.d(
-        'VendorDashboardRepo.updateOrderStatus → orderId=$orderId status=$status');
+    appLogger.d('VendorDashboardRepo.$action → orderId=$orderId');
     try {
-      final response = await _networkUtility.dio.patch(
-        ApiEndpoints.vendorOrderStatus(orderId),
-        data: {'status': status},
-      );
+      final response = await _networkUtility.dio.patch(endpoint(orderId));
       if (_isSuccess(response.statusCode)) {
         final order = VendorOrder.fromJson(_dataMap(response));
-        appLogger.i(
-            'VendorDashboardRepo.updateOrderStatus → updated id=${order.id}');
+        appLogger.i('VendorDashboardRepo.$action → updated id=${order.id}');
         return Right(order);
       }
-      appLogger.w(
-          'VendorDashboardRepo.updateOrderStatus → HTTP ${response.statusCode}');
+      appLogger.w('VendorDashboardRepo.$action → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError<VendorOrder>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.updateOrderStatus → DioException',
-          error: e);
+      appLogger.e('VendorDashboardRepo.$action → DioException', error: e);
       return NetworkUtils.handleDioException<VendorOrder>(e);
     } catch (e, s) {
       return NetworkUtils.handleException<VendorOrder>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'updateOrderStatus');
+          repositoryName: 'VendorDashboardRepo', methodName: action);
     }
   }
+
+  @override
+  Future<Either<Failure, VendorOrder>> acceptOrder(String orderId) =>
+      _patchOrderAction(orderId, 'acceptOrder', ApiEndpoints.vendorOrderAccept);
+
+  @override
+  Future<Either<Failure, VendorOrder>> rejectOrder(String orderId) =>
+      _patchOrderAction(orderId, 'rejectOrder', ApiEndpoints.vendorOrderReject);
+
+  @override
+  Future<Either<Failure, VendorOrder>> markPreparing(String orderId) =>
+      _patchOrderAction(orderId, 'markPreparing', ApiEndpoints.vendorOrderPreparing);
+
+  @override
+  Future<Either<Failure, VendorOrder>> markReady(String orderId) =>
+      _patchOrderAction(orderId, 'markReady', ApiEndpoints.vendorOrderReady);
+
+  @override
+  Future<Either<Failure, VendorOrder>> markOutForDelivery(String orderId) =>
+      _patchOrderAction(
+          orderId, 'markOutForDelivery', ApiEndpoints.vendorOrderOutForDelivery);
+
+  @override
+  Future<Either<Failure, VendorOrder>> markDelivered(String orderId) =>
+      _patchOrderAction(orderId, 'markDelivered', ApiEndpoints.vendorOrderDelivered);
+
+  @override
+  Future<Either<Failure, VendorOrder>> cancelOrder(String orderId) =>
+      _patchOrderAction(orderId, 'cancelOrder', ApiEndpoints.vendorOrderCancel);
 
   // ── Menu ──────────────────────────────────────────────────────────────────
 
@@ -501,6 +522,34 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       return NetworkUtils.handleException<VendorProfile>(e, s,
           repositoryName: 'VendorDashboardRepo',
           methodName: 'updateVendorProfile');
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateOperatingHours(
+    Map<String, DayHours> weeklyHours,
+  ) async {
+    appLogger.d('VendorDashboardRepo.updateOperatingHours → initiated');
+    try {
+      final response = await _networkUtility.dio.put(
+        ApiEndpoints.vendorHours,
+        data: weeklyHours.map((day, hours) => MapEntry(day, hours.toJson())),
+      );
+      if (_isSuccess(response.statusCode)) {
+        appLogger.i('VendorDashboardRepo.updateOperatingHours → updated');
+        return const Right(null);
+      }
+      appLogger.w(
+          'VendorDashboardRepo.updateOperatingHours → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError<void>(response);
+    } on DioException catch (e) {
+      appLogger.e('VendorDashboardRepo.updateOperatingHours → DioException',
+          error: e);
+      return NetworkUtils.handleDioException<void>(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException<void>(e, s,
+          repositoryName: 'VendorDashboardRepo',
+          methodName: 'updateOperatingHours');
     }
   }
 

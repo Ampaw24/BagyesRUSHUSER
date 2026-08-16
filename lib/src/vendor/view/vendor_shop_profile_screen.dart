@@ -8,7 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/common/app/current_user_provider.dart';
+import '../../../core/di/service_locator.dart';
 import '../model/vendor_profile.dart';
+import '../repository/vendor_dashboard_repository.dart';
 import 'widgets/edit_shop_info_sheet.dart';
 import 'widgets/operating_hours_sheet.dart';
 import 'widgets/delivery_settings_sheet.dart';
@@ -349,12 +351,26 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     return missing;
   }
 
+  void _showSaveError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save changes: $error')),
+    );
+  }
+
   void _openEditSheet(VendorProfile profile) {
     EditShopInfoSheet.show(
       context,
       profile: profile,
-      onSave: (updated) {
-        setState(() => _localEdits = updated);
+      onSave: (updated) async {
+        final result = await sl<VendorDashboardRepository>()
+            .updateVendorProfile(updated.toJson());
+        result.fold(
+          (failure) => _showSaveError(failure.message),
+          (_) {
+            if (mounted) setState(() => _localEdits = updated);
+          },
+        );
       },
     );
   }
@@ -363,8 +379,15 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     OperatingHoursSheet.show(
       context,
       profile: profile,
-      onSave: (updated) {
-        setState(() => _localEdits = updated);
+      onSave: (updated) async {
+        final result = await sl<VendorDashboardRepository>()
+            .updateOperatingHours(updated.weeklyHours);
+        result.fold(
+          (failure) => _showSaveError(failure.message),
+          (_) {
+            if (mounted) setState(() => _localEdits = updated);
+          },
+        );
       },
     );
   }
@@ -373,8 +396,15 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     DeliverySettingsSheet.show(
       context,
       profile: profile,
-      onSave: (updated) {
-        setState(() => _localEdits = updated);
+      onSave: (updated) async {
+        final result = await sl<VendorDashboardRepository>()
+            .updateVendorProfile(updated.toJson());
+        result.fold(
+          (failure) => _showSaveError(failure.message),
+          (_) {
+            if (mounted) setState(() => _localEdits = updated);
+          },
+        );
       },
     );
   }

@@ -26,17 +26,6 @@ class OrderTrackingView extends ConsumerWidget {
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(
         title: Text('Order #${order.id.split('-').last}'),
-        actions: [
-          // Demo button: advance order status
-          if (order.status.isActive)
-            TextButton(
-              onPressed: () => ref
-                  .read(ordersProvider.notifier)
-                  .progressOrderStatus(orderId),
-              child: const Text('Simulate →'),
-            ),
-
-        ],
       ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.06),
@@ -194,7 +183,9 @@ class OrderTrackingView extends ConsumerWidget {
                     color: AppColors.textSecondary),
                 SizedBox(width: w * 0.025),
                 Text(
-                  'Paid via ${order.paymentMethod}',
+                  order.paymentStatus == PaymentStatus.pending
+                      ? 'Payment pending — ${order.paymentMethod}'
+                      : 'Paid via ${order.paymentMethod}',
                   style: TextStyle(
                     fontSize: w * 0.035,
                     color: AppColors.textSecondary,
@@ -203,6 +194,40 @@ class OrderTrackingView extends ConsumerWidget {
               ],
             ),
           ),
+
+          if (order.paymentStatus == PaymentStatus.pending) ...[
+            SizedBox(height: w * 0.04),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  await ref
+                      .read(ordersProvider.notifier)
+                      .payOrder(orderId, paymentMethod: order.paymentMethod);
+                },
+                child: const Text('Pay Now'),
+              ),
+            ),
+          ],
+
+          if (order.status == OrderStatus.pending ||
+              order.status == OrderStatus.accepted ||
+              order.status == OrderStatus.preparing) ...[
+            SizedBox(height: w * 0.03),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => ref
+                    .read(ordersProvider.notifier)
+                    .cancelOrder(orderId),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                ),
+                child: const Text('Cancel Order'),
+              ),
+            ),
+          ],
         ],
       ),
     );

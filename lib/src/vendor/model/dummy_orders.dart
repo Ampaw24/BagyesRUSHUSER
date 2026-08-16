@@ -10,7 +10,7 @@ class DummyOrders {
       items: 'Jollof Rice, Grilled Chicken, Kelewele',
       amount: 'GH\u20B5 85.00',
       timeAgo: '2 min ago',
-      status: OrderStatus.newOrder,
+      status: OrderStatus.pending,
       customerName: 'Kwame Mensah',
       customerPhone: '+233 24 123 4567',
       customerNote: 'Extra pepper on the side please',
@@ -60,7 +60,7 @@ class DummyOrders {
       items: 'Fried Rice, Spring Rolls',
       amount: 'GH\u20B5 45.00',
       timeAgo: '22 min ago',
-      status: OrderStatus.riderAssigned,
+      status: OrderStatus.outForDelivery,
       customerName: 'Adjoa Poku',
       customerPhone: '+233 20 111 2233',
       orderType: OrderType.delivery,
@@ -75,7 +75,7 @@ class DummyOrders {
       items: 'Fufu, Light Soup, Goat Meat',
       amount: 'GH\u20B5 75.00',
       timeAgo: '35 min ago',
-      status: OrderStatus.riderAssigned,
+      status: OrderStatus.outForDelivery,
       customerName: 'Yaw Boateng',
       customerPhone: '+233 55 333 4455',
       customerNote: 'Please pack fufu and soup separately',
@@ -92,7 +92,7 @@ class DummyOrders {
       items: 'Red Red, Plantain',
       amount: 'GH\u20B5 30.00',
       timeAgo: '1 hr ago',
-      status: OrderStatus.completed,
+      status: OrderStatus.delivered,
       customerName: 'Efua Dadzie',
       orderType: OrderType.pickup,
       itemList: [
@@ -106,7 +106,7 @@ class DummyOrders {
       items: 'Kenkey, Fried Fish, Pepper',
       amount: 'GH\u20B5 40.00',
       timeAgo: '1.5 hrs ago',
-      status: OrderStatus.completed,
+      status: OrderStatus.delivered,
       customerName: 'Nana Agyemang',
       orderType: OrderType.delivery,
       itemList: [
@@ -134,10 +134,10 @@ class DummyOrders {
   ];
 
   static List<VendorOrder> get activeOrders =>
-      all.where((o) => o.status != OrderStatus.completed && o.status != OrderStatus.cancelled).toList();
+      all.where((o) => o.status != OrderStatus.delivered && o.status != OrderStatus.cancelled).toList();
 
   static List<VendorOrder> get newOrders =>
-      all.where((o) => o.status == OrderStatus.newOrder).toList();
+      all.where((o) => o.status == OrderStatus.pending).toList();
 
   static List<VendorOrder> byStatus(OrderStatus? status) =>
       status == null ? all : all.where((o) => o.status == status).toList();

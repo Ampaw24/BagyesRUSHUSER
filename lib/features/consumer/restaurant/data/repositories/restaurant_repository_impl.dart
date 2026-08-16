@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/repositories/i_restaurant_repository.dart'
@@ -63,14 +64,54 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
 
   @override
   Future<List<Restaurant>> getFeaturedRestaurants() async {
-    final page = await getRestaurantsPaged();
-    return page.restaurants.where((r) => r.isFeatured).toList();
+    appLogger.d('RestaurantRepository.getFeaturedRestaurants → initiated');
+    try {
+      final response = await _client.get(ApiEndpoints.vendorsFeatured);
+      final (list, _) = _extractPagedList(response);
+      final restaurants =
+          list.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+      appLogger.i(
+          'RestaurantRepository.getFeaturedRestaurants → ${restaurants.length} items');
+      return restaurants;
+    } on DioException catch (e) {
+      appLogger.e('RestaurantRepository.getFeaturedRestaurants → DioException', error: e);
+      rethrow;
+    } catch (e, s) {
+      appLogger.e('RestaurantRepository.getFeaturedRestaurants → error', error: e, stackTrace: s);
+      rethrow;
+    }
   }
 
   @override
   Future<List<Restaurant>> getNearbyRestaurants() async {
-    final page = await getRestaurantsPaged();
-    return page.restaurants.where((r) => r.isOpen).take(6).toList();
+    appLogger.d('RestaurantRepository.getNearbyRestaurants → initiated');
+    try {
+      final location = await LocationHelper.getCurrentLocation();
+      final position = location['position'];
+      if (position == null) {
+        appLogger.w(
+            'RestaurantRepository.getNearbyRestaurants → no device location, falling back to open vendors');
+        final page = await getRestaurantsPaged();
+        return page.restaurants.where((r) => r.isOpen).take(6).toList();
+      }
+
+      final response = await _client.get(
+        ApiEndpoints.vendorsNearby,
+        queryParameters: {'lat': position.latitude, 'lng': position.longitude},
+      );
+      final (list, _) = _extractPagedList(response);
+      final restaurants =
+          list.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+      appLogger.i(
+          'RestaurantRepository.getNearbyRestaurants → ${restaurants.length} items');
+      return restaurants;
+    } on DioException catch (e) {
+      appLogger.e('RestaurantRepository.getNearbyRestaurants → DioException', error: e);
+      rethrow;
+    } catch (e, s) {
+      appLogger.e('RestaurantRepository.getNearbyRestaurants → error', error: e, stackTrace: s);
+      rethrow;
+    }
   }
 
   @override

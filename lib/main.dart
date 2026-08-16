@@ -1,14 +1,18 @@
 import 'package:bagyesrushappusernew/main.wrapper.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'
     hide ChangeNotifierProvider;
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'states/app.state.dart';
 import 'core/di/service_locator.dart' as di;
 import 'core/di/service_locator.dart';
 import 'core/services/app_initializer.dart';
+import 'core/services/fcm_service.dart';
 import 'core/providers/app_providers.dart';
 import 'src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
@@ -22,6 +26,8 @@ import 'src/home/viewmodels/home_viewmodel.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   // Phase 1 — legacy vendor/onboarding services
   await di.init();
 

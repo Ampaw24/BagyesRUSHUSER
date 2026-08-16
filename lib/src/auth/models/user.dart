@@ -47,7 +47,7 @@ class User extends Equatable {
     final phone = json["phone"] ?? "";
     
     return User(
-      id: json["id"] ?? "",
+      id: (json["id"] ?? "").toString(),
       email: email,
       phone: phone,
       role: role,
@@ -148,8 +148,8 @@ class CustomerProfile extends Equatable {
 
   factory CustomerProfile.fromJson(Map<String, dynamic> json) {
     return CustomerProfile(
-      id: json["_id"] ?? "",
-      userId: json["user_id"] ?? "",
+      id: (json["_id"] ?? json["id"] ?? "").toString(),
+      userId: (json["user_id"] ?? "").toString(),
       firstName: json["first_name"] ?? "",
       lastName: json["last_name"] ?? "",
       address: json["address"] ?? "",

@@ -6,57 +6,115 @@
 ///
 /// Usage:
 /// ```dart
-/// dio.post(ApiEndpoints.customerSignup, data: body);
-/// dio.get(ApiEndpoints.customerDetails(userId));
-/// dio.patch(ApiEndpoints.vendorOrderStatus(orderId), data: body);
+/// dio.post(ApiEndpoints.signup, data: body);
+/// dio.get(ApiEndpoints.profile);
+/// dio.patch(ApiEndpoints.vendorOrderAccept(orderId));
 /// ```
 abstract final class ApiEndpoints {
   // ─── Authentication ────────────────────────────────────────────────────────
-  static const String signup = '/auth/register';
-  static const String login = '/auth/login';
+  static const String signup = '/register';
+  static const String login = '/login';
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh-token';
-  static const String otpSend = '/otp/send';
-  static const String otpVerify = '/otp/verify';
-  static const String forgotPassword = '/auth/reset-password';
+
+  /// Shared phone-verification pair — used by both customer and vendor OTP flows.
+  static const String phoneSendCode = '/phone/send-code';
+  static const String phoneVerify = '/phone/verify';
+  static const String otpSend = phoneSendCode;
+  static const String otpVerify = phoneVerify;
+
+  static const String passwordForgot = '/password/forgot';
+
+  /// `POST /password/reset` — consumes the phone-verified session and sets a
+  /// new password. See the "password reset flow" note in the endpoint audit:
+  /// the app proves phone ownership via [phoneSendCode]/[phoneVerify] before
+  /// calling this, rather than calling [passwordForgot] first.
+  static const String forgotPassword = '/password/reset';
+
+  /// `POST /password/change` — authenticated user changing their own password.
+  static const String passwordChange = '/password/change';
+
   static const String items = '/items';
+  static const String deviceToken = '/device-tokens';
 
-  /// `GET /auth/me`
-  static String customerDetails(String id) => '/auth/me';
+  /// `GET /profile` — role-agnostic session-restore endpoint.
+  static const String profile = '/profile';
 
-  /// `PATCH /customers/update`
-  static const String customerUpdate = '/customers/update';
+  /// `PUT /customer/me`
+  static const String customerMe = '/customer/me';
+
+  /// `POST /customer/me/avatar` (multipart)
+  static const String customerAvatar = '/customer/me/avatar';
 
   // ─── Vendor Registration ───────────────────────────────────────────────────.
   static const String vendorRegister = '/auth/register';
   static const String vendorDocUpload = '/vendors/documents/upload';
-  static const String vendorOtpSend = '/vendors/otp/send';
-  static const String vendorOtpVerify = '/vendors/otp/verify';
+  static const String vendorOtpSend = phoneSendCode;
+  static const String vendorOtpVerify = phoneVerify;
 
   // ─── Vendor Dashboard ──────────────────────────────────────────────────────
-  static const String vendorDashStats = '/vendors/dashboard/stats';
-  static const String vendorOrders = '/vendors/orders';
+  static const String vendorDashStats = '/vendor/me/dashboard';
+  static const String vendorOrders = '/vendor/me/orders';
   static const String vendorStoreStatus = '/vendors/store/status';
   static const String vendorMenu = '/vendors/menu-items';
   static const String vendorEarnings = '/vendors/earnings';
-  static const String vendorProfile = '/vendors/profile';
+  static const String vendorProfile = '/vendor/me';
   static const String vendorAccount = '/vendors/account';
+
+  /// `PUT /vendor/me/hours`
+  static const String vendorHours = '/vendor/me/hours';
 
   //home-page Path 1
   static const String adsBanners = '/banners';
   static const String vendors = '/vendors';
 
-  /// `PATCH /vendors/orders/:orderId/status`
-  static String vendorOrderStatus(String orderId) =>
-      '/vendors/orders/$orderId/status';
+  /// `GET /vendors/featured`
+  static const String vendorsFeatured = '/vendors/featured';
 
-  /// `PATCH /vendors/menu/:itemId/availability`
+  /// `GET /vendors/nearby?lat=&lng=`
+  static const String vendorsNearby = '/vendors/nearby';
+
+  /// `GET /vendor/me/orders/:id`
+  static String vendorOrderById(String orderId) => '$vendorOrders/$orderId';
+
+  /// `PATCH /vendor/me/orders/:id/accept`
+  static String vendorOrderAccept(String orderId) =>
+      '$vendorOrders/$orderId/accept';
+
+  /// `PATCH /vendor/me/orders/:id/reject`
+  static String vendorOrderReject(String orderId) =>
+      '$vendorOrders/$orderId/reject';
+
+  /// `PATCH /vendor/me/orders/:id/preparing`
+  static String vendorOrderPreparing(String orderId) =>
+      '$vendorOrders/$orderId/preparing';
+
+  /// `PATCH /vendor/me/orders/:id/ready`
+  static String vendorOrderReady(String orderId) =>
+      '$vendorOrders/$orderId/ready';
+
+  /// `PATCH /vendor/me/orders/:id/out-for-delivery`
+  static String vendorOrderOutForDelivery(String orderId) =>
+      '$vendorOrders/$orderId/out-for-delivery';
+
+  /// `PATCH /vendor/me/orders/:id/delivered`
+  static String vendorOrderDelivered(String orderId) =>
+      '$vendorOrders/$orderId/delivered';
+
+  /// `PATCH /vendor/me/orders/:id/cancel`
+  static String vendorOrderCancel(String orderId) =>
+      '$vendorOrders/$orderId/cancel';
+
+  /// `PATCH /vendor/me/menu-items/:itemId/toggle-availability`
   static String vendorMenuItemAvailability(String itemId) =>
-      '/vendors/menu/$itemId/availability';
+      '/vendor/me/menu-items/$itemId/toggle-availability';
 
-  /// `PUT /vendors/menu/:id`  |  `DELETE /vendors/menu/:id`
-  /// /vendors/menu-items/69d03d79941f2d4c1b25cd6d_m1
-  static String vendorMenuItem(String id) => '/vendors/menu-items/$id';
+  /// `GET /vendor/me/menu-items/:id` | `PUT` | `DELETE`
+  static String vendorMenuItem(String id) => '/vendor/me/menu-items/$id';
+
+  /// `POST /vendor/me/menu-items/:id/image` (multipart)
+  static String vendorMenuItemImage(String id) =>
+      '/vendor/me/menu-items/$id/image';
 
   /// `GET /PUT /vendors/menu/:itemId/addon-groups`
   static String vendorMenuItemAddonGroups(String itemId) =>
@@ -89,7 +147,7 @@ abstract final class ApiEndpoints {
   // ─── Customer Home ─────────────────────────────────────────────────────────
   static const String categories = '/categories';
   static const String businessTypes = '/business-types';
-  static const String customerOrders = '/orders';
+  static const String customerOrders = '/customer/orders';
 
   /// `GET /vendors/:id`
   static String vendorById(String id) => '/vendors/$id';
@@ -97,9 +155,40 @@ abstract final class ApiEndpoints {
   /// `GET /vendors/:id/menu`
   static String vendorMenuItems(String vendorId) => '/vendors/$vendorId/menu';
 
-  /// `GET /orders/:id`
-  static String customerOrderById(String orderId) => '/orders/$orderId';
+  /// `GET /customer/orders/:id`
+  static String customerOrderById(String orderId) => '$customerOrders/$orderId';
+
+  /// `PATCH /customer/orders/:id/cancel`
+  static String customerOrderCancel(String orderId) =>
+      '$customerOrders/$orderId/cancel';
+
+  /// `POST /customer/orders/:id/pay`
+  static String customerOrderPay(String orderId) =>
+      '$customerOrders/$orderId/pay';
+
+  /// `POST /customer/orders/:id/reorder`
+  static String customerOrderReorder(String orderId) =>
+      '$customerOrders/$orderId/reorder';
+
+  /// `GET /customer/orders/:id/track`
+  static String customerOrderTrack(String orderId) =>
+      '$customerOrders/$orderId/track';
+
+  /// `POST /customer/orders/:id/verify-payment`
+  static String customerOrderVerifyPayment(String orderId) =>
+      '$customerOrders/$orderId/verify-payment';
 
   /// `GET /categories/:id`
   static String categoryById(String id) => '/categories/$id';
+
+  // ─── Notifications ─────────────────────────────────────────────────────────
+  static const String notifications = '/notifications';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static const String notificationsUnreadCount = '/notifications/unread-count';
+
+  /// `DELETE /notifications/:id`
+  static String notificationById(String id) => '/notifications/$id';
+
+  /// `PATCH /notifications/:id/read`
+  static String notificationRead(String id) => '/notifications/$id/read';
 }

@@ -19,7 +19,8 @@ class AuthRepository {
   final CacheHelper _cacheHelper;
 
   Future<void> _cacheTokens(DataMap payload) async {
-    final token = payload['token'] as String?;
+    final token =
+        payload['token'] as String? ?? payload['access_token'] as String?;
     final refreshToken = payload['refresh_token'] as String?;
     if (token != null) await _cacheHelper.cacheSessionToken(token);
     if (refreshToken != null) {
@@ -43,7 +44,7 @@ class AuthRepository {
       'email': email,
       'phone': phone,
       'password': password,
-      'confirm_password': confirmPassword,
+      'password_confirmation': confirmPassword,
       'role': role,
       'first_name': firstName,
       'last_name': lastName,
@@ -122,7 +123,7 @@ class AuthRepository {
       "email": email,
       "phone": phone,
       "password": password,
-      "confirm_password": confirmPassword,
+      "password_confirmation": confirmPassword,
       "role": "vendor",
       "business_name": businessName,
       "business_type": businessType,
@@ -232,6 +233,7 @@ class AuthRepository {
       );
     }
   }
+
   //Business Type fetching ends here
 
   ResultFuture<User> login({
@@ -375,7 +377,7 @@ class AuthRepository {
   ResultFuture<User> getUserDetails(String id) async {
     appLogger.d('AuthRepository.getUserDetails → id=$id');
     try {
-      final response = await _client.get(ApiEndpoints.customerDetails(id));
+      final response = await _client.get(ApiEndpoints.profile);
 
       if (response.statusCode == 200) {
         final responseData = response.data as DataMap;
@@ -404,6 +406,63 @@ class AuthRepository {
 
   Future<String?> getUserId() async {
     return _cacheHelper.getUserId();
+  }
+
+  /// The device token last successfully registered with the backend for the
+  /// current session, or `null` if none has been sent yet.
+  Future<String?> getCachedDeviceToken() async {
+    return _cacheHelper.getDeviceToken();
+  }
+
+  Future<void> cacheDeviceToken(String token) async {
+    await _cacheHelper.cacheDeviceToken(token);
+  }
+
+  ///["send device token to servver push notification setup"]
+  ResultFuture<DataMap> sendDeviceToken({
+    required String deviceToken,
+    required String platform,
+    required String deviceName,
+  }) async {
+    appLogger.d('AuthRepository.sendDeviceToken → deviceToken=$deviceToken');
+    try {
+      final response = await _client.post(
+        ApiEndpoints.deviceToken,
+        data: {"token": deviceToken, "platform": platform, "device_name": deviceName},
+      );
+
+      appLogger.d(
+        'AuthRepository.sendDeviceToken → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        appLogger.i('AuthRepository.sendDeviceToken → success');
+        return Right(response.data as DataMap);
+      }
+
+      appLogger.w(
+        'AuthRepository.sendDeviceToken → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'AuthRepository.sendDeviceToken → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'sendDeviceToken',
+      );
+    }
   }
 
   /// Fetches the vendor-specific profile from `GET /vendors/profile`.
@@ -511,8 +570,8 @@ class AuthRepository {
   }) async {
     appLogger.d('AuthRepository.updateProfile → initiated');
     try {
-      final response = await _client.patch(
-        ApiEndpoints.customerUpdate,
+      final response = await _client.put(
+        ApiEndpoints.customerMe,
         data: {
           'first_name': firstName,
           'last_name': lastName,
@@ -552,6 +611,78 @@ class AuthRepository {
         s,
         repositoryName: 'AuthRepository',
         methodName: 'updateProfile',
+      );
+    }
+  }
+
+  ResultFuture<User> uploadAvatar(String filePath) async {
+    appLogger.d('AuthRepository.uploadAvatar → path=$filePath');
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath),
+      });
+      final response = await _client.post(
+        ApiEndpoints.customerAvatar,
+        data: formData,
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
+            response.data as DataMap;
+        final userJson = payload['user'] as DataMap? ?? payload;
+        final user = User.fromJson(userJson);
+        appLogger.i('AuthRepository.uploadAvatar → success id=${user.id}');
+        return Right(user);
+      }
+
+      appLogger.w('AuthRepository.uploadAvatar → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('AuthRepository.uploadAvatar → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'uploadAvatar',
+      );
+    }
+  }
+
+  ResultFuture<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    appLogger.d('AuthRepository.changePassword → initiated');
+    try {
+      final response = await _client.post(
+        ApiEndpoints.passwordChange,
+        data: {
+          'old_password': oldPassword,
+          'new_password': newPassword,
+          'confirm_new_password': confirmPassword,
+        },
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        appLogger.i('AuthRepository.changePassword → success');
+        return const Right(null);
+      }
+
+      appLogger.w('AuthRepository.changePassword → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('AuthRepository.changePassword → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'changePassword',
       );
     }
   }
@@ -607,6 +738,11 @@ class AuthRepository {
         await _client.post(ApiEndpoints.logout);
       } catch (_) {
         // Server logout is best-effort — always clear local session
+      }
+      try {
+        await _client.delete(ApiEndpoints.deviceToken);
+      } catch (_) {
+        // Device token deregistration is best-effort too
       }
       await _cacheHelper.resetSession();
       appLogger.i('AuthRepository.logout → session cleared');

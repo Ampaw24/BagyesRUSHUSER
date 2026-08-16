@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../model/vendor_order.dart';
-import '../model/dummy_orders.dart';
+import '../viewmodel/orders_viewmodel.dart';
 import 'widgets/order_card.dart';
 
 class VendorOrdersView extends StatefulWidget {
@@ -14,7 +15,13 @@ class VendorOrdersView extends StatefulWidget {
 class _VendorOrdersViewState extends State<VendorOrdersView> {
   OrderStatus? _activeFilter;
 
-  List<VendorOrder> get _filteredOrders => DummyOrders.byStatus(_activeFilter);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<OrdersViewModel>().loadOrders();
+    });
+  }
 
   void _setFilter(OrderStatus? status) {
     setState(() => _activeFilter = status);
@@ -24,7 +31,11 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final horizontalPad = w * 0.05;
-    final orders = _filteredOrders;
+    final vm = context.watch<OrdersViewModel>();
+    final allOrders = vm.state.orders;
+    final orders = _activeFilter == null
+        ? allOrders
+        : allOrders.where((o) => o.status == _activeFilter).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,50 +79,20 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
             children: [
               _FilterChip(
                 label: 'All',
-                count: DummyOrders.all.length,
+                count: allOrders.length,
                 selected: _activeFilter == null,
                 onTap: () => _setFilter(null),
               ),
-              SizedBox(width: w * 0.02),
-              _FilterChip(
-                label: 'New',
-                count: DummyOrders.byStatus(OrderStatus.newOrder).length,
-                color: OrderStatus.newOrder.color,
-                selected: _activeFilter == OrderStatus.newOrder,
-                onTap: () => _setFilter(OrderStatus.newOrder),
-              ),
-              SizedBox(width: w * 0.02),
-              _FilterChip(
-                label: 'Preparing',
-                count: DummyOrders.byStatus(OrderStatus.preparing).length,
-                color: OrderStatus.preparing.color,
-                selected: _activeFilter == OrderStatus.preparing,
-                onTap: () => _setFilter(OrderStatus.preparing),
-              ),
-              SizedBox(width: w * 0.02),
-              _FilterChip(
-                label: 'Rider',
-                count: DummyOrders.byStatus(OrderStatus.riderAssigned).length,
-                color: OrderStatus.riderAssigned.color,
-                selected: _activeFilter == OrderStatus.riderAssigned,
-                onTap: () => _setFilter(OrderStatus.riderAssigned),
-              ),
-              SizedBox(width: w * 0.02),
-              _FilterChip(
-                label: 'Done',
-                count: DummyOrders.byStatus(OrderStatus.completed).length,
-                color: OrderStatus.completed.color,
-                selected: _activeFilter == OrderStatus.completed,
-                onTap: () => _setFilter(OrderStatus.completed),
-              ),
-              SizedBox(width: w * 0.02),
-              _FilterChip(
-                label: 'Cancelled',
-                count: DummyOrders.byStatus(OrderStatus.cancelled).length,
-                color: OrderStatus.cancelled.color,
-                selected: _activeFilter == OrderStatus.cancelled,
-                onTap: () => _setFilter(OrderStatus.cancelled),
-              ),
+              for (final status in OrderStatus.values) ...[
+                SizedBox(width: w * 0.02),
+                _FilterChip(
+                  label: status.label,
+                  count: allOrders.where((o) => o.status == status).length,
+                  color: status.color,
+                  selected: _activeFilter == status,
+                  onTap: () => _setFilter(status),
+                ),
+              ],
             ],
           ),
         ),
@@ -119,21 +100,32 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
 
         // ── Order list ──
         Expanded(
-          child: orders.isEmpty
-              ? _EmptyView(w: w, filter: _activeFilter?.label)
-              : ListView.separated(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPad, 0, horizontalPad, w * 0.25,
-                  ),
-                  itemCount: orders.length,
-                  separatorBuilder: (_, __) => SizedBox(height: w * 0.03),
-                  itemBuilder: (_, index) => OrderCard(
-                    order: orders[index],
-                    onTap: () {},
-                    onAccept: () {},
-                    onDecline: () {},
-                  ),
-                ),
+          child: vm.state.status == OrdersStatus.loading && allOrders.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : orders.isEmpty
+                  ? _EmptyView(w: w, filter: _activeFilter?.label)
+                  : ListView.separated(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPad, 0, horizontalPad, w * 0.25,
+                      ),
+                      itemCount: orders.length,
+                      separatorBuilder: (_, __) => SizedBox(height: w * 0.03),
+                      itemBuilder: (_, index) {
+                        final order = orders[index];
+                        return OrderCard(
+                          order: order,
+                          onTap: () {},
+                          onAccept: () => vm.accept(order.id),
+                          onDecline: () => vm.reject(order.id),
+                          onMarkPreparing: () => vm.markPreparing(order.id),
+                          onMarkReady: () => vm.markReady(order.id),
+                          onMarkOutForDelivery: () =>
+                              vm.markOutForDelivery(order.id),
+                          onMarkDelivered: () => vm.markDelivered(order.id),
+                          onCancel: () => vm.cancel(order.id),
+                        );
+                      },
+                    ),
         ),
       ],
     );

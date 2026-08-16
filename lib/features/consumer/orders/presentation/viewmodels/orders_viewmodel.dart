@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/data/repositories/orders_repository_impl.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
@@ -8,7 +10,7 @@ import 'package:bagyesrushappusernew/features/consumer/orders/presentation/state
 // ─── Repository provider ──────────────────────────────────────────────────
 
 final ordersRepositoryProvider = Provider<IOrdersRepository>(
-  (_) => OrdersRepositoryImpl(),
+  (_) => OrdersRepositoryImpl(client: sl<Dio>()),
 );
 
 // ─── Orders ViewModel ─────────────────────────────────────────────────────
@@ -54,35 +56,45 @@ class OrdersViewModel extends Notifier<OrdersState> {
     return order;
   }
 
-  Future<void> progressOrderStatus(String orderId) async {
+  Future<void> _replaceOrder(ConsumerOrder updated) async {
     final current = state;
     if (current is! OrdersLoaded) return;
-
-    final order = current.orders.firstWhere((o) => o.id == orderId);
-    final next = _nextStatus(order.status);
-    if (next == null) return;
-
-    final updated = await _repo.updateOrderStatus(orderId, next);
     state = OrdersLoaded(
       orders: current.orders
-          .map((o) => o.id == orderId ? updated : o)
+          .map((o) => o.id == updated.id ? updated : o)
           .toList(),
     );
   }
 
-  OrderStatus? _nextStatus(OrderStatus s) {
-    const flow = [
-      OrderStatus.pending,
-      OrderStatus.accepted,
-      OrderStatus.preparing,
-      OrderStatus.readyForPickup,
-      OrderStatus.pickedUp,
-      OrderStatus.onTheWay,
-      OrderStatus.delivered,
-    ];
-    final idx = flow.indexOf(s);
-    if (idx < 0 || idx >= flow.length - 1) return null;
-    return flow[idx + 1];
+  Future<void> cancelOrder(String orderId) async {
+    final updated = await _repo.cancelOrder(orderId);
+    await _replaceOrder(updated);
+  }
+
+  Future<void> reorder(String orderId) async {
+    final newOrder = await _repo.reorder(orderId);
+    final current = state;
+    if (current is OrdersLoaded) {
+      state = OrdersLoaded(orders: [newOrder, ...current.orders]);
+    } else {
+      state = OrdersLoaded(orders: [newOrder]);
+    }
+  }
+
+  Future<void> trackOrder(String orderId) async {
+    final updated = await _repo.trackOrder(orderId);
+    await _replaceOrder(updated);
+  }
+
+  Future<Map<String, dynamic>> payOrder(
+    String orderId, {
+    required String paymentMethod,
+  }) =>
+      _repo.payOrder(orderId, paymentMethod: paymentMethod);
+
+  Future<void> verifyPayment(String orderId, {required String reference}) async {
+    final updated = await _repo.verifyPayment(orderId, reference: reference);
+    await _replaceOrder(updated);
   }
 }
 
