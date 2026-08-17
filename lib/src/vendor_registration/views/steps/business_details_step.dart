@@ -379,7 +379,10 @@ class _BusinessTypeSelectorState extends State<_BusinessTypeSelector> {
       spacing: size.width * 0.02,
       runSpacing: size.height * 0.01,
       children: widget.businessTypes.map((type) {
-        final isSelected = _selected?.id == type.id;
+        // Compare by full value equality (BusinessTypeModel extends Equatable),
+        // not just `.id` — the backend can return the same `_id` for every
+        // entry, which made every chip compare equal and light up together.
+        final isSelected = _selected == type;
         return GestureDetector(
           onTap: () {
             setState(() => _selected = type);

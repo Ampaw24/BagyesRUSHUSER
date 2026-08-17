@@ -86,9 +86,14 @@ class HomeRepository {
     try {
       final response = await _client.get(ApiEndpoints.categories);
 
+      appLogger.d(
+        'HomeRepository.getCategories → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
-        final data = (response.data as DataMap)['data'] as DataMap;
-        final categories = [Category.fromJson(data)];
+        final categories = [_extractCategory(response.data)];
         appLogger.i(
             'HomeRepository.getCategories → loaded ${categories.first.categories.length} categories');
         return Right(categories);
@@ -105,6 +110,49 @@ class HomeRepository {
           repositoryName: 'HomeRepository', methodName: 'getCategories');
     }
   }
+
+  /// Builds a [Category] out of [rawData] regardless of whether the API
+  /// wraps the category list as `data: { categories: [...], total }` (the
+  /// shape [Category.fromJson] expects), nests it under a paginated envelope
+  /// (`data: { docs / items / results: [...] }`), or returns the array
+  /// directly under `data`.
+  ///
+  /// Never throws — falls back to an empty category list and logs the
+  /// unmatched keys so the real shape shows up in the console instead of the
+  /// screen just staying blank.
+  Category _extractCategory(dynamic rawData) {
+    if (rawData is! DataMap) return const Category(categories: [], total: 0);
+
+    final inner = rawData['data'];
+
+    if (inner is DataMap) {
+      if (inner['categories'] != null) return Category.fromJson(inner);
+
+      for (final key in ['docs', 'items', 'results', 'list']) {
+        final nested = inner[key];
+        if (nested is List) {
+          final elements =
+              nested.map((e) => CategoryElement.fromJson(e as DataMap)).toList();
+          return Category(categories: elements, total: elements.length);
+        }
+      }
+
+      appLogger.w(
+        'HomeRepository.getCategories → unrecognised payload shape, '
+        'keys: ${inner.keys.toList()}',
+      );
+      return const Category(categories: [], total: 0);
+    }
+
+    if (inner is List) {
+      final elements =
+          inner.map((e) => CategoryElement.fromJson(e as DataMap)).toList();
+      return Category(categories: elements, total: elements.length);
+    }
+
+    return const Category(categories: [], total: 0);
+  }
+
   //[Get a single category element by ID value.]
   
   ResultFuture<CategoryElement> getCategoryById(String id) async {

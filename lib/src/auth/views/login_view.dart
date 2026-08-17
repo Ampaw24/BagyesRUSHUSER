@@ -534,7 +534,7 @@ class _ForgotPasswordSheetContentState
             ),
             const SizedBox(height: 10),
             const Text(
-              'Enter your phone number below. We will send a 5-digit OTP to verify your identity and reset your password.',
+              'Enter your phone number below. We will send a 6-digit OTP to verify your identity and reset your password.',
               style: TextStyle(
                 fontFamily: 'Mukta',
                 fontSize: 14,

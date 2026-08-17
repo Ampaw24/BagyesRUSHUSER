@@ -47,7 +47,7 @@ abstract final class ApiEndpoints {
   static const String customerAvatar = '/customer/me/avatar';
 
   // ─── Vendor Registration ───────────────────────────────────────────────────.
-  static const String vendorRegister = '/auth/register';
+  static const String vendorRegister = '/register';
   static const String vendorDocUpload = '/vendors/documents/upload';
   static const String vendorOtpSend = phoneSendCode;
   static const String vendorOtpVerify = phoneVerify;

@@ -47,7 +47,7 @@ class BusinessTypeModel extends Equatable {
 
     factory BusinessTypeModel.fromJson(Map<String, dynamic> json){ 
         return BusinessTypeModel(
-            id: json["_id"] ?? "",
+            id: (json["_id"] ?? json["id"])?.toString() ?? "",
             name: json["name"] ?? "",
             description: json["description"],
             isActive: json["is_active"] ?? false,

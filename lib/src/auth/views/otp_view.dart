@@ -21,19 +21,19 @@ import '../viewmodels/auth_viewmodel.dart';
 /// All UI copy for the OTP screen in one place.
 abstract final class _Strings {
   static const title           = 'Verify your\nphone number';
-  static const subtitle        = 'Enter the 5-digit code sent to your mobile number';
+  static const subtitle        = 'Enter the 6-digit code sent to your mobile number';
   static const verifyButton    = 'Verify & Continue';
   static const resendPrompt    = "Didn't receive a code?";
   static const resendLabel     = 'Resend';
   static const resendCountdown = 'Resend in ';
-  static const errorIncomplete = 'Please enter all 5 digits';
+  static const errorIncomplete = 'Please enter all 6 digits';
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SECTION 2 — Config constants (behaviour, not pixels)
 // ══════════════════════════════════════════════════════════════════════════════
 
-const int _kOtpLength      = 5;
+const int _kOtpLength      = 6;
 const int _kResendCooldown = 60; // seconds
 const int _kMaxOtpAttempts = 5;  // client-side lockout after N consecutive failures
 
@@ -65,7 +65,7 @@ final class _Dims {
   // ── OTP fields ──
   double get fieldSpacing => screenW * 0.026;
   double get fieldWidth   => (screenW - horizontalPad * 2 - fieldSpacing * (_kOtpLength - 1)) / _kOtpLength;
-  double get fieldHeight  => fieldWidth * 1.16;
+  double get fieldHeight  => fieldWidth * 1.05;
   double get fieldRadius  => fieldWidth * 0.23;
   double get borderNormal => screenW * 0.003;
   double get borderActive => screenW * 0.0048;
@@ -81,7 +81,7 @@ final class _Dims {
   // ── Text ──
   double get titleFontSize    => screenW * 0.078;
   double get subtitleFontSize => screenW * 0.038;
-  double get digitFontSize    => fieldWidth * 0.44;
+  double get digitFontSize    => fieldWidth * 0.46;
   double get buttonFontSize   => screenW * 0.044;
   double get captionFontSize  => screenW * 0.036;
   double get errorFontSize    => screenW * 0.034;
@@ -118,6 +118,7 @@ abstract final class _Styles {
         fontFamily: 'Mukta',
         fontSize: d.digitFontSize,
         fontWeight: FontWeight.w700,
+        height: 1.0,
         color: onDark ? Colors.white : AppColors.textPrimary,
       );
 
@@ -463,6 +464,7 @@ class _OtpFieldWidgetState extends State<_OtpFieldWidget>
           return AnimatedContainer(
             duration:     const Duration(milliseconds: 180),
             clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center, // centers the field's natural-height child within the fixed box
             width:  d.fieldWidth,
             height: d.fieldHeight,
             decoration: BoxDecoration(
@@ -500,7 +502,13 @@ class _OtpFieldWidgetState extends State<_OtpFieldWidget>
             obscureText:     widget.obscure,
             inputFormatters: [_formatter],
             style:           _Styles.digit(d, onDark: false),
+            strutStyle: StrutStyle(
+              fontSize:   d.digitFontSize,
+              height:     1.0,
+              forceStrutHeight: true,
+            ),
             decoration: const InputDecoration(
+              isDense:        true,
               filled:         false,       // override theme's filled:true so TextField draws no background
               border:         InputBorder.none,
               enabledBorder:  InputBorder.none,

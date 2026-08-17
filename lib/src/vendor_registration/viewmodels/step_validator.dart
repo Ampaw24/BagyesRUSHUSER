@@ -40,6 +40,10 @@ class StepValidator {
     if (data.city.trim().isEmpty) {
       return 'City is required';
     }
+    final description = data.description?.trim() ?? '';
+    if (description.isNotEmpty && description.length < 20) {
+      return 'Business description must be at least 20 characters';
+    }
     return null;
   }
 

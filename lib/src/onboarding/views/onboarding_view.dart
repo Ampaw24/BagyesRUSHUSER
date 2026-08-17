@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -14,7 +16,6 @@ import '../viewmodels/onboarding_viewmodel.dart';
 // Design tokens — "Role select, modernised" rebrand
 // ═══════════════════════════════════════════════════════════════════════════
 
-const Color _heroBg = AppColors.surfaceVariant;
 const Color _cardSelectedBg = Color(0xFFFFF5F5);
 const Color _tileUnselectedBg = AppColors.surfaceVariant;
 const Color _ctaDisabledBg = Color(0xFFECECF1);
@@ -195,116 +196,79 @@ class _OnboardingViewState extends State<OnboardingView>
   }
 
   Widget _buildHeroCard(Size size) {
-    final radius = size.width * 0.075;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          right: -size.width * 0.22,
+          top: -size.width * 0.1,
+          child: _bubble(size.width * 0.68, primaryColor.withValues(alpha: 0.09)),
+        ),
+        Positioned(
+          left: -size.width * 0.28,
+          top: size.width * 0.28,
+          child: _bubble(size.width * 0.5, primaryColor.withValues(alpha: 0.06)),
+        ),
+        _buildHeroContent(size),
+      ],
+    );
+  }
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        size.width * 0.065,
-        size.width * 0.065,
-        size.width * 0.065,
-        size.width * 0.075,
+  Widget _bubble(double diameter, Color color) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: diameter * 0.22, sigmaY: diameter * 0.22),
+      child: Container(
+        width: diameter,
+        height: diameter,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
-      decoration: BoxDecoration(
-        color: _heroBg,
-        borderRadius: BorderRadius.circular(radius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Decorative accent glows
-          Positioned(
-            right: -size.width * 0.15,
-            top: -size.width * 0.18,
-            child: Container(
-              width: size.width * 0.5,
-              height: size.width * 0.5,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: primaryColor.withValues(alpha: 0.14),
+    );
+  }
+
+  Widget _buildHeroContent(Size size) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => context.go(AppRoutes.vendorHome),
+              child: Image.asset(
+                AssetImages.bagyesLogo,
+                width: size.width * 0.19,
+                height: size.width * 0.19,
+                fit: BoxFit.cover,
               ),
             ),
+            
+          ],
+        ),
+        SizedBox(height: size.width * 0.05),
+        Text(
+          "Let's get\nyou set up.",
+          style: TextStyle(
+            fontSize: size.width * 0.085,
+            fontWeight: FontWeight.w800,
+            letterSpacing: size.width * -0.0025,
+            height: 1.05,
+            color: AppColors.textPrimary,
           ),
-          Positioned(
-            left: -size.width * 0.12,
-            bottom: -size.width * 0.2,
-            child: Container(
-              width: size.width * 0.4,
-              height: size.width * 0.4,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: primaryColor.withValues(alpha: 0.08),
-              ),
+        ),
+        SizedBox(height: size.width * 0.02),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: size.width * 0.7),
+          child: Text(
+            "Pick how you'll use Bagyes. You can change this later in settings.",
+            style: TextStyle(
+              fontSize: size.width * 0.0375,
+              height: 1.45,
+              color: AppColors.textSecondary,
             ),
           ),
-
-          // Content
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () => context.go(AppRoutes.vendorHome),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(size.width * 0.03),
-                      child: Image.asset(
-                        AssetImages.bagyesLogo,
-                        width: size.width * 0.19,
-                        height: size.width * 0.19,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: size.width * 0.028,
-                      vertical: size.width * 0.018,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'RUSH',
-                      style: TextStyle(
-                        fontSize: size.width * 0.025,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: size.width * 0.0035,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: size.width * 0.045),
-              Text(
-                "Let's get\nyou set up.",
-                style: TextStyle(
-                  fontSize: size.width * 0.085,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: size.width * -0.0025,
-                  height: 1.05,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: size.width * 0.02),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: size.width * 0.62),
-                child: Text(
-                  "Pick how you'll use Bagyes. You can change this later in settings.",
-                  style: TextStyle(
-                    fontSize: size.width * 0.0375,
-                    height: 1.45,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

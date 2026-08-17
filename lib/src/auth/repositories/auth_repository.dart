@@ -126,7 +126,6 @@ class AuthRepository {
       "password_confirmation": confirmPassword,
       "role": "vendor",
       "business_name": businessName,
-      "business_type": businessType,
       "business_type_id": businessTypeId,
       "contact_person_name": contactPersonName,
       "business_address": businessAddress,
@@ -139,6 +138,7 @@ class AuthRepository {
       "closing_time": closingTime,
       "operating_days": operatingDays,
       "estimated_prep_time_minutes": estimatedPrepTimeMinutes,
+    
     };
     appLogger.d('AuthRepository.vendorRegister → PAYLOAD: $data');
     try {
@@ -204,10 +204,14 @@ class AuthRepository {
     try {
       final response = await _client.get(ApiEndpoints.businessTypes);
 
+      appLogger.d(
+        'AuthRepository.fetchBusinessTypes → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
       if ([200, 201].contains(response.statusCode)) {
-        final payload =
-            (response.data as DataMap)['data'] as List<dynamic>? ??
-            response.data as List<dynamic>;
+        final payload = _extractBusinessTypesList(response.data);
         final businessTypes = payload
             .map((e) => BusinessTypeModel.fromJson(e as DataMap))
             .toList();
@@ -232,6 +236,35 @@ class AuthRepository {
         methodName: 'fetchBusinessTypes',
       );
     }
+  }
+
+  /// Pulls the business-type list out of [rawData] regardless of whether the
+  /// API wraps it as `data: [...]` or nests it one level deeper (e.g. under a
+  /// paginated `data: { docs / items / businessTypes: [...] }` envelope).
+  ///
+  /// Falls back to an empty list — instead of throwing — when the shape is
+  /// unrecognised, and logs the unmatched keys so the real shape can be seen
+  /// in the console rather than crashing the caller.
+  List<dynamic> _extractBusinessTypesList(dynamic rawData) {
+    if (rawData is List) return rawData;
+
+    if (rawData is DataMap) {
+      final inner = rawData['data'];
+      if (inner is List) return inner;
+
+      if (inner is DataMap) {
+        for (final key in ['docs', 'items', 'businessTypes', 'results', 'list']) {
+          final nested = inner[key];
+          if (nested is List) return nested;
+        }
+        appLogger.w(
+          'AuthRepository.fetchBusinessTypes → unrecognised payload shape, '
+          'keys: ${inner.keys.toList()}',
+        );
+      }
+    }
+
+    return const [];
   }
 
   //Business Type fetching ends here
@@ -339,7 +372,7 @@ class AuthRepository {
     try {
       final response = await _client.post(
         ApiEndpoints.otpVerify,
-        data: {'phone': phone, 'otp': otp},
+        data: {'phone': phone, 'code': otp},
       );
 
       appLogger.d(
@@ -418,7 +451,7 @@ class AuthRepository {
     await _cacheHelper.cacheDeviceToken(token);
   }
 
-  ///["send device token to servver push notification setup"]
+  ///["send device token to server push notification setup"]
   ResultFuture<DataMap> sendDeviceToken({
     required String deviceToken,
     required String platform,

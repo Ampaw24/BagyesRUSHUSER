@@ -194,6 +194,16 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
     context.select(
       (VendorRegistrationViewModel vm) => vm.state.businessTypesError,
     );
+    // Cuisine types — loaded after initState.
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.availableCategories,
+    );
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.isCategoriesLoading,
+    );
+    context.select(
+      (VendorRegistrationViewModel vm) => vm.state.categoriesError,
+    );
     // OTP flow — isOtpSent/isOtpVerified/status change after registration
     // submits and the server responds; without these the VerificationStep
     // never receives updated props and stays stuck on the pre-send state.
