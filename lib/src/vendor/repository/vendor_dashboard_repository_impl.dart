@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/json_utils.dart';
 import '../../../core/utils/network_utils.dart';
 import '../../../core/utils/network_utility.dart';
 import '../../../core/utils/typedefs.dart';
@@ -28,24 +29,32 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   Future<Either<Failure, Map<String, dynamic>>> fetchDashboardStats() async {
     appLogger.d('VendorDashboardRepo.fetchDashboardStats → initiated');
     try {
-      final response =
-          await _networkUtility.dio.get(ApiEndpoints.vendorDashStats);
+      final response = await _networkUtility.dio.get(
+        ApiEndpoints.vendorDashStats,
+      );
       if (_isSuccess(response.statusCode)) {
         appLogger.i('VendorDashboardRepo.fetchDashboardStats → loaded');
         return Right(_dataMap(response));
       }
       appLogger.w(
-          'VendorDashboardRepo.fetchDashboardStats → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.fetchDashboardStats → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<Map<String, dynamic>>(
-          response);
+        response,
+      );
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.fetchDashboardStats → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.fetchDashboardStats → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<Map<String, dynamic>>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<Map<String, dynamic>>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'fetchDashboardStats');
+      return NetworkUtils.handleException<Map<String, dynamic>>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchDashboardStats',
+      );
     }
   }
 
@@ -58,51 +67,69 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
         queryParameters: {'status': 'active'},
       );
       if (_isSuccess(response.statusCode)) {
-        final list = _dataList(response)
-            .map((e) => VendorOrder.fromJson(e as DataMap))
-            .toList();
+        final list = _dataList(
+          response,
+        ).map((e) => VendorOrder.fromJson(e as DataMap)).toList();
         appLogger.i(
-            'VendorDashboardRepo.fetchActiveOrders → loaded ${list.length}');
+          'VendorDashboardRepo.fetchActiveOrders → loaded ${list.length}',
+        );
         return Right(list);
       }
       appLogger.w(
-          'VendorDashboardRepo.fetchActiveOrders → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.fetchActiveOrders → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<List<VendorOrder>>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.fetchActiveOrders → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.fetchActiveOrders → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<List<VendorOrder>>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<List<VendorOrder>>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'fetchActiveOrders');
+      return NetworkUtils.handleException<List<VendorOrder>>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchActiveOrders',
+      );
     }
   }
 
   @override
-  Future<Either<Failure, bool>> toggleStoreStatus(bool isOpen) async {
-    appLogger
-        .d('VendorDashboardRepo.toggleStoreStatus → isOpen=$isOpen');
+  Future<Either<Failure, bool>> toggleStoreStatus() async {
+    appLogger.d('VendorDashboardRepo.toggleStoreStatus → initiated');
     try {
       final response = await _networkUtility.dio.patch(
         ApiEndpoints.vendorStoreStatus,
-        data: {'is_open': isOpen},
       );
       if (_isSuccess(response.statusCode)) {
-        appLogger.i('VendorDashboardRepo.toggleStoreStatus → toggled');
+        final data = _dataMap(response);
+        final vendor = data['vendor'];
+        final isOpen = JsonUtils.asBool(
+          data['is_open'] ?? (vendor is DataMap ? vendor['is_open'] : null),
+        );
+        appLogger.i(
+          'VendorDashboardRepo.toggleStoreStatus → toggled isOpen=$isOpen',
+        );
         return Right(isOpen);
       }
       appLogger.w(
-          'VendorDashboardRepo.toggleStoreStatus → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.toggleStoreStatus → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<bool>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.toggleStoreStatus → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.toggleStoreStatus → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<bool>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<bool>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'toggleStoreStatus');
+      return NetworkUtils.handleException<bool>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'toggleStoreStatus',
+      );
     }
   }
 
@@ -113,31 +140,39 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     String? status,
   }) async {
     appLogger.d(
-        'VendorDashboardRepo.fetchAllOrders → status=${status ?? 'all'}');
+      'VendorDashboardRepo.fetchAllOrders → status=${status ?? 'all'}',
+    );
     try {
       final response = await _networkUtility.dio.get(
         ApiEndpoints.vendorOrders,
         queryParameters: status != null ? {'status': status} : null,
       );
       if (_isSuccess(response.statusCode)) {
-        final list = _dataList(response)
-            .map((e) => VendorOrder.fromJson(e as DataMap))
-            .toList();
+        final list = _dataList(
+          response,
+        ).map((e) => VendorOrder.fromJson(e as DataMap)).toList();
         appLogger.i(
-            'VendorDashboardRepo.fetchAllOrders → loaded ${list.length}');
+          'VendorDashboardRepo.fetchAllOrders → loaded ${list.length}',
+        );
         return Right(list);
       }
       appLogger.w(
-          'VendorDashboardRepo.fetchAllOrders → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.fetchAllOrders → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<List<VendorOrder>>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.fetchAllOrders → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.fetchAllOrders → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<List<VendorOrder>>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<List<VendorOrder>>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'fetchAllOrders');
+      return NetworkUtils.handleException<List<VendorOrder>>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchAllOrders',
+      );
     }
   }
 
@@ -160,8 +195,12 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       appLogger.e('VendorDashboardRepo.$action → DioException', error: e);
       return NetworkUtils.handleDioException<VendorOrder>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<VendorOrder>(e, s,
-          repositoryName: 'VendorDashboardRepo', methodName: action);
+      return NetworkUtils.handleException<VendorOrder>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: action,
+      );
     }
   }
 
@@ -175,7 +214,11 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
 
   @override
   Future<Either<Failure, VendorOrder>> markPreparing(String orderId) =>
-      _patchOrderAction(orderId, 'markPreparing', ApiEndpoints.vendorOrderPreparing);
+      _patchOrderAction(
+        orderId,
+        'markPreparing',
+        ApiEndpoints.vendorOrderPreparing,
+      );
 
   @override
   Future<Either<Failure, VendorOrder>> markReady(String orderId) =>
@@ -184,11 +227,18 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   @override
   Future<Either<Failure, VendorOrder>> markOutForDelivery(String orderId) =>
       _patchOrderAction(
-          orderId, 'markOutForDelivery', ApiEndpoints.vendorOrderOutForDelivery);
+        orderId,
+        'markOutForDelivery',
+        ApiEndpoints.vendorOrderOutForDelivery,
+      );
 
   @override
   Future<Either<Failure, VendorOrder>> markDelivered(String orderId) =>
-      _patchOrderAction(orderId, 'markDelivered', ApiEndpoints.vendorOrderDelivered);
+      _patchOrderAction(
+        orderId,
+        'markDelivered',
+        ApiEndpoints.vendorOrderDelivered,
+      );
 
   @override
   Future<Either<Failure, VendorOrder>> cancelOrder(String orderId) =>
@@ -200,27 +250,33 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   Future<Either<Failure, List<MenuItem>>> fetchMenuItems() async {
     appLogger.d('VendorDashboardRepo.fetchMenuItems → initiated');
     try {
-      final response =
-          await _networkUtility.dio.get(ApiEndpoints.vendorMenu);
+      final response = await _networkUtility.dio.get(ApiEndpoints.vendorMenu);
       if (_isSuccess(response.statusCode)) {
-        final list = _dataList(response)
-            .map((e) => MenuItem.fromJson(e as DataMap))
-            .toList();
+        final list = _dataList(
+          response,
+        ).map((e) => MenuItem.fromJson(e as DataMap)).toList();
         appLogger.i(
-            'VendorDashboardRepo.fetchMenuItems → loaded ${list.length}');
+          'VendorDashboardRepo.fetchMenuItems → loaded ${list.length}',
+        );
         return Right(list);
       }
       appLogger.w(
-          'VendorDashboardRepo.fetchMenuItems → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.fetchMenuItems → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<List<MenuItem>>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.fetchMenuItems → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.fetchMenuItems → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<List<MenuItem>>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<List<MenuItem>>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'fetchMenuItems');
+      return NetworkUtils.handleException<List<MenuItem>>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchMenuItems',
+      );
     }
   }
 
@@ -230,7 +286,8 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     bool isAvailable,
   ) async {
     appLogger.d(
-        'VendorDashboardRepo.toggleMenuItemAvailability → id=$itemId isAvailable=$isAvailable');
+      'VendorDashboardRepo.toggleMenuItemAvailability → id=$itemId isAvailable=$isAvailable',
+    );
     try {
       final response = await _networkUtility.dio.patch(
         ApiEndpoints.vendorMenuItemAvailability(itemId),
@@ -239,21 +296,27 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       if (_isSuccess(response.statusCode)) {
         final item = MenuItem.fromJson(_dataMap(response));
         appLogger.i(
-            'VendorDashboardRepo.toggleMenuItemAvailability → id=${item.id}');
+          'VendorDashboardRepo.toggleMenuItemAvailability → id=${item.id}',
+        );
         return Right(item);
       }
       appLogger.w(
-          'VendorDashboardRepo.toggleMenuItemAvailability → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.toggleMenuItemAvailability → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<MenuItem>(response);
     } on DioException catch (e) {
       appLogger.e(
-          'VendorDashboardRepo.toggleMenuItemAvailability → DioException',
-          error: e);
+        'VendorDashboardRepo.toggleMenuItemAvailability → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<MenuItem>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<MenuItem>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'toggleMenuItemAvailability');
+      return NetworkUtils.handleException<MenuItem>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'toggleMenuItemAvailability',
+      );
     }
   }
 
@@ -263,7 +326,8 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     bool isPopular,
   ) async {
     appLogger.d(
-        'VendorDashboardRepo.toggleMenuItemPopular → id=$id isPopular=$isPopular');
+      'VendorDashboardRepo.toggleMenuItemPopular → id=$id isPopular=$isPopular',
+    );
     try {
       final response = await _networkUtility.dio.patch(
         ApiEndpoints.vendorMenuItem(id),
@@ -272,20 +336,27 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       if (_isSuccess(response.statusCode)) {
         final item = MenuItem.fromJson(_dataMap(response));
         appLogger.i(
-            'VendorDashboardRepo.toggleMenuItemPopular → id=${item.id}');
+          'VendorDashboardRepo.toggleMenuItemPopular → id=${item.id}',
+        );
         return Right(item);
       }
       appLogger.w(
-          'VendorDashboardRepo.toggleMenuItemPopular → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.toggleMenuItemPopular → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<MenuItem>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.toggleMenuItemPopular → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.toggleMenuItemPopular → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<MenuItem>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<MenuItem>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'toggleMenuItemPopular');
+      return NetworkUtils.handleException<MenuItem>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'toggleMenuItemPopular',
+      );
     }
   }
 
@@ -294,28 +365,38 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     Map<String, dynamic> data,
   ) async {
     appLogger.d(
-        'VendorDashboardRepo.createMenuItem → title=${data['name'] ?? data['title']}');
+      'VendorDashboardRepo.createMenuItem → title=${data['name'] ?? data['title']}',
+    );
     try {
       final body = await _buildMenuItemBody(data);
-      final response =
-          await _networkUtility.dio.post(ApiEndpoints.vendorMenu, data: body);
+      final response = await _networkUtility.dio.post(
+        ApiEndpoints.vendorMenu,
+        data: body,
+      );
       if (_isSuccess(response.statusCode)) {
         final item = MenuItem.fromJson(_dataMap(response));
-        appLogger
-            .i('VendorDashboardRepo.createMenuItem → created id=${item.id}');
+        appLogger.i(
+          'VendorDashboardRepo.createMenuItem → created id=${item.id}',
+        );
         return Right(item);
       }
       appLogger.w(
-          'VendorDashboardRepo.createMenuItem → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.createMenuItem → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<MenuItem>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.createMenuItem → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.createMenuItem → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<MenuItem>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<MenuItem>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'createMenuItem');
+      return NetworkUtils.handleException<MenuItem>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'createMenuItem',
+      );
     }
   }
 
@@ -333,21 +414,28 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       );
       if (_isSuccess(response.statusCode)) {
         final item = MenuItem.fromJson(_dataMap(response));
-        appLogger
-            .i('VendorDashboardRepo.updateMenuItem → updated id=${item.id}');
+        appLogger.i(
+          'VendorDashboardRepo.updateMenuItem → updated id=${item.id}',
+        );
         return Right(item);
       }
       appLogger.w(
-          'VendorDashboardRepo.updateMenuItem → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.updateMenuItem → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<MenuItem>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.updateMenuItem → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.updateMenuItem → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<MenuItem>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<MenuItem>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'updateMenuItem');
+      return NetworkUtils.handleException<MenuItem>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'updateMenuItem',
+      );
     }
   }
 
@@ -355,23 +443,30 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   Future<Either<Failure, bool>> deleteMenuItem(String id) async {
     appLogger.d('VendorDashboardRepo.deleteMenuItem → id=$id');
     try {
-      final response =
-          await _networkUtility.dio.delete(ApiEndpoints.vendorMenuItem(id));
+      final response = await _networkUtility.dio.delete(
+        ApiEndpoints.vendorMenuItem(id),
+      );
       if (_isSuccess(response.statusCode)) {
         appLogger.i('VendorDashboardRepo.deleteMenuItem → deleted id=$id');
         return const Right(true);
       }
       appLogger.w(
-          'VendorDashboardRepo.deleteMenuItem → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.deleteMenuItem → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<bool>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.deleteMenuItem → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.deleteMenuItem → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<bool>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<bool>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'deleteMenuItem');
+      return NetworkUtils.handleException<bool>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'deleteMenuItem',
+      );
     }
   }
 
@@ -381,7 +476,8 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     List<AddonGroup> groups,
   ) async {
     appLogger.d(
-        'VendorDashboardRepo.upsertAddonGroups → itemId=$menuItemId groups=${groups.length}');
+      'VendorDashboardRepo.upsertAddonGroups → itemId=$menuItemId groups=${groups.length}',
+    );
     try {
       final response = await _networkUtility.dio.put(
         ApiEndpoints.vendorMenuItemAddonGroups(menuItemId),
@@ -389,21 +485,28 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       );
       if (_isSuccess(response.statusCode)) {
         final item = MenuItem.fromJson(_dataMap(response));
-        appLogger
-            .i('VendorDashboardRepo.upsertAddonGroups → updated id=${item.id}');
+        appLogger.i(
+          'VendorDashboardRepo.upsertAddonGroups → updated id=${item.id}',
+        );
         return Right(item);
       }
       appLogger.w(
-          'VendorDashboardRepo.upsertAddonGroups → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.upsertAddonGroups → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<MenuItem>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.upsertAddonGroups → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.upsertAddonGroups → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<MenuItem>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<MenuItem>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'upsertAddonGroups');
+      return NetworkUtils.handleException<MenuItem>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'upsertAddonGroups',
+      );
     }
   }
 
@@ -413,27 +516,35 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     String groupId,
   ) async {
     appLogger.d(
-        'VendorDashboardRepo.deleteAddonGroup → itemId=$menuItemId groupId=$groupId');
+      'VendorDashboardRepo.deleteAddonGroup → itemId=$menuItemId groupId=$groupId',
+    );
     try {
       final response = await _networkUtility.dio.delete(
         ApiEndpoints.vendorMenuItemAddonGroup(menuItemId, groupId),
       );
       if (_isSuccess(response.statusCode)) {
         appLogger.i(
-            'VendorDashboardRepo.deleteAddonGroup → deleted groupId=$groupId');
+          'VendorDashboardRepo.deleteAddonGroup → deleted groupId=$groupId',
+        );
         return const Right(true);
       }
       appLogger.w(
-          'VendorDashboardRepo.deleteAddonGroup → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.deleteAddonGroup → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<bool>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.deleteAddonGroup → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.deleteAddonGroup → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<bool>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<bool>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'deleteAddonGroup');
+      return NetworkUtils.handleException<bool>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'deleteAddonGroup',
+      );
     }
   }
 
@@ -441,8 +552,9 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
 
   @override
   Future<Either<Failure, EarningsData>> fetchEarnings({String? period}) async {
-    appLogger
-        .d('VendorDashboardRepo.fetchEarnings → period=${period ?? 'all'}');
+    appLogger.d(
+      'VendorDashboardRepo.fetchEarnings → period=${period ?? 'all'}',
+    );
     try {
       final response = await _networkUtility.dio.get(
         ApiEndpoints.vendorEarnings,
@@ -454,15 +566,19 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
         return Right(earnings);
       }
       appLogger.w(
-          'VendorDashboardRepo.fetchEarnings → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.fetchEarnings → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<EarningsData>(response);
     } on DioException catch (e) {
       appLogger.e('VendorDashboardRepo.fetchEarnings → DioException', error: e);
       return NetworkUtils.handleDioException<EarningsData>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<EarningsData>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'fetchEarnings');
+      return NetworkUtils.handleException<EarningsData>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchEarnings',
+      );
     }
   }
 
@@ -472,25 +588,33 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   Future<Either<Failure, VendorProfile>> fetchVendorProfile() async {
     appLogger.d('VendorDashboardRepo.fetchVendorProfile → initiated');
     try {
-      final response =
-          await _networkUtility.dio.get(ApiEndpoints.vendorProfile);
+      final response = await _networkUtility.dio.get(
+        ApiEndpoints.vendorProfile,
+      );
       if (_isSuccess(response.statusCode)) {
         final profile = VendorProfile.fromJson(_dataMap(response));
-        appLogger
-            .i('VendorDashboardRepo.fetchVendorProfile → id=${profile.id}');
+        appLogger.i(
+          'VendorDashboardRepo.fetchVendorProfile → id=${profile.id}',
+        );
         return Right(profile);
       }
       appLogger.w(
-          'VendorDashboardRepo.fetchVendorProfile → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.fetchVendorProfile → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<VendorProfile>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.fetchVendorProfile → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.fetchVendorProfile → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<VendorProfile>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<VendorProfile>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'fetchVendorProfile');
+      return NetworkUtils.handleException<VendorProfile>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchVendorProfile',
+      );
     }
   }
 
@@ -499,7 +623,8 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     Map<String, dynamic> data,
   ) async {
     appLogger.d(
-        'VendorDashboardRepo.updateVendorProfile → fields=${data.keys.join(', ')}');
+      'VendorDashboardRepo.updateVendorProfile → fields=${data.keys.join(', ')}',
+    );
     try {
       final response = await _networkUtility.dio.put(
         ApiEndpoints.vendorProfile,
@@ -508,20 +633,27 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       if (_isSuccess(response.statusCode)) {
         final profile = VendorProfile.fromJson(_dataMap(response));
         appLogger.i(
-            'VendorDashboardRepo.updateVendorProfile → updated id=${profile.id}');
+          'VendorDashboardRepo.updateVendorProfile → updated id=${profile.id}',
+        );
         return Right(profile);
       }
       appLogger.w(
-          'VendorDashboardRepo.updateVendorProfile → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.updateVendorProfile → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<VendorProfile>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.updateVendorProfile → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.updateVendorProfile → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<VendorProfile>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<VendorProfile>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'updateVendorProfile');
+      return NetworkUtils.handleException<VendorProfile>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'updateVendorProfile',
+      );
     }
   }
 
@@ -540,16 +672,22 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
         return const Right(null);
       }
       appLogger.w(
-          'VendorDashboardRepo.updateOperatingHours → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.updateOperatingHours → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<void>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.updateOperatingHours → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.updateOperatingHours → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<void>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<void>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'updateOperatingHours');
+      return NetworkUtils.handleException<void>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'updateOperatingHours',
+      );
     }
   }
 
@@ -559,23 +697,30 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   Future<Either<Failure, bool>> deleteVendorAccount() async {
     appLogger.d('VendorDashboardRepo.deleteVendorAccount → initiated');
     try {
-      final response =
-          await _networkUtility.dio.delete(ApiEndpoints.vendorAccount);
+      final response = await _networkUtility.dio.delete(
+        ApiEndpoints.vendorAccount,
+      );
       if (_isSuccess(response.statusCode)) {
         appLogger.i('VendorDashboardRepo.deleteVendorAccount → deleted');
         return const Right(true);
       }
       appLogger.w(
-          'VendorDashboardRepo.deleteVendorAccount → HTTP ${response.statusCode}');
+        'VendorDashboardRepo.deleteVendorAccount → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError<bool>(response);
     } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.deleteVendorAccount → DioException',
-          error: e);
+      appLogger.e(
+        'VendorDashboardRepo.deleteVendorAccount → DioException',
+        error: e,
+      );
       return NetworkUtils.handleDioException<bool>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<bool>(e, s,
-          repositoryName: 'VendorDashboardRepo',
-          methodName: 'deleteVendorAccount');
+      return NetworkUtils.handleException<bool>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'deleteVendorAccount',
+      );
     }
   }
 

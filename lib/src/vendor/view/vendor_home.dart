@@ -449,6 +449,17 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(dashboardProvider, (previous, next) {
+      if (next.errorMessage != null &&
+          next.errorMessage != previous?.errorMessage) {
+        StoreStatusToast.show(
+          context,
+          isSuccess: false,
+          title: 'Something Went Wrong',
+          subtitle: next.errorMessage!,
+        );
+      }
+    });
     final state = ref.watch(dashboardProvider);
     final w = MediaQuery.sizeOf(context).width;
     final h = w * 0.05;

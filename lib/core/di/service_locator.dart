@@ -16,7 +16,6 @@ import '../../src/vendor_registration/viewmodels/vendor_registration_viewmodel.d
 import '../../src/vendor_registration/viewmodels/step_validator.dart';
 import '../../src/vendor/repository/vendor_dashboard_repository.dart';
 import '../../src/vendor/repository/vendor_dashboard_repository_impl.dart';
-import '../../src/vendor/viewmodel/dashboard_viewmodel.dart';
 import '../../src/vendor/viewmodel/orders_viewmodel.dart' as vendor_orders;
 import '../../src/vendor/viewmodel/menu_viewmodel.dart';
 import '../../src/vendor/viewmodel/earnings_viewmodel.dart';
@@ -78,7 +77,6 @@ Future<void> init() async {
   sl.registerFactory(() => OnboardingViewModel(sl()));
   sl.registerFactory(() => HomeViewmodel(repository: sl()));
   sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl(), sl()));
-  sl.registerFactory(() => DashboardViewModel(sl()));
   sl.registerFactory(() => vendor_orders.OrdersViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));
   sl.registerFactory(() => EarningsViewModel());

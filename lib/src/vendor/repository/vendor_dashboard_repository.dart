@@ -11,7 +11,10 @@ abstract class VendorDashboardRepository {
   // ── Dashboard ──
   Future<Either<Failure, Map<String, dynamic>>> fetchDashboardStats();
   Future<Either<Failure, List<VendorOrder>>> fetchActiveOrders();
-  Future<Either<Failure, bool>> toggleStoreStatus(bool isOpen);
+  /// Flips the store's open/closed status server-side. Returns the
+  /// resulting `isOpen` state from the response — the caller doesn't
+  /// need to (and shouldn't) tell the backend what to set it to.
+  Future<Either<Failure, bool>> toggleStoreStatus();
 
   // ── Orders ──
   // The backend exposes 7 separate action routes rather than one generic

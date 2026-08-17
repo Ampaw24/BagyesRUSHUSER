@@ -21,7 +21,7 @@ class DashboardState extends Equatable {
 
   const DashboardState({
     this.status = DashboardStatus.initial,
-    this.storeOpen = true,
+    this.storeOpen = false,
     this.todayRevenue = 'GH₵ 0',
     this.activeOrderCount = 0,
     this.avgRating = '0.0',
@@ -150,7 +150,7 @@ class DashboardNotifier extends Notifier<DashboardState> {
     // Optimistic update
     state = state.copyWith(storeOpen: isOpen);
 
-    final result = await _repository.toggleStoreStatus(isOpen);
+    final result = await _repository.toggleStoreStatus();
     result.fold(
       (failure) {
         // Revert on failure
@@ -159,9 +159,10 @@ class DashboardNotifier extends Notifier<DashboardState> {
           errorMessage: failure.message,
         );
       },
-      (_) {
-        // Clear any previous error on success
-        state = state.copyWith(errorMessage: null);
+      (serverIsOpen) {
+        // Reconcile with the server's actual resulting state and clear
+        // any previous error.
+        state = state.copyWith(storeOpen: serverIsOpen, errorMessage: null);
       },
     );
   }

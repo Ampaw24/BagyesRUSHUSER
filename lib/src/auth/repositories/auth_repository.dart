@@ -65,10 +65,10 @@ class AuthRepository {
             (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
 
-        await _cacheTokens(payload);
-
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
+
+        await _cacheTokens(payload);
         await _cacheHelper.cacheUserId(user.id);
         await _cacheHelper.cacheUserRole(user.role);
 
@@ -163,10 +163,10 @@ class AuthRepository {
             (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
 
-        await _cacheTokens(payload);
-
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
+
+        await _cacheTokens(payload);
         await _cacheHelper.cacheUserId(user.id);
         await _cacheHelper.cacheUserRole(user.role);
 
@@ -290,12 +290,12 @@ class AuthRepository {
             (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
 
-        await _cacheTokens(payload);
-
         final userJson = payload['user'] as DataMap? ?? payload;
         final user = User.fromJson(userJson);
         appLogger.d('AuthRepository.login → user=${user.toJson()}');
         appLogger.d('AuthRepository.login → payload=${user.id}');
+
+        await _cacheTokens(payload);
         await _cacheHelper.cacheUserId(user.id);
         await _cacheHelper.cacheUserRole(user.role);
 

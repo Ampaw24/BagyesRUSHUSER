@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
 class User extends Equatable {
@@ -41,18 +42,18 @@ class User extends Equatable {
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
-    final role = json["role"] ?? "";
+    final role = JsonUtils.asString(json["role"]);
     final profileJson = json["profile"];
-    final email = json["email"] ?? "";
-    final phone = json["phone"] ?? "";
-    
+    final email = JsonUtils.asString(json["email"]);
+    final phone = JsonUtils.asString(json["phone"]);
+
     return User(
-      id: (json["id"] ?? "").toString(),
+      id: JsonUtils.asString(json["id"]),
       email: email,
       phone: phone,
       role: role,
-      status: json["status"] ?? "",
-      phoneVerified: json["phone_verified"] ?? false,
+      status: JsonUtils.asString(json["status"]),
+      phoneVerified: JsonUtils.asBool(json["phone_verified"]),
       profile: profileJson == null
           ? null
           : (role == 'vendor'
@@ -148,17 +149,17 @@ class CustomerProfile extends Equatable {
 
   factory CustomerProfile.fromJson(Map<String, dynamic> json) {
     return CustomerProfile(
-      id: (json["_id"] ?? json["id"] ?? "").toString(),
-      userId: (json["user_id"] ?? "").toString(),
-      firstName: json["first_name"] ?? "",
-      lastName: json["last_name"] ?? "",
-      address: json["address"] ?? "",
-      profilePictureUrl: json["profile_picture_url"] as String?,
-      referralCode: json["referral_code"] ?? "",
-      referralCount: json["referral_count"] ?? 0,
-      createdAt: DateTime.tryParse(json["created_at"] ?? ""),
-      updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
-      v: json["__v"] ?? 0,
+      id: JsonUtils.asString(json["_id"] ?? json["id"]),
+      userId: JsonUtils.asString(json["user_id"]),
+      firstName: JsonUtils.asString(json["first_name"]),
+      lastName: JsonUtils.asString(json["last_name"]),
+      address: JsonUtils.asString(json["address"]),
+      profilePictureUrl: JsonUtils.asStringOrNull(json["profile_picture_url"]),
+      referralCode: JsonUtils.asString(json["referral_code"]),
+      referralCount: JsonUtils.asInt(json["referral_count"]),
+      createdAt: JsonUtils.asDateTime(json["created_at"]),
+      updatedAt: JsonUtils.asDateTime(json["updated_at"]),
+      v: JsonUtils.asInt(json["__v"]),
     );
   }
 

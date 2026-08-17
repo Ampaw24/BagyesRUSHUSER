@@ -55,7 +55,7 @@ abstract final class ApiEndpoints {
   // ─── Vendor Dashboard ──────────────────────────────────────────────────────
   static const String vendorDashStats = '/vendor/me/dashboard';
   static const String vendorOrders = '/vendor/me/orders';
-  static const String vendorStoreStatus = '/vendors/store/status';
+  static const String vendorStoreStatus = '/vendor/me/toggle-open';
   static const String vendorMenu = '/vendors/menu-items';
   static const String vendorEarnings = '/vendors/earnings';
   static const String vendorProfile = '/vendor/me';

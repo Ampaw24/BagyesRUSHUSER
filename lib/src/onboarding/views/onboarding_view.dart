@@ -55,8 +55,8 @@ class _OnboardingViewState extends State<OnboardingView>
       ),
     );
 
-    _heroSlide =
-        Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero).animate(
+    _heroSlide = Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero)
+        .animate(
           CurvedAnimation(
             parent: _heroController,
             curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
@@ -172,7 +172,7 @@ class _OnboardingViewState extends State<OnboardingView>
                         // Role Cards
                         _buildRoleCards(size, viewModel),
 
-                        SizedBox(height: size.height * 0.02),
+                        SizedBox(height: size.height * 0.08),
 
                         // Continue Button
                         _buildContinueButton(size, viewModel),
@@ -202,12 +202,18 @@ class _OnboardingViewState extends State<OnboardingView>
         Positioned(
           right: -size.width * 0.22,
           top: -size.width * 0.1,
-          child: _bubble(size.width * 0.68, primaryColor.withValues(alpha: 0.09)),
+          child: _bubble(
+            size.width * 0.68,
+            primaryColor.withValues(alpha: 0.09),
+          ),
         ),
         Positioned(
           left: -size.width * 0.28,
           top: size.width * 0.28,
-          child: _bubble(size.width * 0.5, primaryColor.withValues(alpha: 0.06)),
+          child: _bubble(
+            size.width * 0.5,
+            primaryColor.withValues(alpha: 0.06),
+          ),
         ),
         _buildHeroContent(size),
       ],
@@ -216,7 +222,10 @@ class _OnboardingViewState extends State<OnboardingView>
 
   Widget _bubble(double diameter, Color color) {
     return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: diameter * 0.22, sigmaY: diameter * 0.22),
+      imageFilter: ImageFilter.blur(
+        sigmaX: diameter * 0.22,
+        sigmaY: diameter * 0.22,
+      ),
       child: Container(
         width: diameter,
         height: diameter,
@@ -242,7 +251,6 @@ class _OnboardingViewState extends State<OnboardingView>
                 fit: BoxFit.cover,
               ),
             ),
-            
           ],
         ),
         SizedBox(height: size.width * 0.05),
@@ -538,9 +546,7 @@ class _RoleCardState extends State<_RoleCard> {
                   shape: BoxShape.circle,
                   color: widget.isSelected ? primaryColor : Colors.transparent,
                   border: Border.all(
-                    color: widget.isSelected
-                        ? primaryColor
-                        : AppColors.border,
+                    color: widget.isSelected ? primaryColor : AppColors.border,
                     width: 2,
                   ),
                 ),
