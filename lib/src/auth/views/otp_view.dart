@@ -963,11 +963,18 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
       padding: EdgeInsets.only(top: d.fieldsToError),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.error_outline_rounded,
                color: AppColors.error, size: d.errorIconSize),
           SizedBox(width: d.errorIconSpacing),
-          Text(_errorMessage!, style: _Styles.errorText(d)),
+          Flexible(
+            child: Text(
+              _errorMessage!,
+              style: _Styles.errorText(d),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       ),
     );

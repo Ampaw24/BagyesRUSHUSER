@@ -116,7 +116,7 @@ class Wallet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text('Whatsapp', style: whiteBottonTextStyle),
-                          Icon(
+                          FaIcon(
                             FontAwesomeIcons.whatsapp,
                             color: whiteColor,
                             size: 25.0,

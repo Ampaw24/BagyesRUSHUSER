@@ -48,16 +48,15 @@ class RoleOption {
     RoleOption(
       role: AppRole.vendor,
       title: 'Vendor',
-      description:
-          'Register your restaurant or food business and start receiving orders.',
+      description: 'List your restaurant and start taking orders.',
       ctaText: 'Continue as Vendor',
       iconAsset: AssetImages.vendorIcon,
     ),
     RoleOption(
       role: AppRole.user,
       title: 'Customer',
-      description: 'Order food and get it delivered quickly to your location.',
-      ctaText: 'Continue as User',
+      description: 'Order food and track it to your door.',
+      ctaText: 'Continue as Customer',
       iconAsset: AssetImages.userIcon,
     ),
   ];

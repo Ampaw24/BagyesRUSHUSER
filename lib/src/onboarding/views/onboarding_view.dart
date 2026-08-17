@@ -5,9 +5,19 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constant/constant.dart';
+import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../models/app_role.dart';
 import '../viewmodels/onboarding_viewmodel.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Design tokens — "Role select, modernised" rebrand
+// ═══════════════════════════════════════════════════════════════════════════
+
+const Color _heroBg = AppColors.surfaceVariant;
+const Color _cardSelectedBg = Color(0xFFFFF5F5);
+const Color _tileUnselectedBg = AppColors.surfaceVariant;
+const Color _ctaDisabledBg = Color(0xFFECECF1);
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({super.key});
@@ -18,10 +28,10 @@ class OnboardingView extends StatefulWidget {
 
 class _OnboardingViewState extends State<OnboardingView>
     with TickerProviderStateMixin {
-  late AnimationController _illustrationController;
+  late AnimationController _heroController;
   late AnimationController _cardsController;
-  late Animation<double> _illustrationFade;
-  late Animation<Offset> _illustrationSlide;
+  late Animation<double> _heroFade;
+  late Animation<Offset> _heroSlide;
   late List<Animation<double>> _cardAnimations;
 
   @override
@@ -31,23 +41,23 @@ class _OnboardingViewState extends State<OnboardingView>
   }
 
   void _setupAnimations() {
-    // Illustration animations
-    _illustrationController = AnimationController(
+    // Hero card animations
+    _heroController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    _illustrationFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _heroFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _illustrationController,
+        parent: _heroController,
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
 
-    _illustrationSlide =
+    _heroSlide =
         Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero).animate(
           CurvedAnimation(
-            parent: _illustrationController,
+            parent: _heroController,
             curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
           ),
         );
@@ -73,13 +83,13 @@ class _OnboardingViewState extends State<OnboardingView>
     );
 
     // Start animations
-    _illustrationController.forward();
+    _heroController.forward();
     _cardsController.forward();
   }
 
   @override
   void dispose() {
-    _illustrationController.dispose();
+    _heroController.dispose();
     _cardsController.dispose();
     super.dispose();
   }
@@ -104,6 +114,14 @@ class _OnboardingViewState extends State<OnboardingView>
         ),
       );
     }
+  }
+
+  String _ctaLabel(OnboardingViewModel viewModel) {
+    final selected = viewModel.state.selectedRole;
+    if (selected == null) return 'Select an option';
+    return RoleOption.options
+        .firstWhere((option) => option.role == selected)
+        .ctaText;
   }
 
   @override
@@ -132,28 +150,28 @@ class _OnboardingViewState extends State<OnboardingView>
                     ),
                     child: Column(
                       children: [
-                        SizedBox(height: size.height * 0.04),
+                        SizedBox(height: size.height * 0.02),
 
-                        // Illustration Section
+                        // Hero Card — logo, brand badge, headline & subtext
                         FadeTransition(
-                          opacity: _illustrationFade,
+                          opacity: _heroFade,
                           child: SlideTransition(
-                            position: _illustrationSlide,
-                            child: _buildIllustration(size, isTablet),
+                            position: _heroSlide,
+                            child: _buildHeroCard(size),
                           ),
                         ),
 
-                        SizedBox(height: size.height * 0.04),
-
-                        // Header
-                        _buildHeader(size),
-
                         SizedBox(height: size.height * 0.03),
+
+                        // "I am a" label
+                        _buildSectionLabel(size),
+
+                        SizedBox(height: size.height * 0.015),
 
                         // Role Cards
                         _buildRoleCards(size, viewModel),
 
-                        SizedBox(height: size.height * 0.03),
+                        SizedBox(height: size.height * 0.02),
 
                         // Continue Button
                         _buildContinueButton(size, viewModel),
@@ -176,50 +194,132 @@ class _OnboardingViewState extends State<OnboardingView>
     );
   }
 
-  Widget _buildIllustration(Size size, bool isTablet) {
-    final illustrationSize = isTablet ? size.width * 0.4 : size.width * 0.5;
-    final radius = size.width * 0.06;
+  Widget _buildHeroCard(Size size) {
+    final radius = size.width * 0.075;
 
     return Container(
-      width: illustrationSize,
-      height: illustrationSize,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(radius)),
-      child: ClipRRect(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        size.width * 0.065,
+        size.width * 0.065,
+        size.width * 0.065,
+        size.width * 0.075,
+      ),
+      decoration: BoxDecoration(
+        color: _heroBg,
         borderRadius: BorderRadius.circular(radius),
-        child: Image.asset(AssetImages.bagyesLogo, fit: BoxFit.cover),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Decorative accent glows
+          Positioned(
+            right: -size.width * 0.15,
+            top: -size.width * 0.18,
+            child: Container(
+              width: size.width * 0.5,
+              height: size.width * 0.5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryColor.withValues(alpha: 0.14),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -size.width * 0.12,
+            bottom: -size.width * 0.2,
+            child: Container(
+              width: size.width * 0.4,
+              height: size.width * 0.4,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryColor.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+
+          // Content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => context.go(AppRoutes.vendorHome),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(size.width * 0.03),
+                      child: Image.asset(
+                        AssetImages.bagyesLogo,
+                        width: size.width * 0.19,
+                        height: size.width * 0.19,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.028,
+                      vertical: size.width * 0.018,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'RUSH',
+                      style: TextStyle(
+                        fontSize: size.width * 0.025,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: size.width * 0.0035,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: size.width * 0.045),
+              Text(
+                "Let's get\nyou set up.",
+                style: TextStyle(
+                  fontSize: size.width * 0.085,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: size.width * -0.0025,
+                  height: 1.05,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(height: size.width * 0.02),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: size.width * 0.62),
+                child: Text(
+                  "Pick how you'll use Bagyes. You can change this later in settings.",
+                  style: TextStyle(
+                    fontSize: size.width * 0.0375,
+                    height: 1.45,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader(Size size) {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () {
-            context.go(AppRoutes.vendorHome);
-          },
-          child: Text(
-            'Welcome ',
-            style: TextStyle(
-              fontSize: size.width * 0.07,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-              letterSpacing: -0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
+  Widget _buildSectionLabel(Size size) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'I AM A',
+        style: TextStyle(
+          fontSize: size.width * 0.028,
+          fontWeight: FontWeight.w700,
+          letterSpacing: size.width * 0.0045,
+          color: AppColors.textSecondary,
         ),
-        SizedBox(height: size.height * 0.01),
-        Text(
-          'Please select how you would like to proceed',
-          style: TextStyle(
-            fontSize: size.width * 0.038,
-            color: Colors.grey[600],
-            height: 1.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 
@@ -240,7 +340,7 @@ class _OnboardingViewState extends State<OnboardingView>
                   size.height * 0.04 * (1 - _cardAnimations[index].value),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: size.height * 0.02),
+                  padding: EdgeInsets.only(bottom: size.height * 0.015),
                   child: _RoleCard(
                     size: size,
                     option: options[index],
@@ -262,7 +362,7 @@ class _OnboardingViewState extends State<OnboardingView>
   Widget _buildContinueButton(Size size, OnboardingViewModel viewModel) {
     final isEnabled =
         viewModel.state.selectedRole != null && !viewModel.state.isLoading;
-    final radius = size.width * 0.04;
+    final radius = size.width * 0.045;
 
     return InkWell(
       onTap: isEnabled ? () => _handleRoleSelection(context, viewModel) : null,
@@ -270,16 +370,16 @@ class _OnboardingViewState extends State<OnboardingView>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
-        height: size.height * 0.07,
+        padding: EdgeInsets.symmetric(vertical: size.width * 0.045),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
-          color: isEnabled ? primaryColor : Colors.grey[300],
+          color: isEnabled ? primaryColor : _ctaDisabledBg,
           boxShadow: isEnabled
               ? [
                   BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.3),
-                    blurRadius: size.width * 0.03,
-                    offset: Offset(0, size.height * 0.008),
+                    color: primaryColor.withValues(alpha: 0.08),
+                    blurRadius: size.width * 0.02,
+                    offset: Offset(0, size.height * 0.004),
                   ),
                 ]
               : [],
@@ -295,12 +395,12 @@ class _OnboardingViewState extends State<OnboardingView>
                   ),
                 )
               : Text(
-                  'Continue',
+                  _ctaLabel(viewModel),
                   style: TextStyle(
-                    color: isEnabled ? Colors.white : Colors.grey[500],
-                    fontSize: size.width * 0.042,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                    color: isEnabled ? Colors.white : AppColors.textSecondary,
+                    fontSize: size.width * 0.041,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: size.width * -0.001,
                   ),
                 ),
         ),
@@ -317,7 +417,8 @@ class _OnboardingViewState extends State<OnboardingView>
             text: 'Already have an account? ',
             style: TextStyle(
               fontSize: size.width * 0.035,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
             children: [
               TextSpan(
@@ -325,7 +426,7 @@ class _OnboardingViewState extends State<OnboardingView>
                 style: TextStyle(
                   fontSize: size.width * 0.035,
                   color: primaryColor,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
                 recognizer: TapGestureRecognizer()
                   ..onTap = () {
@@ -367,10 +468,10 @@ class _RoleCardState extends State<_RoleCard> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
-    final radius = size.width * 0.05;
-    final innerPadding = size.width * 0.05;
-    final iconContainerSize = size.width * 0.14;
-    final indicatorSize = size.width * 0.06;
+    final radius = size.width * 0.055;
+    final innerPadding = size.width * 0.04;
+    final iconContainerSize = size.width * 0.13;
+    final indicatorSize = size.width * 0.055;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -391,19 +492,17 @@ class _RoleCardState extends State<_RoleCard> {
           ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
-          color: Colors.white,
+          color: widget.isSelected ? _cardSelectedBg : Colors.white,
           border: Border.all(
-            color: widget.isSelected
-                ? primaryColor.withValues(alpha: 0.5)
-                : Colors.grey[300]!,
-            width: widget.isSelected ? 2.0 : 1.5,
+            color: widget.isSelected ? primaryColor : AppColors.border,
+            width: 1.5,
           ),
           boxShadow: widget.isSelected
               ? [
                   BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.15),
-                    blurRadius: size.width * 0.04,
-                    offset: Offset(0, size.height * 0.01),
+                    color: primaryColor.withValues(alpha: 0.05),
+                    blurRadius: size.width * 0.025,
+                    offset: Offset(0, size.height * 0.005),
                   ),
                 ]
               : [
@@ -419,20 +518,23 @@ class _RoleCardState extends State<_RoleCard> {
           child: Row(
             children: [
               // Icon
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 width: iconContainerSize,
                 height: iconContainerSize,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius * 0.7),
-                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(radius * 0.65),
+                  color: widget.isSelected
+                      ? primaryColor.withValues(alpha: 0.12)
+                      : _tileUnselectedBg,
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(iconContainerSize * 0.2),
+                  padding: EdgeInsets.all(iconContainerSize * 0.14),
                   child: Image.asset(widget.option.iconAsset),
                 ),
               ),
 
-              SizedBox(width: size.width * 0.04),
+              SizedBox(width: size.width * 0.035),
 
               // Text Content
               Expanded(
@@ -442,19 +544,18 @@ class _RoleCardState extends State<_RoleCard> {
                     Text(
                       widget.option.title,
                       style: TextStyle(
-                        fontSize: size.width * 0.045,
-                        fontWeight: FontWeight.bold,
-                        color: widget.isSelected
-                            ? primaryColor
-                            : Colors.black87,
+                        fontSize: size.width * 0.0425,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: size.width * -0.001,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: size.height * 0.005),
+                    SizedBox(height: size.height * 0.004),
                     Text(
                       widget.option.description,
                       style: TextStyle(
-                        fontSize: size.width * 0.033,
-                        color: Colors.grey[600],
+                        fontSize: size.width * 0.0335,
+                        color: AppColors.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -473,7 +574,9 @@ class _RoleCardState extends State<_RoleCard> {
                   shape: BoxShape.circle,
                   color: widget.isSelected ? primaryColor : Colors.transparent,
                   border: Border.all(
-                    color: widget.isSelected ? primaryColor : Colors.grey[400]!,
+                    color: widget.isSelected
+                        ? primaryColor
+                        : AppColors.border,
                     width: 2,
                   ),
                 ),

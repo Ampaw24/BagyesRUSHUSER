@@ -97,7 +97,7 @@ class _NotificationsState extends State<Notifications> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                Icon(
+                FaIcon(
                   FontAwesomeIcons.bellSlash,
                   color: Colors.grey,
                   size: 60.0,
