@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '782816451697',
     projectId: 'bagyesrushapp-e0e4f',
     storageBucket: 'bagyesrushapp-e0e4f.firebasestorage.app',
-    iosBundleId: 'com.bagye.bagyesrushdelivery',
+    iosBundleId: 'com.bagye.bagyesrush2',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

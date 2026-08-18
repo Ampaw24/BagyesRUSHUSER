@@ -1,4 +1,4 @@
-package com.bagye.bagyesrushdelivery
+package com.bagye.bagyesrush2
 
 import io.flutter.embedding.android.FlutterActivity
 

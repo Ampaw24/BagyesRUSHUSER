@@ -31,7 +31,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.bagye.bagyesrushdelivery"
+    namespace "com.bagye.bagyesrush2"
     compileSdk 36
 
     sourceSets {
@@ -40,7 +40,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.bagye.bagyesrushdelivery"
+        applicationId "com.bagye.bagyesrush2"
         minSdkVersion flutter.minSdkVersion
         targetSdk 36
         versionCode 2
