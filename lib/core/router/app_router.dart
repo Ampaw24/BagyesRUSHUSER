@@ -271,7 +271,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.vendorKyc,
-      builder: (context, state) => const VendorKycView(),
+      builder: (context, state) =>
+          VendorKycView(initialStep: state.extra as int? ?? 0),
     ),
     GoRoute(
       path: AppRoutes.vendorPaymentMethods,

@@ -1,6 +1,116 @@
 import 'package:equatable/equatable.dart';
 import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
 
+/// Uploaded/reviewed state of a single KYC document.
+class VendorDocumentStatus extends Equatable {
+  final bool uploaded;
+
+  const VendorDocumentStatus({this.uploaded = false});
+
+  factory VendorDocumentStatus.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const VendorDocumentStatus();
+    return VendorDocumentStatus(uploaded: JsonUtils.asBool(json['uploaded']));
+  }
+
+  Map<String, dynamic> toJson() => {'uploaded': uploaded};
+
+  @override
+  List<Object?> get props => [uploaded];
+}
+
+/// KYC document checklist as returned under `profile.documents`.
+class VendorDocuments extends Equatable {
+  final VendorDocumentStatus businessRegistrationCertificate;
+  final VendorDocumentStatus foodSafetyLicense;
+  final VendorDocumentStatus ownerId;
+
+  const VendorDocuments({
+    this.businessRegistrationCertificate = const VendorDocumentStatus(),
+    this.foodSafetyLicense = const VendorDocumentStatus(),
+    this.ownerId = const VendorDocumentStatus(),
+  });
+
+  factory VendorDocuments.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const VendorDocuments();
+    VendorDocumentStatus parse(String key) =>
+        VendorDocumentStatus.fromJson(json[key] as Map<String, dynamic>?);
+    return VendorDocuments(
+      businessRegistrationCertificate: parse('business_registration_certificate'),
+      foodSafetyLicense: parse('food_safety_license'),
+      ownerId: parse('owner_id'),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'business_registration_certificate': businessRegistrationCertificate.toJson(),
+        'food_safety_license': foodSafetyLicense.toJson(),
+        'owner_id': ownerId.toJson(),
+      };
+
+  bool get allUploaded =>
+      businessRegistrationCertificate.uploaded &&
+      foodSafetyLicense.uploaded &&
+      ownerId.uploaded;
+
+  @override
+  List<Object?> get props => [businessRegistrationCertificate, foodSafetyLicense, ownerId];
+}
+
+/// Payout/bank details as returned under `profile.payout`.
+class VendorPayoutInfo extends Equatable {
+  final String? bankName;
+  final String? accountName;
+  final String? accountNumberLast4;
+  final String? branchCodeLast4;
+  final String? mobileMoneyNumberLast4;
+  final String? mobileMoneyProvider;
+  final bool isConfigured;
+
+  const VendorPayoutInfo({
+    this.bankName,
+    this.accountName,
+    this.accountNumberLast4,
+    this.branchCodeLast4,
+    this.mobileMoneyNumberLast4,
+    this.mobileMoneyProvider,
+    this.isConfigured = false,
+  });
+
+  factory VendorPayoutInfo.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const VendorPayoutInfo();
+    return VendorPayoutInfo(
+      bankName: JsonUtils.asStringOrNull(json['bank_name']),
+      accountName: JsonUtils.asStringOrNull(json['account_name']),
+      accountNumberLast4: JsonUtils.asStringOrNull(json['account_number_last4']),
+      branchCodeLast4: JsonUtils.asStringOrNull(json['branch_code_last4']),
+      mobileMoneyNumberLast4: JsonUtils.asStringOrNull(json['mobile_money_number_last4']),
+      mobileMoneyProvider: JsonUtils.asStringOrNull(json['mobile_money_provider']),
+      isConfigured: JsonUtils.asBool(json['is_configured']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'bank_name': bankName,
+        'account_name': accountName,
+        'account_number_last4': accountNumberLast4,
+        'branch_code_last4': branchCodeLast4,
+        'mobile_money_number_last4': mobileMoneyNumberLast4,
+        'mobile_money_provider': mobileMoneyProvider,
+        'is_configured': isConfigured,
+      };
+
+  @override
+  List<Object?> get props => [
+        bankName,
+        accountName,
+        accountNumberLast4,
+        branchCodeLast4,
+        mobileMoneyNumberLast4,
+        mobileMoneyProvider,
+        isConfigured,
+      ];
+}
+
 class VendorProfile extends Equatable {
   const VendorProfile({
     required this.id,
@@ -44,6 +154,22 @@ class VendorProfile extends Equatable {
     this.totalOrders = 0,
     this.phone = '',
     this.email = '',
+    this.vendorId = '',
+    this.slug = '',
+    this.fullAddress,
+    this.businessTypeName,
+    this.imageUrl,
+    this.statusLabel,
+    this.rejectionReason,
+    this.isOpenNow = false,
+    this.missingProfileFields = const [],
+    this.documents = const VendorDocuments(),
+    this.documentsStatus,
+    this.documentsReviewedAt,
+    this.payout = const VendorPayoutInfo(),
+    this.promoText,
+    this.latitude,
+    this.longitude,
   });
 
   final String id;
@@ -77,7 +203,7 @@ class VendorProfile extends Equatable {
   final num discountPercent;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  
+
   // Optional fields for UI compatibility
   final String? logoUrl;
   final String? coverImageUrl;
@@ -90,13 +216,35 @@ class VendorProfile extends Equatable {
   final String phone;
   final String email;
 
+  // ULID-style public vendor identifier (`vendor_id`) — distinct from the
+  // numeric `id` row key; never used to build `/vendor/me`-scoped URLs.
+  final String vendorId;
+  final String slug;
+  final String? fullAddress;
+  final String? businessTypeName;
+  final String? imageUrl;
+  final String? statusLabel;
+  final String? rejectionReason;
+  final bool isOpenNow;
+  final List<String> missingProfileFields;
+  final VendorDocuments documents;
+  final String? documentsStatus;
+  final DateTime? documentsReviewedAt;
+  final VendorPayoutInfo payout;
+  final String? promoText;
+  final double? latitude;
+  final double? longitude;
+
   // Compatibility Getters
   String get ownerName => contactPersonName;
   String get address => businessAddress;
   num get minimumOrder => minOrder;
   String get estimatedDeliveryTime => '$deliveryTimeMin-$deliveryTimeMax min';
   int get totalReviews => reviewCount;
-  bool get isVerified => status == 'active';
+
+  /// The backend's vendor-approval status values are `'approved'` — kept
+  /// alongside the legacy `'active'` value in case older accounts still use it.
+  bool get isVerified => status == 'approved' || status == 'active';
 
   // Static dummy for compatibility
   static VendorProfile get dummy => VendorProfile(
@@ -201,6 +349,24 @@ class VendorProfile extends Equatable {
       totalOrders: JsonUtils.asInt(json["total_orders"]),
       phone: JsonUtils.asString(json["phone"]),
       email: JsonUtils.asString(json["email"]),
+      vendorId: JsonUtils.asString(json["vendor_id"]),
+      slug: JsonUtils.asString(json["slug"]),
+      fullAddress: JsonUtils.asStringOrNull(json["address"]),
+      businessTypeName: JsonUtils.asStringOrNull(
+        (json["business_type"] as Map<String, dynamic>?)?["name"],
+      ),
+      imageUrl: JsonUtils.asStringOrNull(json["image_url"]),
+      statusLabel: JsonUtils.asStringOrNull(json["status_label"]),
+      rejectionReason: JsonUtils.asStringOrNull(json["rejection_reason"]),
+      isOpenNow: JsonUtils.asBool(json["is_open_now"]),
+      missingProfileFields: JsonUtils.asStringList(json["missing_profile_fields"]),
+      documents: VendorDocuments.fromJson(json["documents"] as Map<String, dynamic>?),
+      documentsStatus: JsonUtils.asStringOrNull(json["documents_status"]),
+      documentsReviewedAt: JsonUtils.asDateTime(json["documents_reviewed_at"]),
+      payout: VendorPayoutInfo.fromJson(json["payout"] as Map<String, dynamic>?),
+      promoText: JsonUtils.asStringOrNull(json["promo_text"]),
+      latitude: json["latitude"] == null ? null : JsonUtils.asDouble(json["latitude"]),
+      longitude: json["longitude"] == null ? null : JsonUtils.asDouble(json["longitude"]),
     );
   }
 
@@ -246,6 +412,15 @@ class VendorProfile extends Equatable {
         "total_orders": totalOrders,
         "phone": phone,
         "email": email,
+        "vendor_id": vendorId,
+        "slug": slug,
+        "address": fullAddress,
+        "image_url": imageUrl,
+        "promo_text": promoText,
+        "latitude": latitude,
+        "longitude": longitude,
+        // documents / payout / status_label / missing_profile_fields /
+        // is_open_now are server-computed and read-only — not sent back on PUT.
       };
 
   VendorProfile copyWith({
@@ -290,6 +465,22 @@ class VendorProfile extends Equatable {
     int? totalOrders,
     String? phone,
     String? email,
+    String? vendorId,
+    String? slug,
+    String? fullAddress,
+    String? businessTypeName,
+    String? imageUrl,
+    String? statusLabel,
+    String? rejectionReason,
+    bool? isOpenNow,
+    List<String>? missingProfileFields,
+    VendorDocuments? documents,
+    String? documentsStatus,
+    DateTime? documentsReviewedAt,
+    VendorPayoutInfo? payout,
+    String? promoText,
+    double? latitude,
+    double? longitude,
     Map<String, DayHours>? weeklyHours,
     // Compatibility parameters
     String? ownerName,
@@ -356,6 +547,22 @@ class VendorProfile extends Equatable {
       totalOrders: totalOrders ?? this.totalOrders,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      vendorId: vendorId ?? this.vendorId,
+      slug: slug ?? this.slug,
+      fullAddress: fullAddress ?? this.fullAddress,
+      businessTypeName: businessTypeName ?? this.businessTypeName,
+      imageUrl: imageUrl ?? this.imageUrl,
+      statusLabel: statusLabel ?? this.statusLabel,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      isOpenNow: isOpenNow ?? this.isOpenNow,
+      missingProfileFields: missingProfileFields ?? this.missingProfileFields,
+      documents: documents ?? this.documents,
+      documentsStatus: documentsStatus ?? this.documentsStatus,
+      documentsReviewedAt: documentsReviewedAt ?? this.documentsReviewedAt,
+      payout: payout ?? this.payout,
+      promoText: promoText ?? this.promoText,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -402,6 +609,22 @@ class VendorProfile extends Equatable {
         totalOrders,
         phone,
         email,
+        vendorId,
+        slug,
+        fullAddress,
+        businessTypeName,
+        imageUrl,
+        statusLabel,
+        rejectionReason,
+        isOpenNow,
+        missingProfileFields,
+        documents,
+        documentsStatus,
+        documentsReviewedAt,
+        payout,
+        promoText,
+        latitude,
+        longitude,
       ];
 }
 

@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/router/app_routes.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
@@ -18,7 +19,7 @@ import 'widgets/new_order_banner.dart';
 import 'widgets/order_card.dart';
 import 'widgets/floating_nav_bar.dart';
 import 'widgets/vendor_drawer.dart';
-import 'widgets/kyc_prompt_banner.dart';
+import 'widgets/setup_progress_card.dart';
 import 'vendor_shop_profile_screen.dart';
 import '../features/notifications/view/screens/vendor_notifications_screen.dart';
 import 'vendor_orders_view.dart';
@@ -324,20 +325,6 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     }
   }
 
-  String _formatOperatingDays(List<String> days) {
-    if (days.isEmpty) return 'Closed';
-    final dayMap = {
-      'monday': 'Mon',
-      'tuesday': 'Tue',
-      'wednesday': 'Wed',
-      'thursday': 'Thu',
-      'friday': 'Fri',
-      'saturday': 'Sat',
-      'sunday': 'Sun',
-    };
-    return days.map((d) => dayMap[d.toLowerCase()] ?? d).join(', ');
-  }
-
   /// Pre-checks internet + location before opening the store.
   /// Closing the store skips these checks.
   Future<void> _handleStoreToggle(bool wantsOpen) async {
@@ -466,6 +453,11 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final profile = widget.vendorProfile;
     final location = _currentLocation ?? profile?.businessAddress;
 
+    // `is_profile_complete` is the backend's own boolean form of
+    // `missing_profile_fields.isEmpty` — trust it directly rather than
+    // re-deriving completeness client-side from separate sub-signals.
+    final setupIncomplete = profile?.isProfileComplete != true;
+
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -498,74 +490,58 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   onAvatarTap: widget.onAvatarTap,
                 ),
                 SizedBox(height: w * 0.05),
-                
-                // Greeting + location
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _greeting,
-                            style: TextStyle(
-                              fontSize: w * 0.036,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Mukta',
-                            ),
-                          ),
-                          Text(
-                            profile?.businessName ?? 'Vendor',
-                            style: TextStyle(
-                              fontSize: w * 0.068,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              height: 1.1,
-                              fontFamily: 'Mukta',
-                              letterSpacing: -0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (location != null)
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.015),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(w * 0.05),
-                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            HugeIcon(
-                              icon: HugeIcons.strokeRoundedLocation01,
-                              color: AppColors.primary,
-                              size: w * 0.035,
-                            ),
-                            SizedBox(width: w * 0.015),
-                            ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: w * 0.25),
-                              child: Text(
-                                location,
-                                style: TextStyle(
-                                  fontSize: w * 0.028,
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: 'Mukta',
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+
+                // Greeting
+                Text(
+                  _greeting,
+                  style: TextStyle(
+                    fontSize: w * 0.036,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Mukta',
+                  ),
                 ),
-                
+                Text(
+                  profile?.businessName ?? 'Vendor',
+                  style: TextStyle(
+                    fontSize: w * 0.068,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    height: 1.1,
+                    fontFamily: 'Mukta',
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                SizedBox(height: w * 0.035),
+
+                // Location / hours / radius pills
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      if (location != null) ...[
+                        _InfoPill(label: location, w: w, showDot: true),
+                        SizedBox(width: w * 0.02),
+                      ],
+                      if (profile != null) ...[
+                        _InfoPill(
+                          label: '${profile.openingTime} – ${profile.closingTime}',
+                          w: w,
+                        ),
+                        SizedBox(width: w * 0.02),
+                        _InfoPill(
+                          label: profile.deliveryRadiusKm > 0
+                              ? '${profile.deliveryRadiusKm}km Radius'
+                              : 'Radius not set',
+                          w: w,
+                          muted: profile.deliveryRadiusKm <= 0,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
                 // Status Banners (compact)
                 if (profile?.status == 'pending_review')
                   GestureDetector(
@@ -577,51 +553,37 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                       w: w,
                     ),
                   ),
-                if (profile?.isProfileComplete == false) ...[
-                  SizedBox(height: w * 0.025),
-                  KYCPromptBanner(
-                    onTap: () => context.push(AppRoutes.vendorKyc),
-                  ),
-                ],
-                
+
                 SizedBox(height: w * 0.05),
-                StoreToggleCard(
-                  isOpen: state.storeOpen,
-                  isLoading: _isTogglingStore,
-                  onToggle: _handleStoreToggle,
-                  revenue: state.todayRevenue,
-                  orders: '${state.activeOrderCount}',
-                  rating: profile?.rating.toString() ?? state.avgRating,
-                ),
-                
-                // Quick info chips
-                if (profile != null) ...[
-                  SizedBox(height: w * 0.035),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: [
-                        _DashboardChip(
-                          icon: HugeIcons.strokeRoundedClock01,
-                          label: '${profile.openingTime} – ${profile.closingTime}',
-                          w: w,
-                        ),
-                        SizedBox(width: w * 0.02),
-                        _DashboardChip(
-                          icon: HugeIcons.strokeRoundedCalendar01,
-                          label: _formatOperatingDays(profile.operatingDays),
-                          w: w,
-                        ),
-                        SizedBox(width: w * 0.02),
-                        _DashboardChip(
-                          icon: HugeIcons.strokeRoundedDeliveryTruck01,
-                          label: '${profile.deliveryRadiusKm}km Radius',
-                          w: w,
-                        ),
-                      ],
+                if (setupIncomplete && profile != null)
+                  SetupProgressCard(
+                    steps: buildVendorSetupSteps(
+                      profile,
+                      onBusinessProfile: () {
+                        if (widget.onAvatarTap != null) {
+                          widget.onAvatarTap!();
+                        } else {
+                          context.push(AppRoutes.vendorKyc);
+                        }
+                      },
+                      onDocuments: () =>
+                          context.push(AppRoutes.vendorKyc, extra: 1),
+                      onPayouts: () => context.push(AppRoutes.vendorPaymentMethods),
                     ),
+                  )
+                else
+                  StoreToggleCard(
+                    isOpen: state.storeOpen,
+                    isLoading: _isTogglingStore,
+                    onToggle: _handleStoreToggle,
+                    revenue: state.todayRevenue,
+                    orders: '${state.activeOrderCount}',
+                    rating: profile?.rating.toString() ?? state.avgRating,
                   ),
+
+                if (setupIncomplete) ...[
+                  SizedBox(height: w * 0.04),
+                  _SetupPendingStoreRow(w: w),
                 ],
 
                 if (state.activeOrders.any((o) => o.status == OrderStatus.pending)) ...[
@@ -657,45 +619,61 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
 
         // ── Active Orders List ──
         if (state.activeOrders.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(w * 0.06),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      shape: BoxShape.circle,
-                    ),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedShoppingBag01,
-                      size: w * 0.1,
-                      color: AppColors.textHint.withValues(alpha: 0.5),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
+            sliver: SliverToBoxAdapter(
+              child: DottedBorder(
+                borderType: BorderType.RRect,
+                radius: Radius.circular(w * 0.05),
+                strokeWidth: 1.5,
+                dashPattern: const [6, 5],
+                color: AppColors.border,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(w * 0.05),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: w * 0.08, horizontal: w * 0.06),
+                    color: Colors.transparent,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(w * 0.045),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            shape: BoxShape.circle,
+                          ),
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedShoppingBag01,
+                            size: w * 0.07,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        SizedBox(height: w * 0.035),
+                        Text(
+                          'No orders yet',
+                          style: TextStyle(
+                            fontSize: w * 0.042,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                            fontFamily: 'Mukta',
+                          ),
+                        ),
+                        SizedBox(height: w * 0.012),
+                        Text(
+                          'New orders land here the moment you go live.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: w * 0.032,
+                            color: AppColors.textSecondary,
+                            fontFamily: 'Mukta',
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: w * 0.04),
-                  Text(
-                    'No active orders',
-                    style: TextStyle(
-                      fontSize: w * 0.045,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      fontFamily: 'Mukta',
-                    ),
-                  ),
-                  SizedBox(height: w * 0.01),
-                  Text(
-                    'New orders will appear here',
-                    style: TextStyle(
-                      fontSize: w * 0.034,
-                      color: AppColors.textSecondary,
-                      fontFamily: 'Mukta',
-                    ),
-                  ),
-                  SizedBox(height: w * 0.1), // Spacing for floating bar
-                ],
+                ),
               ),
             ),
           )
@@ -732,34 +710,121 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   }
 }
 
-class _DashboardChip extends StatelessWidget {
-  final List<List<dynamic>> icon;
+// ─── Location / hours / radius pill ─────────────────────────────────────
+
+class _InfoPill extends StatelessWidget {
   final String label;
   final double w;
+  final bool showDot;
+  final bool muted;
 
-  const _DashboardChip({required this.icon, required this.label, required this.w});
+  const _InfoPill({
+    required this.label,
+    required this.w,
+    this.showDot = false,
+    this.muted = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.018),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.032, vertical: w * 0.02),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(w * 0.03),
+        borderRadius: BorderRadius.circular(w * 0.05),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          HugeIcon(icon: icon, color: AppColors.textSecondary, size: w * 0.035),
-          SizedBox(width: w * 0.018),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: w * 0.028,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'Mukta',
+          if (showDot) ...[
+            Container(
+              width: w * 0.018,
+              height: w * 0.018,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+            ),
+            SizedBox(width: w * 0.018),
+          ],
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: w * 0.32),
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: w * 0.03,
+                fontWeight: FontWeight.w700,
+                color: muted ? AppColors.textHint : AppColors.textPrimary,
+                fontFamily: 'Mukta',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Disabled store row shown while setup is incomplete ────────────────
+
+class _SetupPendingStoreRow extends StatelessWidget {
+  final double w;
+  const _SetupPendingStoreRow({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.035),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(w * 0.045),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: w * 0.02,
+            height: w * 0.02,
+            decoration: const BoxDecoration(
+              color: AppColors.textHint,
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: w * 0.03),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Store closed',
+                  style: TextStyle(
+                    fontSize: w * 0.038,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Mukta',
+                  ),
+                ),
+                Text(
+                  'Opens once verification clears',
+                  style: TextStyle(
+                    fontSize: w * 0.028,
+                    color: AppColors.textSecondary,
+                    fontFamily: 'Mukta',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IgnorePointer(
+            child: Opacity(
+              opacity: 0.5,
+              child: Switch(
+                value: false,
+                onChanged: null,
+                activeThumbColor: AppColors.primary,
+              ),
             ),
           ),
         ],

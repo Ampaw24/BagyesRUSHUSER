@@ -63,9 +63,6 @@ class StepValidator {
     if (data.cuisineTypes.isEmpty) {
       return 'Please select at least one cuisine type';
     }
-    if (data.operatingDays.isEmpty) {
-      return 'Please select at least one operating day';
-    }
     return null;
   }
 

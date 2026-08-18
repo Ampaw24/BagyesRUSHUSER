@@ -65,9 +65,37 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, VendorProfile>> updateVendorProfile(
     Map<String, dynamic> data,
   );
+  
   Future<Either<Failure, void>> updateOperatingHours(
     Map<String, DayHours> weeklyHours,
   );
+
+  /// Submits the operational details (opening/closing time, operating days,
+  /// estimated prep time) required to complete vendor KYC, in one call to
+  /// `PUT operationsKyc`.
+  Future<Either<Failure, VendorProfile>> submitOperationalKyc({
+    required String openingTime,
+    required String closingTime,
+    required List<String> operatingDays,
+    int? estimatedPrepTimeMinutes,
+  });
+
+  /// Uploads a single vendor document (e.g. `logo`, `owner_id`,
+  /// `business_registration_certificate`, `food_safety_license`) to
+  /// `POST /vendor/me/documents/:type`. Returns the resulting profile with
+  /// its updated document URLs/status.
+  Future<Either<Failure, VendorProfile>> uploadVendorDocument(
+    String type,
+    String filePath,
+  );
+
+  /// Uploads the front and back of the owner/user ID card together as a
+  /// single `owner_id` document submission (one multipart request carrying
+  /// both files), rather than two separate requests.
+  Future<Either<Failure, VendorProfile>> uploadOwnerIdDocument({
+    required String frontPath,
+    required String backPath,
+  });
 
   // ── Account ──
   Future<Either<Failure, bool>> deleteVendorAccount();

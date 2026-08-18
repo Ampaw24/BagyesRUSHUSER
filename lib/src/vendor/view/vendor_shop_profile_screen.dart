@@ -9,6 +9,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/utils/app_logger.dart';
 import '../model/vendor_profile.dart';
 import '../repository/vendor_dashboard_repository.dart';
 import 'widgets/edit_shop_info_sheet.dart';
@@ -59,7 +60,34 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
         if (mounted) setState(() => _scrollOffset = _scrollController.offset);
       });
     _entryController.forward();
+
+    // Pull the latest profile from the API on open so the completeness card
+    // reflects real server state rather than whatever was cached at login —
+    // it may be stale if KYC/profile fields changed since then.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshProfile());
   }
+
+  Future<void> _refreshProfile() async {
+    final result = await sl<VendorDashboardRepository>().fetchVendorProfile();
+    if (!mounted) return;
+    result.fold(
+      (failure) => appLogger.w(
+        'VendorShopProfileScreen._refreshProfile → failed: ${failure.message}',
+      ),
+      (profile) {
+        final currentUser = context.read<CurrentUserProvider>().user;
+        if (currentUser == null) return;
+        context.read<CurrentUserProvider>().setUser(
+              currentUser.copyWith(profile: profile),
+            );
+        // Drop any local overlay now that fresh server data has landed —
+        // otherwise a stale in-session edit would keep shadowing it.
+        if (_localEdits != null) setState(() => _localEdits = null);
+      },
+    );
+  }
+
+  Future<void> _onPullToRefresh() => _refreshProfile();
 
   @override
   void dispose() {
@@ -151,7 +179,10 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
             if (profile == null)
               _NoProfilePlaceholder(topPadding: topPadding)
             else
-              CustomScrollView(
+              RefreshIndicator(
+                onRefresh: _onPullToRefresh,
+                color: AppColors.primary,
+                child: CustomScrollView(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics(),
@@ -275,6 +306,7 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
                     ),
                   ),
                 ],
+                ),
               ),
 
             // ── Collapsing title bar background (can be transparent/ignored) ──
@@ -331,24 +363,47 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     ];
   }
 
+  /// Backend field key → human-readable label. Sourced directly from
+  /// `profile.missingProfileFields` (the API's own `missing_profile_fields`,
+  /// the same list it uses to compute `is_profile_complete` — see
+  /// `buildVendorSetupSteps` in `setup_progress_card.dart` for the sibling
+  /// usage) rather than re-derived from several separate client-side field
+  /// checks that can drift out of sync with what the backend considers
+  /// outstanding.
+  static const _missingFieldLabels = {
+    'contact_person_name': 'Contact person name',
+    'business_address': 'Business address',
+    'city': 'City',
+    'description': 'Shop description',
+    'tax_identification_number': 'Tax ID (TIN)',
+    'cuisine_types': 'Cuisine types',
+    'phone': 'Phone number',
+    'email': 'Email address',
+    'logo_url': 'Shop logo',
+    'logo': 'Shop logo',
+    'opening_time': 'Opening time',
+    'closing_time': 'Closing time',
+    'operating_days': 'Operating days',
+    'estimated_prep_time_minutes': 'Estimated prep time',
+    'delivery_radius_km': 'Delivery radius',
+    'min_order': 'Minimum order amount',
+    'delivery_fee': 'Delivery fee',
+    'documents': 'Identity documents',
+    'payout_details': 'Payout details',
+  };
+
   List<String> _getMissingFields(VendorProfile profile) {
-    final missing = <String>[];
-    if (profile.contactPersonName.isEmpty) missing.add('Contact person name');
-    if (profile.businessAddress.isEmpty) missing.add('Business address');
-    if (profile.city.isEmpty) missing.add('City');
-    if (profile.description.isEmpty) missing.add('Shop description');
-    if (profile.taxIdentificationNumber.isEmpty) missing.add('Tax ID (TIN)');
-    if (profile.cuisineTypes.isEmpty) missing.add('Cuisine types');
-    if (profile.phone.isEmpty) missing.add('Phone number');
-    if (profile.email.isEmpty) missing.add('Email address');
-    if (profile.logoUrl == null || profile.logoUrl!.isEmpty) {
-      missing.add('Shop logo');
-    }
-    if (profile.operatingDays.isEmpty) missing.add('Operating days');
-    if (profile.deliveryRadiusKm == 0) missing.add('Delivery radius');
-    if (profile.minOrder == 0) missing.add('Minimum order amount');
-    if (profile.deliveryFee == 0) missing.add('Delivery fee');
-    return missing;
+    return profile.missingProfileFields
+        .map((field) => _missingFieldLabels[field] ?? _humanizeField(field))
+        .toList();
+  }
+
+  String _humanizeField(String field) {
+    return field
+        .split('_')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
   }
 
   void _showSaveError(Object error) {
@@ -537,22 +592,27 @@ class _ProfileCompletionCard extends StatelessWidget {
           SizedBox(height: w * 0.04),
           SizedBox(
             width: double.infinity,
-            height: w * 0.1,
             child: ElevatedButton.icon(
               onPressed: () => context.push(AppRoutes.vendorKyc),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.warning,
                 foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: w * 0.032),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(w * 0.025),
                 ),
               ),
-              icon: Icon(Icons.verified_user_outlined, size: w * 0.04),
-              label: Text(
-                'Complete KYC Verification',
-                style: TextStyle(
-                  fontSize: w * 0.032,
-                  fontWeight: FontWeight.bold,
+              icon: Icon(Icons.verified_user_outlined, size: w * 0.042, color: Colors.white),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Complete KYC Verification',
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: w * 0.032,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

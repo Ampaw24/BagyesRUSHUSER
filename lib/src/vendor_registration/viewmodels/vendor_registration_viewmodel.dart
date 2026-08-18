@@ -307,10 +307,6 @@ class VendorRegistrationViewModel extends ChangeNotifier {
       taxIdentificationNumber: b.taxIdentificationNumber ?? '',
       cuisineTypes: o.cuisineTypes,
       deliveryRadiusKm: o.deliveryRadiusKm,
-      openingTime: o.openingTime,
-      closingTime: o.closingTime,
-      operatingDays: o.operatingDays.map((d) => d.toLowerCase()).toList(),
-      estimatedPrepTimeMinutes: o.estimatedPrepTimeMinutes,
     );
 
     // Credentials are scrubbed in _onAuthStateChanged once the outcome is known

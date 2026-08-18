@@ -14,43 +14,39 @@ import '../viewmodel/vendor_kyc_viewmodel.dart';
 import '../model/vendor_profile.dart';
 
 class VendorKycView extends StatefulWidget {
-  const VendorKycView({super.key});
+  /// Which step to open on — e.g. jumping straight to the documents step
+  /// (1) when the vendor taps "Verify identity documents" from the setup
+  /// checklist, skipping the store-details step they may have already done.
+  final int initialStep;
+
+  const VendorKycView({super.key, this.initialStep = 0});
 
   @override
   State<VendorKycView> createState() => _VendorKycViewState();
 }
 
 class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateMixin {
-  int _currentStep = 0;
+  late int _currentStep;
   late final PageController _pageCtrl;
   late final AnimationController _progressCtrl;
 
   // Form keys and controllers for inline validations
-  final _step1FormKey = GlobalKey<FormState>();
   final _step3FormKey = GlobalKey<FormState>();
-  late final TextEditingController _tinCtrl;
   late final TextEditingController _idNumberCtrl;
 
   @override
   void initState() {
     super.initState();
-    _pageCtrl = PageController(initialPage: 0);
+    _currentStep = widget.initialStep.clamp(0, 2);
+    _pageCtrl = PageController(initialPage: _currentStep);
     _progressCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _tinCtrl = TextEditingController();
     _idNumberCtrl = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final vm = context.read<VendorKycViewModel>();
-      vm.reset();
-      // Pre-fill TIN from profile if already exists
-      final profile = context.read<CurrentUserProvider>().user?.profile as VendorProfile?;
-      if (profile != null && profile.taxIdentificationNumber.isNotEmpty) {
-        _tinCtrl.text = profile.taxIdentificationNumber;
-        vm.setTinNumber(profile.taxIdentificationNumber);
-      }
+      context.read<VendorKycViewModel>().reset();
     });
   }
 
@@ -58,17 +54,33 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
   void dispose() {
     _pageCtrl.dispose();
     _progressCtrl.dispose();
-    _tinCtrl.dispose();
     _idNumberCtrl.dispose();
     super.dispose();
   }
 
-  void _nextStep(VendorKycViewModel vm) {
+  Future<void> _nextStep(VendorKycViewModel vm) async {
     if (_currentStep == 0) {
-      if (!_step1FormKey.currentState!.validate()) return;
-      vm.setTinNumber(_tinCtrl.text.trim());
+      // Submits opening/closing time, operating days, and estimated prep
+      // time via the operations-KYC endpoint before advancing — the loading
+      // overlay covers this via VendorKycStatus.saving.
+      final success = await vm.submitOperationalDetails();
+      if (!success || !mounted) return;
     } else if (_currentStep == 1) {
-      // Step 2 is document upload (optional files)
+      final profile = context.read<CurrentUserProvider>().user?.profile as VendorProfile?;
+      final documents = profile?.documents;
+      final missing = <String>[
+        if (!(documents?.businessRegistrationCertificate.uploaded ?? false))
+          'Business Registration Certificate',
+        if (!(documents?.foodSafetyLicense.uploaded ?? false))
+          'Food Safety / Hygiene Permit',
+        if (!(documents?.ownerId.uploaded ?? false)) 'User ID Card (front & back)',
+      ];
+      if (missing.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please upload: ${missing.join(', ')}')),
+        );
+        return;
+      }
     }
 
     if (_currentStep < 2) {
@@ -94,27 +106,110 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
     }
   }
 
-  Future<void> _pickImage(BuildContext context, String docType) async {
+  Future<void> _pickSelfie(BuildContext context) async {
     final picker = ImagePicker();
     final file = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
     );
     if (file == null) return;
-
     if (!context.mounted) return;
+    context.read<VendorKycViewModel>().setSelfiePath(file.path);
+  }
+
+  /// Picks an image, shows a preview confirmation dialog, and — only if the
+  /// vendor confirms — immediately uploads it via [upload] (the backend only
+  /// accepts one document per request). Used on the documents/identity steps
+  /// so each document is submitted as soon as it's confirmed, rather than
+  /// being staged locally and bundled into the final submit.
+  Future<void> _pickConfirmAndUpload(
+    BuildContext context, {
+    required String label,
+    required ValueChanged<String?> setLocalPath,
+    required Future<bool> Function(String filePath) upload,
+  }) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (file == null) return;
+    if (!context.mounted) return;
+
+    setLocalPath(file.path);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => CustomDialog(
+        config: CustomDialogConfig(
+          title: 'Use this photo?',
+          subtitle: 'Make sure the $label is clear and all text is readable before submitting — it will be sent for verification right away.',
+          type: DialogType.confirmation,
+          confirmText: 'Yes, Submit',
+          cancelText: 'Retake',
+          showCancelButton: true,
+          content: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(file.path),
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          onConfirm: () => upload(file.path),
+          onCancel: () => setLocalPath(null),
+        ),
+      ),
+    );
+  }
+
+  /// Picks and confirms one side of the ID card, then — once both the front
+  /// and back have been confirmed — submits them together as a single
+  /// `owner_id` upload (the backend takes one combined request per document
+  /// type, not one request per side). Confirming whichever side completes
+  /// the pair triggers the combined upload, regardless of order.
+  Future<void> _pickAndConfirmIdSide(
+    BuildContext context, {
+    required String sideLabel,
+    required ValueChanged<String?> setLocalPath,
+  }) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (file == null) return;
+    if (!context.mounted) return;
+
+    setLocalPath(file.path);
     final vm = context.read<VendorKycViewModel>();
 
-    switch (docType) {
-      case 'business_registration':
-        vm.setBusinessCertPath(file.path);
-      case 'food_safety_license':
-        vm.setFoodSafetyLicensePath(file.path);
-      case 'owner_id':
-        vm.setOwnerIdPath(file.path);
-      case 'selfie':
-        vm.setSelfiePath(file.path);
-    }
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => CustomDialog(
+        config: CustomDialogConfig(
+          title: 'Use this photo?',
+          subtitle: 'Make sure the ID card ($sideLabel) is clear and all text is readable. Both sides are submitted together once you\'ve confirmed each one.',
+          type: DialogType.confirmation,
+          confirmText: 'Yes, Use This',
+          cancelText: 'Retake',
+          showCancelButton: true,
+          content: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(file.path),
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          onConfirm: () {
+            final state = vm.state;
+            if (state.ownerIdFrontPath != null && state.ownerIdBackPath != null) {
+              vm.uploadOwnerIdCard();
+            }
+          },
+          onCancel: () => setLocalPath(null),
+        ),
+      ),
+    );
   }
 
   Future<void> _submit(VendorKycViewModel vm) async {
@@ -214,7 +309,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildStepNode(0, 'Store & TIN', w),
+          _buildStepNode(0, 'Store Details', w),
           _buildStepConnector(0, w),
           _buildStepNode(1, 'Documents', w),
           _buildStepConnector(1, w),
@@ -320,15 +415,29 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
     );
   }
 
+  Future<void> _pickTime(String currentTime, ValueChanged<String> onPicked) async {
+    final parts = currentTime.split(':');
+    final initial = TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? 8,
+      minute: int.tryParse(parts[1]) ?? 0,
+    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null) {
+      final h = picked.hour.toString().padLeft(2, '0');
+      final m = picked.minute.toString().padLeft(2, '0');
+      onPicked('$h:$m');
+    }
+  }
+
   Widget _buildStep1(double w) {
     final user = context.watch<CurrentUserProvider>().user;
     final profile = user?.profile as VendorProfile?;
+    final vm = context.watch<VendorKycViewModel>();
+    final kycState = vm.state;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(w * 0.05),
-      child: Form(
-        key: _step1FormKey,
-        child: Column(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildComplianceCard(w),
@@ -368,21 +477,119 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
             ),
             SizedBox(height: w * 0.06),
 
-            // TIN Input
-            VendorTextField(
-              label: 'Tax Identification Number (TIN) *',
-              hint: 'Enter your business TIN number',
-              controller: _tinCtrl,
-              keyboardType: TextInputType.text,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'TIN number is required';
-                if (v.trim().length < 6) return 'Enter a valid TIN number';
-                return null;
-              },
+            // Operating Hours
+            Text(
+              'Operating Hours',
+              style: TextStyle(
+                fontSize: w * 0.034,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: w * 0.02),
+            Row(
+              children: [
+                Expanded(
+                  child: _TimePickerTile(
+                    label: 'Opens',
+                    time: kycState.openingTime,
+                    onTap: () => _pickTime(kycState.openingTime, vm.setOpeningTime),
+                  ),
+                ),
+                SizedBox(width: w * 0.03),
+                Expanded(
+                  child: _TimePickerTile(
+                    label: 'Closes',
+                    time: kycState.closingTime,
+                    onTap: () => _pickTime(kycState.closingTime, vm.setClosingTime),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: w * 0.05),
+
+            // Estimated Prep Time
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Estimated Prep Time',
+                  style: TextStyle(
+                    fontSize: w * 0.034,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  '${kycState.estimatedPrepTimeMinutes} min',
+                  style: TextStyle(
+                    fontSize: w * 0.034,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            SliderTheme(
+              data: SliderThemeData(
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.border,
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withValues(alpha: 0.12),
+              ),
+              child: Slider(
+                value: kycState.estimatedPrepTimeMinutes.toDouble(),
+                min: 5,
+                max: 120,
+                divisions: 23,
+                onChanged: (val) => vm.setEstimatedPrepTimeMinutes(val.round()),
+              ),
+            ),
+            SizedBox(height: w * 0.03),
+
+            // Operating Days
+            Text(
+              'Operating Days',
+              style: TextStyle(
+                fontSize: w * 0.034,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: w * 0.02),
+            Wrap(
+              spacing: w * 0.02,
+              runSpacing: w * 0.02,
+              children: kAllOperatingDays.map((day) {
+                final isSelected = kycState.operatingDays.contains(day);
+                return GestureDetector(
+                  onTap: () => vm.toggleOperatingDay(day),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.018),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(w * 0.02),
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.1)
+                          : AppColors.surfaceVariant,
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      day.substring(0, 3).toUpperCase(),
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -437,6 +644,12 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
   Widget _buildStep2(double w) {
     final vm = context.watch<VendorKycViewModel>();
     final state = vm.state;
+    final profile =
+        context.watch<CurrentUserProvider>().user?.profile as VendorProfile?;
+    final businessCertUploaded =
+        profile?.documents.businessRegistrationCertificate.uploaded ?? false;
+    final foodSafetyUploaded = profile?.documents.foodSafetyLicense.uploaded ?? false;
+    final ownerIdUploaded = profile?.documents.ownerId.uploaded ?? false;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(w * 0.05),
@@ -444,7 +657,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload Business Documents',
+            'Upload Documents',
             style: TextStyle(
               fontSize: w * 0.04,
               fontWeight: FontWeight.bold,
@@ -454,7 +667,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
           ),
           SizedBox(height: w * 0.015),
           Text(
-            'Upload your official business permits to speed up verification. Scanned copies or high-quality photos are accepted.',
+            'Upload your business permits and ID card to speed up verification. Scanned copies or high-quality photos are accepted. All documents below are required.',
             style: TextStyle(
               fontSize: w * 0.032,
               color: AppColors.textSecondary,
@@ -466,9 +679,20 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
           // Business Registration Certificate
           _buildUploadItem(
             title: 'Business Registration Certificate',
-            subtitle: 'Company incorporation document (optional)',
+            subtitle: 'Company incorporation document',
             path: state.businessCertPath,
-            onTap: () => _pickImage(context, 'business_registration'),
+            isRequired: true,
+            isUploaded: businessCertUploaded,
+            onTap: () => _pickConfirmAndUpload(
+              context,
+              label: 'Business Registration Certificate',
+              setLocalPath: vm.setBusinessCertPath,
+              upload: (path) => vm.uploadDocument(
+                type: 'business_registration_certificate',
+                filePath: path,
+                label: 'Business Registration Certificate',
+              ),
+            ),
             onRemove: () => vm.setBusinessCertPath(null),
             w: w,
           ),
@@ -477,10 +701,55 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
           // Food Vending permit
           _buildUploadItem(
             title: 'Food Safety / Hygiene Permit',
-            subtitle: 'Municipal hygiene or vending license (optional)',
+            subtitle: 'Municipal hygiene or vending license',
             path: state.foodSafetyLicensePath,
-            onTap: () => _pickImage(context, 'food_safety_license'),
+            isRequired: true,
+            isUploaded: foodSafetyUploaded,
+            onTap: () => _pickConfirmAndUpload(
+              context,
+              label: 'Food Safety / Hygiene Permit',
+              setLocalPath: vm.setFoodSafetyLicensePath,
+              upload: (path) => vm.uploadDocument(
+                type: 'food_safety_license',
+                filePath: path,
+                label: 'Food Safety / Hygiene Permit',
+              ),
+            ),
             onRemove: () => vm.setFoodSafetyLicensePath(null),
+            w: w,
+          ),
+          SizedBox(height: w * 0.04),
+
+          // Owner/User ID Card Photo upload — front and back are both
+          // required and get sent together as one combined submission once
+          // both are confirmed.
+          _buildUploadItem(
+            title: 'User ID Card — Front',
+            subtitle: 'Upload a clear photo of the front of your ID Card',
+            path: state.ownerIdFrontPath,
+            isRequired: true,
+            isUploaded: ownerIdUploaded,
+            onTap: () => _pickAndConfirmIdSide(
+              context,
+              sideLabel: 'front',
+              setLocalPath: vm.setOwnerIdFrontPath,
+            ),
+            onRemove: () => vm.setOwnerIdFrontPath(null),
+            w: w,
+          ),
+          SizedBox(height: w * 0.04),
+          _buildUploadItem(
+            title: 'User ID Card — Back',
+            subtitle: 'Upload a clear photo of the back of your ID Card',
+            path: state.ownerIdBackPath,
+            isRequired: true,
+            isUploaded: ownerIdUploaded,
+            onTap: () => _pickAndConfirmIdSide(
+              context,
+              sideLabel: 'back',
+              setLocalPath: vm.setOwnerIdBackPath,
+            ),
+            onRemove: () => vm.setOwnerIdBackPath(null),
             w: w,
           ),
         ],
@@ -568,18 +837,6 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
             ),
             SizedBox(height: w * 0.05),
 
-            // Owner ID Card Photo upload
-            _buildUploadItem(
-              title: 'Owner / Manager ID Photo *',
-              subtitle: 'Upload a clear photo of your ID Card',
-              path: state.ownerIdPath,
-              onTap: () => _pickImage(context, 'owner_id'),
-              onRemove: () => vm.setOwnerIdPath(null),
-              isRequired: true,
-              w: w,
-            ),
-            SizedBox(height: w * 0.05),
-
             // Selfie upload with circle preview
             Text(
               'Vendor Manager Selfie *',
@@ -594,7 +851,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
               child: Stack(
                 children: [
                   GestureDetector(
-                    onTap: () => _pickImage(context, 'selfie'),
+                    onTap: () => _pickSelfie(context),
                     child: Container(
                       width: w * 0.32,
                       height: w * 0.32,
@@ -662,16 +919,20 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
     required VoidCallback onTap,
     required VoidCallback onRemove,
     bool isRequired = false,
+    bool isUploaded = false,
     required double w,
   }) {
     final hasFile = path != null && path.isNotEmpty;
+    final borderColor = isUploaded
+        ? AppColors.success
+        : (hasFile ? AppColors.error : AppColors.border);
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: hasFile ? AppColors.success : AppColors.border),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,18 +957,32 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
                               ),
                             ),
                           ),
-                          if (isRequired) ...[
+                          if (isRequired && !isUploaded) ...[
                             const SizedBox(width: 4),
                             const Text('*', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                          ],
+                          if (isUploaded) ...[
+                            SizedBox(width: w * 0.015),
+                            Icon(Icons.check_circle_rounded, color: AppColors.success, size: w * 0.042),
                           ],
                         ],
                       ),
                       SizedBox(height: w * 0.005),
-                      Text(subtitle, style: TextStyle(fontSize: w * 0.028, color: AppColors.textSecondary)),
+                      Text(
+                        isUploaded
+                            ? 'Submitted for verification'
+                            : (hasFile ? 'Upload failed — tap the photo to try again' : subtitle),
+                        style: TextStyle(
+                          fontSize: w * 0.028,
+                          color: hasFile && !isUploaded
+                              ? AppColors.error
+                              : AppColors.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                if (hasFile)
+                if (hasFile && !isUploaded)
                   IconButton(
                     icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
                     onPressed: onRemove,
@@ -718,15 +993,18 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
           if (hasFile)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.02),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(w * 0.02),
-                child: Container(
-                  height: w * 0.35,
-                  width: double.infinity,
-                  color: Colors.grey[100],
-                  child: Image.file(
-                    File(path),
-                    fit: BoxFit.cover,
+              child: GestureDetector(
+                onTap: onTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(w * 0.02),
+                  child: Container(
+                    height: w * 0.35,
+                    width: double.infinity,
+                    color: Colors.grey[100],
+                    child: Image.file(
+                      File(path),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
@@ -875,6 +1153,58 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimePickerTile extends StatelessWidget {
+  final String label;
+  final String time;
+  final VoidCallback onTap;
+
+  const _TimePickerTile({
+    required this.label,
+    required this.time,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.032),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(w * 0.03),
+          color: AppColors.surfaceVariant,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.access_time_rounded, color: AppColors.primary, size: w * 0.05),
+            SizedBox(width: w * 0.02),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: w * 0.028, color: AppColors.textSecondary),
+                ),
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: w * 0.038,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

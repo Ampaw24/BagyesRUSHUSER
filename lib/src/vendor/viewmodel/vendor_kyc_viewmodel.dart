@@ -1,73 +1,98 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../../vendor_registration/repositories/vendor_repository.dart';
+import '../model/vendor_profile.dart';
 import '../repository/vendor_dashboard_repository.dart';
 import '../../../core/common/app/current_user_provider.dart';
 
 enum VendorKycStatus { initial, loading, uploading, saving, success, error }
 
+const kAllOperatingDays = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+];
+
 class VendorKycState extends Equatable {
   final VendorKycStatus status;
-  final String tinNumber;
   final String idNumber;
   final String idType;
   final String? businessCertPath;
   final String? foodSafetyLicensePath;
-  final String? ownerIdPath;
+  final String? ownerIdFrontPath;
+  final String? ownerIdBackPath;
   final String? selfiePath;
-  final String? businessCertUrl;
-  final String? foodSafetyLicenseUrl;
-  final String? ownerIdUrl;
   final String? selfieUrl;
+
+  final String openingTime;
+  final String closingTime;
+  final List<String> operatingDays;
+  final int estimatedPrepTimeMinutes;
   final String? errorMessage;
   final String? uploadProgressMessage;
 
   const VendorKycState({
     this.status = VendorKycStatus.initial,
-    this.tinNumber = '',
     this.idNumber = '',
     this.idType = 'Ghana Card',
     this.businessCertPath,
     this.foodSafetyLicensePath,
-    this.ownerIdPath,
+    this.ownerIdFrontPath,
+    this.ownerIdBackPath,
     this.selfiePath,
-    this.businessCertUrl,
-    this.foodSafetyLicenseUrl,
-    this.ownerIdUrl,
     this.selfieUrl,
+    this.openingTime = '08:00',
+    this.closingTime = '22:00',
+    this.operatingDays = kAllOperatingDays,
+    this.estimatedPrepTimeMinutes = 30,
     this.errorMessage,
     this.uploadProgressMessage,
   });
 
   VendorKycState copyWith({
     VendorKycStatus? status,
-    String? tinNumber,
     String? idNumber,
     String? idType,
     String? businessCertPath,
+    bool clearBusinessCertPath = false,
     String? foodSafetyLicensePath,
-    String? ownerIdPath,
+    bool clearFoodSafetyLicensePath = false,
+    String? ownerIdFrontPath,
+    bool clearOwnerIdFrontPath = false,
+    String? ownerIdBackPath,
+    bool clearOwnerIdBackPath = false,
     String? selfiePath,
-    String? businessCertUrl,
-    String? foodSafetyLicenseUrl,
-    String? ownerIdUrl,
     String? selfieUrl,
+    String? openingTime,
+    String? closingTime,
+    List<String>? operatingDays,
+    int? estimatedPrepTimeMinutes,
     String? errorMessage,
     String? uploadProgressMessage,
   }) {
     return VendorKycState(
       status: status ?? this.status,
-      tinNumber: tinNumber ?? this.tinNumber,
       idNumber: idNumber ?? this.idNumber,
       idType: idType ?? this.idType,
-      businessCertPath: businessCertPath ?? this.businessCertPath,
-      foodSafetyLicensePath: foodSafetyLicensePath ?? this.foodSafetyLicensePath,
-      ownerIdPath: ownerIdPath ?? this.ownerIdPath,
+      businessCertPath:
+          clearBusinessCertPath ? null : (businessCertPath ?? this.businessCertPath),
+      foodSafetyLicensePath: clearFoodSafetyLicensePath
+          ? null
+          : (foodSafetyLicensePath ?? this.foodSafetyLicensePath),
+      ownerIdFrontPath:
+          clearOwnerIdFrontPath ? null : (ownerIdFrontPath ?? this.ownerIdFrontPath),
+      ownerIdBackPath:
+          clearOwnerIdBackPath ? null : (ownerIdBackPath ?? this.ownerIdBackPath),
       selfiePath: selfiePath ?? this.selfiePath,
-      businessCertUrl: businessCertUrl ?? this.businessCertUrl,
-      foodSafetyLicenseUrl: foodSafetyLicenseUrl ?? this.foodSafetyLicenseUrl,
-      ownerIdUrl: ownerIdUrl ?? this.ownerIdUrl,
       selfieUrl: selfieUrl ?? this.selfieUrl,
+      openingTime: openingTime ?? this.openingTime,
+      closingTime: closingTime ?? this.closingTime,
+      operatingDays: operatingDays ?? this.operatingDays,
+      estimatedPrepTimeMinutes: estimatedPrepTimeMinutes ?? this.estimatedPrepTimeMinutes,
       errorMessage: errorMessage,
       uploadProgressMessage: uploadProgressMessage ?? this.uploadProgressMessage,
     );
@@ -76,17 +101,18 @@ class VendorKycState extends Equatable {
   @override
   List<Object?> get props => [
         status,
-        tinNumber,
         idNumber,
         idType,
         businessCertPath,
         foodSafetyLicensePath,
-        ownerIdPath,
+        ownerIdFrontPath,
+        ownerIdBackPath,
         selfiePath,
-        businessCertUrl,
-        foodSafetyLicenseUrl,
-        ownerIdUrl,
         selfieUrl,
+        openingTime,
+        closingTime,
+        operatingDays,
+        estimatedPrepTimeMinutes,
         errorMessage,
         uploadProgressMessage,
       ];
@@ -106,28 +132,144 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
         _currentUserProvider = currentUserProvider,
         super(const VendorKycState());
 
-  void setTinNumber(String val) => emit(state.copyWith(tinNumber: val));
   void setIdNumber(String val) => emit(state.copyWith(idNumber: val));
   void setIdType(String val) => emit(state.copyWith(idType: val));
 
-  void setBusinessCertPath(String? path) => emit(state.copyWith(businessCertPath: path));
-  void setFoodSafetyLicensePath(String? path) => emit(state.copyWith(foodSafetyLicensePath: path));
-  void setOwnerIdPath(String? path) => emit(state.copyWith(ownerIdPath: path));
+  void setBusinessCertPath(String? path) => emit(state.copyWith(
+        businessCertPath: path,
+        clearBusinessCertPath: path == null,
+      ));
+  void setFoodSafetyLicensePath(String? path) => emit(state.copyWith(
+        foodSafetyLicensePath: path,
+        clearFoodSafetyLicensePath: path == null,
+      ));
+  void setOwnerIdFrontPath(String? path) => emit(state.copyWith(
+        ownerIdFrontPath: path,
+        clearOwnerIdFrontPath: path == null,
+      ));
+  void setOwnerIdBackPath(String? path) => emit(state.copyWith(
+        ownerIdBackPath: path,
+        clearOwnerIdBackPath: path == null,
+      ));
   void setSelfiePath(String? path) => emit(state.copyWith(selfiePath: path));
+
+  void setOpeningTime(String time) => emit(state.copyWith(openingTime: time));
+  void setClosingTime(String time) => emit(state.copyWith(closingTime: time));
+  void setEstimatedPrepTimeMinutes(int minutes) =>
+      emit(state.copyWith(estimatedPrepTimeMinutes: minutes));
+
+  void toggleOperatingDay(String day) {
+    final days = List<String>.from(state.operatingDays);
+    days.contains(day) ? days.remove(day) : days.add(day);
+    emit(state.copyWith(operatingDays: days));
+  }
 
   void clearError() => emit(state.copyWith(errorMessage: null));
 
-  Future<bool> submitKyc() async {
-    if (state.tinNumber.trim().isEmpty) {
-      emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Tax ID (TIN) is required'));
+  /// Submits operating hours, operating days, and estimated prep time via
+  /// the dedicated operations-KYC endpoint. Called when the vendor advances
+  /// past the store-details step — advancing to the documents step is
+  /// gated on this succeeding.
+  Future<bool> submitOperationalDetails() async {
+    if (state.operatingDays.isEmpty) {
+      emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Please select at least one operating day'));
       return false;
     }
+
+    emit(state.copyWith(
+      status: VendorKycStatus.saving,
+      uploadProgressMessage: 'Saving operational details...',
+    ));
+    final result = await _dashboardRepository.submitOperationalKyc(
+      openingTime: state.openingTime,
+      closingTime: state.closingTime,
+      operatingDays: state.operatingDays,
+      estimatedPrepTimeMinutes: state.estimatedPrepTimeMinutes,
+    );
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Failed to save operational details: ${failure.message}'));
+        return false;
+      },
+      (profile) {
+        _syncProfile(profile);
+        emit(state.copyWith(status: VendorKycStatus.initial, errorMessage: null));
+        return true;
+      },
+    );
+  }
+
+  /// Uploads a single vendor document immediately (the backend only accepts
+  /// one document per request). Used by the documents step, where each
+  /// document is confirmed and submitted individually rather than bundled
+  /// into the final [submitKyc] call.
+  Future<bool> uploadDocument({
+    required String type,
+    required String filePath,
+    required String label,
+  }) async {
+    emit(state.copyWith(
+      status: VendorKycStatus.uploading,
+      uploadProgressMessage: 'Uploading $label...',
+    ));
+    final result = await _dashboardRepository.uploadVendorDocument(type, filePath);
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(
+          status: VendorKycStatus.error,
+          errorMessage: '$label upload failed: ${failure.message}',
+        ));
+        return false;
+      },
+      (profile) {
+        _syncProfile(profile);
+        emit(state.copyWith(status: VendorKycStatus.initial, errorMessage: null));
+        return true;
+      },
+    );
+  }
+
+  /// Submits the front and back of the owner/user ID card together as a
+  /// single request, once both sides have been picked and confirmed. Called
+  /// automatically as soon as the second side is confirmed — whichever side
+  /// that is — since the combined upload can't fire until both are staged.
+  Future<bool> uploadOwnerIdCard() async {
+    final front = state.ownerIdFrontPath;
+    final back = state.ownerIdBackPath;
+    if (front == null || back == null) return false;
+
+    emit(state.copyWith(
+      status: VendorKycStatus.uploading,
+      uploadProgressMessage: 'Uploading ID Card...',
+    ));
+    final result = await _dashboardRepository.uploadOwnerIdDocument(
+      frontPath: front,
+      backPath: back,
+    );
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(
+          status: VendorKycStatus.error,
+          errorMessage: 'ID Card upload failed: ${failure.message}',
+        ));
+        return false;
+      },
+      (profile) {
+        _syncProfile(profile);
+        emit(state.copyWith(status: VendorKycStatus.initial, errorMessage: null));
+        return true;
+      },
+    );
+  }
+
+  Future<bool> submitKyc() async {
     if (state.idNumber.trim().isEmpty) {
       emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'ID card number is required'));
       return false;
     }
-    if (state.ownerIdPath == null) {
-      emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Owner/Manager ID card image is required'));
+    final profile = _currentUserProvider.user?.profile as VendorProfile?;
+    if (!(profile?.documents.ownerId.uploaded ?? false)) {
+      emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Your ID card (front and back) is required'));
       return false;
     }
     if (state.selfiePath == null) {
@@ -135,34 +277,19 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
       return false;
     }
 
-    emit(state.copyWith(
-      status: VendorKycStatus.uploading,
-      uploadProgressMessage: 'Uploading Manager ID card...',
-    ));
-
-    // Upload Owner ID
-    String ownerIdUrl = '';
-    final ownerIdRes = await _registrationRepository.uploadDocument(state.ownerIdPath!, 'owner_id');
-    bool uploadSuccess = ownerIdRes.fold(
-      (failure) {
-        emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'ID Upload Failed: ${failure.message}'));
-        return false;
-      },
-      (url) {
-        ownerIdUrl = url;
-        return true;
-      },
-    );
-    if (!uploadSuccess) return false;
-
-    // Upload Selfie
+    // Business registration certificate, food safety license, and the ID
+    // card (front + back, sent together) are already uploaded via
+    // `uploadDocument`/`uploadOwnerIdCard` as soon as the vendor confirms
+    // them — nothing left to upload here except the selfie (not one of the
+    // tracked vendor document types, so it stays on the registration-document
+    // upload path) and the remaining fields.
     emit(state.copyWith(
       status: VendorKycStatus.uploading,
       uploadProgressMessage: 'Uploading Manager Selfie...',
     ));
     String selfieUrl = '';
     final selfieRes = await _registrationRepository.uploadDocument(state.selfiePath!, 'selfie');
-    uploadSuccess = selfieRes.fold(
+    final uploadSuccess = selfieRes.fold(
       (failure) {
         emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Selfie Upload Failed: ${failure.message}'));
         return false;
@@ -174,62 +301,15 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
     );
     if (!uploadSuccess) return false;
 
-    // Upload Business Registration Certificate (optional)
-    String businessCertUrl = '';
-    if (state.businessCertPath != null) {
-      emit(state.copyWith(
-        status: VendorKycStatus.uploading,
-        uploadProgressMessage: 'Uploading Business Certificate...',
-      ));
-      final certRes = await _registrationRepository.uploadDocument(state.businessCertPath!, 'business_registration');
-      uploadSuccess = certRes.fold(
-        (failure) {
-          emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Certificate Upload Failed: ${failure.message}'));
-          return false;
-        },
-        (url) {
-          businessCertUrl = url;
-          return true;
-        },
-      );
-      if (!uploadSuccess) return false;
-    }
-
-    // Upload Food Safety License (optional)
-    String foodSafetyLicenseUrl = '';
-    if (state.foodSafetyLicensePath != null) {
-      emit(state.copyWith(
-        status: VendorKycStatus.uploading,
-        uploadProgressMessage: 'Uploading Vending Permit...',
-      ));
-      final permitRes = await _registrationRepository.uploadDocument(state.foodSafetyLicensePath!, 'food_safety_license');
-      uploadSuccess = permitRes.fold(
-        (failure) {
-          emit(state.copyWith(status: VendorKycStatus.error, errorMessage: 'Vending Permit Upload Failed: ${failure.message}'));
-          return false;
-        },
-        (url) {
-          foodSafetyLicenseUrl = url;
-          return true;
-        },
-      );
-      if (!uploadSuccess) return false;
-    }
-
     emit(state.copyWith(
       status: VendorKycStatus.saving,
       uploadProgressMessage: 'Saving KYC details...',
     ));
 
-    // Save details to Vendor Profile
+    // Save the remaining non-document KYC fields. `is_profile_complete` and
+    // `status` are no longer force-set here — the backend now derives them
+    // from the documents just uploaded above plus payout setup.
     final updatePayload = {
-      'tax_identification_number': state.tinNumber,
-      'is_profile_complete': true,
-      'status': 'pending_review',
-      'owner_id_url': ownerIdUrl,
-      'selfie_url': selfieUrl,
-      if (businessCertUrl.isNotEmpty) 'business_registration_cert_url': businessCertUrl,
-      if (foodSafetyLicenseUrl.isNotEmpty) 'food_safety_license_url': foodSafetyLicenseUrl,
       'id_number': state.idNumber,
       'id_type': state.idType,
       if (selfieUrl.isNotEmpty) 'logo_url': selfieUrl,
@@ -242,20 +322,21 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
         return false;
       },
       (profile) {
-        final currentUser = _currentUserProvider.user;
-        if (currentUser != null) {
-          _currentUserProvider.setUser(currentUser.copyWith(profile: profile));
-        }
+        _syncProfile(profile);
         emit(state.copyWith(
           status: VendorKycStatus.success,
-          businessCertUrl: businessCertUrl,
-          foodSafetyLicenseUrl: foodSafetyLicenseUrl,
-          ownerIdUrl: ownerIdUrl,
           selfieUrl: selfieUrl,
         ));
         return true;
       },
     );
+  }
+
+  void _syncProfile(VendorProfile profile) {
+    final currentUser = _currentUserProvider.user;
+    if (currentUser != null) {
+      _currentUserProvider.setUser(currentUser.copyWith(profile: profile));
+    }
   }
 
   void reset() {

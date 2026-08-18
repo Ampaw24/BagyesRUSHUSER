@@ -60,9 +60,14 @@ abstract final class ApiEndpoints {
   static const String vendorEarnings = '/vendors/earnings';
   static const String vendorProfile = '/vendor/me';
   static const String vendorAccount = '/vendors/account';
+  static const String operationsKyc = '/vendor/me/hours';
 
   /// `PUT /vendor/me/hours`
   static const String vendorHours = '/vendor/me/hours';
+
+  /// `POST /vendor/me/documents/:type` (multipart, field: `document`)
+  static String vendorMeDocumentUpload(String type) =>
+      '/vendor/me/documents/$type';
 
   //home-page Path 1
   static const String adsBanners = '/banners';

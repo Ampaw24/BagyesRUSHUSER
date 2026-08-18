@@ -113,10 +113,6 @@ class AuthRepository {
     required String taxIdentificationNumber,
     required List<String> cuisineTypes,
     required double deliveryRadiusKm,
-    required String openingTime,
-    required String closingTime,
-    required List<String> operatingDays,
-    required int estimatedPrepTimeMinutes,
   }) async {
     appLogger.d('AuthRepository.vendorRegister → initiated');
     final data = {
@@ -134,11 +130,8 @@ class AuthRepository {
       "tax_identification_number": taxIdentificationNumber,
       "cuisine_types": cuisineTypes.map((e) => e.trim().toLowerCase()).toList(),
       "delivery_radius_km": deliveryRadiusKm,
-      "opening_time": openingTime,
-      "closing_time": closingTime,
-      "operating_days": operatingDays,
-      "estimated_prep_time_minutes": estimatedPrepTimeMinutes,
-    
+      // Store hours/operating days/prep time are collected later, during
+      // KYC — the backend accepts registration without them.
     };
     appLogger.d('AuthRepository.vendorRegister → PAYLOAD: $data');
     try {

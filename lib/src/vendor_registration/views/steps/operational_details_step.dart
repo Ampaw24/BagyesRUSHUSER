@@ -1,10 +1,10 @@
 import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../models/operational_details_data.dart';
 
-/// Step 3 - Cuisine types, delivery radius, operating hours/days
+/// Step 3 - Cuisine types, delivery radius.
+/// Store hours/operating days/prep time are collected later during KYC.
 class OperationalDetailsStep extends StatefulWidget {
   final OperationalDetailsData data;
   final ValueChanged<OperationalDetailsData> onChanged;
@@ -28,28 +28,17 @@ class OperationalDetailsStep extends StatefulWidget {
 }
 
 class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
-  static const _allDays = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-    'Friday', 'Saturday', 'Sunday',
-  ];
-
   late List<String> _cuisineTypes;
-  late List<String> _operatingDays;
   late double _deliveryRadiusKm;
-  late String _openingTime;
-  late String _closingTime;
-  late int _estimatedPrepTimeMinutes;
 
-  // Keys to prevent "Duplicate keys found" error in AnimatedSwitcher 
+  // Key to prevent "Duplicate keys found" error in AnimatedSwitcher
   // during rapid slider movements.
   Key _radiusKey = UniqueKey();
-  Key _prepTimeKey = UniqueKey();
 
   @override
   void initState() {
     super.initState();
     _deliveryRadiusKm = -1; // Dummy to trigger key refresh on first sync
-    _estimatedPrepTimeMinutes = -1; // Dummy to trigger key refresh on first sync
     _syncFromData(widget.data);
   }
 
@@ -74,19 +63,10 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
         return item;
       }
     }).toSet().toList();
-    _operatingDays = List<String>.from(data.operatingDays);
-    
+
     if (_deliveryRadiusKm != data.deliveryRadiusKm) {
       _deliveryRadiusKm = data.deliveryRadiusKm;
       _radiusKey = UniqueKey();
-    }
-    
-    _openingTime = data.openingTime;
-    _closingTime = data.closingTime;
-    
-    if (_estimatedPrepTimeMinutes != data.estimatedPrepTimeMinutes) {
-      _estimatedPrepTimeMinutes = data.estimatedPrepTimeMinutes;
-      _prepTimeKey = UniqueKey();
     }
   }
 
@@ -94,27 +74,9 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
     widget.onChanged(
       widget.data.copyWith(
         cuisineTypes: _cuisineTypes,
-        operatingDays: _operatingDays,
         deliveryRadiusKm: _deliveryRadiusKm,
-        openingTime: _openingTime,
-        closingTime: _closingTime,
-        estimatedPrepTimeMinutes: _estimatedPrepTimeMinutes,
       ),
     );
-  }
-
-  Future<void> _pickTime(String currentTime, ValueChanged<String> onPicked) async {
-    final parts = currentTime.split(':');
-    final initial = TimeOfDay(
-      hour: int.tryParse(parts[0]) ?? 8,
-      minute: int.tryParse(parts[1]) ?? 0,
-    );
-    final picked = await showTimePicker(context: context, initialTime: initial);
-    if (picked != null) {
-      final h = picked.hour.toString().padLeft(2, '0');
-      final m = picked.minute.toString().padLeft(2, '0');
-      onPicked('$h:$m');
-    }
   }
 
   @override
@@ -259,151 +221,6 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
           ),
         ),
 
-        SizedBox(height: size.height * 0.02),
-
-        // ── Operating Hours ──
-        Text(
-          'Operating Hours',
-          style: TextStyle(
-            fontSize: size.width * 0.034,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: size.height * 0.012),
-        Row(
-          children: [
-            Expanded(
-              child: _TimePickerTile(
-                label: 'Opens',
-                time: _openingTime,
-                onTap: () => _pickTime(_openingTime, (t) {
-                  setState(() => _openingTime = t);
-                  _emit();
-                }),
-              ),
-            ),
-            SizedBox(width: size.width * 0.03),
-            Expanded(
-              child: _TimePickerTile(
-                label: 'Closes',
-                time: _closingTime,
-                onTap: () => _pickTime(_closingTime, (t) {
-                  setState(() => _closingTime = t);
-                  _emit();
-                }),
-              ),
-            ),
-          ],
-        ),
-
-        SizedBox(height: size.height * 0.025),
-
-        // ── Estimated Prep Time ──
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Estimated Prep Time',
-              style: TextStyle(
-                fontSize: size.width * 0.034,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Text(
-                '$_estimatedPrepTimeMinutes min',
-                key: _prepTimeKey,
-                style: TextStyle(
-                  fontSize: size.width * 0.034,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.border,
-            thumbColor: AppColors.primary,
-            overlayColor: AppColors.primary.withValues(alpha: 0.12),
-            trackHeight: size.height * 0.005,
-          ),
-          child: Slider(
-            value: _estimatedPrepTimeMinutes.toDouble(),
-            min: 5,
-            max: 120,
-            divisions: 23,
-            onChanged: (val) {
-              final rounded = val.round();
-              if (rounded != _estimatedPrepTimeMinutes) {
-                setState(() {
-                  _estimatedPrepTimeMinutes = rounded;
-                  _prepTimeKey = UniqueKey();
-                });
-              }
-            },
-            onChangeEnd: (_) => _emit(),
-          ),
-        ),
-
-        SizedBox(height: size.height * 0.02),
-
-        // ── Operating Days ──
-        Text(
-          'Operating Days',
-          style: TextStyle(
-            fontSize: size.width * 0.034,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: size.height * 0.012),
-        Wrap(
-          spacing: size.width * 0.02,
-          runSpacing: size.height * 0.008,
-          children: _allDays.map((day) {
-            final isSelected = _operatingDays.contains(day);
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  isSelected
-                      ? _operatingDays.remove(day)
-                      : _operatingDays.add(day);
-                });
-                _emit();
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: EdgeInsets.symmetric(
-                  horizontal: size.width * 0.03,
-                  vertical: size.height * 0.009,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(size.width * 0.02),
-                  color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.1)
-                      : AppColors.surfaceVariant,
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                  ),
-                ),
-                child: Text(
-                  day.substring(0, 3),
-                  style: TextStyle(
-                    fontSize: size.width * 0.03,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
       ],
     );
   }
@@ -476,64 +293,3 @@ class _FetchErrorTile extends StatelessWidget {
   }
 }
 
-class _TimePickerTile extends StatelessWidget {
-  final String label;
-  final String time;
-  final VoidCallback onTap;
-
-  const _TimePickerTile({
-    required this.label,
-    required this.time,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: size.width * 0.04,
-          vertical: size.height * 0.016,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(size.width * 0.03),
-          color: AppColors.surfaceVariant,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedClock01,
-              color: AppColors.primary,
-              size: size.width * 0.05,
-            ),
-            SizedBox(width: size.width * 0.02),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: size.width * 0.028,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: size.width * 0.038,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

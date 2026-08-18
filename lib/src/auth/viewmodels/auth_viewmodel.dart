@@ -118,11 +118,6 @@ class AuthViewmodel extends ViewModel<AuthState> {
     required String taxIdentificationNumber,
     required List<String> cuisineTypes,
     required double deliveryRadiusKm,
-    required String openingTime,
-    required String closingTime,
-    required List<String> operatingDays,
-    required int estimatedPrepTimeMinutes,
-  
   }) async {
     appLogger.d('AuthViewmodel.vendorRegister → initiated');
     emit(const AuthLoading());
@@ -142,10 +137,6 @@ class AuthViewmodel extends ViewModel<AuthState> {
       taxIdentificationNumber: taxIdentificationNumber,
       cuisineTypes: cuisineTypes,
       deliveryRadiusKm: deliveryRadiusKm,
-      openingTime: openingTime,
-      closingTime: closingTime,
-      operatingDays: operatingDays,
-      estimatedPrepTimeMinutes: estimatedPrepTimeMinutes,
     );
 
     result.fold(
