@@ -1,138 +1,109 @@
 import 'package:equatable/equatable.dart';
 
+class BannerLink extends Equatable {
+  const BannerLink({required this.type, this.value});
+
+  final String type;
+  final String? value;
+
+  factory BannerLink.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const BannerLink(type: 'none');
+    return BannerLink(
+      type: json['type'] ?? 'none',
+      value: json['value']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'value': value,
+      };
+
+  @override
+  List<Object?> get props => [type, value];
+}
+
 class Banner extends Equatable {
-   const  Banner({
-        required this.id,
-        required this.type,
-        required this.title,
-        required this.subtitle,
-        required this.imageUrl,
-        required this.backgroundColor,
-        required this.textColor,
-        required this.ctaLabel,
-        required this.actionType,
-        required this.actionTarget,
-        required this.priority,
-        required this.startsAt,
-        required this.endsAt,
-        required this.isActive,
-        required this.createdBy,
-        required this.createdAt,
-        required this.updatedAt,
-        required this.v,
-    });
+  const Banner({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.imageUrl,
+    required this.placement,
+    required this.displayOrder,
+    required this.link,
+  });
 
-    final String id;
-    final String type;
-    final String title;
-    final String subtitle;
-    final String imageUrl;
-    final String backgroundColor;
-    final String textColor;
-    final String ctaLabel;
-    final String actionType;
-    final String actionTarget;
-    final num priority;
-    final DateTime? startsAt;
-    final DateTime? endsAt;
-    final bool isActive;
-    final String createdBy;
-    final DateTime? createdAt;
-    final DateTime? updatedAt;
-    final num v;
+  final String id;
+  final String title;
+  final String? subtitle;
+  final String? description;
+  final String? imageUrl;
+  final String placement;
+  final num displayOrder;
+  final BannerLink link;
 
-    Banner copyWith({
-        String? id,
-        String? type,
-        String? title,
-        String? subtitle,
-        String? imageUrl,
-        String? backgroundColor,
-        String? textColor,
-        String? ctaLabel,
-        String? actionType,
-        String? actionTarget,
-        num? priority,
-        DateTime? startsAt,
-        DateTime? endsAt,
-        bool? isActive,
-        String? createdBy,
-        DateTime? createdAt,
-        DateTime? updatedAt,
-        num? v,
-    }) {
-        return Banner(
-            id: id ?? this.id,
-            type: type ?? this.type,
-            title: title ?? this.title,
-            subtitle: subtitle ?? this.subtitle,
-            imageUrl: imageUrl ?? this.imageUrl,
-            backgroundColor: backgroundColor ?? this.backgroundColor,
-            textColor: textColor ?? this.textColor,
-            ctaLabel: ctaLabel ?? this.ctaLabel,
-            actionType: actionType ?? this.actionType,
-            actionTarget: actionTarget ?? this.actionTarget,
-            priority: priority ?? this.priority,
-            startsAt: startsAt ?? this.startsAt,
-            endsAt: endsAt ?? this.endsAt,
-            isActive: isActive ?? this.isActive,
-            createdBy: createdBy ?? this.createdBy,
-            createdAt: createdAt ?? this.createdAt,
-            updatedAt: updatedAt ?? this.updatedAt,
-            v: v ?? this.v,
-        );
-    }
+  Banner copyWith({
+    String? id,
+    String? title,
+    String? subtitle,
+    String? description,
+    String? imageUrl,
+    String? placement,
+    num? displayOrder,
+    BannerLink? link,
+  }) {
+    return Banner(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      placement: placement ?? this.placement,
+      displayOrder: displayOrder ?? this.displayOrder,
+      link: link ?? this.link,
+    );
+  }
 
-    factory Banner.fromJson(Map<String, dynamic> json){ 
-        return Banner(
-            id: json["_id"] ?? "",
-            type: json["type"] ?? "",
-            title: json["title"] ?? "",
-            subtitle: json["subtitle"] ?? "",
-            imageUrl: json["image_url"] ?? "",
-            backgroundColor: json["background_color"] ?? "",
-            textColor: json["text_color"] ?? "",
-            ctaLabel: json["cta_label"] ?? "",
-            actionType: json["action_type"] ?? "",
-            actionTarget: json["action_target"] ?? "",
-            priority: json["priority"] ?? 0,
-            startsAt: DateTime.tryParse(json["starts_at"] ?? ""),
-            endsAt: DateTime.tryParse(json["ends_at"] ?? ""),
-            isActive: json["is_active"] ?? false,
-            createdBy: json["created_by"] ?? "",
-            createdAt: DateTime.tryParse(json["created_at"] ?? ""),
-            updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
-            v: json["__v"] ?? 0,
-        );
-    }
+  factory Banner.fromJson(Map<String, dynamic> json) {
+    return Banner(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      subtitle: json['subtitle'] as String?,
+      description: json['description'] as String?,
+      imageUrl: json['image_url'] as String?,
+      placement: json['placement'] ?? '',
+      displayOrder: json['display_order'] ?? 0,
+      link: BannerLink.fromJson(json['link'] as Map<String, dynamic>?),
+    );
+  }
 
-    Map<String, dynamic> toJson() => {
-        "_id": id,
-        "type": type,
-        "title": title,
-        "subtitle": subtitle,
-        "image_url": imageUrl,
-        "background_color": backgroundColor,
-        "text_color": textColor,
-        "cta_label": ctaLabel,
-        "action_type": actionType,
-        "action_target": actionTarget,
-        "priority": priority,
-        "starts_at": startsAt?.toIso8601String(),
-        "ends_at": endsAt?.toIso8601String(),
-        "is_active": isActive,
-        "created_by": createdBy,
-        "created_at": createdAt?.toIso8601String(),
-        "updated_at": updatedAt?.toIso8601String(),
-        "__v": v,
-    };
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'subtitle': subtitle,
+        'description': description,
+        'image_url': imageUrl,
+        'placement': placement,
+        'display_order': displayOrder,
+        'link': link.toJson(),
+      };
 
-    @override
-    String toString(){
-        return "$id, $type, $title, $subtitle, $imageUrl, $backgroundColor, $textColor, $ctaLabel, $actionType, $actionTarget, $priority, $startsAt, $endsAt, $isActive, $createdBy, $createdAt, $updatedAt, $v, ";
-    }
+  @override
+  String toString() {
+    return '$id, $title, $subtitle, $description, $imageUrl, $placement, $displayOrder, $link';
+  }
 
-    @override
-    List<Object?> get props => [
-    id, type, title, subtitle, imageUrl, backgroundColor, textColor, ctaLabel, actionType, actionTarget, priority, startsAt, endsAt, isActive, createdBy, createdAt, updatedAt, v, ];
+  @override
+  List<Object?> get props => [
+        id,
+        title,
+        subtitle,
+        description,
+        imageUrl,
+        placement,
+        displayOrder,
+        link,
+      ];
 }

@@ -22,10 +22,12 @@ class AdBannerModel extends Equatable {
         );
     }
 
-    factory AdBannerModel.fromJson(Map<String, dynamic> json){ 
+    factory AdBannerModel.fromJson(Map<String, dynamic> json){
+        final items = json["items"] as List<dynamic>? ?? [];
+        final pagination = json["pagination"] as Map<String, dynamic>?;
         return AdBannerModel(
-            banners: json["banners"] == null ? [] : List<Banner>.from(json["banners"]!.map((x) => Banner.fromJson(x))),
-            total: json["total"] ?? 0,
+            banners: items.map((x) => Banner.fromJson(x as Map<String, dynamic>)).toList(),
+            total: pagination?["total"] ?? items.length,
         );
     }
 

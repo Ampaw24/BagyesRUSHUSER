@@ -6,18 +6,16 @@ import '../../../core/router/app_routes.dart';
 import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 
 class BannerItem {
-  final String imagePath;
+  final String? imagePath;
   final String? title;
   final String? subtitle;
-  final String? promoText;
   final String actionType;
   final String actionTarget;
 
   const BannerItem({
-    required this.imagePath,
+    this.imagePath,
     this.title,
     this.subtitle,
-    this.promoText,
     this.actionType = '',
     this.actionTarget = '',
   });
@@ -51,14 +49,20 @@ class PromoBannerSection extends ConsumerWidget {
       ),
       error: (_, _) => const SizedBox.shrink(),
       data: (adModel) {
-        final banners = adModel.banners.map(
+        final homeBanners = adModel.banners
+            .where((b) => b.placement == 'home')
+            .toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
+        final banners = homeBanners.map(
           (b) => BannerItem(
             imagePath: b.imageUrl,
             title: b.title,
-            subtitle: b.subtitle,
-            promoText: b.ctaLabel.isNotEmpty ? b.ctaLabel : null,
-            actionType: b.actionType,
-            actionTarget: b.actionTarget,
+            subtitle: (b.subtitle?.isNotEmpty ?? false)
+                ? b.subtitle
+                : b.description,
+            actionType: b.link.type,
+            actionTarget: b.link.value ?? '',
           ),
         ).toList();
 
@@ -100,11 +104,37 @@ class PromoBannerSection extends ConsumerWidget {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
+                            if (banner.imagePath != null &&
+                                banner.imagePath!.isNotEmpty)
                               Image.network(
-                                banner.imagePath,
+                                banner.imagePath!,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
-                                    Container(color: AppColors.shimmerBase),
+                                    const DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        AppColors.primary,
+                                        AppColors.secondary,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.secondary,
+                                    ],
+                                  ),
+                                ),
                               ),
                             const DecoratedBox(
                               decoration: BoxDecoration(
@@ -126,27 +156,6 @@ class PromoBannerSection extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (banner.promoText != null)
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: w * 0.03,
-                                          vertical: w * 0.012,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          banner.promoText!,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: w * 0.028,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                    SizedBox(height: w * 0.02),
                                     Text(
                                       banner.title!,
                                       style: TextStyle(
