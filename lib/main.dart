@@ -22,6 +22,7 @@ import 'src/vendor/viewmodel/earnings_viewmodel.dart';
 import 'src/vendor/viewmodel/settings_viewmodel.dart';
 import 'src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
 import 'src/home/viewmodels/home_viewmodel.dart';
+import 'src/notification/viewmodel/notification_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +59,7 @@ void main() async {
             ChangeNotifierProvider(create: (_) => sl<SettingsViewModel>()),
             ChangeNotifierProvider(create: (_) => sl<VendorKycViewModel>()),
             ChangeNotifierProvider(create: (_) => sl<HomeViewmodel>()),
+            ChangeNotifierProvider(create: (_) => sl<NotificationViewmodel>()),
           ],
           child: const MyApp(),
         ),

@@ -7,6 +7,7 @@ class VendorHeader extends StatelessWidget {
   final VoidCallback? onDrawerTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAvatarTap;
+  final bool hasUnreadNotifications;
 
   const VendorHeader({
     super.key,
@@ -14,6 +15,7 @@ class VendorHeader extends StatelessWidget {
     this.onDrawerTap,
     this.onNotificationTap,
     this.onAvatarTap,
+    this.hasUnreadNotifications = false,
   });
 
   @override
@@ -71,19 +73,20 @@ class VendorHeader extends StatelessWidget {
                   color: AppColors.textPrimary,
                   size: w * 0.052,
                 ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: w * 0.018,
-                    height: w * 0.018,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
+                if (hasUnreadNotifications)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: w * 0.018,
+                      height: w * 0.018,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

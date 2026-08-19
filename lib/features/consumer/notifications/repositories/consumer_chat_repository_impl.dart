@@ -1,80 +1,10 @@
-import 'package:dio/dio.dart';
-
-import '../../../../core/network/api_endpoints.dart';
-import '../models/consumer_notification.dart';
 import '../models/consumer_conversation.dart';
 import '../models/consumer_chat_message.dart';
-import 'i_consumer_notification_repository.dart';
+import 'i_consumer_chat_repository.dart';
 
-/// Notification-list methods are real, Dio-backed calls. Chat/conversation
-/// methods stay on local dummy data — the backend has no chat endpoints.
-class ConsumerNotificationRepositoryImpl
-    implements IConsumerNotificationRepository {
-  ConsumerNotificationRepositoryImpl({required Dio client}) : _client = client;
-
-  final Dio _client;
+/// Chat/conversations — no backend endpoints exist, stays mocked.
+class ConsumerChatRepositoryImpl implements IConsumerChatRepository {
   static final _now = DateTime.now();
-
-  @override
-  Future<List<ConsumerNotification>> getNotifications() async {
-    final response = await _client.get(ApiEndpoints.notifications);
-    final list = _dataList(response);
-    return list
-        .map((e) => ConsumerNotification.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  @override
-  Future<List<ConsumerNotification>> markAsRead(
-    List<ConsumerNotification> current,
-    String notificationId,
-  ) async {
-    await _client.patch(ApiEndpoints.notificationRead(notificationId));
-    return current
-        .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
-        .toList();
-  }
-
-  @override
-  Future<List<ConsumerNotification>> markAllAsRead(
-    List<ConsumerNotification> current,
-  ) async {
-    await _client.patch(ApiEndpoints.notificationsReadAll);
-    return current.map((n) => n.copyWith(isRead: true)).toList();
-  }
-
-  @override
-  Future<void> deleteNotification(String id) async {
-    await _client.delete(ApiEndpoints.notificationById(id));
-  }
-
-  @override
-  Future<int> unreadCount() async {
-    final response = await _client.get(ApiEndpoints.notificationsUnreadCount);
-    final body = response.data;
-    if (body is Map<String, dynamic>) {
-      final data = body['data'];
-      final count = data is Map<String, dynamic> ? data['count'] : body['count'];
-      return (count as num?)?.toInt() ?? 0;
-    }
-    return 0;
-  }
-
-  List<dynamic> _dataList(Response response) {
-    final body = response.data;
-    if (body is List) return body;
-    if (body is Map<String, dynamic>) {
-      final d = body['data'];
-      if (d is List) return d;
-      if (d is Map<String, dynamic>) {
-        final inner = d['data'];
-        if (inner is List) return inner;
-      }
-    }
-    return const [];
-  }
-
-  // ─── Chat/conversations — no backend endpoints exist, stays mocked ────────
 
   @override
   List<ConsumerConversation> getConversations() => [

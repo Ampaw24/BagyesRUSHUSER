@@ -27,6 +27,7 @@ import 'vendor_menu_view.dart';
 import 'vendor_earnings_view.dart';
 import '../model/vendor_order.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
+import '../../notification/viewmodel/notification_viewmodel.dart';
 import '../../../states/app.state.dart';
 import '../../../services/auth.service.dart' show ISignup;
 import '../../../core/widgets/custom_dialogs.dart';
@@ -54,7 +55,9 @@ class _VendorHomeState extends State<VendorHome> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<AuthViewmodel>().registerDeviceToken();
+      if (!mounted) return;
+      context.read<AuthViewmodel>().registerDeviceToken();
+      context.read<NotificationViewmodel>().getUnreadCount();
     });
   }
 
@@ -182,6 +185,8 @@ class _VendorHomeState extends State<VendorHome> {
   Widget build(BuildContext context) {
     final user = context.watch<CurrentUserProvider>().user;
     final vendorProfile = user?.profile as VendorProfile?;
+    final unreadNotifications =
+        context.watch<NotificationViewmodel>().unreadCount;
 
     String initials = '??';
     if (vendorProfile != null) {
@@ -240,6 +245,7 @@ class _VendorHomeState extends State<VendorHome> {
                 initials: initials,
                 isVerified: user?.phoneVerified ?? false,
                 onClose: _closeDrawer,
+                notificationBadgeCount: unreadNotifications,
                 onNotifications: () {
                   _closeDrawer();
                   Navigator.of(context).push(
@@ -452,6 +458,8 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final h = w * 0.05;
     final profile = widget.vendorProfile;
     final location = _currentLocation ?? profile?.businessAddress;
+    final hasUnreadNotifications =
+        context.watch<NotificationViewmodel>().unreadCount > 0;
 
     // `is_profile_complete` is the backend's own boolean form of
     // `missing_profile_fields.isEmpty` — trust it directly rather than
@@ -471,6 +479,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 VendorHeader(
                   initials: widget.initials,
                   onDrawerTap: widget.onDrawerTap,
+                  hasUnreadNotifications: hasUnreadNotifications,
                   onNotificationTap: () => Navigator.of(context).push(
                     PageRouteBuilder(
                       pageBuilder: (_, anim, _) => const VendorNotificationsScreen(),

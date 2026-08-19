@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/vendor_conversation.dart';
-import '../repositories/i_notification_repository.dart';
-import 'notification_provider.dart';
+import '../repositories/i_chat_repository.dart';
+import 'chat_repository_provider.dart';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ class ChatState {
 // ─── Notifier ────────────────────────────────────────────────────────────────
 
 class ChatNotifier extends StateNotifier<ChatState> {
-  final INotificationRepository _repository;
+  final IChatRepository _repository;
 
   ChatNotifier(this._repository) : super(const ChatState(isLoading: true)) {
     _load();
@@ -63,6 +63,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
 final chatProvider =
     StateNotifierProvider<ChatNotifier, ChatState>((ref) {
-  final repo = ref.read(notificationRepositoryProvider);
+  final repo = ref.read(chatRepositoryProvider);
   return ChatNotifier(repo);
 });

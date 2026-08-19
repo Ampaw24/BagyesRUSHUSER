@@ -5,14 +5,13 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
-import '../../../core/router/app_navigator.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import '../../../features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
 import '../../../features/consumer/restaurant/presentation/widgets/restaurant_card.dart';
+import '../../../src/notification/viewmodel/notification_viewmodel.dart';
 import 'promo_banner_section.dart';
 import 'popular_restaurants_row.dart';
-import 'quick_service_chip.dart';
 import 'shimmer_card.dart';
 import '../../../core/utils/location_helper.dart';
 
@@ -86,6 +85,8 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final listAsync = ref.watch(vendorListProvider(selectedCategory));
     final user = context.watch<CurrentUserProvider>().user;
+    final hasUnreadNotifications =
+        context.watch<NotificationViewmodel>().unreadCount > 0;
     final firstName = user?.profile?.firstName ?? '';
     final lastName = user?.profile?.lastName ?? '';
     final avatarInitials =
@@ -171,10 +172,30 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                           color: AppColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(w * 0.03),
                         ),
-                        child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedNotification01,
-                          color: AppColors.textPrimary,
-                          size: w * 0.055,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            HugeIcon(
+                              icon: HugeIcons.strokeRoundedNotification01,
+                              color: AppColors.textPrimary,
+                              size: w * 0.055,
+                            ),
+                            if (hasUnreadNotifications)
+                              Positioned(
+                                top: -1,
+                                right: -1,
+                                child: Container(
+                                  width: w * 0.022,
+                                  height: w * 0.022,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                    border:
+                                        Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -240,24 +261,6 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                       ],
                     ),
                   ),
-                ),
-                SizedBox(height: w * 0.045),
-
-                // ── Service shortcuts ──
-                Row(
-                  children: [
-                    QuickServiceChip(
-                      icon: Icons.local_shipping_outlined,
-                      label: 'Send Package',
-                      onTap: () => AppNavigator.toSendPackages(context),
-                    ),
-                    SizedBox(width: w * 0.025),
-                    QuickServiceChip(
-                      icon: Icons.account_balance_wallet_outlined,
-                      label: 'Wallet',
-                      onTap: () => context.push(AppRoutes.wallet),
-                    ),
-                  ],
                 ),
                 SizedBox(height: w * 0.045),
               ],

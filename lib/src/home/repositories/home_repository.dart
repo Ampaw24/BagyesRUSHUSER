@@ -306,8 +306,8 @@ ResultFuture<List<CategoryElement>> getAllItems() async {
     }
   }
 
-  // ─── Orders ────────────────────────────────────────────────────────────────
-
+  // ─── Orders ──────────────────────────
+ //["create single folder to handle this "]
   ResultFuture<List<Order>> getOrders() async {
     appLogger.d('HomeRepository.getOrders → initiated');
     try {

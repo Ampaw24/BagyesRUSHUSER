@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../../../constant/app_theme.dart';
-import '../../models/consumer_notification.dart';
+import '../../../../../src/notification/model/notification.model.dart';
 
 class ConsumerNotificationTile extends StatelessWidget {
-  final ConsumerNotification notification;
+  final NotificationModel notification;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const ConsumerNotificationTile({
     super.key,
     required this.notification,
     this.onTap,
+    this.onDelete,
   });
+
+  String get _displayTitle =>
+      notification.title.isNotEmpty ? notification.title : 'Notification';
+
+  String get _initials =>
+      _displayTitle.isNotEmpty ? _displayTitle[0].toUpperCase() : '?';
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +28,7 @@ class ConsumerNotificationTile extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onDelete == null ? null : () => _showDeleteSheet(context),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -44,7 +53,7 @@ class ConsumerNotificationTile extends StatelessWidget {
                   radius: w * 0.055,
                   backgroundColor: _avatarBg(notification.type),
                   child: Text(
-                    notification.senderInitials,
+                    _initials,
                     style: TextStyle(
                       fontFamily: 'Mukta',
                       fontSize: w * 0.033,
@@ -79,7 +88,7 @@ class ConsumerNotificationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          notification.senderName,
+                          _displayTitle,
                           style: TextStyle(
                             fontFamily: 'Mukta',
                             fontSize: w * 0.038,
@@ -138,64 +147,108 @@ class ConsumerNotificationTile extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime dt) {
+  void _showDeleteSheet(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.05)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: w * 0.03),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: w * 0.12,
+                  height: 4,
+                  margin: EdgeInsets.only(bottom: w * 0.05),
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                ListTile(
+                  leading: HugeIcon(
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    color: AppColors.error,
+                    size: w * 0.055,
+                  ),
+                  title: Text(
+                    'Delete notification',
+                    style: TextStyle(
+                      fontFamily: 'Mukta',
+                      fontSize: w * 0.038,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.error,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onDelete?.call();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '';
     final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
   }
 
-  Color _avatarBg(ConsumerNotificationType t) {
-    return switch (t) {
-      ConsumerNotificationType.orderPlaced =>
-        AppColors.primary.withValues(alpha: 0.12),
-      ConsumerNotificationType.delivery =>
-        AppColors.success.withValues(alpha: 0.12),
-      ConsumerNotificationType.promo =>
-        AppColors.accent.withValues(alpha: 0.15),
+  Color _avatarBg(String type) {
+    return switch (type) {
+      'order_placed' => AppColors.primary.withValues(alpha: 0.12),
+      'delivery' => AppColors.success.withValues(alpha: 0.12),
+      'promo' => AppColors.accent.withValues(alpha: 0.15),
       _ => AppColors.secondary.withValues(alpha: 0.1),
     };
   }
 
-  Color _avatarFg(ConsumerNotificationType t) {
-    return switch (t) {
-      ConsumerNotificationType.orderPlaced => AppColors.primary,
-      ConsumerNotificationType.delivery => AppColors.success,
-      ConsumerNotificationType.promo => AppColors.warning,
+  Color _avatarFg(String type) {
+    return switch (type) {
+      'order_placed' => AppColors.primary,
+      'delivery' => AppColors.success,
+      'promo' => AppColors.warning,
       _ => AppColors.secondary,
     };
   }
 
-  Color _iconBg(ConsumerNotificationType t) {
-    return switch (t) {
-      ConsumerNotificationType.orderPlaced =>
-        AppColors.primary.withValues(alpha: 0.1),
-      ConsumerNotificationType.delivery =>
-        AppColors.success.withValues(alpha: 0.1),
-      ConsumerNotificationType.promo =>
-        AppColors.accent.withValues(alpha: 0.12),
+  Color _iconBg(String type) {
+    return switch (type) {
+      'order_placed' => AppColors.primary.withValues(alpha: 0.1),
+      'delivery' => AppColors.success.withValues(alpha: 0.1),
+      'promo' => AppColors.accent.withValues(alpha: 0.12),
       _ => AppColors.surfaceVariant,
     };
   }
 
-  Color _iconColor(ConsumerNotificationType t) {
-    return switch (t) {
-      ConsumerNotificationType.orderPlaced => AppColors.primary,
-      ConsumerNotificationType.delivery => AppColors.success,
-      ConsumerNotificationType.promo => AppColors.warning,
+  Color _iconColor(String type) {
+    return switch (type) {
+      'order_placed' => AppColors.primary,
+      'delivery' => AppColors.success,
+      'promo' => AppColors.warning,
       _ => AppColors.textSecondary,
     };
   }
 
-  List<List<dynamic>> _typeIcon(ConsumerNotificationType t) {
-    return switch (t) {
-      ConsumerNotificationType.orderPlaced =>
-        HugeIcons.strokeRoundedReceiptDollar,
-      ConsumerNotificationType.orderUpdate =>
-        HugeIcons.strokeRoundedDeliveryBox01,
-      ConsumerNotificationType.delivery =>
-        HugeIcons.strokeRoundedDeliveryTracking01,
-      ConsumerNotificationType.promo => HugeIcons.strokeRoundedTag01,
+  List<List<dynamic>> _typeIcon(String type) {
+    return switch (type) {
+      'order_placed' => HugeIcons.strokeRoundedReceiptDollar,
+      'order_update' => HugeIcons.strokeRoundedDeliveryBox01,
+      'delivery' => HugeIcons.strokeRoundedDeliveryTracking01,
+      'promo' => HugeIcons.strokeRoundedTag01,
       _ => HugeIcons.strokeRoundedNotification01,
     };
   }

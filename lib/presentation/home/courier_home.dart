@@ -9,12 +9,12 @@ import '../../core/common/app/current_user_provider.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';
 import '../../src/auth/viewmodels/auth_viewmodel.dart';
+import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../states/app.state.dart';
 import '../../services/auth.service.dart';
 import '../../core/widgets/custom_dialogs.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
 import '../../features/consumer/orders/presentation/views/consumer_orders_view.dart';
-import '../../features/consumer/search/presentation/views/consumer_search_view.dart';
 import '../../features/consumer/profile/presentation/views/consumer_profile_view.dart';
 import 'widgets/home_discovery_tab.dart';
 import 'widgets/customer_drawer.dart';
@@ -33,15 +33,21 @@ class _HomeState extends ConsumerState<Home> {
   static const _navItems = [
     NavItem(icon: HugeIcons.strokeRoundedHome11, label: 'Home'),
     NavItem(icon: HugeIcons.strokeRoundedDeliveryBox01, label: 'Orders'),
-    NavItem(icon: HugeIcons.strokeRoundedSearch01, label: 'Search'),
+    NavItem(icon: HugeIcons.strokeRoundedPackage, label: 'Send Package'),
     NavItem(icon: HugeIcons.strokeRoundedUser, label: 'Profile'),
   ];
+
+  // Index into _navItems that triggers the send-package flow instead of
+  // switching tabs — it has no corresponding page in the IndexedStack.
+  static const _sendPackageNavIndex = 2;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<AuthViewmodel>().registerDeviceToken();
+      if (!mounted) return;
+      context.read<AuthViewmodel>().registerDeviceToken();
+      context.read<NotificationViewmodel>().getUnreadCount();
     });
   }
 
@@ -209,11 +215,12 @@ class _HomeState extends ConsumerState<Home> {
             SafeArea(
               bottom: false,
               child: IndexedStack(
-                index: _navIndex,
+                index: _navIndex > _sendPackageNavIndex
+                    ? _navIndex - 1
+                    : _navIndex,
                 children: [
                   HomeDiscoveryTab(onDrawerTap: _openDrawer),
                   const ConsumerOrdersView(),
-                  const ConsumerSearchView(),
                   const ConsumerProfileView(),
                 ],
               ),
@@ -224,7 +231,13 @@ class _HomeState extends ConsumerState<Home> {
               right: 0,
               child: FloatingNavBar(
                 currentIndex: _navIndex,
-                onTap: (i) => setState(() => _navIndex = i),
+                onTap: (i) {
+                  if (i == _sendPackageNavIndex) {
+                    AppNavigator.toSendPackages(context);
+                    return;
+                  }
+                  setState(() => _navIndex = i);
+                },
                 items: _navItems,
               ),
             ),

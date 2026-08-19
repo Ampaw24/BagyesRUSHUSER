@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../states/app.state.dart';
+import '../../src/notification/viewmodel/notification_viewmodel.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key});
@@ -114,6 +115,8 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Notifications',
+                    badgeCount:
+                        context.watch<NotificationViewmodel>().unreadCount,
                   ),
                 ),
                 InkWell(
@@ -195,7 +198,7 @@ class Profile extends StatelessWidget {
     );
   }
 
-  Row getTile(Icon icon, String title) {
+  Row getTile(Icon icon, String title, {int badgeCount = 0}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -214,10 +217,33 @@ class Profile extends StatelessWidget {
             Text(title, style: inputTextStyle),
           ],
         ),
-        Icon(
-          Icons.arrow_forward_ios,
-          size: 16.0,
-          color: Colors.grey.withValues(alpha: 0.6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (badgeCount > 0) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              widthSpace,
+            ],
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16.0,
+              color: Colors.grey.withValues(alpha: 0.6),
+            ),
+          ],
         ),
       ],
     );

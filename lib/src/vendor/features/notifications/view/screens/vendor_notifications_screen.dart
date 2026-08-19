@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../constant/app_theme.dart';
-import '../../providers/notification_provider.dart';
+import '../../../../../notification/model/notification.model.dart';
+import '../../../../../notification/viewmodel/notification_state.dart';
+import '../../../../../notification/viewmodel/notification_viewmodel.dart';
 import '../../providers/chat_provider.dart';
 import '../widgets/animated_tab_switcher.dart';
 import '../widgets/notification_tile.dart';
@@ -27,6 +30,10 @@ class _VendorNotificationsScreenState
   late final AnimationController _headerCtrl;
   late final Animation<double> _headerFade;
 
+  NotificationViewmodel? _vm;
+  List<NotificationModel> _notifications = [];
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -38,19 +45,79 @@ class _VendorNotificationsScreenState
       parent: _headerCtrl,
       curve: Curves.easeOut,
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _vm = context.read<NotificationViewmodel>();
+      _vm!.addListener(_onNotifState);
+      _vm!.getNotifications();
+    });
   }
 
   @override
   void dispose() {
+    _vm?.removeListener(_onNotifState);
     _headerCtrl.dispose();
     super.dispose();
   }
 
+  void _onNotifState() {
+    if (!mounted) return;
+    final state = _vm!.state;
+
+    switch (state) {
+      case NotificationsLoaded():
+        setState(() {
+          _notifications = state.notifications;
+          _isLoading = false;
+        });
+      case NotificationMarkedRead():
+        final updated = state.notification;
+        setState(() {
+          _notifications = _notifications
+              .map((n) => n.id == updated.id ? updated : n)
+              .toList();
+        });
+        _vm!.resetState();
+      case NotificationDeleted():
+        setState(() {
+          _notifications =
+              _notifications.where((n) => n.id != state.id).toList();
+        });
+        _vm!.resetState();
+      case AllNotificationsMarkedRead():
+        setState(() {
+          _notifications =
+              _notifications.map((n) => n.copyWith(isRead: true)).toList();
+        });
+        _vm!.resetState();
+      case NotificationError():
+        final message = state.message;
+        _vm!.resetState();
+        if (_notifications.isEmpty) setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      case NotificationLoading():
+        if (_notifications.isEmpty) setState(() => _isLoading = true);
+      case UnreadCountLoaded():
+      case NotificationInitial():
+        break;
+    }
+  }
+
+  void _deleteNotification(NotificationModel notification) {
+    _vm?.deleteNotification(notification.id, wasUnread: !notification.isRead);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final notifState = ref.watch(notificationProvider);
     final chatState = ref.watch(chatProvider);
     final w = MediaQuery.sizeOf(context).width;
+    final unreadCount = _notifications.where((n) => !n.isRead).length;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -68,11 +135,8 @@ class _VendorNotificationsScreenState
                 opacity: _headerFade,
                 child: _NotifHeader(
                   onBack: () => Navigator.of(context).pop(),
-                  onMarkAllRead: _tabIndex == 0
-                      ? () => ref
-                            .read(notificationProvider.notifier)
-                            .markAllRead()
-                      : null,
+                  onMarkAllRead:
+                      _tabIndex == 0 ? () => _vm?.markAllAsRead() : null,
                 ),
               ),
 
@@ -83,7 +147,7 @@ class _VendorNotificationsScreenState
                 selectedIndex: _tabIndex,
                 labels: const ['Notifications', 'Messages'],
                 badgeCounts: [
-                  notifState.unreadCount,
+                  unreadCount,
                   chatState.totalUnread,
                 ],
                 onTabChanged: (i) => setState(() => _tabIndex = i),
@@ -111,10 +175,10 @@ class _VendorNotificationsScreenState
                   child: _tabIndex == 0
                       ? _NotificationsTab(
                           key: const ValueKey('notif'),
-                          notifState: notifState,
-                          onTap: (id) => ref
-                              .read(notificationProvider.notifier)
-                              .markRead(id),
+                          isLoading: _isLoading,
+                          notifications: _notifications,
+                          onTap: (n) => _vm?.markAsRead(n.id),
+                          onDelete: _deleteNotification,
                         )
                       : _MessagesTab(
                           key: const ValueKey('msgs'),
@@ -216,23 +280,27 @@ class _NotifHeader extends StatelessWidget {
 // ─── Notifications tab ───────────────────────────────────────────────────────
 
 class _NotificationsTab extends StatelessWidget {
-  final NotificationState notifState;
-  final ValueChanged<String> onTap;
+  final bool isLoading;
+  final List<NotificationModel> notifications;
+  final ValueChanged<NotificationModel> onTap;
+  final ValueChanged<NotificationModel> onDelete;
 
   const _NotificationsTab({
     super.key,
-    required this.notifState,
+    required this.isLoading,
+    required this.notifications,
     required this.onTap,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
-    if (notifState.isLoading) {
+    if (isLoading && notifications.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (notifState.notifications.isEmpty) {
+    if (notifications.isEmpty) {
       return _EmptyState(
         icon: HugeIcons.strokeRoundedNotification01,
         message: 'No notifications yet',
@@ -242,7 +310,7 @@ class _NotificationsTab extends StatelessWidget {
 
     return ListView.separated(
       padding: EdgeInsets.only(bottom: w * 0.06),
-      itemCount: notifState.notifications.length,
+      itemCount: notifications.length,
       separatorBuilder: (_, _) => Divider(
         height: 1,
         thickness: 0.5,
@@ -251,10 +319,11 @@ class _NotificationsTab extends StatelessWidget {
         color: AppColors.divider,
       ),
       itemBuilder: (_, i) {
-        final notif = notifState.notifications[i];
+        final notif = notifications[i];
         return NotificationTile(
           notification: notif,
-          onTap: () => onTap(notif.id),
+          onTap: () => onTap(notif),
+          onDelete: () => onDelete(notif),
         );
       },
     );

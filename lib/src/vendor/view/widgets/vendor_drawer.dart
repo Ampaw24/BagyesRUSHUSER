@@ -17,6 +17,7 @@ class VendorDrawer extends StatefulWidget {
   final VoidCallback? onHelpSupport;
   final VoidCallback? onShopProfile;
   final VoidCallback? onDeleteAccount;
+  final int notificationBadgeCount;
 
   const VendorDrawer({
     super.key,
@@ -33,6 +34,7 @@ class VendorDrawer extends StatefulWidget {
     this.onHelpSupport,
     this.onShopProfile,
     this.onDeleteAccount,
+    this.notificationBadgeCount = 0,
   });
 
   @override
@@ -211,6 +213,7 @@ class _VendorDrawerState extends State<VendorDrawer>
                                 onTap: widget.onNotifications,
                                 fadeAnim: _staggeredFade(1),
                                 slideAnim: _staggeredSlide(1),
+                                badgeCount: widget.notificationBadgeCount,
                               ),
                               _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedWallet01,
@@ -420,6 +423,7 @@ class _AnimatedDrawerTile extends StatelessWidget {
   final VoidCallback? onTap;
   final Animation<double> fadeAnim;
   final Animation<Offset> slideAnim;
+  final int badgeCount;
 
   const _AnimatedDrawerTile({
     required this.icon,
@@ -428,6 +432,7 @@ class _AnimatedDrawerTile extends StatelessWidget {
     this.onTap,
     required this.fadeAnim,
     required this.slideAnim,
+    this.badgeCount = 0,
   });
 
   @override
@@ -476,6 +481,28 @@ class _AnimatedDrawerTile extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (badgeCount > 0) ...[
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: w * 0.02,
+                        vertical: w * 0.004,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(w * 0.03),
+                      ),
+                      child: Text(
+                        '$badgeCount',
+                        style: TextStyle(
+                          fontFamily: 'Mukta',
+                          fontSize: w * 0.028,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: w * 0.02),
+                  ],
                   if (color == null)
                     HugeIcon(
                       icon: HugeIcons.strokeRoundedArrowRight01,

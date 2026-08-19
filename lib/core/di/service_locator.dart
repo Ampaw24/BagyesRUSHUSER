@@ -10,6 +10,8 @@ import '../../src/home/repositories/home_repository.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import '../../src/home/viewmodels/home_viewmodel.dart';
+import '../../src/notification/repository/notification_repository.dart';
+import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../src/vendor_registration/repositories/vendor_repository.dart';
 import '../../src/vendor_registration/repositories/vendor_repository_impl.dart';
 import '../../src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
@@ -45,6 +47,9 @@ Future<void> init() async {
 
   // ── Repositories ────────────────────────────────────────────────────────────
   sl.registerLazySingleton<HomeRepository>(() => HomeRepository(client: sl<Dio>()));
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepository(client: sl<Dio>()),
+  );
   sl.registerLazySingleton<VendorRepository>(() => VendorRepositoryImpl(sl()));
   sl.registerLazySingleton<VendorDashboardRepository>(
     () => VendorDashboardRepositoryImpl(sl()),
@@ -76,6 +81,7 @@ Future<void> init() async {
   sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => OnboardingViewModel(sl()));
   sl.registerFactory(() => HomeViewmodel(repository: sl()));
+  sl.registerFactory(() => NotificationViewmodel(repository: sl()));
   sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => vendor_orders.OrdersViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));

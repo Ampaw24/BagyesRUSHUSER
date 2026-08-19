@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../src/notification/viewmodel/notification_viewmodel.dart';
 
 // ─── Customer Drawer ──────────────────────────────────────────────────────────
 
@@ -123,6 +125,8 @@ class _CustomerDrawerState extends State<CustomerDrawer>
     final w = MediaQuery.sizeOf(context).width;
     final h = MediaQuery.sizeOf(context).height;
     final drawerWidth = w * 0.78;
+    final unreadNotifications =
+        context.watch<NotificationViewmodel>().unreadCount;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -216,6 +220,7 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 onTap: widget.onNotifications,
                                 fadeAnim: _staggeredFade(2),
                                 slideAnim: _staggeredSlide(2),
+                                badgeCount: unreadNotifications,
                               ),
                               DrawerTile(
                                 icon: HugeIcons.strokeRoundedWallet01,
@@ -437,6 +442,7 @@ class DrawerTile extends StatelessWidget {
   final VoidCallback? onTap;
   final Animation<double> fadeAnim;
   final Animation<Offset> slideAnim;
+  final int badgeCount;
 
   const DrawerTile({
     super.key,
@@ -446,6 +452,7 @@ class DrawerTile extends StatelessWidget {
     this.onTap,
     required this.fadeAnim,
     required this.slideAnim,
+    this.badgeCount = 0,
   });
 
   @override
@@ -494,6 +501,28 @@ class DrawerTile extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (badgeCount > 0) ...[
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: w * 0.02,
+                        vertical: w * 0.004,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(w * 0.03),
+                      ),
+                      child: Text(
+                        '$badgeCount',
+                        style: TextStyle(
+                          fontFamily: 'Mukta',
+                          fontSize: w * 0.028,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: w * 0.02),
+                  ],
                   if (color == null)
                     HugeIcon(
                       icon: HugeIcons.strokeRoundedArrowRight01,

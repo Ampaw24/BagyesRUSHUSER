@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/consumer_conversation.dart';
-import '../repositories/i_consumer_notification_repository.dart';
-import 'consumer_notification_provider.dart';
+import '../repositories/i_consumer_chat_repository.dart';
+import 'consumer_chat_repository_provider.dart';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ class ConsumerChatState {
 // ─── Notifier ────────────────────────────────────────────────────────────────
 
 class ConsumerChatNotifier extends StateNotifier<ConsumerChatState> {
-  final IConsumerNotificationRepository _repository;
+  final IConsumerChatRepository _repository;
 
   ConsumerChatNotifier(this._repository)
       : super(const ConsumerChatState(isLoading: true)) {
@@ -70,6 +70,6 @@ class ConsumerChatNotifier extends StateNotifier<ConsumerChatState> {
 
 final consumerChatProvider =
     StateNotifierProvider<ConsumerChatNotifier, ConsumerChatState>((ref) {
-  final repo = ref.read(consumerNotificationRepositoryProvider);
+  final repo = ref.read(consumerChatRepositoryProvider);
   return ConsumerChatNotifier(repo);
 });
