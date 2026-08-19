@@ -7,9 +7,28 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:782816451697:android:c0e969294730da0d350fd0",
+        "mobilesdk_app_id": "1:782816451697:android:0de01801954ecbdf350fd0",
         "android_client_info": {
           "package_name": "com.bagye.bagyesrush2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBK1eFzwpRi5YmxraoGy8Hf6STQi-XAjA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:782816451697:android:c0e969294730da0d350fd0",
+        "android_client_info": {
+          "package_name": "com.bagye.bagyesrushdelivery"
         }
       },
       "oauth_client": [],

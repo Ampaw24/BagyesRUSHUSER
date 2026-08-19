@@ -294,13 +294,15 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         ),
         SizedBox(height: size.height * 0.022),
 
+        ///["IMplementation Note: TIN field is currently commented out because it's optional and not required for the initial registration process. It can be added back in later if needed."]
+
         // Tax Identification Number (optional)
-        VendorTextField(
-          label: 'Tax Identification Number (optional)',
-          hint: 'e.g. GH-123456-789',
-          controller: _tinCtrl,
-          focusNode: _tinFocus,
-        ),
+        // VendorTextField(
+        //   label: 'Tax Identification Number (optional)',
+        //   hint: 'e.g. GH-123456-789',
+        //   controller: _tinCtrl,
+        //   focusNode: _tinFocus,
+        // ),
       ],
     );
   }

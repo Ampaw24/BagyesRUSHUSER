@@ -48,7 +48,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBK1eFzwpRi5YmxraoGy8Hf6STQi-XAjA4',
-    appId: '1:782816451697:android:c0e969294730da0d350fd0',
+    appId: '1:782816451697:android:0de01801954ecbdf350fd0',
     messagingSenderId: '782816451697',
     projectId: 'bagyesrushapp-e0e4f',
     storageBucket: 'bagyesrushapp-e0e4f.firebasestorage.app',
@@ -56,7 +56,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCXhHMAtaozDFCU7XXE__Me4nOfvERAE3k',
-    appId: '1:782816451697:ios:1ee154fdb1cd9fba350fd0',
+    appId: '1:782816451697:ios:b24cb37605c34c11350fd0',
     messagingSenderId: '782816451697',
     projectId: 'bagyesrushapp-e0e4f',
     storageBucket: 'bagyesrushapp-e0e4f.firebasestorage.app',
