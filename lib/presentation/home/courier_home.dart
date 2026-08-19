@@ -273,7 +273,10 @@ class _HomeState extends ConsumerState<Home> {
                   AppNavigator.toInviteFriend(context);
                 },
                 onPrivacyPolicy: () => _closeDrawer(),
-                onHelpSupport: () => _closeDrawer(),
+                onHelpSupport: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.helpSupport);
+                },
                 onResetPassword: _showResetPasswordConfirmDialog,
                 onDeleteAccount: _showDeleteAccountDialog,
                 onLogout: _handleLogout,

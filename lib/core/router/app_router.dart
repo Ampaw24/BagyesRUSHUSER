@@ -17,6 +17,7 @@ import 'package:bagyesrushappusernew/presentation/courier/restaurant_items.dart'
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
 import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
 import 'package:bagyesrushappusernew/presentation/invite_friend/invite_friend.dart';
+import 'package:bagyesrushappusernew/presentation/help_support/help_support_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/login_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/signup_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/otp_view.dart';
@@ -62,6 +63,7 @@ const _kycExemptRoutes = {
   AppRoutes.editProfile,
   AppRoutes.profile,
   AppRoutes.vendorKyc,
+  AppRoutes.helpSupport,
 };
 
 final GoRouter appRouter = GoRouter(
@@ -291,6 +293,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.inviteFriend,
       builder: (context, state) => InviteFriend(),
+    ),
+    GoRoute(
+      path: AppRoutes.helpSupport,
+      builder: (context, state) => const HelpSupportView(),
     ),
   ],
 );

@@ -69,4 +69,5 @@ abstract final class AppRoutes {
 
   // ── Other ──
   static const String inviteFriend = '/invite-friend';
+  static const String helpSupport = '/help-support';
 }

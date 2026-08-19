@@ -1,4 +1,5 @@
 import 'package:bagyesrushappusernew/main.wrapper.dart';
+import 'package:bagyesrushappusernew/scw_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -8,22 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
     hide ChangeNotifierProvider;
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'states/app.state.dart';
 import 'core/di/service_locator.dart' as di;
-import 'core/di/service_locator.dart';
 import 'core/services/app_initializer.dart';
 import 'core/services/fcm_service.dart';
-import 'core/providers/app_providers.dart';
-import 'src/onboarding/viewmodels/onboarding_viewmodel.dart';
-import 'src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
-import 'src/vendor/viewmodel/orders_viewmodel.dart';
-import 'src/vendor/viewmodel/menu_viewmodel.dart';
-import 'src/vendor/viewmodel/earnings_viewmodel.dart';
-import 'src/vendor/viewmodel/settings_viewmodel.dart';
-import 'src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
-import 'src/home/viewmodels/home_viewmodel.dart';
-import 'src/notification/viewmodel/notification_viewmodel.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -43,24 +31,7 @@ void main() async {
     runApp(
       ProviderScope(
         child: MultiProvider(
-          providers: [
-            // ── Global state ────────────────────────────────────────────────
-            ChangeNotifierProvider(create: (_) => AppState()),
-            // ── Auth + current user (new MVVM pattern) ──────────────────────
-            ...AppProviders.allProviders,
-            // ── Other feature viewmodels ────────────────────────────────────
-            ChangeNotifierProvider(create: (_) => sl<OnboardingViewModel>()),
-            ChangeNotifierProvider(
-              create: (_) => sl<VendorRegistrationViewModel>(),
-            ),
-            ChangeNotifierProvider(create: (_) => sl<OrdersViewModel>()),
-            ChangeNotifierProvider(create: (_) => sl<MenuViewModel>()),
-            ChangeNotifierProvider(create: (_) => sl<EarningsViewModel>()),
-            ChangeNotifierProvider(create: (_) => sl<SettingsViewModel>()),
-            ChangeNotifierProvider(create: (_) => sl<VendorKycViewModel>()),
-            ChangeNotifierProvider(create: (_) => sl<HomeViewmodel>()),
-            ChangeNotifierProvider(create: (_) => sl<NotificationViewmodel>()),
-          ],
+          providers: ScwProviders.providers,
           child: const MyApp(),
         ),
       ),

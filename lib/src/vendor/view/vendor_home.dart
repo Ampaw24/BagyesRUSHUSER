@@ -280,7 +280,10 @@ class _VendorHomeState extends State<VendorHome> {
                   context.push(AppRoutes.vendorPaymentMethods);
                 },
                 onPrivacyPolicy: () {},
-                onHelpSupport: () {},
+                onHelpSupport: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.helpSupport);
+                },
                 onDeleteAccount: _showDeleteAccountDialog,
                 onLogout: _handleLogout,
               ),

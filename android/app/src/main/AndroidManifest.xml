@@ -45,4 +45,21 @@
         <meta-data android:name="com.google.android.geo.API_KEY"
                android:value="AIzaSyAGPiHCvO7ES5wj9GMVFzHnEKOTNdiHrLo"/>
     </application>
+
+    <!-- Required so url_launcher can resolve mail, phone, and browser/WhatsApp
+         intents on Android 11+ package-visibility restrictions. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
 </manifest>
