@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/utils/image_compression_utils.dart';
 import '../../../core/utils/network_utility.dart';
 import 'vendor_repository.dart';
 
@@ -38,9 +41,12 @@ class VendorRepositoryImpl implements VendorRepository {
     String documentType,
   ) async {
     try {
+      final compressed = await ImageCompressionUtils.compressIfNeeded(
+        File(filePath),
+      );
       final formData = FormData.fromMap({
         'document_type': documentType,
-        'file': await MultipartFile.fromFile(filePath),
+        'file': await MultipartFile.fromFile(compressed.path),
       });
       final response = await _networkUtility.dio.post(
         ApiEndpoints.vendorDocUpload,

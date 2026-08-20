@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/image_compression_utils.dart';
 import '../../../core/utils/json_utils.dart';
 import '../../../core/utils/network_utils.dart';
 import '../../../core/utils/network_utility.dart';
@@ -658,40 +659,6 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   }
 
   @override
-  Future<Either<Failure, void>> updateOperatingHours(
-    Map<String, DayHours> weeklyHours,
-  ) async {
-    appLogger.d('VendorDashboardRepo.updateOperatingHours → initiated');
-    try {
-      final response = await _networkUtility.dio.put(
-        ApiEndpoints.vendorHours,
-        data: weeklyHours.map((day, hours) => MapEntry(day, hours.toJson())),
-      );
-      if (_isSuccess(response.statusCode)) {
-        appLogger.i('VendorDashboardRepo.updateOperatingHours → updated');
-        return const Right(null);
-      }
-      appLogger.w(
-        'VendorDashboardRepo.updateOperatingHours → HTTP ${response.statusCode}',
-      );
-      return NetworkUtils.handleDioResponseError<void>(response);
-    } on DioException catch (e) {
-      appLogger.e(
-        'VendorDashboardRepo.updateOperatingHours → DioException',
-        error: e,
-      );
-      return NetworkUtils.handleDioException<void>(e);
-    } catch (e, s) {
-      return NetworkUtils.handleException<void>(
-        e,
-        s,
-        repositoryName: 'VendorDashboardRepo',
-        methodName: 'updateOperatingHours',
-      );
-    }
-  }
-
-  @override
   Future<Either<Failure, VendorProfile>> submitOperationalKyc({
     required String openingTime,
     required String closingTime,
@@ -744,8 +711,11 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   ) async {
     appLogger.d('VendorDashboardRepo.uploadVendorDocument → type=$type');
     try {
+      final compressed = await ImageCompressionUtils.compressIfNeeded(
+        File(filePath),
+      );
       final formData = FormData.fromMap({
-        'document': await MultipartFile.fromFile(filePath),
+        'document': await MultipartFile.fromFile(compressed.path),
       });
       final response = await _networkUtility.dio.post(
         ApiEndpoints.vendorMeDocumentUpload(type),
@@ -779,35 +749,71 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   }
 
   @override
-  Future<Either<Failure, VendorProfile>> uploadOwnerIdDocument({
-    required String frontPath,
-    required String backPath,
-  }) async {
-    appLogger.d('VendorDashboardRepo.uploadOwnerIdDocument → initiated');
+  Future<Either<Failure, Map<String, dynamic>>> fetchVendorDocument(
+    String type,
+  ) async {
+    appLogger.d('VendorDashboardRepo.fetchVendorDocument → type=$type');
     try {
-      // Both sides are sent in a single request — the backend field names
-      // ('front'/'back') are inferred and should be verified against the
-      // real API; adjust if it expects different keys (e.g. `front_image`).
+      final response = await _networkUtility.dio.get(
+        ApiEndpoints.vendorMeDocumentShow(type),
+      );
+      if (_isSuccess(response.statusCode)) {
+        appLogger.i('VendorDashboardRepo.fetchVendorDocument → loaded type=$type');
+        return Right(_dataMap(response));
+      }
+      appLogger.w(
+        'VendorDashboardRepo.fetchVendorDocument → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError<Map<String, dynamic>>(
+        response,
+      );
+    } on DioException catch (e) {
+      appLogger.e(
+        'VendorDashboardRepo.fetchVendorDocument → DioException',
+        error: e,
+      );
+      return NetworkUtils.handleDioException<Map<String, dynamic>>(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException<Map<String, dynamic>>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchVendorDocument',
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, VendorProfile>> uploadVendorImage(
+    String type,
+    String filePath,
+  ) async {
+    appLogger.d('VendorDashboardRepo.uploadVendorImage → type=$type');
+    try {
+      final compressed = await ImageCompressionUtils.compressIfNeeded(
+        File(filePath),
+      );
       final formData = FormData.fromMap({
-        'front': await MultipartFile.fromFile(frontPath),
-        'back': await MultipartFile.fromFile(backPath),
+        'image': await MultipartFile.fromFile(compressed.path),
       });
       final response = await _networkUtility.dio.post(
-        ApiEndpoints.vendorMeDocumentUpload('owner_id'),
+        ApiEndpoints.vendorMeImageUpload(type),
         data: formData,
       );
       if (_isSuccess(response.statusCode)) {
         final profile = VendorProfile.fromJson(_dataMap(response));
-        appLogger.i('VendorDashboardRepo.uploadOwnerIdDocument → uploaded');
+        appLogger.i(
+          'VendorDashboardRepo.uploadVendorImage → uploaded type=$type',
+        );
         return Right(profile);
       }
       appLogger.w(
-        'VendorDashboardRepo.uploadOwnerIdDocument → HTTP ${response.statusCode}',
+        'VendorDashboardRepo.uploadVendorImage → HTTP ${response.statusCode}',
       );
       return NetworkUtils.handleDioResponseError<VendorProfile>(response);
     } on DioException catch (e) {
       appLogger.e(
-        'VendorDashboardRepo.uploadOwnerIdDocument → DioException',
+        'VendorDashboardRepo.uploadVendorImage → DioException',
         error: e,
       );
       return NetworkUtils.handleDioException<VendorProfile>(e);
@@ -816,7 +822,80 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
         e,
         s,
         repositoryName: 'VendorDashboardRepo',
-        methodName: 'uploadOwnerIdDocument',
+        methodName: 'uploadVendorImage',
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, VendorProfile>> updateVendorPayout(
+    Map<String, dynamic> data,
+  ) async {
+    appLogger.d(
+      'VendorDashboardRepo.updateVendorPayout → fields=${data.keys.join(', ')}',
+    );
+    try {
+      final response = await _networkUtility.dio.put(
+        ApiEndpoints.vendorPayout,
+        data: data,
+      );
+      if (_isSuccess(response.statusCode)) {
+        final profile = VendorProfile.fromJson(_dataMap(response));
+        appLogger.i(
+          'VendorDashboardRepo.updateVendorPayout → updated id=${profile.id}',
+        );
+        return Right(profile);
+      }
+      appLogger.w(
+        'VendorDashboardRepo.updateVendorPayout → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError<VendorProfile>(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'VendorDashboardRepo.updateVendorPayout → DioException',
+        error: e,
+      );
+      return NetworkUtils.handleDioException<VendorProfile>(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException<VendorProfile>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'updateVendorPayout',
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, VendorProfile>> submitVendorForReview() async {
+    appLogger.d('VendorDashboardRepo.submitVendorForReview → initiated');
+    try {
+      final response = await _networkUtility.dio.post(
+        ApiEndpoints.vendorSubmitReview,
+      );
+      if (_isSuccess(response.statusCode)) {
+        final profile = VendorProfile.fromJson(_dataMap(response));
+        appLogger.i(
+          'VendorDashboardRepo.submitVendorForReview → submitted id=${profile.id}',
+        );
+        return Right(profile);
+      }
+      appLogger.w(
+        'VendorDashboardRepo.submitVendorForReview → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError<VendorProfile>(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'VendorDashboardRepo.submitVendorForReview → DioException',
+        error: e,
+      );
+      return NetworkUtils.handleDioException<VendorProfile>(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException<VendorProfile>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'submitVendorForReview',
       );
     }
   }

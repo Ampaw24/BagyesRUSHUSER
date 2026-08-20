@@ -89,7 +89,6 @@ Future<void> init() async {
   sl.registerFactory(() => SettingsViewModel(sl()));
   sl.registerFactory(
     () => VendorKycViewModel(
-      registrationRepository: sl(),
       dashboardRepository: sl(),
       currentUserProvider: sl(),
     ),

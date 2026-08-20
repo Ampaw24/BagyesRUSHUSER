@@ -12,6 +12,7 @@ import '../../models/consumer_conversation.dart';
 import '../widgets/consumer_notification_tile.dart';
 import '../widgets/consumer_conversation_tile.dart';
 import 'consumer_chat_screen.dart';
+import 'notification_details_screen.dart';
 import '../../../../../../src/vendor/features/notifications/view/widgets/animated_tab_switcher.dart';
 
 class ConsumerNotificationsScreen extends ConsumerStatefulWidget {
@@ -109,6 +110,13 @@ class _ConsumerNotificationsScreenState
     _vm?.deleteNotification(notification.id, wasUnread: !notification.isRead);
   }
 
+  void _openNotification(NotificationModel notification) {
+    if (!notification.isRead) _vm?.markAsRead(notification.id);
+    Navigator.of(context).push(
+      _slideRoute(NotificationDetailsScreen(notification: notification)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(consumerChatProvider);
@@ -173,7 +181,7 @@ class _ConsumerNotificationsScreenState
                           key: const ValueKey('notif'),
                           isLoading: _isLoading,
                           notifications: _notifications,
-                          onTap: (n) => _vm?.markAsRead(n.id),
+                          onTap: _openNotification,
                           onDelete: _deleteNotification,
                         )
                       : _MessagesTab(

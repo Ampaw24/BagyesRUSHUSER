@@ -60,14 +60,27 @@ abstract final class ApiEndpoints {
   static const String vendorEarnings = '/vendors/earnings';
   static const String vendorProfile = '/vendor/me';
   static const String vendorAccount = '/vendors/account';
+  /// `PUT /vendor/me/hours` — accepts `opening_time`, `closing_time`,
+  /// `operating_days`, `estimated_prep_time_minutes`. No per-day hours.
   static const String operationsKyc = '/vendor/me/hours';
-
-  /// `PUT /vendor/me/hours`
-  static const String vendorHours = '/vendor/me/hours';
 
   /// `POST /vendor/me/documents/:type` (multipart, field: `document`)
   static String vendorMeDocumentUpload(String type) =>
       '/vendor/me/documents/$type';
+
+  /// `GET /vendor/me/documents/:type`
+  static String vendorMeDocumentShow(String type) =>
+      '/vendor/me/documents/$type';
+
+  /// `POST /vendor/me/images/:type` (multipart, field: `image`)
+  static String vendorMeImageUpload(String type) =>
+      '/vendor/me/images/$type';
+
+  /// `PUT /vendor/me/payout`
+  static const String vendorPayout = '/vendor/me/payout';
+
+  /// `POST /vendor/me/submit-review`
+  static const String vendorSubmitReview = '/vendor/me/submit-review';
 
   //home-page Path 1
   static const String adsBanners = '/banners';

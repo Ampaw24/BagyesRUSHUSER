@@ -12,6 +12,7 @@ import 'firebase_options.dart';
 import 'core/di/service_locator.dart' as di;
 import 'core/services/app_initializer.dart';
 import 'core/services/fcm_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");

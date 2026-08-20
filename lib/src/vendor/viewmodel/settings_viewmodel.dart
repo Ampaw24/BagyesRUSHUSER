@@ -103,4 +103,35 @@ class SettingsViewModel extends ViewModel<SettingsState> {
       },
     );
   }
+
+  /// Fetches a single uploaded document's status/details without touching
+  /// [SettingsState.profile].
+  Future<Map<String, dynamic>?> fetchDocument(String type) async {
+    final result = await _repository.fetchVendorDocument(type);
+    return result.fold((failure) => null, (data) => data);
+  }
+
+  /// Updates bank/mobile-money payout details and refreshes
+  /// [SettingsState.profile] with the server's response.
+  Future<bool> updatePayout(Map<String, dynamic> data) async {
+    emit(state.copyWith(status: SettingsStatus.saving));
+
+    final result = await _repository.updateVendorPayout(data);
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(
+          status: SettingsStatus.error,
+          errorMessage: failure.message,
+        ));
+        return false;
+      },
+      (profile) {
+        emit(state.copyWith(
+          status: SettingsStatus.loaded,
+          profile: profile,
+        ));
+        return true;
+      },
+    );
+  }
 }

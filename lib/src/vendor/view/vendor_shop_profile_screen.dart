@@ -127,11 +127,8 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
       maxWidth: 1200,
       imageQuality: 85,
     );
-    if (picked != null && mounted) {
-      setState(() {
-        _localEdits = (_currentProfile)?.copyWith(coverImageUrl: picked.path);
-      });
-    }
+    if (picked == null) return;
+    await _uploadImage('cover', picked.path);
   }
 
   Future<void> _pickLogo() async {
@@ -140,17 +137,18 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
       maxWidth: 400,
       imageQuality: 90,
     );
-    if (picked != null && mounted) {
-      setState(() {
-        _localEdits = (_currentProfile)?.copyWith(logoUrl: picked.path);
-      });
-    }
+    if (picked == null) return;
+    await _uploadImage('logo', picked.path);
   }
 
-  VendorProfile? get _currentProfile {
-    if (_localEdits != null) return _localEdits;
-    final user = context.read<CurrentUserProvider>().user;
-    return user?.profile as VendorProfile?;
+  Future<void> _uploadImage(String type, String filePath) async {
+    final result =
+        await sl<VendorDashboardRepository>().uploadVendorImage(type, filePath);
+    if (!mounted) return;
+    result.fold(
+      (failure) => _showSaveError(failure.message),
+      (profile) => setState(() => _localEdits = profile),
+    );
   }
 
   @override
@@ -435,12 +433,19 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
       context,
       profile: profile,
       onSave: (updated) async {
-        final result = await sl<VendorDashboardRepository>()
-            .updateOperatingHours(updated.weeklyHours);
+        // The backend only stores a single opening/closing time plus the
+        // set of operating days — not per-day hours — so the sheet's
+        // per-day picks collapse to the first open day's times here.
+        final result = await sl<VendorDashboardRepository>().submitOperationalKyc(
+          openingTime: updated.openingTime,
+          closingTime: updated.closingTime,
+          operatingDays: updated.operatingDays,
+          estimatedPrepTimeMinutes: updated.estimatedPrepTimeMinutes,
+        );
         result.fold(
           (failure) => _showSaveError(failure.message),
-          (_) {
-            if (mounted) setState(() => _localEdits = updated);
+          (savedProfile) {
+            if (mounted) setState(() => _localEdits = savedProfile);
           },
         );
       },

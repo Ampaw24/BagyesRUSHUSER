@@ -12,6 +12,7 @@ import '../widgets/animated_tab_switcher.dart';
 import '../widgets/notification_tile.dart';
 import '../widgets/conversation_tile.dart';
 import 'vendor_chat_screen.dart';
+import 'vendor_notification_details_screen.dart';
 
 /// Vendor Notifications Screen.
 /// Hosts Notifications and Messages tabs with animated switching.
@@ -113,6 +114,13 @@ class _VendorNotificationsScreenState
     _vm?.deleteNotification(notification.id, wasUnread: !notification.isRead);
   }
 
+  void _openNotification(NotificationModel notification) {
+    if (!notification.isRead) _vm?.markAsRead(notification.id);
+    Navigator.of(context).push(
+      _slideRoute(VendorNotificationDetailsScreen(notification: notification)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
@@ -177,7 +185,7 @@ class _VendorNotificationsScreenState
                           key: const ValueKey('notif'),
                           isLoading: _isLoading,
                           notifications: _notifications,
-                          onTap: (n) => _vm?.markAsRead(n.id),
+                          onTap: _openNotification,
                           onDelete: _deleteNotification,
                         )
                       : _MessagesTab(

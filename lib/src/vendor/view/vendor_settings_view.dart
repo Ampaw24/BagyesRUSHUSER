@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
+import '../model/vendor_profile.dart';
 import '../viewmodel/settings_viewmodel.dart';
+import 'widgets/payout_settings_sheet.dart';
 
 class VendorSettingsView extends StatefulWidget {
   const VendorSettingsView({super.key});
@@ -24,6 +26,27 @@ class _VendorSettingsViewState extends State<VendorSettingsView> {
         context.read<SettingsViewModel>().loadProfile();
       });
     }
+  }
+
+  void _openPayoutSheet(BuildContext context, VendorPayoutInfo payout) {
+    final vm = context.read<SettingsViewModel>();
+    PayoutSettingsSheet.show(
+      context,
+      payout: payout,
+      onSave: (data) async {
+        final success = await vm.updatePayout(data);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Payout details updated'
+                  : vm.state.errorMessage ?? 'Failed to update payout details',
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -185,8 +208,12 @@ class _VendorSettingsViewState extends State<VendorSettingsView> {
                   _SettingsTile(
                     icon: Icons.payment_rounded,
                     title: 'Payout Settings',
-                    subtitle: 'Bank & mobile money',
-                    onTap: () {},
+                    subtitle: profile?.payout.isConfigured ?? false
+                        ? 'Bank & mobile money configured'
+                        : 'Set up bank & mobile money',
+                    onTap: profile == null
+                        ? null
+                        : () => _openPayoutSheet(context, profile.payout),
                   ),
                   _SettingsTile(
                     icon: Icons.verified_user_rounded,
@@ -258,7 +285,7 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color? titleColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _SettingsTile({
     required this.icon,

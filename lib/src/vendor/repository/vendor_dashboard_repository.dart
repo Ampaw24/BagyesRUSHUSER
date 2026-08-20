@@ -65,10 +65,6 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, VendorProfile>> updateVendorProfile(
     Map<String, dynamic> data,
   );
-  
-  Future<Either<Failure, void>> updateOperatingHours(
-    Map<String, DayHours> weeklyHours,
-  );
 
   /// Submits the operational details (opening/closing time, operating days,
   /// estimated prep time) required to complete vendor KYC, in one call to
@@ -89,13 +85,28 @@ abstract class VendorDashboardRepository {
     String filePath,
   );
 
-  /// Uploads the front and back of the owner/user ID card together as a
-  /// single `owner_id` document submission (one multipart request carrying
-  /// both files), rather than two separate requests.
-  Future<Either<Failure, VendorProfile>> uploadOwnerIdDocument({
-    required String frontPath,
-    required String backPath,
-  });
+  /// Fetches a single uploaded document's status/details.
+  /// `GET /vendor/me/documents/:type`
+  Future<Either<Failure, Map<String, dynamic>>> fetchVendorDocument(
+    String type,
+  );
+
+  /// Uploads a display image (e.g. `logo`, `cover`) to
+  /// `POST /vendor/me/images/:type`. Returns the resulting profile with
+  /// its updated image URLs.
+  Future<Either<Failure, VendorProfile>> uploadVendorImage(
+    String type,
+    String filePath,
+  );
+
+  /// Updates bank/mobile-money payout details via `PUT /vendor/me/payout`.
+  Future<Either<Failure, VendorProfile>> updateVendorPayout(
+    Map<String, dynamic> data,
+  );
+
+  /// Submits the completed profile for admin review.
+  /// `POST /vendor/me/submit-review`
+  Future<Either<Failure, VendorProfile>> submitVendorForReview();
 
   // ── Account ──
   Future<Either<Failure, bool>> deleteVendorAccount();

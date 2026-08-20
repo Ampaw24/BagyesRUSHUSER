@@ -82,6 +82,31 @@ class ShopProfileViewModel extends ViewModel<ShopProfileState> {
     );
   }
 
+  /// Uploads a display image (`logo` or `cover`) and refreshes
+  /// [ShopProfileState.profile] with the server's response.
+  Future<bool> uploadImage(String type, String filePath) async {
+    emit(state.copyWith(status: ShopProfileStatus.saving));
+
+    final result = await _repository.uploadVendorImage(type, filePath);
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(
+          status: ShopProfileStatus.error,
+          errorMessage: failure.message,
+        ));
+        return false;
+      },
+      (profile) {
+        emit(state.copyWith(
+          status: ShopProfileStatus.loaded,
+          profile: profile,
+          successMessage: 'Image updated successfully',
+        ));
+        return true;
+      },
+    );
+  }
+
   Future<bool> deleteAccount() async {
     emit(state.copyWith(status: ShopProfileStatus.deleting));
 
