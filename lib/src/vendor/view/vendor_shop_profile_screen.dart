@@ -141,6 +141,16 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
     await _uploadImage('logo', picked.path);
   }
 
+  Future<void> _pickBannerImage() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    await _uploadImage('banner', picked.path);
+  }
+
   Future<void> _uploadImage(String type, String filePath) async {
     final result =
         await sl<VendorDashboardRepository>().uploadVendorImage(type, filePath);
@@ -282,6 +292,19 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
                             child: _CuisineTypesCard(
                               profile: profile,
                               onEdit: () => _openEditSheet(profile),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: w * 0.04),
+
+                        // ── Shop Banner ──
+                        FadeTransition(
+                          opacity: _staggeredFade(6),
+                          child: SlideTransition(
+                            position: _staggeredSlide(6),
+                            child: _BannerImageCard(
+                              bannerUrl: profile.bannerUrl,
+                              onEdit: _pickBannerImage,
                             ),
                           ),
                         ),
@@ -1682,6 +1705,151 @@ class _CuisineTypesCard extends StatelessWidget {
                 );
               }).toList(),
             ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── Banner Image Card ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _BannerImageCard extends StatelessWidget {
+  final String? bannerUrl;
+  final VoidCallback onEdit;
+
+  const _BannerImageCard({required this.bannerUrl, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final hasBanner = bannerUrl != null && bannerUrl!.isNotEmpty;
+
+    return Container(
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(w * 0.04),
+        border: Border.all(color: AppColors.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedImage01,
+                color: AppColors.primary,
+                size: w * 0.045,
+              ),
+              SizedBox(width: w * 0.02),
+              Text(
+                'Shop Banner',
+                style: TextStyle(
+                  fontSize: w * 0.04,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: onEdit,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: w * 0.03,
+                    vertical: w * 0.012,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(w * 0.05),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      HugeIcon(
+                        icon: hasBanner
+                            ? HugeIcons.strokeRoundedPencilEdit01
+                            : HugeIcons.strokeRoundedAdd01,
+                        color: AppColors.primary,
+                        size: w * 0.032,
+                      ),
+                      SizedBox(width: w * 0.01),
+                      Text(
+                        hasBanner ? 'Change' : 'Add',
+                        style: TextStyle(
+                          fontSize: w * 0.028,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: w * 0.03),
+          Text(
+            'Shown to customers on your storefront card in search and listings.',
+            style: TextStyle(
+              fontSize: w * 0.03,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: w * 0.03),
+          GestureDetector(
+            onTap: onEdit,
+            child: AspectRatio(
+              aspectRatio: 16 / 7,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(w * 0.03),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(w * 0.03),
+                  child: hasBanner
+                      ? _buildBannerImage(bannerUrl!)
+                      : Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedImageAdd01,
+                                color: AppColors.textHint,
+                                size: w * 0.07,
+                              ),
+                              SizedBox(height: w * 0.015),
+                              Text(
+                                'Tap to add a banner image',
+                                style: TextStyle(
+                                  fontSize: w * 0.03,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBannerImage(String url) {
+    if (url.startsWith('/') || url.startsWith('file://')) {
+      final path = url.startsWith('file://') ? url.substring(7) : url;
+      return Image.file(File(path), fit: BoxFit.cover);
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
     );
   }
 }

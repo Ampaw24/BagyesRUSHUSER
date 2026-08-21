@@ -146,6 +146,7 @@ class VendorProfile extends Equatable {
     required this.updatedAt,
     this.logoUrl,
     this.coverImageUrl,
+    this.bannerUrl,
     this.instagramUrl,
     this.facebookUrl,
     this.tiktokUrl,
@@ -207,6 +208,7 @@ class VendorProfile extends Equatable {
   // Optional fields for UI compatibility
   final String? logoUrl;
   final String? coverImageUrl;
+  final String? bannerUrl;
   final String? instagramUrl;
   final String? facebookUrl;
   final String? tiktokUrl;
@@ -341,6 +343,7 @@ class VendorProfile extends Equatable {
       updatedAt: JsonUtils.asDateTime(json["updated_at"]),
       logoUrl: JsonUtils.asStringOrNull(json["logo_url"]),
       coverImageUrl: JsonUtils.asStringOrNull(json["cover_image_url"]),
+      bannerUrl: JsonUtils.asStringOrNull(json["banner_url"]),
       instagramUrl: JsonUtils.asStringOrNull(json["instagram_url"]),
       facebookUrl: JsonUtils.asStringOrNull(json["facebook_url"]),
       tiktokUrl: JsonUtils.asStringOrNull(json["tiktok_url"]),
@@ -404,6 +407,7 @@ class VendorProfile extends Equatable {
         "updated_at": updatedAt?.toIso8601String(),
         "logo_url": logoUrl,
         "cover_image_url": coverImageUrl,
+        "banner_url": bannerUrl,
         "instagram_url": instagramUrl,
         "facebook_url": facebookUrl,
         "tiktok_url": tiktokUrl,
@@ -457,6 +461,7 @@ class VendorProfile extends Equatable {
     DateTime? updatedAt,
     String? logoUrl,
     String? coverImageUrl,
+    String? bannerUrl,
     String? instagramUrl,
     String? facebookUrl,
     String? tiktokUrl,
@@ -539,6 +544,7 @@ class VendorProfile extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       logoUrl: logoUrl ?? this.logoUrl,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      bannerUrl: bannerUrl ?? this.bannerUrl,
       instagramUrl: instagramUrl ?? this.instagramUrl,
       facebookUrl: facebookUrl ?? this.facebookUrl,
       tiktokUrl: tiktokUrl ?? this.tiktokUrl,
@@ -601,6 +607,7 @@ class VendorProfile extends Equatable {
         updatedAt,
         logoUrl,
         coverImageUrl,
+        bannerUrl,
         instagramUrl,
         facebookUrl,
         tiktokUrl,

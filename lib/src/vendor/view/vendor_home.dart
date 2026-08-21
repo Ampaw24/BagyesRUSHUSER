@@ -279,6 +279,10 @@ class _VendorHomeState extends State<VendorHome> {
                   _closeDrawer();
                   context.push(AppRoutes.vendorPaymentMethods);
                 },
+                onPayoutSettings: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.vendorPayout);
+                },
                 onPrivacyPolicy: () {},
                 onHelpSupport: () {
                   _closeDrawer();
@@ -580,7 +584,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                       },
                       onDocuments: () =>
                           context.push(AppRoutes.vendorKyc, extra: 1),
-                      onPayouts: () => context.push(AppRoutes.vendorPaymentMethods),
+                      onPayouts: () => context.push(AppRoutes.vendorPayout),
                     ),
                   )
                 else
