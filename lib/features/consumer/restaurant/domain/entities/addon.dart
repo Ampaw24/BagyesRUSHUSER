@@ -31,23 +31,21 @@ class AddonOption {
   }
 
   factory AddonOption.fromJson(Map<String, dynamic> json) => AddonOption(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        additionalPrice:
-            (json['additional_price'] as num? ?? 0).toDouble(),
-        isAvailable: json['is_available'] as bool? ?? true,
-      );
+    id: json['id']?.toString() ?? '',
+    name: json['name'] as String? ?? '',
+    additionalPrice: (json['additional_price'] as num? ?? 0).toDouble(),
+    isAvailable: json['is_available'] as bool? ?? true,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'additional_price': additionalPrice,
-        'is_available': isAvailable,
-      };
+    'id': id,
+    'name': name,
+    'additional_price': additionalPrice,
+    'is_available': isAvailable,
+  };
 
   @override
-  bool operator ==(Object other) =>
-      other is AddonOption && other.id == id;
+  bool operator ==(Object other) => other is AddonOption && other.id == id;
 
   @override
   int get hashCode => id.hashCode;
@@ -96,28 +94,27 @@ class AddonGroup {
   }
 
   factory AddonGroup.fromJson(Map<String, dynamic> json) => AddonGroup(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        isRequired: json['is_required'] as bool? ?? false,
-        minSelections: json['min_selections'] as int? ?? 0,
-        maxSelections: json['max_selections'] as int? ?? 1,
-        options: (json['options'] as List<dynamic>? ?? [])
-            .map((e) => AddonOption.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id']?.toString() ?? '',
+    name: json['name'] as String? ?? '',
+    isRequired: json['is_required'] as bool? ?? false,
+    minSelections: json['min_selections'] as int? ?? 0,
+    maxSelections: json['max_selections'] as int? ?? 1,
+    options: (json['options'] as List<dynamic>? ?? [])
+        .map((e) => AddonOption.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'is_required': isRequired,
-        'min_selections': minSelections,
-        'max_selections': maxSelections,
-        'options': options.map((o) => o.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'is_required': isRequired,
+    'min_selections': minSelections,
+    'max_selections': maxSelections,
+    'options': options.map((o) => o.toJson()).toList(),
+  };
 
   @override
-  bool operator ==(Object other) =>
-      other is AddonGroup && other.id == id;
+  bool operator ==(Object other) => other is AddonGroup && other.id == id;
 
   @override
   int get hashCode => id.hashCode;
@@ -169,23 +166,22 @@ class SelectedAddon {
   }
 
   factory SelectedAddon.fromJson(Map<String, dynamic> json) => SelectedAddon(
-        groupId: json['group_id'] as String? ?? '',
-        groupName: json['group_name'] as String? ?? '',
-        optionId: json['option_id'] as String? ?? '',
-        optionName: json['option_name'] as String? ?? '',
-        additionalPrice:
-            (json['additional_price'] as num? ?? 0).toDouble(),
-        quantity: json['quantity'] as int? ?? 1,
-      );
+    groupId: json['group_id'] as String? ?? '',
+    groupName: json['group_name'] as String? ?? '',
+    optionId: json['option_id'] as String? ?? '',
+    optionName: json['option_name'] as String? ?? '',
+    additionalPrice: (json['additional_price'] as num? ?? 0).toDouble(),
+    quantity: json['quantity'] as int? ?? 1,
+  );
 
   Map<String, dynamic> toJson() => {
-        'group_id': groupId,
-        'group_name': groupName,
-        'option_id': optionId,
-        'option_name': optionName,
-        'additional_price': additionalPrice,
-        'quantity': quantity,
-      };
+    'group_id': groupId,
+    'group_name': groupName,
+    'option_id': optionId,
+    'option_name': optionName,
+    'additional_price': additionalPrice,
+    'quantity': quantity,
+  };
 
   @override
   bool operator ==(Object other) =>

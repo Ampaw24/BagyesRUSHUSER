@@ -56,10 +56,11 @@ abstract final class ApiEndpoints {
   static const String vendorDashStats = '/vendor/me/dashboard';
   static const String vendorOrders = '/vendor/me/orders';
   static const String vendorStoreStatus = '/vendor/me/toggle-open';
-  static const String vendorMenu = '/vendors/menu-items';
+  static const String vendorMenu = '/vendor/me/menu-items';
   static const String vendorEarnings = '/vendors/earnings';
   static const String vendorProfile = '/vendor/me';
   static const String vendorAccount = '/vendors/account';
+
   /// `PUT /vendor/me/hours` — accepts `opening_time`, `closing_time`,
   /// `operating_days`, `estimated_prep_time_minutes`. No per-day hours.
   static const String operationsKyc = '/vendor/me/hours';
@@ -73,8 +74,7 @@ abstract final class ApiEndpoints {
       '/vendor/me/documents/$type';
 
   /// `POST /vendor/me/images/:type` (multipart, field: `image`)
-  static String vendorMeImageUpload(String type) =>
-      '/vendor/me/images/$type';
+  static String vendorMeImageUpload(String type) => '/vendor/me/images/$type';
 
   /// `PUT /vendor/me/payout`
   static const String vendorPayout = '/vendor/me/payout';

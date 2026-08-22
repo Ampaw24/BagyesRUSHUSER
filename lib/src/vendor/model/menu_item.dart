@@ -36,12 +36,16 @@ class MenuItem extends Equatable {
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
     return MenuItem(
-      id: json['id'] as String? ?? '',
+      id: (json['id'] ?? json['_id'])?.toString() ?? '',
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      price: json['price'] as String? ?? '',
+      price: json['price'] is num
+          ? (json['price'] as num).toString()
+          : json['price'] as String? ?? '',
       imageUrl: json['image_url'] as String?,
-      category: json['category'] as String? ?? '',
+      category: json['category'] is Map
+          ? ((json['category'] as Map)['name'] as String? ?? '')
+          : json['category'] as String? ?? '',
       isAvailable: json['is_available'] as bool? ?? true,
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
       prepTimeMinutes: json['prep_time_minutes'] as int? ?? 15,
@@ -105,26 +109,27 @@ class MenuItem extends Equatable {
       isOutOfStock: isOutOfStock ?? this.isOutOfStock,
       addonGroups: addonGroups ?? this.addonGroups,
       minimumOrderQty: minimumOrderQty ?? this.minimumOrderQty,
-      maximumOrderQty:
-          clearMaxOrderQty ? null : (maximumOrderQty ?? this.maximumOrderQty),
+      maximumOrderQty: clearMaxOrderQty
+          ? null
+          : (maximumOrderQty ?? this.maximumOrderQty),
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        price,
-        imageUrl,
-        category,
-        isAvailable,
-        tags,
-        prepTimeMinutes,
-        isFeatured,
-        isOutOfStock,
-        addonGroups,
-        minimumOrderQty,
-        maximumOrderQty,
-      ];
+    id,
+    name,
+    description,
+    price,
+    imageUrl,
+    category,
+    isAvailable,
+    tags,
+    prepTimeMinutes,
+    isFeatured,
+    isOutOfStock,
+    addonGroups,
+    minimumOrderQty,
+    maximumOrderQty,
+  ];
 }

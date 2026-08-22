@@ -5,7 +5,7 @@ import '../../orders/viewmodels/orders_state.dart';
 import '../../orders/viewmodels/orders_viewmodel.dart';
 import '../model/menu_item.dart';
 import 'widgets/menu_item_card.dart';
-import 'widgets/add_edit_menu_sheet.dart';
+import 'add_edit_menu_view.dart';
 
 // ── Main view ──────────
 
@@ -87,9 +87,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Delete'),
             ),
@@ -175,7 +173,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
                   SizedBox(width: w * 0.025),
                   // Add item button
                   GestureDetector(
-                    onTap: () => AddEditMenuSheet.show(context),
+                    onTap: () => AddEditMenuView.show(context),
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: w * 0.04,
@@ -257,9 +255,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
                           ),
                         )
                       : null,
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: w * 0.03,
-                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: w * 0.03),
                 ),
               ),
             ),
@@ -274,8 +270,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
                 itemCount: state.categories.isNotEmpty
                     ? state.categories.length
                     : menuCategories.length,
-                separatorBuilder: (_, _) =>
-                    SizedBox(width: w * 0.02),
+                separatorBuilder: (_, _) => SizedBox(width: w * 0.02),
                 itemBuilder: (_, i) {
                   final cats = state.categories.isNotEmpty
                       ? state.categories
@@ -384,16 +379,17 @@ class _VendorMenuViewState extends State<VendorMenuView> {
 
     if (items.isEmpty) {
       return _EmptyState(
-        isFiltered: state.searchQuery.isNotEmpty ||
-            state.selectedCategory != 'All',
-        onAdd: () => AddEditMenuSheet.show(context),
+        isFiltered:
+            state.searchQuery.isNotEmpty || state.selectedCategory != 'All',
+        onAdd: () => AddEditMenuView.show(context),
         w: w,
       );
     }
 
     // ── Featured section (only on All + no search) ─────────────
     final featured = state.featuredItems;
-    final showFeatured = featured.isNotEmpty &&
+    final showFeatured =
+        featured.isNotEmpty &&
         state.selectedCategory == 'All' &&
         state.searchQuery.isEmpty;
 
@@ -405,10 +401,8 @@ class _VendorMenuViewState extends State<VendorMenuView> {
               child: _FeaturedSection(
                 items: featured,
                 vm: vm,
-                onEdit: (item) =>
-                    AddEditMenuSheet.show(context, item: item),
-                onDelete: (item) =>
-                    _confirmDelete(context, vm, item),
+                onEdit: (item) => AddEditMenuView.show(context, item: item),
+                onDelete: (item) => _confirmDelete(context, vm, item),
                 w: w,
                 horizontalPad: horizontalPad,
               ),
@@ -421,10 +415,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
                   horizontalPad,
                   w * 0.02,
                 ),
-                child: _SectionDividerLabel(
-                  label: 'All Items',
-                  w: w,
-                ),
+                child: _SectionDividerLabel(label: 'All Items', w: w),
               ),
             ),
           ],
@@ -436,23 +427,17 @@ class _VendorMenuViewState extends State<VendorMenuView> {
               w * 0.28,
             ),
             sliver: SliverGrid(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, index) {
-                  final item = items[index];
-                  return MenuItemGridCard(
-                    item: item,
-                    onEdit: () =>
-                        AddEditMenuSheet.show(context, item: item),
-                    onDelete: () =>
-                        _confirmDelete(context, vm, item),
-                    onAvailabilityChanged: (v) =>
-                        vm.toggleAvailability(item.id, v),
-                    onFeaturedChanged: (v) =>
-                        vm.toggleFeatured(item.id, v),
-                  );
-                },
-                childCount: items.length,
-              ),
+              delegate: SliverChildBuilderDelegate((ctx, index) {
+                final item = items[index];
+                return MenuItemGridCard(
+                  item: item,
+                  onEdit: () => AddEditMenuView.show(context, item: item),
+                  onDelete: () => _confirmDelete(context, vm, item),
+                  onAvailabilityChanged: (v) =>
+                      vm.toggleAvailability(item.id, v),
+                  onFeaturedChanged: (v) => vm.toggleFeatured(item.id, v),
+                );
+              }, childCount: items.length),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: w * 0.03,
@@ -473,10 +458,8 @@ class _VendorMenuViewState extends State<VendorMenuView> {
             child: _FeaturedSection(
               items: featured,
               vm: vm,
-              onEdit: (item) =>
-                  AddEditMenuSheet.show(context, item: item),
-              onDelete: (item) =>
-                  _confirmDelete(context, vm, item),
+              onEdit: (item) => AddEditMenuView.show(context, item: item),
+              onDelete: (item) => _confirmDelete(context, vm, item),
               w: w,
               horizontalPad: horizontalPad,
             ),
@@ -489,10 +472,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
                 horizontalPad,
                 w * 0.02,
               ),
-              child: _SectionDividerLabel(
-                label: 'All Items',
-                w: w,
-              ),
+              child: _SectionDividerLabel(label: 'All Items', w: w),
             ),
           ),
         ],
@@ -504,26 +484,20 @@ class _VendorMenuViewState extends State<VendorMenuView> {
             w * 0.28,
           ),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (ctx, index) {
-                final item = items[index];
-                return Padding(
-                  padding: EdgeInsets.only(bottom: w * 0.03),
-                  child: MenuItemCard(
-                    item: item,
-                    onEdit: () =>
-                        AddEditMenuSheet.show(context, item: item),
-                    onDelete: () =>
-                        _confirmDelete(context, vm, item),
-                    onAvailabilityChanged: (v) =>
-                        vm.toggleAvailability(item.id, v),
-                    onFeaturedChanged: (v) =>
-                        vm.toggleFeatured(item.id, v),
-                  ),
-                );
-              },
-              childCount: items.length,
-            ),
+            delegate: SliverChildBuilderDelegate((ctx, index) {
+              final item = items[index];
+              return Padding(
+                padding: EdgeInsets.only(bottom: w * 0.03),
+                child: MenuItemCard(
+                  item: item,
+                  onEdit: () => AddEditMenuView.show(context, item: item),
+                  onDelete: () => _confirmDelete(context, vm, item),
+                  onAvailabilityChanged: (v) =>
+                      vm.toggleAvailability(item.id, v),
+                  onFeaturedChanged: (v) => vm.toggleFeatured(item.id, v),
+                ),
+              );
+            }, childCount: items.length),
           ),
         ),
       ],
@@ -599,9 +573,7 @@ class _StatChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(w * 0.025),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -714,8 +686,7 @@ class _FeaturedSection extends StatelessWidget {
                   onDelete: () => onDelete(item),
                   onAvailabilityChanged: (v) =>
                       vm.toggleAvailability(item.id, v),
-                  onFeaturedChanged: (v) =>
-                      vm.toggleFeatured(item.id, v),
+                  onFeaturedChanged: (v) => vm.toggleFeatured(item.id, v),
                 ),
               );
             },
@@ -869,12 +840,8 @@ class _SortButton extends StatelessWidget {
               Text(
                 opt.$1,
                 style: TextStyle(
-                  fontWeight: isSelected
-                      ? FontWeight.w700
-                      : FontWeight.w400,
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
                 ),
               ),
             ],
@@ -893,10 +860,7 @@ class _SectionDividerLabel extends StatelessWidget {
   final String label;
   final double w;
 
-  const _SectionDividerLabel({
-    required this.label,
-    required this.w,
-  });
+  const _SectionDividerLabel({required this.label, required this.w});
 
   @override
   Widget build(BuildContext context) {

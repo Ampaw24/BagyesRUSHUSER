@@ -5,10 +5,9 @@ import '../repositories/orders_repository.dart';
 import 'orders_state.dart';
 
 class OrderViewModel extends ViewModel<OrdersState> {
-  OrderViewModel({
-    required OrdersRepository repository,
-  })  : _repository = repository,
-        super(const OrdersInitial());
+  OrderViewModel({required OrdersRepository repository})
+    : _repository = repository,
+      super(const OrdersInitial());
 
   final OrdersRepository _repository;
 
@@ -20,11 +19,15 @@ class OrderViewModel extends ViewModel<OrdersState> {
 
     result.fold(
       (failure) {
-        appLogger.w('OrdersViewModel.getCustomerOrders → error: ${failure.message}');
+        appLogger.w(
+          'OrdersViewModel.getCustomerOrders → error: ${failure.message}',
+        );
         emit(OrdersError.fromFailure(failure));
       },
       (orders) {
-        appLogger.i('OrdersViewModel.getCustomerOrders → loaded ${orders.length} orders');
+        appLogger.i(
+          'OrdersViewModel.getCustomerOrders → loaded ${orders.length} orders',
+        );
         emit(OrdersLoaded(orders));
       },
     );
@@ -51,7 +54,9 @@ class OrderViewModel extends ViewModel<OrdersState> {
   // ─── Vendor Menu API State Mutations ───────────────────────────────────────
 
   MenuLoadedState _getMenuState() {
-    return state is MenuLoadedState ? state as MenuLoadedState : const MenuLoadedState();
+    return state is MenuLoadedState
+        ? state as MenuLoadedState
+        : const MenuLoadedState();
   }
 
   Future<void> loadMenu() async {
@@ -61,81 +66,148 @@ class OrderViewModel extends ViewModel<OrdersState> {
     final menuItemsResult = await _repository.fetchMenuItems();
     final catsResult = await _repository.getCategories();
 
+    // Categories and menu items come from independent calls — a failure in
+    // one must never suppress a successful result from the other, so each
+    // is folded separately before a single combined emit.
+    var categoryNames = currentState.categories;
+    var categoryOptions = currentState.categoryOptions;
+    catsResult.fold((failure) {}, (categoryList) {
+      final activeCategories = categoryList
+          .expand((c) => c.categories)
+          .where((e) => e.isActive)
+          .toList();
+      categoryNames = ['All', ...activeCategories.map((e) => e.name)];
+      categoryOptions = activeCategories;
+    });
+
     menuItemsResult.fold(
       (failure) => emit(
         currentState.copyWith(
           status: MenuStatus.error,
           errorMessage: failure.message,
+          categories: categoryNames,
+          categoryOptions: categoryOptions,
         ),
       ),
-      (items) {
-        catsResult.fold(
-          (failure) {
-            // If categories fail, we still show items but with default categories
-            emit(currentState.copyWith(
-              status: MenuStatus.loaded,
-              items: items,
-            ));
-          },
-          (categoryList) {
-            final apiCategories = categoryList
-                .expand((c) => c.categories)
-                .where((e) => e.isActive)
-                .map((e) => e.name)
-                .toList();
+      (items) => emit(
+        currentState.copyWith(
+          status: MenuStatus.loaded,
+          items: items,
+          categories: categoryNames,
+          categoryOptions: categoryOptions,
+        ),
+      ),
+    );
+  }
 
-            emit(currentState.copyWith(
-              status: MenuStatus.loaded,
-              items: items,
-              categories: ['All', ...apiCategories],
-            ));
-          },
+  /// Creates a menu item, then — only if creation succeeded — uploads
+  /// [imagePath] against the newly created item's id. Returns the created
+  /// (and possibly image-updated) item, or `null` if creation itself
+  /// failed — a failed image upload after a successful create still
+  /// returns the item but leaves an [errorMessage] on the state.
+  Future<MenuItem?> addItem(
+    Map<String, dynamic> data, {
+    String? imagePath,
+  }) async {
+    final currentState = _getMenuState();
+    emit(
+      currentState.copyWith(
+        pendingOperation: MenuOperation.adding,
+        clearError: true,
+      ),
+    );
+
+    final createResult = await _repository.createMenuItem(data);
+
+    return createResult.fold(
+      (failure) async {
+        emit(
+          _getMenuState().copyWith(
+            clearPendingOperation: true,
+            errorMessage: failure.message,
+          ),
         );
+        return null;
+      },
+      (newItem) async {
+        var savedItem = newItem;
+
+        if (imagePath != null) {
+          final imageResult = await _repository.uploadMenuItemImage(
+            itemId: newItem.id,
+            filePath: imagePath,
+          );
+          imageResult.fold(
+            (failure) =>
+                emit(_getMenuState().copyWith(errorMessage: failure.message)),
+            (updated) => savedItem = updated,
+          );
+        }
+
+        emit(
+          _getMenuState().copyWith(
+            clearPendingOperation: true,
+            items: [..._getMenuState().items, savedItem],
+          ),
+        );
+        return savedItem;
       },
     );
   }
 
-  Future<void> addItem(Map<String, dynamic> data) async {
+  /// Updates a menu item, then — only if the update succeeded — uploads
+  /// [imagePath] against that item's id. See [addItem] for the same
+  /// success/failure contract.
+  Future<bool> updateItem(
+    String id,
+    Map<String, dynamic> data, {
+    String? imagePath,
+  }) async {
     final currentState = _getMenuState();
-    emit(currentState.copyWith(pendingOperation: MenuOperation.adding));
-
-    final result = await _repository.createMenuItem(data);
-
-    result.fold(
-      (failure) => emit(
-        currentState.copyWith(
-          clearPendingOperation: true,
-          errorMessage: failure.message,
-        ),
-      ),
-      (newItem) => emit(
-        currentState.copyWith(
-          clearPendingOperation: true,
-          items: [...currentState.items, newItem].cast<MenuItem>(),
-        ),
+    emit(
+      currentState.copyWith(
+        pendingOperation: MenuOperation.updating,
+        clearError: true,
       ),
     );
-  }
 
-  Future<void> updateItem(String id, Map<String, dynamic> data) async {
-    final currentState = _getMenuState();
-    emit(currentState.copyWith(pendingOperation: MenuOperation.updating));
+    final updateResult = await _repository.updateMenuItem(id: id, data: data);
 
-    final result = await _repository.updateMenuItem(id: id, data: data);
-
-    result.fold(
-      (failure) => emit(
-        currentState.copyWith(
-          clearPendingOperation: true,
-          errorMessage: failure.message,
-        ),
-      ),
-      (updated) {
-        final updatedList =
-            currentState.items.map((i) => i.id == updated.id ? updated : i).toList();
+    return updateResult.fold(
+      (failure) async {
         emit(
-          currentState.copyWith(clearPendingOperation: true, items: updatedList),
+          _getMenuState().copyWith(
+            clearPendingOperation: true,
+            errorMessage: failure.message,
+          ),
         );
+        return false;
+      },
+      (updatedItem) async {
+        var savedItem = updatedItem;
+
+        if (imagePath != null) {
+          final imageResult = await _repository.uploadMenuItemImage(
+            itemId: id,
+            filePath: imagePath,
+          );
+          imageResult.fold(
+            (failure) =>
+                emit(_getMenuState().copyWith(errorMessage: failure.message)),
+            (updated) => savedItem = updated,
+          );
+        }
+
+        final updatedList = _getMenuState().items
+            .map((i) => i.id == savedItem.id ? savedItem : i)
+            .toList();
+        emit(
+          _getMenuState().copyWith(
+            clearPendingOperation: true,
+            items: updatedList,
+          ),
+        );
+        return true;
       },
     );
   }
@@ -154,50 +226,71 @@ class OrderViewModel extends ViewModel<OrdersState> {
         ),
       ),
       (_) {
-        final updatedList =
-            currentState.items.where((i) => i.id != id).toList();
+        final updatedList = currentState.items
+            .where((i) => i.id != id)
+            .toList();
         emit(
-          currentState.copyWith(clearPendingOperation: true, items: updatedList),
+          currentState.copyWith(
+            clearPendingOperation: true,
+            items: updatedList,
+          ),
         );
       },
     );
   }
 
-  Future<void> uploadItemImage(String itemId, String filePath) async {
+  Future<bool> uploadItemImage(String itemId, String filePath) async {
     final currentState = _getMenuState();
-    emit(currentState.copyWith(pendingOperation: MenuOperation.updating));
-
-    final result =
-        await _repository.uploadMenuItemImage(itemId: itemId, filePath: filePath);
-
-    result.fold(
-      (failure) => emit(
-        currentState.copyWith(
-          clearPendingOperation: true,
-          errorMessage: failure.message,
-        ),
+    emit(
+      currentState.copyWith(
+        pendingOperation: MenuOperation.updating,
+        clearError: true,
       ),
-      (updated) {
-        final updatedList =
-            currentState.items.map((i) => i.id == updated.id ? updated : i).toList();
+    );
+
+    final result = await _repository.uploadMenuItemImage(
+      itemId: itemId,
+      filePath: filePath,
+    );
+
+    return result.fold(
+      (failure) {
         emit(
-          currentState.copyWith(clearPendingOperation: true, items: updatedList),
+          _getMenuState().copyWith(
+            clearPendingOperation: true,
+            errorMessage: failure.message,
+          ),
         );
+        return false;
+      },
+      (updated) {
+        final updatedList = _getMenuState().items
+            .map((i) => i.id == updated.id ? updated : i)
+            .toList();
+        emit(
+          _getMenuState().copyWith(
+            clearPendingOperation: true,
+            items: updatedList,
+          ),
+        );
+        return true;
       },
     );
   }
 
   Future<void> toggleAvailability(String itemId, bool isAvailable) async {
     final currentState = _getMenuState();
-    final result =
-        await _repository.toggleMenuItemAvailability(itemId: itemId, isAvailable: isAvailable);
+    final result = await _repository.toggleMenuItemAvailability(
+      itemId: itemId,
+      isAvailable: isAvailable,
+    );
 
     result.fold(
-      (failure) =>
-          emit(currentState.copyWith(errorMessage: failure.message)),
+      (failure) => emit(currentState.copyWith(errorMessage: failure.message)),
       (updated) {
-        final updatedList =
-            currentState.items.map((i) => i.id == updated.id ? updated : i).toList();
+        final updatedList = currentState.items
+            .map((i) => i.id == updated.id ? updated : i)
+            .toList();
         emit(currentState.copyWith(items: updatedList));
       },
     );
@@ -205,13 +298,17 @@ class OrderViewModel extends ViewModel<OrdersState> {
 
   Future<void> toggleFeatured(String itemId, bool isFeatured) async {
     final currentState = _getMenuState();
-    final result = await _repository.toggleMenuItemPopular(itemId: itemId, isPopular: isFeatured);
+    final result = await _repository.toggleMenuItemPopular(
+      itemId: itemId,
+      isPopular: isFeatured,
+    );
 
     result.fold(
       (failure) => emit(currentState.copyWith(errorMessage: failure.message)),
       (updated) {
-        final updatedList =
-            currentState.items.map((i) => i.id == updated.id ? updated : i).toList();
+        final updatedList = currentState.items
+            .map((i) => i.id == updated.id ? updated : i)
+            .toList();
         emit(currentState.copyWith(items: updatedList));
       },
     );
@@ -219,7 +316,8 @@ class OrderViewModel extends ViewModel<OrdersState> {
 
   void clearError() => emit(_getMenuState().copyWith(clearError: true));
 
-  void search(String query) => emit(_getMenuState().copyWith(searchQuery: query));
+  void search(String query) =>
+      emit(_getMenuState().copyWith(searchQuery: query));
 
   void setCategory(String category) =>
       emit(_getMenuState().copyWith(selectedCategory: category));

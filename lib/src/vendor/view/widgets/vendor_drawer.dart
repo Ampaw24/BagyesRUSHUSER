@@ -224,13 +224,13 @@ class _VendorDrawerState extends State<VendorDrawer>
                                 fadeAnim: _staggeredFade(2),
                                 slideAnim: _staggeredSlide(2),
                               ),
-                              _AnimatedDrawerTile(
-                                icon: HugeIcons.strokeRoundedCreditCard,
-                                label: 'Payment Methods',
-                                onTap: widget.onPaymentMethods,
-                                fadeAnim: _staggeredFade(3),
-                                slideAnim: _staggeredSlide(3),
-                              ),
+                              // _AnimatedDrawerTile(
+                              //   icon: HugeIcons.strokeRoundedCreditCard,
+                              //   label: 'Payment Methods',
+                              //   onTap: widget.onPaymentMethods,
+                              //   fadeAnim: _staggeredFade(3),
+                              //   slideAnim: _staggeredSlide(3),
+                              // ),
                               _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedBank,
                                 label: 'Payout Settings',
@@ -260,7 +260,10 @@ class _VendorDrawerState extends State<VendorDrawer>
                       // ── Pinned bottom actions ──
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                        child: const Divider(color: AppColors.divider, height: 1),
+                        child: const Divider(
+                          color: AppColors.divider,
+                          height: 1,
+                        ),
                       ),
                       _AnimatedDrawerTile(
                         icon: HugeIcons.strokeRoundedDelete02,

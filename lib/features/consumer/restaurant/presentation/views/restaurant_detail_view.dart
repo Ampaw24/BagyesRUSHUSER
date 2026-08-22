@@ -174,13 +174,19 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
             return menuAsync.when(
               loading: () => _buildBody(
                 context, restaurant, const {}, cart, w,
+                isMenuLoading: true,
               ),
-              error: (e, _) =>
-                  _buildBody(context, restaurant, const {}, cart, w),
+              error: (e, _) => _buildBody(
+                context, restaurant, const {}, cart, w,
+                isMenuLoading: false,
+              ),
               data: (menu) {
                 // Tab controller is now managed via ref.listenManual
                 // in initState — no setState inside build.
-                return _buildBody(context, restaurant, menu, cart, w);
+                return _buildBody(
+                  context, restaurant, menu, cart, w,
+                  isMenuLoading: false,
+                );
               },
             );
           },
@@ -206,8 +212,9 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     Restaurant restaurant,
     Map<String, List<MenuItem>> menu,
     CartState cart,
-    double w,
-  ) {
+    double w, {
+    required bool isMenuLoading,
+  }) {
     final categories = menu.keys.toList();
 
     return NestedScrollView(
@@ -352,9 +359,11 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
         ),
       ],
       body: categories.isEmpty || _tabController == null
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
+          ? (isMenuLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : const _NoMenuItemsView())
           : TabBarView(
               controller: _tabController,
               children: categories.map((category) {
@@ -392,6 +401,49 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+
+class _NoMenuItemsView extends StatelessWidget {
+  const _NoMenuItemsView();
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(w * 0.08),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.restaurant_menu_rounded,
+              size: w * 0.14,
+              color: AppColors.textSecondary,
+            ),
+            SizedBox(height: w * 0.04),
+            Text(
+              'No menu items found',
+              style: TextStyle(
+                fontSize: w * 0.045,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: w * 0.02),
+            Text(
+              'This restaurant hasn\'t added any menu items yet. '
+              'Please check back later.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: w * 0.035,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _StatChip extends StatelessWidget {
   final IconData icon;

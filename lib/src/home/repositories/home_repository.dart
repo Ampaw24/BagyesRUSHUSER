@@ -25,24 +25,32 @@ class HomeRepository {
       final response = await _client.get(ApiEndpoints.businessTypes);
 
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+        final payload =
+            (response.data as DataMap)['data'] as List<dynamic>? ??
             response.data as List<dynamic>;
-        final businessTypes =
-            payload.map((e) => BusinessType.fromJson(e as DataMap)).toList();
+        final businessTypes = payload
+            .map((e) => BusinessType.fromJson(e as DataMap))
+            .toList();
         appLogger.i(
-            'HomeRepository.getBusinessTypes → loaded ${businessTypes.length} business types');
+          'HomeRepository.getBusinessTypes → loaded ${businessTypes.length} business types',
+        );
         return Right(businessTypes);
       }
 
       appLogger.w(
-          'HomeRepository.getBusinessTypes → HTTP ${response.statusCode}');
+        'HomeRepository.getBusinessTypes → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('HomeRepository.getBusinessTypes → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getBusinessTypes');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getBusinessTypes',
+      );
     }
   }
 
@@ -52,35 +60,40 @@ class HomeRepository {
     try {
       final response = await _client.get(ApiEndpoints.adsBanners);
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as DataMap? ??
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
         final adBannerModel = AdBannerModel.fromJson(payload);
         appLogger.i(
-            'HomeRepository.getHomePageBanners → loaded ${adBannerModel.banners.length} banners');
+          'HomeRepository.getHomePageBanners → loaded ${adBannerModel.banners.length} banners',
+        );
         return Right(adBannerModel);
       }
 
       appLogger.w(
-          'HomeRepository.getHomePageBanners → HTTP ${response.statusCode}');
+        'HomeRepository.getHomePageBanners → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('HomeRepository.getHomePageBanners → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getHomePageBanners');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getHomePageBanners',
+      );
     }
   }
 
-  //Get all Vendors 
+  //Get all Vendors
   //["This method fetches a list of vendors from the server. It accepts an optional categoryId parameter to filter vendors by category. The method makes a GET request to the API endpoint for vendors, passing the categoryId as a query parameter if provided. It handles the response and errors appropriately, returning either a list of Vendor objects or an error message.
   //"]
-  
-  
 
   // ─── Categories ────────────────────────────────────────────────────────────
- //["This defines the API endpoint for fetching categories. It is a static constant string that can be used throughout the application to make API calls related to categories."]
- //[categories such as pizza , burgers , soups , locals etc ..]
+  //["This defines the API endpoint for fetching categories. It is a static constant string that can be used throughout the application to make API calls related to categories."]
+  //[categories such as pizza , burgers , soups , locals etc ..]
   ResultFuture<List<Category>> getCategories() async {
     appLogger.d('HomeRepository.getCategories → initiated');
     try {
@@ -93,144 +106,123 @@ class HomeRepository {
       );
 
       if ([200, 201].contains(response.statusCode)) {
-        final categories = [_extractCategory(response.data)];
+        final categories = [Category.fromResponseData(response.data)];
         appLogger.i(
-            'HomeRepository.getCategories → loaded ${categories.first.categories.length} categories');
+          'HomeRepository.getCategories → loaded ${categories.first.categories.length} categories',
+        );
         return Right(categories);
       }
 
-      appLogger.w(
-          'HomeRepository.getCategories → HTTP ${response.statusCode}');
+      appLogger.w('HomeRepository.getCategories → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('HomeRepository.getCategories → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getCategories');
-    }
-  }
-
-  /// Builds a [Category] out of [rawData] regardless of whether the API
-  /// wraps the category list as `data: { categories: [...], total }` (the
-  /// shape [Category.fromJson] expects), nests it under a paginated envelope
-  /// (`data: { docs / items / results: [...] }`), or returns the array
-  /// directly under `data`.
-  ///
-  /// Never throws — falls back to an empty category list and logs the
-  /// unmatched keys so the real shape shows up in the console instead of the
-  /// screen just staying blank.
-  Category _extractCategory(dynamic rawData) {
-    if (rawData is! DataMap) return const Category(categories: [], total: 0);
-
-    final inner = rawData['data'];
-
-    if (inner is DataMap) {
-      if (inner['categories'] != null) return Category.fromJson(inner);
-
-      for (final key in ['docs', 'items', 'results', 'list']) {
-        final nested = inner[key];
-        if (nested is List) {
-          final elements =
-              nested.map((e) => CategoryElement.fromJson(e as DataMap)).toList();
-          return Category(categories: elements, total: elements.length);
-        }
-      }
-
-      appLogger.w(
-        'HomeRepository.getCategories → unrecognised payload shape, '
-        'keys: ${inner.keys.toList()}',
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getCategories',
       );
-      return const Category(categories: [], total: 0);
     }
-
-    if (inner is List) {
-      final elements =
-          inner.map((e) => CategoryElement.fromJson(e as DataMap)).toList();
-      return Category(categories: elements, total: elements.length);
-    }
-
-    return const Category(categories: [], total: 0);
   }
 
   //[Get a single category element by ID value.]
-  
+
   ResultFuture<CategoryElement> getCategoryById(String id) async {
     appLogger.d('HomeRepository.getCategoryById → id=$id');
     try {
       final response = await _client.get(ApiEndpoints.categoryById(id));
 
       if (response.statusCode == 200) {
-        final payload = (response.data as DataMap)['data'] as DataMap? ??
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
         final category = CategoryElement.fromJson(payload);
         appLogger.i(
-            'HomeRepository.getCategoryById → loaded category id=${category.id}');
+          'HomeRepository.getCategoryById → loaded category id=${category.id}',
+        );
         return Right(category);
       }
 
       appLogger.w(
-          'HomeRepository.getCategoryById → HTTP ${response.statusCode}');
+        'HomeRepository.getCategoryById → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('HomeRepository.getCategoryById → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getCategoryById');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getCategoryById',
+      );
     }
   }
 
   //-- Categories ends here --//
 
-///["Get all items for home pages users"]
-///TODO:: Update model class here 
-ResultFuture<List<CategoryElement>> getAllItems() async {
-  appLogger.d('HomeRepository.getAllItems → initiated');
-  try {
-    final response = await _client.get(ApiEndpoints.items);
+  ///["Get all items for home pages users"]
+  ///TODO:: Update model class here
+  ResultFuture<List<CategoryElement>> getAllItems() async {
+    appLogger.d('HomeRepository.getAllItems → initiated');
+    try {
+      final response = await _client.get(ApiEndpoints.items);
 
-    if (response.statusCode == 200) {
-      final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
-          response.data as List<dynamic>;
-      final items = payload.map((e) => CategoryElement.fromJson(e as DataMap)).toList();
-      appLogger.i(
-          'HomeRepository.getAllItems → loaded ${items.length} items');
-      return Right(items);
+      if (response.statusCode == 200) {
+        final payload =
+            (response.data as DataMap)['data'] as List<dynamic>? ??
+            response.data as List<dynamic>;
+        final items = payload
+            .map((e) => CategoryElement.fromJson(e as DataMap))
+            .toList();
+        appLogger.i(
+          'HomeRepository.getAllItems → loaded ${items.length} items',
+        );
+        return Right(items);
+      }
+
+      appLogger.w('HomeRepository.getAllItems → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('HomeRepository.getAllItems → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getAllItems',
+      );
     }
-
-    appLogger.w('HomeRepository.getAllItems → HTTP ${response.statusCode}');
-    return NetworkUtils.handleDioResponseError(response);
-  } on DioException catch (e) {
-    appLogger.e('HomeRepository.getAllItems → DioException', error: e);
-    return NetworkUtils.handleDioException(e);
-  } catch (e, s) {
-    return NetworkUtils.handleException(e, s,
-        repositoryName: 'HomeRepository', methodName: 'getAllItems');
   }
-}
 
   // ─── Vendors ───────────────────────────────────────────────────────────────
 
   ResultFuture<List<Vendor>> getVendors({String? categoryId}) async {
     appLogger.d(
-        'HomeRepository.getVendors → categoryId=${categoryId ?? 'all'}');
+      'HomeRepository.getVendors → categoryId=${categoryId ?? 'all'}',
+    );
     try {
-      final queryParams = <String, dynamic>{
-        'category_id': ?categoryId,
-      };
+      final queryParams = <String, dynamic>{'category_id': ?categoryId};
       final response = await _client.get(
         ApiEndpoints.vendors,
         queryParameters: queryParams.isEmpty ? null : queryParams,
       );
 
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+        final payload =
+            (response.data as DataMap)['data'] as List<dynamic>? ??
             response.data as List<dynamic>;
-        final vendors =
-            payload.map((e) => Vendor.fromJson(e as DataMap)).toList();
+        final vendors = payload
+            .map((e) => Vendor.fromJson(e as DataMap))
+            .toList();
         appLogger.i(
-            'HomeRepository.getVendors → loaded ${vendors.length} vendors');
+          'HomeRepository.getVendors → loaded ${vendors.length} vendors',
+        );
         return Right(vendors);
       }
 
@@ -240,86 +232,102 @@ ResultFuture<List<CategoryElement>> getAllItems() async {
       appLogger.e('HomeRepository.getVendors → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getVendors');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getVendors',
+      );
     }
   }
-
-  
 
   ResultFuture<Vendor> getVendorById(String vendorId) async {
     appLogger.d('HomeRepository.getVendorById → vendorId=$vendorId');
     try {
-      final response =
-          await _client.get(ApiEndpoints.vendorById(vendorId));
+      final response = await _client.get(ApiEndpoints.vendorById(vendorId));
 
       if (response.statusCode == 200) {
-        final payload = (response.data as DataMap)['data'] as DataMap? ??
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
         final vendor = Vendor.fromJson(payload);
         appLogger.i(
-            'HomeRepository.getVendorById → loaded vendor id=${vendor.id}');
+          'HomeRepository.getVendorById → loaded vendor id=${vendor.id}',
+        );
         return Right(vendor);
       }
 
-      appLogger.w(
-          'HomeRepository.getVendorById → HTTP ${response.statusCode}');
+      appLogger.w('HomeRepository.getVendorById → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('HomeRepository.getVendorById → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getVendorById');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getVendorById',
+      );
     }
   }
 
   // ─── Menu Items ────────────────────────────────────────────────────────────
 
   ResultFuture<List<MenuItem>> getVendorMenuItems(String vendorId) async {
-    appLogger.d(
-        'HomeRepository.getVendorMenuItems → vendorId=$vendorId');
+    appLogger.d('HomeRepository.getVendorMenuItems → vendorId=$vendorId');
     try {
-      final response =
-          await _client.get(ApiEndpoints.vendorMenuItems(vendorId));
+      final response = await _client.get(
+        ApiEndpoints.vendorMenuItems(vendorId),
+      );
 
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+        final payload =
+            (response.data as DataMap)['data'] as List<dynamic>? ??
             response.data as List<dynamic>;
-        final items =
-            payload.map((e) => MenuItem.fromJson(e as DataMap)).toList();
+        final items = payload
+            .map((e) => MenuItem.fromJson(e as DataMap))
+            .toList();
         appLogger.i(
-            'HomeRepository.getVendorMenuItems → loaded ${items.length} items');
+          'HomeRepository.getVendorMenuItems → loaded ${items.length} items',
+        );
         return Right(items);
       }
 
       appLogger.w(
-          'HomeRepository.getVendorMenuItems → HTTP ${response.statusCode}');
+        'HomeRepository.getVendorMenuItems → HTTP ${response.statusCode}',
+      );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
-      appLogger.e(
-          'HomeRepository.getVendorMenuItems → DioException', error: e);
+      appLogger.e('HomeRepository.getVendorMenuItems → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getVendorMenuItems');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getVendorMenuItems',
+      );
     }
   }
 
   // ─── Orders ──────────────────────────
- //["create single folder to handle this "]
+  //["create single folder to handle this "]
   ResultFuture<List<Order>> getOrders() async {
     appLogger.d('HomeRepository.getOrders → initiated');
     try {
       final response = await _client.get(ApiEndpoints.customerOrders);
 
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as List<dynamic>? ??
+        final payload =
+            (response.data as DataMap)['data'] as List<dynamic>? ??
             response.data as List<dynamic>;
-        final orders =
-            payload.map((e) => Order.fromJson(e as DataMap)).toList();
+        final orders = payload
+            .map((e) => Order.fromJson(e as DataMap))
+            .toList();
         appLogger.i(
-            'HomeRepository.getOrders → loaded ${orders.length} orders');
+          'HomeRepository.getOrders → loaded ${orders.length} orders',
+        );
         return Right(orders);
       }
 
@@ -329,35 +337,45 @@ ResultFuture<List<CategoryElement>> getAllItems() async {
       appLogger.e('HomeRepository.getOrders → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getOrders');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getOrders',
+      );
     }
   }
 
   ResultFuture<Order> getOrderById(String orderId) async {
     appLogger.d('HomeRepository.getOrderById → orderId=$orderId');
     try {
-      final response =
-          await _client.get(ApiEndpoints.customerOrderById(orderId));
+      final response = await _client.get(
+        ApiEndpoints.customerOrderById(orderId),
+      );
 
       if (response.statusCode == 200) {
-        final payload = (response.data as DataMap)['data'] as DataMap? ??
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
         final order = Order.fromJson(payload);
         appLogger.i(
-            'HomeRepository.getOrderById → loaded order id=${order.id}');
+          'HomeRepository.getOrderById → loaded order id=${order.id}',
+        );
         return Right(order);
       }
 
-      appLogger.w(
-          'HomeRepository.getOrderById → HTTP ${response.statusCode}');
+      appLogger.w('HomeRepository.getOrderById → HTTP ${response.statusCode}');
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e('HomeRepository.getOrderById → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'getOrderById');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'getOrderById',
+      );
     }
   }
 
@@ -367,22 +385,25 @@ ResultFuture<List<CategoryElement>> getAllItems() async {
     required String deliveryAddress,
   }) async {
     appLogger.d(
-        'HomeRepository.placeOrder → vendorId=$vendorId, items=${items.length}');
+      'HomeRepository.placeOrder → vendorId=$vendorId, items=${items.length}',
+    );
     final data = {
       'vendor_id': vendorId,
       'items': items.map((e) => e.toJson()).toList(),
       'delivery_address': deliveryAddress,
     };
     try {
-      final response =
-          await _client.post(ApiEndpoints.customerOrders, data: data);
+      final response = await _client.post(
+        ApiEndpoints.customerOrders,
+        data: data,
+      );
 
       if ([200, 201].contains(response.statusCode)) {
-        final payload = (response.data as DataMap)['data'] as DataMap? ??
+        final payload =
+            (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
         final order = Order.fromJson(payload);
-        appLogger.i(
-            'HomeRepository.placeOrder → order placed id=${order.id}');
+        appLogger.i('HomeRepository.placeOrder → order placed id=${order.id}');
         return Right(order);
       }
 
@@ -392,8 +413,12 @@ ResultFuture<List<CategoryElement>> getAllItems() async {
       appLogger.e('HomeRepository.placeOrder → DioException', error: e);
       return NetworkUtils.handleDioException(e);
     } catch (e, s) {
-      return NetworkUtils.handleException(e, s,
-          repositoryName: 'HomeRepository', methodName: 'placeOrder');
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'HomeRepository',
+        methodName: 'placeOrder',
+      );
     }
   }
 }

@@ -1,9 +1,11 @@
 import 'package:equatable/equatable.dart';
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
+import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/menu_item.dart';
 import '../models/order.dart';
 
 enum MenuStatus { initial, loading, loaded, error }
+
 enum MenuOperation { adding, updating, deleting }
 
 const menuCategories = [
@@ -51,7 +53,7 @@ final class OrdersError extends OrdersState {
   const OrdersError({required this.message, required this.title});
 
   OrdersError.fromFailure(Failure failure)
-      : this(message: failure.message, title: failure.title);
+    : this(message: failure.message, title: failure.title);
 
   final String message;
   final String title;
@@ -64,6 +66,7 @@ final class MenuLoadedState extends OrdersState {
   final MenuStatus status;
   final List<MenuItem> items;
   final List<String> categories;
+  final List<CategoryElement> categoryOptions;
   final String searchQuery;
   final String? errorMessage;
   final String selectedCategory;
@@ -75,6 +78,7 @@ final class MenuLoadedState extends OrdersState {
     this.status = MenuStatus.initial,
     this.items = const [],
     this.categories = const [],
+    this.categoryOptions = const [],
     this.searchQuery = '',
     this.errorMessage,
     this.selectedCategory = 'All',
@@ -91,8 +95,7 @@ final class MenuLoadedState extends OrdersState {
   int get outOfStockCount =>
       items.where((i) => i.isOutOfStock || !i.isAvailable).length;
 
-  List<MenuItem> get featuredItems =>
-      items.where((i) => i.isFeatured).toList();
+  List<MenuItem> get featuredItems => items.where((i) => i.isFeatured).toList();
 
   List<MenuItem> get filteredItems {
     var result = List<MenuItem>.from(items);
@@ -137,8 +140,7 @@ final class MenuLoadedState extends OrdersState {
         break;
       case 'featured':
         result.sort(
-          (a, b) =>
-              (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0),
+          (a, b) => (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0),
         );
         break;
     }
@@ -150,6 +152,7 @@ final class MenuLoadedState extends OrdersState {
     MenuStatus? status,
     List<MenuItem>? items,
     List<String>? categories,
+    List<CategoryElement>? categoryOptions,
     String? searchQuery,
     String? errorMessage,
     String? selectedCategory,
@@ -163,6 +166,7 @@ final class MenuLoadedState extends OrdersState {
       status: status ?? this.status,
       items: items ?? this.items,
       categories: categories ?? this.categories,
+      categoryOptions: categoryOptions ?? this.categoryOptions,
       searchQuery: searchQuery ?? this.searchQuery,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       selectedCategory: selectedCategory ?? this.selectedCategory,
@@ -176,14 +180,15 @@ final class MenuLoadedState extends OrdersState {
 
   @override
   List<Object?> get props => [
-        status,
-        items,
-        categories,
-        searchQuery,
-        errorMessage,
-        selectedCategory,
-        sortBy,
-        isGridView,
-        pendingOperation,
-      ];
+    status,
+    items,
+    categories,
+    categoryOptions,
+    searchQuery,
+    errorMessage,
+    selectedCategory,
+    sortBy,
+    isGridView,
+    pendingOperation,
+  ];
 }
