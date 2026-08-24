@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
+import 'package:bagyesrushappusernew/features/report/presentation/report_flow_args.dart';
+
 import 'app_routes.dart';
 
 /// Convenience navigation helpers accessible via `AppNavigator.toHome(context)`.
@@ -87,4 +91,18 @@ abstract final class AppNavigator {
   // ── Other ──
   static void toInviteFriend(BuildContext context) =>
       context.push(AppRoutes.inviteFriend);
+
+  // ── Report a problem ──
+  static void toReportFlow(BuildContext context, {required ReportFlowArgs args}) =>
+      context.push(AppRoutes.reportFlow, extra: args);
+
+  static void toMyReports(BuildContext context, {required ReportRole role}) =>
+      context.push(AppRoutes.myReports, extra: role);
+
+  static void toReportDetail(
+    BuildContext context,
+    String id, {
+    required ReportRole role,
+  }) =>
+      context.push(AppRoutes.reportDetail(id), extra: role);
 }

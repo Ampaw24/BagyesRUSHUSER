@@ -96,6 +96,7 @@ class CustomDialog extends StatefulWidget {
     String confirmText = 'Confirm',
     String cancelText = 'Cancel',
     bool barrierDismissible = false,
+    Widget? content,
   }) {
     return showDialog(
       context: context,
@@ -111,6 +112,7 @@ class CustomDialog extends StatefulWidget {
           cancelText: cancelText,
           showCancelButton: true,
           barrierDismissible: barrierDismissible,
+          content: content,
         ),
       ),
     );

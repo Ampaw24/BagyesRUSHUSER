@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../constant/app_theme.dart';
+import '../../../../core/widgets/custom_dialogs.dart';
 import '../../providers/payment_providers.dart';
 import '../../viewmodels/payment_methods_viewmodel.dart';
 import '../../models/payment_method_model.dart';
@@ -29,31 +32,16 @@ class _PaymentMethodsScreenState
   // ── Delete confirmation ───────────────────────────────────────────────────
 
   Future<bool> _confirmDelete(BuildContext context, String title) async {
-    final confirmed = await showDialog<bool>(
+    final completer = Completer<bool>();
+    CustomDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Payment Method'),
-        content: Text(
-          'Remove "$title"? This action cannot be undone.',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+      title: 'Remove Payment Method',
+      subtitle: 'Remove "$title"? This action cannot be undone.',
+      confirmText: 'Remove',
+      onConfirm: () => completer.complete(true),
+      onCancel: () => completer.complete(false),
     );
-    return confirmed ?? false;
+    return completer.future;
   }
 
   void _showAddScreen() {

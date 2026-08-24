@@ -45,12 +45,16 @@ class Restaurant {
   String get deliveryTimeLabel => '$deliveryTimeMin–$deliveryTimeMax min';
 
   factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
-        id: json['id'] as String? ?? json['_id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        imageUrl: json['image_url'] as String? ??
-            json['logo_url'] as String? ??
-            json['banner_url'] as String? ??
+        id: json['vendor_id'] as String? ??
+            json['id']?.toString() ??
+            json['_id'] as String? ??
             '',
+        name: json['name'] as String? ?? '',
+        imageUrl: _firstNonEmpty([
+          json['logo_url'] as String?,
+          json['cover_image_url'] as String?,
+          json['image_url'] as String?,
+        ]),
         cuisineType: json['cuisine_type'] as String? ?? '',
         categories: (json['categories'] as List<dynamic>? ?? [])
             .map((e) => e.toString())
@@ -71,6 +75,13 @@ class Restaurant {
         promoText: json['promo_text'] as String?,
         discountPercent: (json['discount_percent'] as num?)?.toDouble(),
       );
+
+  static String _firstNonEmpty(List<String?> candidates) {
+    for (final candidate in candidates) {
+      if (candidate != null && candidate.isNotEmpty) return candidate;
+    }
+    return '';
+  }
 
   @override
   bool operator ==(Object other) =>

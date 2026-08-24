@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
@@ -114,39 +115,24 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     int quantity = 1,
     List<SelectedAddon> selectedAddons = const [],
   }) {
-    final w = MediaQuery.sizeOf(context).width;
-    showDialog(
+    CustomDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(w * 0.05),
-        ),
-        title: const Text('Replace cart?'),
-        content: Text(
+      title: 'Replace cart?',
+      subtitle:
           'Your cart has items from ${ref.read(cartProvider).restaurantName}. '
           'Starting a new cart will remove those items.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Keep current'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.read(cartProvider.notifier).clearAndAdd(
-                    restaurant,
-                    item,
-                    quantity: quantity,
-                    selectedAddons: selectedAddons,
-                  );
-              HapticFeedback.lightImpact();
-              _cartFabKey.currentState?.bounce();
-            },
-            child: const Text('Replace'),
-          ),
-        ],
-      ),
+      confirmText: 'Replace',
+      cancelText: 'Keep current',
+      onConfirm: () {
+        ref.read(cartProvider.notifier).clearAndAdd(
+              restaurant,
+              item,
+              quantity: quantity,
+              selectedAddons: selectedAddons,
+            );
+        HapticFeedback.lightImpact();
+        _cartFabKey.currentState?.bounce();
+      },
     );
   }
 
@@ -179,6 +165,7 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
               error: (e, _) => _buildBody(
                 context, restaurant, const {}, cart, w,
                 isMenuLoading: false,
+                hasMenuError: true,
               ),
               data: (menu) {
                 // Tab controller is now managed via ref.listenManual
@@ -214,6 +201,7 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     CartState cart,
     double w, {
     required bool isMenuLoading,
+    bool hasMenuError = false,
   }) {
     final categories = menu.keys.toList();
 
@@ -242,13 +230,15 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                 // Hero-wrap the restaurant image for smooth transition
                 Hero(
                   tag: 'restaurant_image_${restaurant.id}',
-                  child: Image.network(
-                    restaurant.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      color: AppColors.shimmerBase,
-                    ),
-                  ),
+                  child: restaurant.imageUrl.isEmpty
+                      ? Container(color: AppColors.shimmerBase)
+                      : Image.network(
+                          restaurant.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            color: AppColors.shimmerBase,
+                          ),
+                        ),
                 ),
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -363,7 +353,9 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
               ? const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 )
-              : const _NoMenuItemsView())
+              : hasMenuError
+                  ? _MenuErrorView(restaurantId: widget.restaurantId)
+                  : const _NoMenuItemsView())
           : TabBarView(
               controller: _tabController,
               children: categories.map((category) {
@@ -437,6 +429,57 @@ class _NoMenuItemsView extends StatelessWidget {
                 fontSize: w * 0.035,
                 color: AppColors.textSecondary,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuErrorView extends ConsumerWidget {
+  final String restaurantId;
+
+  const _MenuErrorView({required this.restaurantId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(w * 0.08),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: w * 0.14,
+              color: AppColors.textSecondary,
+            ),
+            SizedBox(height: w * 0.04),
+            Text(
+              'Couldn\'t load menu',
+              style: TextStyle(
+                fontSize: w * 0.045,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: w * 0.02),
+            Text(
+              'Something went wrong while fetching the menu. '
+              'Please try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: w * 0.035,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            SizedBox(height: w * 0.04),
+            OutlinedButton(
+              onPressed: () =>
+                  ref.invalidate(restaurantMenuProvider(restaurantId)),
+              child: const Text('Retry'),
             ),
           ],
         ),

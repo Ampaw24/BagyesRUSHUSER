@@ -151,7 +151,7 @@ class RestaurantListCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Hero(
-              tag: 'restaurant_image_${restaurant.id}',
+              tag: 'restaurant_list_image_${restaurant.id}',
               child: _CoverImage(restaurant: restaurant, width: w, height: w * 0.44),
             ),
             Padding(
@@ -260,15 +260,21 @@ class _CoverImage extends StatelessWidget {
           SizedBox(
             width: width,
             height: h,
-            child: Image.network(
-              restaurant.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppColors.shimmerBase,
-                child: const Icon(Icons.restaurant,
-                    color: AppColors.textHint, size: 48),
-              ),
-            ),
+            child: restaurant.imageUrl.isEmpty
+                ? Container(
+                    color: AppColors.shimmerBase,
+                    child: const Icon(Icons.restaurant,
+                        color: AppColors.textHint, size: 48),
+                  )
+                : Image.network(
+                    restaurant.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      color: AppColors.shimmerBase,
+                      child: const Icon(Icons.restaurant,
+                          color: AppColors.textHint, size: 48),
+                    ),
+                  ),
           ),
           // Gradient overlay at bottom
           Positioned(

@@ -13,6 +13,7 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onMarkOutForDelivery;
   final VoidCallback? onMarkDelivered;
   final VoidCallback? onCancel;
+  final VoidCallback? onReport;
 
   const OrderCard({
     super.key,
@@ -25,6 +26,7 @@ class OrderCard extends StatelessWidget {
     this.onMarkOutForDelivery,
     this.onMarkDelivered,
     this.onCancel,
+    this.onReport,
   });
 
   @override
@@ -74,6 +76,17 @@ class OrderCard extends StatelessWidget {
                   _OrderTypeBadge(type: order.orderType),
                   const Spacer(),
                   _StatusBadge(status: order.status),
+                  if (onReport != null) ...[
+                    SizedBox(width: w * 0.025),
+                    GestureDetector(
+                      onTap: onReport,
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedFlag02,
+                        color: AppColors.textHint,
+                        size: w * 0.042,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               SizedBox(height: w * 0.04),

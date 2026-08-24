@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../features/report/domain/entities/report.dart';
+import '../../../features/report/presentation/report_flow_args.dart';
+import '../../../features/report/presentation/widgets/report_quick_action_sheet.dart';
 import '../model/vendor_order.dart';
 import '../viewmodel/orders_viewmodel.dart';
 import 'widgets/order_card.dart';
@@ -123,6 +126,30 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
                               vm.markOutForDelivery(order.id),
                           onMarkDelivered: () => vm.markDelivered(order.id),
                           onCancel: () => vm.cancel(order.id),
+                          onReport: () => ReportQuickActionSheet.show(
+                            context,
+                            role: ReportRole.vendor,
+                            orderId: order.id,
+                            primaryTarget: order.customerName.isEmpty
+                                ? null
+                                : ReportFlowArgs(
+                                    role: ReportRole.vendor,
+                                    targetType: ReportTargetType.customer,
+                                    orderId: order.id,
+                                    targetName: order.customerName,
+                                    targetPhone: order.customerPhone,
+                                  ),
+                            riderTarget: order.driverName != null &&
+                                    order.driverName!.isNotEmpty
+                                ? ReportFlowArgs(
+                                    role: ReportRole.vendor,
+                                    targetType: ReportTargetType.rider,
+                                    orderId: order.id,
+                                    targetName: order.driverName!,
+                                    targetPhone: order.driverPhone,
+                                  )
+                                : null,
+                          ),
                         );
                       },
                     ),

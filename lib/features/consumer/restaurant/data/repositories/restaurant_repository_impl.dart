@@ -43,15 +43,20 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       final restaurants =
           list.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
 
+      final currentPage =
+          (meta['current_page'] ?? meta['page']) as num? ?? page;
+      final lastPage = (meta['last_page'] ?? meta['totalPages']) as num? ?? 1;
+      final total = meta['total'] as num? ?? restaurants.length;
+
       appLogger.i(
           'RestaurantRepository.getRestaurantsPaged → ${restaurants.length} items '
-          '(page ${meta['page']}/${meta['totalPages']}, total ${meta['total']})');
+          '(page $currentPage/$lastPage, total $total)');
 
       return RestaurantPage(
         restaurants: restaurants,
-        page: (meta['page'] as num? ?? page).toInt(),
-        totalPages: (meta['totalPages'] as num? ?? 1).toInt(),
-        total: (meta['total'] as num? ?? restaurants.length).toInt(),
+        page: currentPage.toInt(),
+        totalPages: lastPage.toInt(),
+        total: total.toInt(),
       );
     } on DioException catch (e) {
       appLogger.e('RestaurantRepository.getRestaurantsPaged → DioException', error: e);
@@ -138,9 +143,13 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
     try {
       final response =
           await _client.get(ApiEndpoints.vendorMenuItems(restaurantId));
-      final (list, _) = _extractPagedList(response);
-      final items =
-          list.map((e) => MenuItem.fromJson(e as Map<String, dynamic>)).toList();
+      final rawItems = _extractMenuItems(response);
+      final items = rawItems
+          .map((e) => MenuItem.fromJson(
+                e as Map<String, dynamic>,
+                restaurantId: restaurantId,
+              ))
+          .toList();
 
       final grouped = <String, List<MenuItem>>{};
       for (final item in items) {
@@ -185,10 +194,11 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
 
   // ─── Private helpers ───────────────────────────────────────────────────────
 
-  /// Handles two response shapes:
-  ///   Shape A (flat):      { "data": [...], "meta": {...} }
-  ///   Shape B (nested):    { "data": { "data": [...], "meta": {...} } }
-  ///   Shape C (bare list): [...]
+  /// Handles the response shapes returned across vendor endpoints:
+  ///   Shape A (flat):        { "data": [...], "meta": {...} }
+  ///   Shape B (nested):      { "data": { "data": [...], "meta": {...} } }
+  ///   Shape C (bare list):   [...]
+  ///   Shape D (items/page):  { "data": { "items": [...], "pagination": {...} } }
   (List<dynamic>, Map<String, dynamic>) _extractPagedList(Response response) {
     final body = response.data;
 
@@ -198,8 +208,15 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
     if (body is Map<String, dynamic>) {
       final outer = body['data'];
 
-      // Shape B — outer["data"] is itself a map with nested data + meta
       if (outer is Map<String, dynamic>) {
+        // Shape D — outer["items"] is the list, outer["pagination"] is meta
+        final items = outer['items'];
+        if (items is List) {
+          final pagination = outer['pagination'] as Map<String, dynamic>? ?? {};
+          return (items, pagination);
+        }
+
+        // Shape B — outer["data"] is itself a map with nested data + meta
         final inner = outer['data'];
         final meta = outer['meta'] as Map<String, dynamic>? ?? {};
         if (inner is List) return (inner, meta);
@@ -213,6 +230,25 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
     }
 
     return (const [], {});
+  }
+
+  /// Flattens the menu endpoint's nested shape:
+  ///   { "data": { "vendor": {...}, "sections": [ { "category": {...}, "items": [...] } ] } }
+  List<dynamic> _extractMenuItems(Response response) {
+    final body = response.data;
+    if (body is! Map<String, dynamic>) return const [];
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) return const [];
+    final sections = data['sections'];
+    if (sections is! List) return const [];
+
+    final items = <dynamic>[];
+    for (final section in sections) {
+      if (section is Map<String, dynamic> && section['items'] is List) {
+        items.addAll(section['items'] as List);
+      }
+    }
+    return items;
   }
 
   Map<String, dynamic> _extractSingle(Response response) {

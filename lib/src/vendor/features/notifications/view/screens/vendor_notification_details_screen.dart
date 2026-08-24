@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../constant/app_theme.dart';
+import '../../../../../../core/router/app_navigator.dart';
+import '../../../../../../core/widgets/delete_action_sheet.dart';
+import '../../../../../../features/report/domain/entities/report.dart';
+import '../../../../../../features/report/presentation/report_flow_args.dart';
 import '../../../../../notification/model/notification.model.dart';
 import '../../../../../notification/utils/notification_style.dart';
 import '../../../../../notification/viewmodel/notification_viewmodel.dart';
@@ -30,11 +34,25 @@ class _VendorNotificationDetailsScreenState
   }
 
   static const Set<String> _hiddenDataKeys = {
+    'order_id',
+    'orderId',
     'type',
     'title',
     'body',
     'message',
   };
+
+  String? get _orderId {
+    final data = _notification.data;
+    final raw = data['order_id'] ?? data['orderId'];
+    return raw?.toString();
+  }
+
+  bool get _isOrderRelated =>
+      _orderId != null &&
+      (_notification.type == 'order_placed' ||
+          _notification.type == 'order_update' ||
+          _notification.type == 'delivery');
 
   Iterable<MapEntry<String, dynamic>> get _extraDetails =>
       _notification.data.entries.where(
@@ -51,59 +69,14 @@ class _VendorNotificationDetailsScreenState
   }
 
   void _deleteNotification() {
-    final w = MediaQuery.sizeOf(context).width;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.05)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: w * 0.03),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: w * 0.12,
-                  height: 4,
-                  margin: EdgeInsets.only(bottom: w * 0.05),
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                ListTile(
-                  leading: HugeIcon(
-                    icon: HugeIcons.strokeRoundedDelete02,
-                    color: AppColors.error,
-                    size: w * 0.055,
-                  ),
-                  title: Text(
-                    'Delete notification',
-                    style: TextStyle(
-                      fontFamily: 'Mukta',
-                      fontSize: w * 0.038,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.error,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    context
-                        .read<NotificationViewmodel>()
-                        .deleteNotification(
-                          _notification.id,
-                          wasUnread: !_notification.isRead,
-                        );
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
+    DeleteActionSheet.show(
+      context,
+      onDelete: () {
+        context.read<NotificationViewmodel>().deleteNotification(
+              _notification.id,
+              wasUnread: !_notification.isRead,
+            );
+        Navigator.of(context).pop();
       },
     );
   }
@@ -279,6 +252,38 @@ class _VendorNotificationDetailsScreenState
                                   isLast: entry.key == _extraDetails.last.key,
                                 ),
                             ],
+                          ),
+                        ),
+                      ],
+
+                      if (_isOrderRelated) ...[
+                        SizedBox(height: w * 0.07),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => AppNavigator.toReportFlow(
+                              context,
+                              args: ReportFlowArgs(
+                                role: ReportRole.vendor,
+                                targetType: ReportTargetType.orderIssue,
+                                orderId: _orderId!,
+                                targetName: 'Order #${_orderId!}',
+                              ),
+                            ),
+                            icon: HugeIcon(
+                              icon: HugeIcons.strokeRoundedFlag02,
+                              color: AppColors.textSecondary,
+                              size: w * 0.048,
+                            ),
+                            label: Text(
+                              'Report an Issue',
+                              style: TextStyle(
+                                fontFamily: 'Mukta',
+                                fontSize: w * 0.04,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ),
                         ),
                       ],

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
+import 'package:bagyesrushappusernew/features/report/presentation/report_flow_args.dart';
+import 'package:bagyesrushappusernew/features/report/presentation/widgets/report_quick_action_sheet.dart';
 
 class ConsumerOrdersView extends ConsumerWidget {
   const ConsumerOrdersView({super.key});
@@ -26,7 +30,10 @@ class ConsumerOrdersView extends ConsumerWidget {
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.primary,
-            tabs: const [Tab(text: 'Active'), Tab(text: 'Past')],
+            tabs: const [
+              Tab(text: 'Active'),
+              Tab(text: 'Past'),
+            ],
           ),
         ),
         body: TabBarView(
@@ -81,35 +88,55 @@ class _OrderList extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
             ),
-            if (isActive) ...[
-              SizedBox(height: w * 0.06),
-              ElevatedButton(
-                onPressed: () => context.go(AppRoutes.home),
-                child: const Text('Browse Restaurants'),
-              ),
-            ],
+            //[This section is commented out in the original code, but you can uncomment it if you want to add a button for browsing restaurants.]
+            // if (isActive) ...[
+            //   SizedBox(height: w * 0.06),
+            //   ElevatedButton(
+            //     onPressed: () => context.go(AppRoutes.home),
+            //     child: const Text('Browse Restaurant'),
+            //   ),
+            // ],
           ],
         ),
       );
     }
 
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(
-          w * 0.05, w * 0.04, w * 0.05, w * 0.05),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, w * 0.05),
       itemCount: orders.length,
       itemBuilder: (ctx, i) => Consumer(
         builder: (ctx, ref, _) => _OrderCard(
           order: orders[i],
-          onTap: () => context.push(
-            AppRoutes.trackOrder,
-            extra: orders[i].id,
-          ),
+          onTap: () => context.push(AppRoutes.trackOrder, extra: orders[i].id),
           onReorder: () async {
             await ref.read(ordersProvider.notifier).reorder(orders[i].id);
             if (ctx.mounted) {
               context.push(AppRoutes.trackOrder, extra: orders[i].id);
             }
           },
+          onReport: () => ReportQuickActionSheet.show(
+            context,
+            role: ReportRole.customer,
+            orderId: orders[i].id,
+            primaryTarget: ReportFlowArgs(
+              role: ReportRole.customer,
+              targetType: ReportTargetType.vendor,
+              orderId: orders[i].id,
+              targetId: orders[i].restaurantId,
+              targetName: orders[i].restaurantName,
+              targetImageUrl: orders[i].restaurantImageUrl,
+            ),
+            riderTarget:
+                orders[i].driverName != null && orders[i].driverName!.isNotEmpty
+                ? ReportFlowArgs(
+                    role: ReportRole.customer,
+                    targetType: ReportTargetType.rider,
+                    orderId: orders[i].id,
+                    targetName: orders[i].driverName!,
+                    targetPhone: orders[i].driverPhone,
+                  )
+                : null,
+          ),
         ),
       ),
     );
@@ -120,11 +147,13 @@ class _OrderCard extends StatelessWidget {
   final ConsumerOrder order;
   final VoidCallback onTap;
   final VoidCallback onReorder;
+  final VoidCallback onReport;
 
   const _OrderCard({
     required this.order,
     required this.onTap,
     required this.onReorder,
+    required this.onReport,
   });
 
   @override
@@ -165,8 +194,10 @@ class _OrderCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           color: AppColors.shimmerBase,
-                          child: const Icon(Icons.restaurant,
-                              color: AppColors.textHint),
+                          child: const Icon(
+                            Icons.restaurant,
+                            color: AppColors.textHint,
+                          ),
                         ),
                       ),
                     ),
@@ -239,6 +270,17 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
+                  GestureDetector(
+                    onTap: onReport,
+                    child: Padding(
+                      padding: EdgeInsets.only(right: w * 0.035),
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedFlag02,
+                        color: AppColors.textHint,
+                        size: w * 0.04,
+                      ),
+                    ),
+                  ),
                   if (order.status.isActive)
                     GestureDetector(
                       onTap: onTap,

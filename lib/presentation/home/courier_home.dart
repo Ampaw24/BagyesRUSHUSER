@@ -80,71 +80,14 @@ class _HomeState extends ConsumerState<Home> {
 
   void _showDeleteAccountDialog() {
     _closeDrawer();
-    final w = MediaQuery.sizeOf(context).width;
-    showDialog(
+    CustomDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(w * 0.05),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(w * 0.025),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(w * 0.025),
-              ),
-              child: Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.error,
-                size: w * 0.06,
-              ),
-            ),
-            SizedBox(width: w * 0.03),
-            const Expanded(child: Text('Delete Account')),
-          ],
-        ),
-        titleTextStyle: TextStyle(
-          fontSize: w * 0.045,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-          fontFamily: 'Mukta',
-        ),
-        content: Text(
-          'This action is permanent and cannot be undone. '
+      title: 'Delete Account',
+      subtitle: 'This action is permanent and cannot be undone. '
           'All your order history and personal data will be permanently deleted.',
-          style: TextStyle(
-            fontSize: w * 0.034,
-            color: AppColors.textSecondary,
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: w * 0.036,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: Text(
-              'Delete',
-              style: TextStyle(
-                fontSize: w * 0.036,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: () {},
     );
   }
 

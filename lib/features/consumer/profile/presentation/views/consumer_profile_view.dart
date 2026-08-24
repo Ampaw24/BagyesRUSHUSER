@@ -6,8 +6,10 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
+import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/states/profile_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
@@ -187,14 +189,18 @@ class _ProfileBody extends ConsumerWidget {
           label: 'Wallet & Rewards',
           onTap: () => context.push(AppRoutes.wallet),
         ),
-        //TODO: Add support & privacy policy screens
-        // SizedBox(height: w * 0.02),
-        // _SectionLabel('Support'),s
-        // _ProfileTile(
-        //   icon: HugeIcons.strokeRoundedHelpCircle,
-        //   label: 'Help & Support',
-        //   onTap: () {},
-        // ),
+        SizedBox(height: w * 0.02),
+        _SectionLabel('Support'),
+        _ProfileTile(
+          icon: HugeIcons.strokeRoundedHelpCircle,
+          label: 'Help & Support',
+          onTap: () => context.push(AppRoutes.helpSupport),
+        ),
+        _ProfileTile(
+          icon: HugeIcons.strokeRoundedFlag02,
+          label: 'Report a Problem',
+          onTap: () => AppNavigator.toMyReports(context, role: ReportRole.customer),
+        ),
         _ProfileTile(
           icon: HugeIcons.strokeRoundedPolicy,
           label: 'Privacy Policy',

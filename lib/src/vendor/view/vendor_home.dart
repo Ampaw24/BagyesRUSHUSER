@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../features/report/domain/entities/report.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -83,74 +84,16 @@ class _VendorHomeState extends State<VendorHome> {
 
   void _showDeleteAccountDialog() {
     _closeDrawer();
-    final w = MediaQuery.sizeOf(context).width;
-    showDialog(
+    CustomDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(w * 0.05),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(w * 0.025),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(w * 0.025),
-              ),
-              child: Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.error,
-                size: w * 0.06,
-              ),
-            ),
-            SizedBox(width: w * 0.03),
-            const Expanded(child: Text('Delete Account')),
-          ],
-        ),
-        titleTextStyle: TextStyle(
-          fontSize: w * 0.045,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-          fontFamily: 'Mukta',
-        ),
-        content: Text(
-          'This action is permanent and cannot be undone. '
+      title: 'Delete Account',
+      subtitle: 'This action is permanent and cannot be undone. '
           'All your shop data, menu items, order history, and earnings records will be permanently deleted.',
-          style: TextStyle(
-            fontSize: w * 0.034,
-            color: AppColors.textSecondary,
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: w * 0.036,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              // TODO: Call deleteAccount via ViewModel when API is ready
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: Text(
-              'Delete',
-              style: TextStyle(
-                fontSize: w * 0.036,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: () {
+        // TODO: Call deleteAccount via ViewModel when API is ready
+      },
     );
   }
 
@@ -243,6 +186,7 @@ class _VendorHomeState extends State<VendorHome> {
                 userName: vendorProfile?.businessName ?? "Vendor",
                 userEmail: user?.email ?? '',
                 initials: initials,
+                imageUrl: vendorProfile?.logoUrl,
                 isVerified: user?.phoneVerified ?? false,
                 onClose: _closeDrawer,
                 notificationBadgeCount: unreadNotifications,
@@ -287,6 +231,10 @@ class _VendorHomeState extends State<VendorHome> {
                 onHelpSupport: () {
                   _closeDrawer();
                   context.push(AppRoutes.helpSupport);
+                },
+                onReport: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.myReports, extra: ReportRole.vendor);
                 },
                 onDeleteAccount: _showDeleteAccountDialog,
                 onLogout: _handleLogout,
@@ -485,6 +433,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
               children: [
                 VendorHeader(
                   initials: widget.initials,
+                  imageUrl: widget.vendorProfile?.logoUrl,
                   onDrawerTap: widget.onDrawerTap,
                   hasUnreadNotifications: hasUnreadNotifications,
                   onNotificationTap: () => Navigator.of(context).push(

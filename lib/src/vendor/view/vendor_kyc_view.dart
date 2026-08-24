@@ -99,30 +99,23 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
 
     setLocalPath(file.path);
 
-    await showDialog(
+    await CustomDialog.showConfirmation(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => CustomDialog(
-        config: CustomDialogConfig(
-          title: 'Use this photo?',
-          subtitle: 'Make sure the $label is clear and all text is readable before submitting — it will be sent for verification right away.',
-          type: DialogType.confirmation,
-          confirmText: 'Yes, Submit',
-          cancelText: 'Retake',
-          showCancelButton: true,
-          content: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              File(file.path),
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          onConfirm: () => upload(file.path),
-          onCancel: () => setLocalPath(null),
+      title: 'Use this photo?',
+      subtitle: 'Make sure the $label is clear and all text is readable before submitting — it will be sent for verification right away.',
+      confirmText: 'Yes, Submit',
+      cancelText: 'Retake',
+      content: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(
+          File(file.path),
+          height: 180,
+          width: double.infinity,
+          fit: BoxFit.cover,
         ),
       ),
+      onConfirm: () => upload(file.path),
+      onCancel: () => setLocalPath(null),
     );
   }
 

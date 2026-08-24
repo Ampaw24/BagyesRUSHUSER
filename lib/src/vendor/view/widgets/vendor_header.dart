@@ -4,6 +4,7 @@ import '../../../../constant/app_theme.dart';
 
 class VendorHeader extends StatelessWidget {
   final String initials;
+  final String? imageUrl;
   final VoidCallback? onDrawerTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAvatarTap;
@@ -12,6 +13,7 @@ class VendorHeader extends StatelessWidget {
   const VendorHeader({
     super.key,
     required this.initials,
+    this.imageUrl,
     this.onDrawerTap,
     this.onNotificationTap,
     this.onAvatarTap,
@@ -103,15 +105,20 @@ class VendorHeader extends StatelessWidget {
             child: CircleAvatar(
               radius: w * 0.045,
               backgroundColor: AppColors.primary,
-              child: Text(
-                initials,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: w * 0.032,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Mukta',
-                ),
-              ),
+              backgroundImage: (imageUrl != null && imageUrl!.isNotEmpty)
+                  ? NetworkImage(imageUrl!)
+                  : null,
+              child: (imageUrl != null && imageUrl!.isNotEmpty)
+                  ? null
+                  : Text(
+                      initials,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: w * 0.032,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mukta',
+                      ),
+                    ),
             ),
           ),
         ),

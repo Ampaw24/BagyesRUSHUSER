@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/widgets/custom_dialogs.dart';
 import '../../orders/viewmodels/orders_state.dart';
 import '../../orders/viewmodels/orders_viewmodel.dart';
 import '../model/menu_item.dart';
@@ -56,48 +57,18 @@ class _VendorMenuViewState extends State<VendorMenuView> {
     super.dispose();
   }
 
-  Future<void> _confirmDelete(
+  void _confirmDelete(
     BuildContext context,
     OrderViewModel vm,
     MenuItem item,
-  ) async {
-    final confirmed = await showDialog<bool>(
+  ) {
+    CustomDialog.showConfirmation(
       context: context,
-      builder: (ctx) {
-        final w = MediaQuery.sizeOf(ctx).width;
-        return AlertDialog(
-          title: Text(
-            'Delete Item',
-            style: TextStyle(
-              fontSize: w * 0.045,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          content: Text(
-            'Remove "${item.name}" from your menu? This cannot be undone.',
-            style: TextStyle(
-              fontSize: w * 0.035,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+      title: 'Delete Item',
+      subtitle: 'Remove "${item.name}" from your menu? This cannot be undone.',
+      confirmText: 'Delete',
+      onConfirm: () => vm.deleteItem(item.id),
     );
-    if (confirmed == true && context.mounted) {
-      vm.deleteItem(item.id);
-    }
   }
 
   @override

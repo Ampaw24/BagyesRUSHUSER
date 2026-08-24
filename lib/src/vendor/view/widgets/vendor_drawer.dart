@@ -7,6 +7,7 @@ class VendorDrawer extends StatefulWidget {
   final String userName;
   final String userEmail;
   final String initials;
+  final String? imageUrl;
   final bool isVerified;
   final VoidCallback onClose;
   final VoidCallback? onLogout;
@@ -16,6 +17,7 @@ class VendorDrawer extends StatefulWidget {
   final VoidCallback? onWallet;
   final VoidCallback? onNotifications;
   final VoidCallback? onHelpSupport;
+  final VoidCallback? onReport;
   final VoidCallback? onShopProfile;
   final VoidCallback? onDeleteAccount;
   final int notificationBadgeCount;
@@ -25,6 +27,7 @@ class VendorDrawer extends StatefulWidget {
     required this.userName,
     required this.userEmail,
     required this.initials,
+    this.imageUrl,
     this.isVerified = true,
     required this.onClose,
     this.onLogout,
@@ -34,6 +37,7 @@ class VendorDrawer extends StatefulWidget {
     this.onWallet,
     this.onNotifications,
     this.onHelpSupport,
+    this.onReport,
     this.onShopProfile,
     this.onDeleteAccount,
     this.notificationBadgeCount = 0,
@@ -182,6 +186,7 @@ class _VendorDrawerState extends State<VendorDrawer>
                   userName: widget.userName,
                   userEmail: widget.userEmail,
                   initials: widget.initials,
+                  imageUrl: widget.imageUrl,
                   isVerified: widget.isVerified,
                   onClose: _close,
                   animation: _controller,
@@ -252,6 +257,13 @@ class _VendorDrawerState extends State<VendorDrawer>
                                 fadeAnim: _staggeredFade(6),
                                 slideAnim: _staggeredSlide(6),
                               ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedFlag02,
+                                label: 'Report an Issue',
+                                onTap: widget.onReport,
+                                fadeAnim: _staggeredFade(7),
+                                slideAnim: _staggeredSlide(7),
+                              ),
                             ],
                           ),
                         ),
@@ -300,6 +312,7 @@ class _DrawerHeader extends StatelessWidget {
   final String userName;
   final String userEmail;
   final String initials;
+  final String? imageUrl;
   final bool isVerified;
   final VoidCallback onClose;
   final AnimationController animation;
@@ -308,6 +321,7 @@ class _DrawerHeader extends StatelessWidget {
     required this.userName,
     required this.userEmail,
     required this.initials,
+    this.imageUrl,
     required this.isVerified,
     required this.onClose,
     required this.animation,
@@ -365,14 +379,19 @@ class _DrawerHeader extends StatelessWidget {
                 child: CircleAvatar(
                   radius: w * 0.07,
                   backgroundColor: AppColors.primary,
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: w * 0.05,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  backgroundImage: (imageUrl != null && imageUrl!.isNotEmpty)
+                      ? NetworkImage(imageUrl!)
+                      : null,
+                  child: (imageUrl != null && imageUrl!.isNotEmpty)
+                      ? null
+                      : Text(
+                          initials,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: w * 0.05,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
               SizedBox(width: w * 0.03),

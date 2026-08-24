@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/widgets/cart_item_tile.dart';
 
@@ -63,28 +64,12 @@ class CartView extends ConsumerWidget {
           TextButton(
             onPressed: () {
               HapticFeedback.mediumImpact();
-              showDialog(
+              CustomDialog.showConfirmation(
                 context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Clear cart?'),
-                  content: const Text(
-                      'This will remove all items from your cart.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        notifier.clear();
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.error),
-                      child: const Text('Clear'),
-                    ),
-                  ],
-                ),
+                title: 'Clear cart?',
+                subtitle: 'This will remove all items from your cart.',
+                confirmText: 'Clear',
+                onConfirm: notifier.clear,
               );
             },
             child: const Text(

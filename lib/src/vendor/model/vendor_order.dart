@@ -89,6 +89,8 @@ class VendorOrder extends Equatable {
   final String customerName;
   final String? customerPhone;
   final String? customerNote;
+  final String? driverName;
+  final String? driverPhone;
   final OrderType orderType;
   final List<OrderItem> itemList;
   final DateTime? createdAt;
@@ -102,6 +104,8 @@ class VendorOrder extends Equatable {
     this.customerName = '',
     this.customerPhone,
     this.customerNote,
+    this.driverName,
+    this.driverPhone,
     this.orderType = OrderType.delivery,
     this.itemList = const [],
     this.createdAt,
@@ -117,6 +121,8 @@ class VendorOrder extends Equatable {
       customerName: json['customer_name'] as String? ?? '',
       customerPhone: json['customer_phone'] as String?,
       customerNote: json['customer_note'] as String?,
+      driverName: json['driver_name'] as String?,
+      driverPhone: json['driver_phone'] as String?,
       orderType: _parseOrderType(json['order_type'] as String?),
       itemList: (json['item_list'] as List<dynamic>?)
               ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
@@ -149,6 +155,8 @@ class VendorOrder extends Equatable {
         customerName,
         customerPhone,
         customerNote,
+        driverName,
+        driverPhone,
         orderType,
         itemList,
         createdAt,

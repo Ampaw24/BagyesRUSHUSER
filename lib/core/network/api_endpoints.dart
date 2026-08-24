@@ -209,4 +209,14 @@ abstract final class ApiEndpoints {
 
   /// `PATCH /notifications/:id/read`
   static String notificationRead(String id) => '/notifications/$id/read';
+
+  // ─── Reports ────────────────────────────────────────────────────────────
+  static const String customerReports = '/customer/reports';
+  static const String vendorReports = '/vendor/me/reports';
+
+  /// `GET /customer/reports/:id`
+  static String customerReportById(String id) => '$customerReports/$id';
+
+  /// `GET /vendor/me/reports/:id`
+  static String vendorReportById(String id) => '$vendorReports/$id';
 }
