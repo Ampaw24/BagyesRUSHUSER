@@ -174,7 +174,7 @@ class ReportRepositoryImpl implements IReportRepository {
       reporterRole: ReportRole.customer,
       targetType: ReportTargetType.orderIssue,
       orderId: 'ORD-2201',
-      targetName: 'Order #ORD-2201',
+      targetName: 'Auntie Muni Waakye',
       reasonCode: 'missing_items',
       reasonLabel: 'Missing items',
       description: 'One of the two drinks I ordered was missing from the bag.',

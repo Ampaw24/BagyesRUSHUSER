@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/utils/image_compression_utils.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
+import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart'
+    show restaurantRepositoryProvider;
 import 'package:bagyesrushappusernew/features/report/data/repositories/report_repository_impl.dart';
 import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
 import 'package:bagyesrushappusernew/features/report/domain/repositories/i_report_repository.dart';
@@ -178,4 +181,15 @@ final myReportsProvider =
 final reportByIdProvider = FutureProvider.family
     .autoDispose<Report, ({String id, ReportRole role})>((ref, args) {
   return ref.read(reportRepositoryProvider).getReportById(args.id, args.role);
+});
+
+// ─── All vendors (for the "report a vendor" target step) ──────────────────
+
+/// Full, unfiltered vendor list — deliberately independent of Home's
+/// [selectedCategoryProvider] so picking a category on Home doesn't affect
+/// who shows up here. Backed by the real `GET /vendors` endpoint (already
+/// live), unlike the rest of this feature which is still on dummy data.
+final allVendorsForReportProvider =
+    FutureProvider.autoDispose<List<Restaurant>>((ref) {
+  return ref.watch(restaurantRepositoryProvider).getRestaurants();
 });

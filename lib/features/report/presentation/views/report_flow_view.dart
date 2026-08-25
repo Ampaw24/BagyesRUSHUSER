@@ -74,28 +74,6 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
-  List<ReportableTarget> _consumerVendorTargets(List<ConsumerOrder> orders) {
-    final byRestaurant = <String, ConsumerOrder>{};
-    for (final o in orders) {
-      if (o.restaurantId.isEmpty) continue;
-      final existing = byRestaurant[o.restaurantId];
-      if (existing == null || o.placedAt.isAfter(existing.placedAt)) {
-        byRestaurant[o.restaurantId] = o;
-      }
-    }
-    final list = byRestaurant.values.toList()
-      ..sort((a, b) => b.placedAt.compareTo(a.placedAt));
-    return list
-        .map((o) => ReportableTarget(
-              targetId: o.restaurantId,
-              name: o.restaurantName,
-              imageUrl: o.restaurantImageUrl,
-              orderId: o.id,
-              subtitle: 'Last order: ${_formatDate(o.placedAt)}',
-            ))
-        .toList();
-  }
-
   List<ReportableTarget> _consumerRiderTargets(List<ConsumerOrder> orders) {
     final byRider = <String, ConsumerOrder>{};
     for (final o in orders) {
@@ -219,9 +197,7 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
           : const <ConsumerOrder>[];
       riderAvailable =
           orders.any((o) => o.driverName != null && o.driverName!.isNotEmpty);
-      if (state.targetType == ReportTargetType.vendor) {
-        targets = _consumerVendorTargets(orders);
-      } else if (state.targetType == ReportTargetType.rider) {
+      if (state.targetType == ReportTargetType.rider) {
         targets = _consumerRiderTargets(orders);
       }
     } else {
@@ -282,17 +258,20 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
                           riderAvailable: riderAvailable,
                           onSelect: notifier.selectTargetType,
                         ),
-                      ReportWizardStep.target => ReportTargetPickerStep(
-                          heading: _targetPickerHeading(state.targetType),
-                          targets: targets,
-                          onSelect: (t) => notifier.selectTarget(
-                            orderId: t.orderId,
-                            targetId: t.targetId,
-                            targetName: t.name,
-                            targetImageUrl: t.imageUrl,
-                            targetPhone: t.phone,
-                          ),
-                        ),
+                      ReportWizardStep.target =>
+                        state.targetType == ReportTargetType.vendor
+                            ? _VendorTargetPicker(onSelect: notifier.selectTarget)
+                            : ReportTargetPickerStep(
+                                heading: _targetPickerHeading(state.targetType),
+                                targets: targets,
+                                onSelect: (t) => notifier.selectTarget(
+                                  orderId: t.orderId,
+                                  targetId: t.targetId,
+                                  targetName: t.name,
+                                  targetImageUrl: t.imageUrl,
+                                  targetPhone: t.phone,
+                                ),
+                              ),
                       ReportWizardStep.reason => ReportReasonStep(
                           reasons: reasons,
                           selectedCode: state.reasonCode,
@@ -479,6 +458,72 @@ class _BottomActionBar extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Vendor target picker (real "all vendors" endpoint) ────────────────────
+
+typedef _SelectTarget = void Function({
+  String? orderId,
+  String? targetId,
+  required String targetName,
+  String? targetImageUrl,
+  String? targetPhone,
+});
+
+class _VendorTargetPicker extends ConsumerWidget {
+  final _SelectTarget onSelect;
+
+  const _VendorTargetPicker({required this.onSelect});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final w = MediaQuery.sizeOf(context).width;
+    final vendors = ref.watch(allVendorsForReportProvider);
+
+    return vendors.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      error: (error, _) => Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: w * 0.1),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Couldn't load vendors",
+                style: TextStyle(
+                  fontSize: w * 0.042,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(height: w * 0.02),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(allVendorsForReportProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (restaurants) => ReportTargetPickerStep(
+        heading: 'Which restaurant?',
+        targets: restaurants
+            .map((r) => ReportableTarget(
+                  targetId: r.id,
+                  name: r.name,
+                  imageUrl: r.imageUrl,
+                  subtitle: r.cuisineType.isNotEmpty ? r.cuisineType : r.address,
+                ))
+            .toList(),
+        onSelect: (t) => onSelect(
+          targetId: t.targetId,
+          targetName: t.name,
+          targetImageUrl: t.imageUrl,
         ),
       ),
     );
