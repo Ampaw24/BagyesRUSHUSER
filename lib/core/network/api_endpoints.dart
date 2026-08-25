@@ -162,6 +162,28 @@ abstract final class ApiEndpoints {
   static const String vendorWalletTransactions = '/vendors/wallet/transactions';
   static const String vendorWalletWithdraw = '/vendors/wallet/withdraw';
 
+  // ─── Payments (Paystack) ───────────────────────────────────────────────────
+  /// `POST /payments/initialize` — start a Paystack charge (mobile money or card).
+  static const String paymentsInitialize = '/payments/initialize';
+
+  /// `POST /payments/verify` — verify a Paystack charge by reference.
+  static const String paymentsVerify = '/payments/verify';
+
+  /// `GET /payments/wallet` — current user's wallet balance.
+  static const String paymentsWallet = '/payments/wallet';
+
+  /// `POST /payments/wallet/topup` — top up wallet via Paystack.
+  static const String paymentsWalletTopup = '/payments/wallet/topup';
+
+  /// `POST /payments/wallet/withdraw` — withdraw wallet funds to mobile money.
+  static const String paymentsWalletWithdraw = '/payments/wallet/withdraw';
+
+  /// `GET /payments/history` — paginated wallet transaction history.
+  static const String paymentsHistory = '/payments/history';
+
+  /// `POST /payments/paystack/webhook` — Paystack → backend server-to-server
+  /// notification. Never called by this app; not exposed as a client constant.
+
   // ─── Customer Home ─────────────────────────────────────────────────────────
   static const String categories = '/categories';
   static const String businessTypes = '/business-types';
