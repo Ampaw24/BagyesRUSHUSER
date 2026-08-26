@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../src/payment/model/payment_method.dart';
-import '../../../../src/payment/model/payout_provider.dart';
+import '../../../../src/payment/views/widgets/payout_provider_visuals.dart';
 
 /// A premium fintech-style card tile for a single mobile money payout method.
 class PaymentMethodCard extends StatefulWidget {
@@ -51,56 +51,45 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
 
   // ── Gradient / brand per provider ────────────────────────────────────────
 
-  List<Color> get _gradient => switch (widget.method.provider) {
-        PayoutProvider.mtnMomo => [
-            const Color(0xFFFFCC00),
-            const Color(0xFFFF8C00),
-          ],
-        PayoutProvider.telecelCash => [
-            const Color(0xFFE53935),
-            const Color(0xFFB71C1C),
-          ],
-        PayoutProvider.airtelTigo => [
-            const Color(0xFF1565C0),
-            const Color(0xFF0D47A1),
-          ],
-        null => [AppColors.primary, AppColors.primaryDark],
-      };
+  List<Color> get _gradient {
+    final provider = widget.method.provider;
+    if (provider == null) return [AppColors.primary, AppColors.primaryDark];
+    final base = payoutProviderVisual(provider).color;
+    return [base, Color.alphaBlend(Colors.black.withValues(alpha: 0.28), base)];
+  }
 
-  Color get _foreground =>
-      widget.method.provider == PayoutProvider.mtnMomo
-          ? const Color(0xFF1A1A1A)
-          : Colors.white;
+  Color get _foreground {
+    final provider = widget.method.provider;
+    if (provider == null) return Colors.white;
+    // Light brand colors (e.g. MTN yellow) need dark text for contrast.
+    return payoutProviderVisual(provider).color.computeLuminance() > 0.5
+        ? const Color(0xFF1A1A1A)
+        : Colors.white;
+  }
 
   Widget _buildBrandIcon() {
     final provider = widget.method.provider;
-    final asset = switch (provider) {
-      PayoutProvider.mtnMomo => 'assets/icons/mtnbanner.png',
-      PayoutProvider.telecelCash => 'assets/icons/telecel_icon.jpg',
-      PayoutProvider.airtelTigo => 'assets/icons/atbanner.png',
-      null => null,
-    };
-    if (asset != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.asset(asset, height: 32, fit: BoxFit.contain),
+    if (provider == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: _foreground.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          'MoMo',
+          style: TextStyle(
+            color: _foreground,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
       );
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: _foreground.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        provider?.shortName ?? 'MoMo',
-        style: TextStyle(
-          color: _foreground,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.5,
-        ),
-      ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: PayoutProviderAvatar(provider: provider, size: 32),
     );
   }
 

@@ -10,6 +10,7 @@ import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dar
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/parcel_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
 import '../../src/home/repositories/home_repository.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
@@ -76,6 +77,7 @@ Future<void> init() async {
   sl.registerFactory(() => AuthViewmodel(repository: sl(), currentUserProvider: sl()));
   sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => ParcelViewModel(repository: sl()));
+  sl.registerFactory(() => PayoutProvidersViewModel(repository: sl()));
   sl.registerFactoryParam<PaymentViewModel, bool, void>(
     (isVendor, _) => PaymentViewModel(repository: sl(), isVendor: isVendor),
   );

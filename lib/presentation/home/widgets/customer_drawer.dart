@@ -98,7 +98,7 @@ class _CustomerDrawerState extends State<CustomerDrawer>
   }
 
   Animation<double> _staggeredFade(int index) {
-    final start = 0.3 + (index * 0.07);
+    final start = (0.3 + (index * 0.07)).clamp(0.0, 1.0);
     final end = (start + 0.3).clamp(0.0, 1.0);
     return Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -109,7 +109,7 @@ class _CustomerDrawerState extends State<CustomerDrawer>
   }
 
   Animation<Offset> _staggeredSlide(int index) {
-    final start = 0.3 + (index * 0.07);
+    final start = (0.3 + (index * 0.07)).clamp(0.0, 1.0);
     final end = (start + 0.3).clamp(0.0, 1.0);
     return Tween<Offset>(
       begin: const Offset(-0.15, 0),

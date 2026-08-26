@@ -6,11 +6,50 @@ import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import '../model/payment_method.dart';
+import '../model/payout_provider_model.dart';
 
 class PaymentRepository {
   const PaymentRepository({required Dio client}) : _client = client;
 
   final Dio _client;
+
+  // ─── Payout Providers ────────────────────────────────────────────────────
+
+  ResultFuture<List<PayoutProviderModel>> getPayoutProviders({
+    String? type,
+  }) async {
+    const methodName = 'getPayoutProviders';
+    appLogger.d('PaymentRepository.$methodName → initiated');
+    try {
+      final response = await _client.get(
+        ApiEndpoints.payoutProviders,
+        queryParameters: type != null ? {'type': type} : null,
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        final providers = _dataList(response)
+            .map((e) => PayoutProviderModel.fromJson(e as DataMap))
+            .toList();
+        appLogger.i(
+          'PaymentRepository.$methodName → success, loaded ${providers.length} providers',
+        );
+        return Right(providers);
+      }
+
+      appLogger.w('PaymentRepository.$methodName → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('PaymentRepository.$methodName → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'PaymentRepository',
+        methodName: methodName,
+      );
+    }
+  }
 
   // ─── Customer ────────────────────────────────────────────────────────────
 

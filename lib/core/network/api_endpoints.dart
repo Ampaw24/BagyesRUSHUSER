@@ -14,7 +14,7 @@ abstract final class ApiEndpoints {
   // ─── Authentication ────────────────────────────────────────────────────────
   static const String signup = '/register';
   static const String login = '/login';
-  static const String logout = '/auth/logout';
+  static const String logout = '/logout';
   static const String refreshToken = '/auth/refresh-token';
 
   /// Shared phone-verification pair — used by both customer and vendor OTP flows.
@@ -167,6 +167,12 @@ abstract final class ApiEndpoints {
   /// `PATCH /customer/payment-methods/:id/default`
   static String customerPaymentMethodDefault(String id) =>
       '$customerPaymentMethods/$id/default';
+
+  // ─── Payout Providers ──────────────────────────────────────────────────────
+  /// `GET /payout-providers` — list of active bank/mobile-money payout
+  /// providers. Optional `type` query param filters to 'bank' or
+  /// 'mobile_money'. Public endpoint.
+  static const String payoutProviders = '/payout-providers';
 
   // ─── Vendor Wallet ─────────────────────────────────────────────────────────
   static const String vendorWallet = '/vendors/wallet';

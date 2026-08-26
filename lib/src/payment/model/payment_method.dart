@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'payout_provider.dart';
+import 'payout_provider_model.dart';
 
 /// A saved payout/payment method (mobile money account) belonging to
 /// either a customer or a vendor.
@@ -10,6 +10,7 @@ class PaymentMethod extends Equatable {
     required this.phoneNumber,
     required this.isDefault,
     this.label,
+    this.provider,
     this.createdAt,
     this.updatedAt,
   });
@@ -19,14 +20,15 @@ class PaymentMethod extends Equatable {
   final String phoneNumber;
   final bool isDefault;
   final String? label;
+  /// The full provider record, when the API embeds it inline
+  /// (`payout_provider`) alongside `payout_provider_id`.
+  final PayoutProviderModel? provider;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  PayoutProvider? get provider => PayoutProvider.fromId(payoutProviderId);
-
   String get displayTitle {
     if (label != null && label!.trim().isNotEmpty) return label!;
-    return provider?.displayName ?? 'Mobile Money';
+    return provider?.name ?? 'Mobile Money';
   }
 
   /// Masked for display: +233 *** *** 567
@@ -47,6 +49,7 @@ class PaymentMethod extends Equatable {
     String? phoneNumber,
     bool? isDefault,
     String? label,
+    PayoutProviderModel? provider,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -56,6 +59,7 @@ class PaymentMethod extends Equatable {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       isDefault: isDefault ?? this.isDefault,
       label: label ?? this.label,
+      provider: provider ?? this.provider,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -63,8 +67,10 @@ class PaymentMethod extends Equatable {
 
   factory PaymentMethod.fromJson(Map<String, dynamic> json) {
     final providerJson = json['payout_provider'];
-    final providerId = (json['payout_provider_id'] as num?)?.toInt() ??
-        (providerJson is Map ? (providerJson['id'] as num?)?.toInt() : null);
+    final provider = providerJson is Map
+        ? PayoutProviderModel.fromJson(Map<String, dynamic>.from(providerJson))
+        : null;
+    final providerId = (json['payout_provider_id'] as num?)?.toInt() ?? provider?.id;
 
     return PaymentMethod(
       id: (json['id'] ?? '').toString(),
@@ -72,6 +78,7 @@ class PaymentMethod extends Equatable {
       phoneNumber: json['phone_number']?.toString() ?? '',
       isDefault: json['is_default'] as bool? ?? false,
       label: json['label']?.toString(),
+      provider: provider,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
     );
@@ -94,6 +101,7 @@ class PaymentMethod extends Equatable {
         phoneNumber,
         isDefault,
         label,
+        provider,
         createdAt,
         updatedAt,
       ];

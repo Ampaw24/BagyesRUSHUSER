@@ -5,6 +5,7 @@ import 'package:bagyesrushappusernew/src/home/viewmodels/home_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/notification/viewmodel/notification_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/parcel_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/earnings_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/menu_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/orders_viewmodel.dart';
@@ -34,5 +35,6 @@ class ScwProviders {
         ChangeNotifierProvider(create: (_) => sl<HomeViewmodel>()),
         ChangeNotifierProvider(create: (_) => sl<NotificationViewmodel>()),
         ChangeNotifierProvider(create: (_) => sl<ParcelViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<PayoutProvidersViewModel>()),
       ];
 }

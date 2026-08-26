@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
-import '../../../../src/payment/model/payout_provider.dart';
+import '../../../../src/payment/model/payout_provider_model.dart';
 import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
-import '../widgets/mobile_money_provider_selector.dart';
+import '../../../../src/payment/viewmodel/payout_providers_viewmodel.dart';
+import '../../../../src/payment/views/widgets/payout_provider_dropdown.dart';
 
 /// Validates a Ghanaian phone in local (0XXXXXXXXX) or E.164 (+233XXXXXXXXX).
 bool _isValidGhanaPhone(String phone) {
@@ -27,9 +28,17 @@ class _AddMobileMoneyScreenState extends State<AddMobileMoneyScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
   final _labelCtrl = TextEditingController();
-  PayoutProvider? _provider;
+  PayoutProviderModel? _provider;
   bool _isSubmitting = false;
   bool _showErrors = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<PayoutProvidersViewModel>().load(),
+    );
+  }
 
   @override
   void dispose() {
@@ -77,6 +86,7 @@ class _AddMobileMoneyScreenState extends State<AddMobileMoneyScreen> {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final h = MediaQuery.sizeOf(context).height;
+    final providersVm = context.watch<PayoutProvidersViewModel>();
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -107,9 +117,15 @@ class _AddMobileMoneyScreenState extends State<AddMobileMoneyScreen> {
               vertical: h * 0.025,
             ),
             children: [
-              MobileMoneyProviderSelector(
+              PayoutProviderDropdown(
+                label: 'Mobile Money Provider',
+                placeholder: 'Select provider',
+                providers: providersVm.mobileMoneyProviders,
                 selected: _provider,
-                onSelect: (p) => setState(() => _provider = p),
+                isLoading: providersVm.isLoading,
+                error: providersVm.error,
+                onRetry: () => providersVm.load(force: true),
+                onSelected: (p) => setState(() => _provider = p),
               ),
               if (_showErrors && _provider == null)
                 Padding(

@@ -9,6 +9,8 @@ import '../../../../constant/app_theme.dart';
 import '../../../../core/common/app/current_user_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/widgets/custom_dialogs.dart';
+import '../../payment/viewmodel/payout_providers_viewmodel.dart';
+import '../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../viewmodel/vendor_kyc_viewmodel.dart';
 import '../model/vendor_profile.dart';
 
@@ -32,7 +34,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _currentStep = widget.initialStep.clamp(0, 1);
+    _currentStep = widget.initialStep.clamp(0, 2);
     _pageCtrl = PageController(initialPage: _currentStep);
     _progressCtrl = AnimationController(
       vsync: this,
@@ -41,6 +43,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<VendorKycViewModel>().reset();
+      context.read<PayoutProvidersViewModel>().load();
     });
   }
 
@@ -52,13 +55,15 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
   }
 
   Future<void> _nextStep(VendorKycViewModel vm) async {
-    // Submits opening/closing time, operating days, and estimated prep
-    // time via the operations-KYC endpoint before advancing — the loading
-    // overlay covers this via VendorKycStatus.saving.
-    final success = await vm.submitOperationalDetails();
-    if (!success || !mounted) return;
+    if (_currentStep == 0) {
+      // Submits opening/closing time, operating days, and estimated prep
+      // time via the operations-KYC endpoint before advancing — the loading
+      // overlay covers this via VendorKycStatus.saving.
+      final success = await vm.submitOperationalDetails();
+      if (!success || !mounted) return;
+    }
 
-    if (_currentStep < 1) {
+    if (_currentStep < 2) {
       setState(() {
         _currentStep++;
       });
@@ -120,6 +125,9 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
   }
 
   Future<void> _submit(VendorKycViewModel vm) async {
+    final payoutOk = await vm.submitPayoutDetails();
+    if (!payoutOk || !mounted) return;
+
     final profile = context.read<CurrentUserProvider>().user?.profile as VendorProfile?;
     final documents = profile?.documents;
     final missing = <String>[
@@ -202,6 +210,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
                     children: [
                       _buildStep1(w),
                       _buildStep2(w),
+                      _buildStep3(w),
                     ],
                   ),
                 ),
@@ -230,6 +239,8 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
           _buildStepNode(0, 'Store Details', w),
           _buildStepConnector(0, w),
           _buildStepNode(1, 'Documents', w),
+          _buildStepConnector(1, w),
+          _buildStepNode(2, 'Payout', w),
         ],
       ),
     );
@@ -638,6 +649,146 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
     );
   }
 
+  Widget _buildStep3(double w) {
+    final vm = context.watch<VendorKycViewModel>();
+    final kycState = vm.state;
+    final providersVm = context.watch<PayoutProvidersViewModel>();
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(w * 0.05),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Payout Details',
+            style: TextStyle(
+              fontSize: w * 0.04,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+              fontFamily: 'Mukta',
+            ),
+          ),
+          SizedBox(height: w * 0.015),
+          Text(
+            'Add a bank account or mobile money number so we know where to send your earnings. At least one is required to submit your application.',
+            style: TextStyle(
+              fontSize: w * 0.032,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: w * 0.05),
+
+          _payoutSectionLabel('Bank Account', w),
+          SizedBox(height: w * 0.02),
+          PayoutProviderDropdown(
+            label: 'Bank',
+            placeholder: 'Select bank',
+            providers: providersVm.banks,
+            selected: kycState.selectedBank,
+            isLoading: providersVm.isLoading,
+            error: providersVm.error,
+            onRetry: () => providersVm.load(force: true),
+            onSelected: vm.setSelectedBank,
+          ),
+          SizedBox(height: w * 0.035),
+          _payoutTextField(
+            label: 'Account Number',
+            initialValue: kycState.bankAccountNumber,
+            onChanged: vm.setBankAccountNumber,
+            keyboardType: TextInputType.number,
+            w: w,
+          ),
+          SizedBox(height: w * 0.035),
+          _payoutTextField(
+            label: 'Account Name',
+            initialValue: kycState.bankAccountName,
+            onChanged: vm.setBankAccountName,
+            w: w,
+          ),
+          SizedBox(height: w * 0.035),
+          _payoutTextField(
+            label: 'Branch Code (optional)',
+            initialValue: kycState.branchCode,
+            onChanged: vm.setBranchCode,
+            w: w,
+          ),
+
+          SizedBox(height: w * 0.06),
+          _payoutSectionLabel('Mobile Money', w),
+          SizedBox(height: w * 0.02),
+          PayoutProviderDropdown(
+            label: 'Provider',
+            placeholder: 'Select provider',
+            providers: providersVm.mobileMoneyProviders,
+            selected: kycState.selectedMomoProvider,
+            isLoading: providersVm.isLoading,
+            error: providersVm.error,
+            onRetry: () => providersVm.load(force: true),
+            onSelected: vm.setSelectedMomoProvider,
+          ),
+          SizedBox(height: w * 0.035),
+          _payoutTextField(
+            label: 'Mobile Money Number',
+            initialValue: kycState.momoNumber,
+            onChanged: vm.setMomoNumber,
+            keyboardType: TextInputType.phone,
+            w: w,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _payoutSectionLabel(String label, double w) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: w * 0.034,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _payoutTextField({
+    required String label,
+    required String initialValue,
+    required ValueChanged<String> onChanged,
+    required double w,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: w * 0.032,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        SizedBox(height: w * 0.018),
+        TextFormField(
+          initialValue: initialValue,
+          keyboardType: keyboardType,
+          onChanged: onChanged,
+          style: TextStyle(fontSize: w * 0.038),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.032),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(w * 0.03),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildUploadItem({
     required String title,
     required String subtitle,
@@ -810,7 +961,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
             flex: 2,
             child: ElevatedButton(
               onPressed: () {
-                if (_currentStep < 1) {
+                if (_currentStep < 2) {
                   _nextStep(vm);
                 } else {
                   _submit(vm);
@@ -822,7 +973,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(w * 0.03)),
               ),
               child: Text(
-                _currentStep == 1 ? 'Submit Application' : 'Continue',
+                _currentStep == 2 ? 'Submit Application' : 'Continue',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
