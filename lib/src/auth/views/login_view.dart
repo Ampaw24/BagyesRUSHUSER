@@ -579,14 +579,23 @@ class _ForgotPasswordSheetContentState
                         setState(() => _isSubmitting = true);
                         final fullPhone = '+233$phone';
                         try {
-                          await context.read<AuthViewmodel>().sendOtp(
-                                fullPhone,
-                              );
+                          final authViewModel = context.read<AuthViewmodel>();
+                          await authViewModel.sendForgotPasswordOtp(fullPhone);
                           if (!context.mounted) return;
-                          
+
+                          final state = authViewModel.state;
+                          if (state is AuthError) {
+                            CustomDialog.showError(
+                              context: context,
+                              title: 'Error',
+                              subtitle: state.message,
+                            );
+                            return;
+                          }
+
                           final navigator = Navigator.of(context);
                           navigator.pop(); // Close bottom sheet
-                          
+
                           if (!context.mounted) return;
                           context.push(
                             AppRoutes.otp,

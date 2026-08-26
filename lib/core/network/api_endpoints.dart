@@ -23,12 +23,12 @@ abstract final class ApiEndpoints {
   static const String otpSend = phoneSendCode;
   static const String otpVerify = phoneVerify;
 
+  /// `POST /password/forgot` — public endpoint, requests the OTP that starts
+  /// the login screen's "forgot password" flow. Body: `{ phone }`.
   static const String passwordForgot = '/password/forgot';
 
-  /// `POST /password/reset` — consumes the phone-verified session and sets a
-  /// new password. See the "password reset flow" note in the endpoint audit:
-  /// the app proves phone ownership via [phoneSendCode]/[phoneVerify] before
-  /// calling this, rather than calling [passwordForgot] first.
+  /// `POST /password/reset` — consumes the [passwordForgot]-issued,
+  /// [phoneVerify]-confirmed OTP session and sets a new password.
   static const String forgotPassword = '/password/reset';
 
   /// `POST /password/change` — authenticated user changing their own password.

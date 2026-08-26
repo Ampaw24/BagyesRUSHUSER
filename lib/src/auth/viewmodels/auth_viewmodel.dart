@@ -191,6 +191,33 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
+  /// Starts the "forgot password" flow (login screen, signed-out user) by
+  /// requesting an OTP through the dedicated `/password/forgot` endpoint.
+  /// Emits the same [RequestingOTP]/[OTPSent]/[AuthError] states as [sendOtp]
+  /// so OTPView's listener handles both without change — only the endpoint
+  /// hit differs.
+  Future<void> sendForgotPasswordOtp(String phone) async {
+    _pendingPhone = phone.trim();
+    appLogger.d('AuthViewmodel.sendForgotPasswordOtp → initiated');
+    emit(const RequestingOTP());
+
+    final result = await _repository.sendForgotPasswordOtp(phone: phone.trim());
+
+    result.fold(
+      (failure) {
+        appLogger.w(
+          'AuthViewmodel.sendForgotPasswordOtp → error: ${failure.message}',
+        );
+        emit(AuthError.fromFailure(failure));
+      },
+      (response) {
+        _otpResponse = response;
+        appLogger.i('AuthViewmodel.sendForgotPasswordOtp → OTPSent');
+        emit(const OTPSent());
+      },
+    );
+  }
+
   Future<void> verifyOtp({
     required String phone,
     required String otp,

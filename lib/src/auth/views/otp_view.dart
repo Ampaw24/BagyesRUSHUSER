@@ -749,7 +749,12 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
   void _resendOtp() {
     if (!_resendTimer.canResend) return;
-    context.read<AuthViewmodel>().sendOtp(_phone);
+    final vm = context.read<AuthViewmodel>();
+    if (widget.isForgotPassword) {
+      vm.sendForgotPasswordOtp(_phone);
+    } else {
+      vm.sendOtp(_phone);
+    }
   }
 
   // ── State transitions ─────────────────────────────────────────────────────

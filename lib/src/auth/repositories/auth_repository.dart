@@ -357,6 +357,52 @@ class AuthRepository {
     }
   }
 
+  /// `POST /password/forgot` — dedicated, public endpoint for requesting the
+  /// OTP that starts the "forgot password" flow (login screen, signed-out
+  /// user). Distinct from [sendOtp], which hits the generic phone-verification
+  /// endpoint used during signup/KYC.
+  ResultFuture sendForgotPasswordOtp({required String phone}) async {
+    appLogger.d('AuthRepository.sendForgotPasswordOtp → initiated');
+    try {
+      final response = await _client.post(
+        ApiEndpoints.passwordForgot,
+        data: {'phone': phone},
+      );
+
+      appLogger.d(
+        'AuthRepository.sendForgotPasswordOtp → RAW RESPONSE\n'
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        appLogger.i('AuthRepository.sendForgotPasswordOtp → success');
+        return Right(response.data as DataMap);
+      }
+
+      appLogger.w(
+        'AuthRepository.sendForgotPasswordOtp → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'AuthRepository.sendForgotPasswordOtp → DioException\n'
+        '  type   : ${e.type}\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'sendForgotPasswordOtp',
+      );
+    }
+  }
+
   ResultFuture<void> verifyOtp({
     required String phone,
     required String otp,
