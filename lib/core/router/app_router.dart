@@ -162,8 +162,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.resetPassword,
       builder: (context, state) {
-        final phone = state.extra as String? ?? '';
-        return ResetPasswordView(phone: phone);
+        final extra = state.extra;
+        final phone = extra is Map<String, dynamic> ? extra['phone'] as String? ?? '' : '';
+        final code = extra is Map<String, dynamic> ? extra['code'] as String? ?? '' : '';
+        return ResetPasswordView(phone: phone, code: code);
       },
     ),
 

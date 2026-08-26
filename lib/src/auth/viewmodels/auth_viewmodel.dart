@@ -456,6 +456,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
   Future<void> resetPassword({
     required String phone,
+    required String code,
     required String password,
     required String confirmPassword,
   }) async {
@@ -464,6 +465,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
     final result = await _repository.resetPassword(
       phone: phone,
+      code: code,
       password: password,
       confirmPassword: confirmPassword,
     );

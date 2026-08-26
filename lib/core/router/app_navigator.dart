@@ -19,8 +19,8 @@ abstract final class AppNavigator {
   static void toWalkthrough(BuildContext context) =>
       context.push(AppRoutes.walkthrough);
   static void toOtp(BuildContext context) => context.push(AppRoutes.otp);
-  static void toResetPassword(BuildContext context, String phone) =>
-      context.push(AppRoutes.resetPassword, extra: phone);
+  static void toResetPassword(BuildContext context, String phone, String code) =>
+      context.push(AppRoutes.resetPassword, extra: {'phone': phone, 'code': code});
 
   // ── Main ──
   static void toHome(BuildContext context) => context.go(AppRoutes.home);

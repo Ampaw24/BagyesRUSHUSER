@@ -763,6 +763,7 @@ class AuthRepository {
 
   ResultFuture<void> resetPassword({
     required String phone,
+    required String code,
     required String password,
     required String confirmPassword,
   }) async {
@@ -772,8 +773,9 @@ class AuthRepository {
         ApiEndpoints.forgotPassword,
         data: {
           "phone": phone,
-          "new_password": password,
-          "confirm_new_password": confirmPassword,
+          "code": code,
+          "password": password,
+          "password_confirmation": confirmPassword,
         },
       );
 
