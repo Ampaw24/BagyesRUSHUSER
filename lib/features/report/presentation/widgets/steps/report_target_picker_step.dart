@@ -10,12 +10,14 @@ class ReportTargetPickerStep extends StatefulWidget {
   final String heading;
   final List<ReportableTarget> targets;
   final ValueChanged<ReportableTarget> onSelect;
+  final bool isLoading;
 
   const ReportTargetPickerStep({
     super.key,
     required this.heading,
     required this.targets,
     required this.onSelect,
+    this.isLoading = false,
   });
 
   @override
@@ -38,8 +40,8 @@ class _ReportTargetPickerStepState extends State<ReportTargetPickerStep> {
     final filtered = _query.isEmpty
         ? widget.targets
         : widget.targets
-            .where((t) => t.name.toLowerCase().contains(_query.toLowerCase()))
-            .toList();
+              .where((t) => t.name.toLowerCase().contains(_query.toLowerCase()))
+              .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,15 +79,14 @@ class _ReportTargetPickerStepState extends State<ReportTargetPickerStep> {
           ),
         SizedBox(height: w * 0.03),
         Expanded(
-          child: filtered.isEmpty
+          child: widget.isLoading && filtered.isEmpty
+              ? Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : filtered.isEmpty
               ? _EmptyState(w: w)
               : ListView.separated(
-                  padding: EdgeInsets.fromLTRB(
-                    w * 0.05,
-                    0,
-                    w * 0.05,
-                    w * 0.06,
-                  ),
+                  padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.06),
                   itemCount: filtered.length,
                   separatorBuilder: (_, _) => SizedBox(height: w * 0.03),
                   itemBuilder: (context, i) => ReportTargetTile(
@@ -132,7 +133,10 @@ class _EmptyState extends StatelessWidget {
             Text(
               "You'll be able to pick from your recent orders here.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: w * 0.032,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),

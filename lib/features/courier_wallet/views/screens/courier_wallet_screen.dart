@@ -3,17 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../vendor_wallet/models/wallet_model.dart';
-import '../../../vendor_wallet/models/transaction_model.dart';
 import '../../../vendor_wallet/providers/wallet_providers.dart';
 import '../../../vendor_wallet/views/widgets/transaction_tile.dart';
 import '../../../vendor_wallet/views/screens/withdraw_screen.dart';
 import '../../../vendor_wallet/views/screens/transaction_history_screen.dart';
 
-/// Courier wallet screen.
+/// Customer transactions screen.
 ///
-/// A courier's wallet only holds system-issued refund credits — funds returned
-/// by the platform when there are issues with an order or courier activity.
-/// Withdrawal is only available when there is a positive available balance.
+/// Shows the account's full transaction activity — order payments, refunds,
+/// and any other wallet credits — plus the current balance. Withdrawal is
+/// only available when there is a positive available balance.
 class CourierWalletScreen extends ConsumerStatefulWidget {
   const CourierWalletScreen({super.key});
 
@@ -78,7 +77,7 @@ class _CourierWalletScreenState extends ConsumerState<CourierWalletScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(
-        title: const Text('Wallet'),
+        title: const Text('Transactions'),
         actions: [
           IconButton(
             icon: const Icon(Icons.history_rounded),
@@ -104,12 +103,8 @@ class _CourierWalletScreenState extends ConsumerState<CourierWalletScreen> {
       );
     }
 
-    // Filter to only refund-related transactions for couriers
-    final courierTxs = state.transactions
-        .where((t) =>
-            t.type == TransactionType.refund ||
-            t.type == TransactionType.withdrawal)
-        .toList();
+    // Show the full transaction activity for this account.
+    final transactions = state.transactions;
 
     return RefreshIndicator(
       color: Theme.of(context).colorScheme.primary,
@@ -129,7 +124,7 @@ class _CourierWalletScreenState extends ConsumerState<CourierWalletScreen> {
           const SizedBox(height: 16),
 
           // ── Info banner ───────────────────────────────────────────────────
-          _RefundInfoBanner(),
+          _WalletInfoBanner(),
 
           const SizedBox(height: 16),
 
@@ -142,42 +137,38 @@ class _CourierWalletScreenState extends ConsumerState<CourierWalletScreen> {
           if (state.wallet.pendingBalance > 0)
             _PendingBanner(amount: state.wallet.pendingFormatted),
 
-          // ── Recent transactions ────────────────────────────────────────────
+          // ── All transactions ─────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Recent Transactions',
+                  'All Transactions',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                if (courierTxs.length > 5)
-                  GestureDetector(
-                    onTap: _openHistory,
-                    child: Text(
-                      'View all',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
+                Text(
+                  '${transactions.length} total',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textHint,
+                    fontWeight: FontWeight.w500,
                   ),
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 10),
 
-          if (courierTxs.isEmpty)
+          if (transactions.isEmpty)
             const _EmptyTransactions()
           else
-            ...courierTxs.take(5).map(
+            ...transactions.map(
                   (tx) => TransactionTile(
                     transaction: tx,
                     currency: state.wallet.currency,
@@ -307,7 +298,7 @@ class _CourierBalanceCardState extends State<_CourierBalanceCard>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Courier Wallet',
+                            'Credit Balance',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.75),
                               fontSize: w * 0.033,
@@ -485,9 +476,9 @@ class _WithdrawRefundButtonState extends State<_WithdrawRefundButton>
   }
 }
 
-// ── Refund info banner ────────────────────────────────────────────────────────
+// ── Wallet info banner ────────────────────────────────────────────────────────
 
-class _RefundInfoBanner extends StatelessWidget {
+class _WalletInfoBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -506,9 +497,9 @@ class _RefundInfoBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Your wallet balance consists of refund credits issued by the system. '
-              'These are applied when there are issues with your orders or activity. '
-              'You can withdraw refund credits at any time.',
+              'This is your transaction activity — order payments, refunds, and any '
+              'other credits to your account. You can withdraw your available balance '
+              'to a saved payment method at any time.',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -522,7 +513,7 @@ class _RefundInfoBanner extends StatelessWidget {
   }
 }
 
-// ── Courier stat row ──────────────────────────────────────────────────────────
+// ── Wallet stat row ────────────────────────────────────────────────────────────
 
 class _CourierStatRow extends StatelessWidget {
   final WalletModel wallet;
@@ -538,7 +529,7 @@ class _CourierStatRow extends StatelessWidget {
             child: _StatTile(
               icon: Icons.undo_rounded,
               iconColor: AppColors.success,
-              label: 'Total Refunds',
+              label: 'Total Credits',
               value: wallet.earningsFormatted,
             ),
           ),
@@ -694,7 +685,7 @@ class _EmptyTransactions extends StatelessWidget {
             ),
             SizedBox(height: 6),
             Text(
-              'Refunds from the system will appear here',
+              'Your order payments, refunds, and other activity will appear here',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textHint,

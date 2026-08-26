@@ -25,7 +25,8 @@ import 'package:bagyesrushappusernew/features/report/presentation/widgets/steps/
 import 'package:bagyesrushappusernew/features/report/presentation/widgets/steps/report_reason_step.dart';
 import 'package:bagyesrushappusernew/features/report/presentation/widgets/steps/report_target_picker_step.dart';
 import 'package:bagyesrushappusernew/features/report/presentation/widgets/steps/report_target_type_step.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/vendor_order.dart' as vendor_model;
+import 'package:bagyesrushappusernew/src/vendor/model/vendor_order.dart'
+    as vendor_model;
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/orders_viewmodel.dart'
     as vendor_orders;
 
@@ -46,7 +47,9 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(reportFormProvider.notifier).start(
+      ref
+          .read(reportFormProvider.notifier)
+          .start(
             role: widget.args.role,
             targetType: widget.args.targetType,
             orderId: widget.args.orderId,
@@ -86,13 +89,15 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
     final list = byRestaurant.values.toList()
       ..sort((a, b) => b.placedAt.compareTo(a.placedAt));
     return list
-        .map((o) => ReportableTarget(
-              targetId: o.restaurantId,
-              name: o.restaurantName,
-              imageUrl: o.restaurantImageUrl,
-              orderId: o.id,
-              subtitle: 'Last order: ${_formatDate(o.placedAt)}',
-            ))
+        .map(
+          (o) => ReportableTarget(
+            targetId: o.restaurantId,
+            name: o.restaurantName,
+            imageUrl: o.restaurantImageUrl,
+            orderId: o.id,
+            subtitle: 'Last order: ${_formatDate(o.placedAt)}',
+          ),
+        )
         .toList();
   }
 
@@ -110,17 +115,20 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
     final list = byRider.values.toList()
       ..sort((a, b) => b.placedAt.compareTo(a.placedAt));
     return list
-        .map((o) => ReportableTarget(
-              name: o.driverName!,
-              phone: o.driverPhone,
-              orderId: o.id,
-              subtitle: 'Last delivery: ${_formatDate(o.placedAt)}',
-            ))
+        .map(
+          (o) => ReportableTarget(
+            name: o.driverName!,
+            phone: o.driverPhone,
+            orderId: o.id,
+            subtitle: 'Last delivery: ${_formatDate(o.placedAt)}',
+          ),
+        )
         .toList();
   }
 
   List<ReportableTarget> _vendorCustomerTargets(
-      List<vendor_model.VendorOrder> orders) {
+    List<vendor_model.VendorOrder> orders,
+  ) {
     final byCustomer = <String, vendor_model.VendorOrder>{};
     for (final o in orders) {
       if (o.customerName.isEmpty) continue;
@@ -134,17 +142,20 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
       }
     }
     return byCustomer.values
-        .map((o) => ReportableTarget(
-              name: o.customerName,
-              phone: o.customerPhone,
-              orderId: o.id,
-              subtitle: o.timeAgo,
-            ))
+        .map(
+          (o) => ReportableTarget(
+            name: o.customerName,
+            phone: o.customerPhone,
+            orderId: o.id,
+            subtitle: o.timeAgo,
+          ),
+        )
         .toList();
   }
 
   List<ReportableTarget> _vendorRiderTargets(
-      List<vendor_model.VendorOrder> orders) {
+    List<vendor_model.VendorOrder> orders,
+  ) {
     final byRider = <String, vendor_model.VendorOrder>{};
     for (final o in orders) {
       final name = o.driverName;
@@ -159,21 +170,23 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
       }
     }
     return byRider.values
-        .map((o) => ReportableTarget(
-              name: o.driverName!,
-              phone: o.driverPhone,
-              orderId: o.id,
-              subtitle: o.timeAgo,
-            ))
+        .map(
+          (o) => ReportableTarget(
+            name: o.driverName!,
+            phone: o.driverPhone,
+            orderId: o.id,
+            subtitle: o.timeAgo,
+          ),
+        )
         .toList();
   }
 
   String _targetPickerHeading(ReportTargetType? type) => switch (type) {
-        ReportTargetType.vendor => 'Which restaurant?',
-        ReportTargetType.rider => 'Which delivery rider?',
-        ReportTargetType.customer => 'Which customer?',
-        _ => 'Who are you reporting?',
-      };
+    ReportTargetType.vendor => 'Which restaurant?',
+    ReportTargetType.rider => 'Which delivery rider?',
+    ReportTargetType.customer => 'Which customer?',
+    _ => 'Who are you reporting?',
+  };
 
   void _handleSubmitOutcome(ReportFormState state) {
     if (state.submitStatus == ReportSubmitStatus.success &&
@@ -192,7 +205,8 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
       CustomDialog.showError(
         context: context,
         title: 'Submission failed',
-        subtitle: state.errorMessage ?? 'Something went wrong. Please try again.',
+        subtitle:
+            state.errorMessage ?? 'Something went wrong. Please try again.',
       );
     }
   }
@@ -211,24 +225,32 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
 
     List<ReportableTarget> targets = const [];
     bool riderAvailable = false;
+    bool targetsLoading = false;
 
     if (widget.args.role == ReportRole.customer) {
       final ordersState = ref.watch(consumer_orders.ordersProvider);
+      targetsLoading = ordersState is consumer_orders.OrdersLoading;
       final orders = ordersState is consumer_orders.OrdersLoaded
           ? ordersState.orders
           : const <ConsumerOrder>[];
-      riderAvailable =
-          orders.any((o) => o.driverName != null && o.driverName!.isNotEmpty);
+      riderAvailable = orders.any(
+        (o) => o.driverName != null && o.driverName!.isNotEmpty,
+      );
       if (state.targetType == ReportTargetType.vendor) {
         targets = _consumerVendorTargets(orders);
       } else if (state.targetType == ReportTargetType.rider) {
         targets = _consumerRiderTargets(orders);
       }
     } else {
-      final vendorOrdersState = context.watch<vendor_orders.OrdersViewModel>().state;
+      final vendorOrdersState = context
+          .watch<vendor_orders.OrdersViewModel>()
+          .state;
+      targetsLoading =
+          vendorOrdersState.status == vendor_orders.OrdersStatus.loading;
       final orders = vendorOrdersState.orders;
-      riderAvailable =
-          orders.any((o) => o.driverName != null && o.driverName!.isNotEmpty);
+      riderAvailable = orders.any(
+        (o) => o.driverName != null && o.driverName!.isNotEmpty,
+      );
       if (state.targetType == ReportTargetType.customer) {
         targets = _vendorCustomerTargets(orders);
       } else if (state.targetType == ReportTargetType.rider) {
@@ -278,43 +300,45 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
                     key: ValueKey(state.currentStep),
                     child: switch (state.currentStep) {
                       ReportWizardStep.targetType => ReportTargetTypeStep(
-                          role: state.role,
-                          riderAvailable: riderAvailable,
-                          onSelect: notifier.selectTargetType,
-                        ),
+                        role: state.role,
+                        riderAvailable: riderAvailable,
+                        onSelect: notifier.selectTargetType,
+                      ),
                       ReportWizardStep.target => ReportTargetPickerStep(
-                          heading: _targetPickerHeading(state.targetType),
-                          targets: targets,
-                          onSelect: (t) => notifier.selectTarget(
-                            orderId: t.orderId,
-                            targetId: t.targetId,
-                            targetName: t.name,
-                            targetImageUrl: t.imageUrl,
-                            targetPhone: t.phone,
-                          ),
+                        heading: _targetPickerHeading(state.targetType),
+                        targets: targets,
+                        isLoading: targetsLoading,
+                        onSelect: (t) => notifier.selectTarget(
+                          orderId: t.orderId,
+                          targetId: t.targetId,
+                          targetName: t.name,
+                          targetImageUrl: t.imageUrl,
+                          targetPhone: t.phone,
                         ),
+                      ),
                       ReportWizardStep.reason => ReportReasonStep(
-                          reasons: reasons,
-                          selectedCode: state.reasonCode,
-                          onSelect: (r) => notifier.selectReason(
-                            code: r.code,
-                            label: r.label,
-                            isUrgent: r.isUrgent,
-                          ),
+                        reasons: reasons,
+                        selectedCode: state.reasonCode,
+                        onSelect: (r) => notifier.selectReason(
+                          code: r.code,
+                          label: r.label,
+                          isUrgent: r.isUrgent,
                         ),
+                      ),
                       ReportWizardStep.details => ReportDetailsStep(
-                          targetName: state.targetName ?? '',
-                          targetSubtitle: state.orderId != null
-                              ? 'Order #${state.orderId}'
-                              : 'General report',
-                          targetImageUrl: state.targetImageUrl,
-                          description: state.description,
-                          onDescriptionChanged: notifier.updateDescription,
-                          photos: state.photos,
-                          isPickingPhotos: _isPickingPhotos,
-                          onAddPhotos: () => _pickPhotos(notifier, state.photos.length),
-                          onRemovePhoto: notifier.removePhoto,
-                        ),
+                        targetName: state.targetName ?? '',
+                        targetSubtitle: state.orderId != null
+                            ? 'Order #${state.orderId}'
+                            : 'General report',
+                        targetImageUrl: state.targetImageUrl,
+                        description: state.description,
+                        onDescriptionChanged: notifier.updateDescription,
+                        photos: state.photos,
+                        isPickingPhotos: _isPickingPhotos,
+                        onAddPhotos: () =>
+                            _pickPhotos(notifier, state.photos.length),
+                        onRemovePhoto: notifier.removePhoto,
+                      ),
                     },
                   ),
                 ),
@@ -327,7 +351,8 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
                   enabled: state.currentStep == ReportWizardStep.reason
                       ? state.hasReason
                       : state.canSubmit,
-                  isSubmitting: state.submitStatus == ReportSubmitStatus.submitting,
+                  isSubmitting:
+                      state.submitStatus == ReportSubmitStatus.submitting,
                   onTap: () {
                     if (state.currentStep == ReportWizardStep.reason) {
                       notifier.goNext();
@@ -343,7 +368,10 @@ class _ReportFlowViewState extends ConsumerState<ReportFlowView> {
     );
   }
 
-  Future<void> _pickPhotos(ReportFormViewModel notifier, int currentPhotoCount) async {
+  Future<void> _pickPhotos(
+    ReportFormViewModel notifier,
+    int currentPhotoCount,
+  ) async {
     final remaining = 5 - currentPhotoCount;
     if (remaining <= 0 || _isPickingPhotos) return;
 

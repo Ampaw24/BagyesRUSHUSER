@@ -2,16 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../constant/app_theme.dart';
-import '../../../../core/di/service_locator.dart';
-import '../../../../core/widgets/custom_dialogs.dart';
-import '../../../../src/payment/model/payment_method.dart';
-import '../../../../src/payment/viewmodel/payment_state.dart';
-import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
+import '../../../../../constant/app_theme.dart';
+import '../../../../../core/di/service_locator.dart';
+import '../../../../../core/widgets/custom_dialogs.dart';
+import '../../../../../src/payment/model/payment_method.dart';
+import '../../../../../src/payment/viewmodel/payment_state.dart';
+import '../../../../../src/payment/viewmodel/payment_viewmodel.dart';
 import '../widgets/payment_method_card.dart';
-import 'add_mobile_money_screen.dart';
+import 'add_payment_method_screen.dart';
 
-/// Main vendor payment methods management screen.
+/// Customer-facing payment methods management screen.
 class PaymentMethodsScreen extends StatelessWidget {
   const PaymentMethodsScreen({super.key});
 
@@ -19,7 +19,7 @@ class PaymentMethodsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<PaymentViewModel>(
       create: (_) {
-        final vm = sl<PaymentViewModel>(param1: true);
+        final vm = sl<PaymentViewModel>(param1: false);
         vm.loadPaymentMethods();
         return vm;
       },
@@ -58,7 +58,7 @@ class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
       PageRouteBuilder(
         pageBuilder: (_, anim, _) => ChangeNotifierProvider<PaymentViewModel>.value(
           value: vm,
-          child: const AddMobileMoneyScreen(),
+          child: const AddPaymentMethodScreen(),
         ),
         transitionsBuilder: (_, anim, _, child) => SlideTransition(
           position: Tween<Offset>(
@@ -252,7 +252,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Add a payment method to start receiving payouts from your orders.',
+              'Add a mobile money account to pay for orders faster.',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,

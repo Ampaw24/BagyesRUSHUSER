@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../../../constant/app_theme.dart';
-import '../../../../src/payment/model/payout_provider.dart';
-import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
-import '../widgets/mobile_money_provider_selector.dart';
+import '../../../../../constant/app_theme.dart';
+import '../../../../../src/payment/model/payout_provider.dart';
+import '../../../../../src/payment/viewmodel/payment_viewmodel.dart';
+import '../widgets/payout_provider_selector.dart';
 
 /// Validates a Ghanaian phone in local (0XXXXXXXXX) or E.164 (+233XXXXXXXXX).
 bool _isValidGhanaPhone(String phone) {
@@ -15,15 +15,15 @@ bool _isValidGhanaPhone(String phone) {
   return false;
 }
 
-/// Screen for adding a new mobile money payout method.
-class AddMobileMoneyScreen extends StatefulWidget {
-  const AddMobileMoneyScreen({super.key});
+/// Screen for adding a new customer payout/payment method.
+class AddPaymentMethodScreen extends StatefulWidget {
+  const AddPaymentMethodScreen({super.key});
 
   @override
-  State<AddMobileMoneyScreen> createState() => _AddMobileMoneyScreenState();
+  State<AddPaymentMethodScreen> createState() => _AddPaymentMethodScreenState();
 }
 
-class _AddMobileMoneyScreenState extends State<AddMobileMoneyScreen> {
+class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
   final _labelCtrl = TextEditingController();
@@ -107,7 +107,7 @@ class _AddMobileMoneyScreenState extends State<AddMobileMoneyScreen> {
               vertical: h * 0.025,
             ),
             children: [
-              MobileMoneyProviderSelector(
+              PayoutProviderSelector(
                 selected: _provider,
                 onSelect: (p) => setState(() => _provider = p),
               ),

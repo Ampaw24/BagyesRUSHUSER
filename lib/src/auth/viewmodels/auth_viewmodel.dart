@@ -453,6 +453,30 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
+  /// Uploads a new profile picture for the current customer.
+  ///
+  /// Emits [AvatarUploading] while the request is in flight, updates
+  /// [CurrentUserProvider] with the returned user on success (so the new
+  /// avatar shows up everywhere it's displayed), then emits [AvatarUploaded].
+  Future<void> uploadAvatar(String filePath) async {
+    appLogger.d('AuthViewmodel.uploadAvatar → path=$filePath');
+    emit(const AvatarUploading());
+
+    final result = await _repository.uploadAvatar(filePath);
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.uploadAvatar → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (user) {
+        appLogger.i('AuthViewmodel.uploadAvatar → success id=${user.id}');
+        _currentUserProvider.setUser(user);
+        emit(AvatarUploaded(user));
+      },
+    );
+  }
+
   Future<void> logout() async {
     appLogger.d('AuthViewmodel.logout');
     emit(const AuthLoading());

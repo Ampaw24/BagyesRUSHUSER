@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
 import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
+import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 
 sealed class AuthState extends Equatable {
   const AuthState();
@@ -75,4 +76,17 @@ final class NetworkError extends AuthError {
 
 final class PasswordResetSuccess extends AuthState {
   const PasswordResetSuccess();
+}
+
+final class AvatarUploading extends AuthLoading {
+  const AvatarUploading();
+}
+
+final class AvatarUploaded extends AuthState {
+  const AvatarUploaded(this.user);
+
+  final User user;
+
+  @override
+  List<Object> get props => [user];
 }

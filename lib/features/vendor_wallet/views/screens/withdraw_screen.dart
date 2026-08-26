@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as provider_pkg;
 import '../../../../constant/app_theme.dart';
-import '../../../vendor_payment_methods/models/payment_method_model.dart';
-import '../../../vendor_payment_methods/providers/payment_providers.dart';
-import '../../../vendor_payment_methods/viewmodels/payment_methods_viewmodel.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../src/payment/model/payment_method.dart';
+import '../../../../src/payment/viewmodel/payment_state.dart';
+import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
 import '../../models/withdrawal_model.dart';
 import '../../providers/wallet_providers.dart';
 import 'withdrawal_success_screen.dart';
@@ -27,15 +29,6 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
   bool _showAmountError = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Ensure payment methods are loaded
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(paymentMethodsProvider.notifier).load();
-    });
-  }
-
-  @override
   void dispose() {
     _amountCtrl.dispose();
     _amountFocus.dispose();
@@ -44,7 +37,7 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
 
   // ── Step navigation ───────────────────────────────────────────────────────
 
-  void _onMethodSelected(PaymentMethodModel method) {
+  void _onMethodSelected(PaymentMethod method) {
     ref.read(withdrawalProvider.notifier).selectMethod(
           method.id,
           method.displayTitle,
@@ -92,50 +85,57 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
     final withdrawState = ref.watch(withdrawalProvider);
     final walletState   = ref.watch(walletProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      appBar: AppBar(
-        title: Text(_step == 0 ? 'Select Payment Method' : 'Withdraw Funds'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () {
-            if (_step == 1) {
-              setState(() => _step = 0);
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-      ),
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 280),
-          transitionBuilder: (child, anim) => SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.08, 0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-            child: FadeTransition(opacity: anim, child: child),
+    return provider_pkg.ChangeNotifierProvider<PaymentViewModel>(
+      create: (_) {
+        final vm = sl<PaymentViewModel>(param1: true);
+        vm.loadPaymentMethods();
+        return vm;
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.scaffold,
+        appBar: AppBar(
+          title: Text(_step == 0 ? 'Select Payment Method' : 'Withdraw Funds'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () {
+              if (_step == 1) {
+                setState(() => _step = 0);
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
           ),
-          child: _step == 0
-              ? _MethodStep(
-                  key: const ValueKey(0),
-                  onSelect: _onMethodSelected,
-                )
-              : _AmountStep(
-                  key: const ValueKey(1),
-                  amountCtrl: _amountCtrl,
-                  amountFocus: _amountFocus,
-                  showError: _showAmountError,
-                  withdrawState: withdrawState,
-                  availableBalance: walletState.wallet.availableBalance,
-                  currency: walletState.wallet.currency,
-                  onAmountChanged: (v) {
-                    final parsed = double.tryParse(v) ?? 0;
-                    ref.read(withdrawalProvider.notifier).setAmount(parsed);
-                  },
-                  onSubmit: _submit,
-                ),
+        ),
+        body: SafeArea(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            transitionBuilder: (child, anim) => SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.08, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+            child: _step == 0
+                ? _MethodStep(
+                    key: const ValueKey(0),
+                    onSelect: _onMethodSelected,
+                  )
+                : _AmountStep(
+                    key: const ValueKey(1),
+                    amountCtrl: _amountCtrl,
+                    amountFocus: _amountFocus,
+                    showError: _showAmountError,
+                    withdrawState: withdrawState,
+                    availableBalance: walletState.wallet.availableBalance,
+                    currency: walletState.wallet.currency,
+                    onAmountChanged: (v) {
+                      final parsed = double.tryParse(v) ?? 0;
+                      ref.read(withdrawalProvider.notifier).setAmount(parsed);
+                    },
+                    onSubmit: _submit,
+                  ),
+          ),
         ),
       ),
     );
@@ -144,22 +144,23 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
 
 // ── Step 1: Select payment method ─────────────────────────────────────────────
 
-class _MethodStep extends ConsumerWidget {
-  final ValueChanged<PaymentMethodModel> onSelect;
+class _MethodStep extends StatelessWidget {
+  final ValueChanged<PaymentMethod> onSelect;
   const _MethodStep({super.key, required this.onSelect});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pmState = ref.watch(paymentMethodsProvider);
-    final verified = pmState.paymentMethods
-        .where((m) => m.isVerified && m.isEnabled)
-        .toList();
+  Widget build(BuildContext context) {
+    final state = provider_pkg.Provider.of<PaymentViewModel>(context).state;
 
-    if (pmState.status == PaymentMethodsStatus.loading) {
+    if (state is PaymentLoading || state is PaymentInitial) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (verified.isEmpty) {
+    final methods = state is PaymentMethodsLoaded
+        ? state.methods
+        : const <PaymentMethod>[];
+
+    if (methods.isEmpty) {
       return _NoMethodsPlaceholder();
     }
 
@@ -175,14 +176,14 @@ class _MethodStep extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        ...verified.map((m) => _MethodTile(method: m, onTap: () => onSelect(m))),
+        ...methods.map((m) => _MethodTile(method: m, onTap: () => onSelect(m))),
       ],
     );
   }
 }
 
 class _MethodTile extends StatefulWidget {
-  final PaymentMethodModel method;
+  final PaymentMethod method;
   final VoidCallback onTap;
   const _MethodTile({required this.method, required this.onTap});
 
@@ -249,9 +250,7 @@ class _MethodTileState extends State<_MethodTile>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  widget.method.type == PaymentMethodType.mobileMoney
-                      ? Icons.phone_android_rounded
-                      : Icons.credit_card_rounded,
+                  Icons.phone_android_rounded,
                   color: primary,
                   size: 22,
                 ),
@@ -271,7 +270,7 @@ class _MethodTileState extends State<_MethodTile>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      widget.method.displaySubtitle,
+                      widget.method.maskedPhone,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,

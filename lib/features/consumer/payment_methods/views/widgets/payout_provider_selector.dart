@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../../constant/app_theme.dart';
-import '../../../../src/payment/model/payout_provider.dart';
+import '../../../../../constant/app_theme.dart';
+import '../../../../../src/payment/model/payout_provider.dart';
 
 /// Animated provider selection grid with brand colors and press feedback.
-class MobileMoneyProviderSelector extends StatelessWidget {
+class PayoutProviderSelector extends StatelessWidget {
   final PayoutProvider? selected;
   final ValueChanged<PayoutProvider> onSelect;
 
-  const MobileMoneyProviderSelector({
+  const PayoutProviderSelector({
     super.key,
     required this.selected,
     required this.onSelect,
@@ -88,8 +88,6 @@ class _ProviderTileState extends State<_ProviderTile>
     _ctrl.dispose();
     super.dispose();
   }
-
-  // ── Brand asset & colour ─────────────────────────────────────────────────
 
   Color get _brandColor => switch (widget.provider) {
         PayoutProvider.mtnMomo => const Color(0xFFFFCC00),

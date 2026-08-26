@@ -6,6 +6,10 @@ import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart'
 import 'package:bagyesrushappusernew/src/orders/repositories/orders_repository.dart';
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
+import 'package:bagyesrushappusernew/src/parcel/viewmodel/parcel_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
 import '../../src/home/repositories/home_repository.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
@@ -23,10 +27,6 @@ import '../../src/vendor/viewmodel/menu_viewmodel.dart';
 import '../../src/vendor/viewmodel/earnings_viewmodel.dart';
 import '../../src/vendor/viewmodel/settings_viewmodel.dart';
 import '../../src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
-import '../../features/vendor_payment_methods/services/payment_api_service.dart';
-import '../../features/vendor_payment_methods/services/otp_service.dart';
-import '../../features/vendor_payment_methods/repositories/payment_repository.dart';
-import '../../features/vendor_payment_methods/repositories/payment_repository_impl.dart';
 import '../../features/vendors/repositories/vendor_repository.dart' as vendor_feature;
 import '../../features/vendors/viewmodels/vendor_viewmodel.dart';
 import '../../features/vendor_wallet/services/wallet_api_service.dart';
@@ -55,12 +55,6 @@ Future<void> init() async {
     () => VendorDashboardRepositoryImpl(sl()),
   );
 
-  sl.registerLazySingleton(() => PaymentApiService());
-  sl.registerLazySingleton(() => OtpService(sl()));
-  sl.registerLazySingleton<PaymentRepository>(
-    () => PaymentRepositoryImpl(sl(), sl()),
-  );
-
   sl.registerLazySingleton(() => WalletApiService());
   sl.registerLazySingleton<WalletRepository>(
     () => WalletRepositoryImpl(sl()),
@@ -73,12 +67,18 @@ Future<void> init() async {
   // ── Validators ──────────────────────────────────────────────────────────────
   sl.registerLazySingleton(() => AuthRepository(client: sl(), cacheHelper: sl()));
   sl.registerLazySingleton(() => OrdersRepository(client: sl()));
+  sl.registerLazySingleton(() => ParcelRepository(client: sl()));
+  sl.registerLazySingleton(() => PaymentRepository(client: sl()));
   sl.registerLazySingleton(() => StepValidator());
 
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
   sl.registerFactory(() => AuthViewmodel(repository: sl(), currentUserProvider: sl()));
   sl.registerFactory(() => OrderViewModel(repository: sl()));
+  sl.registerFactory(() => ParcelViewModel(repository: sl()));
+  sl.registerFactoryParam<PaymentViewModel, bool, void>(
+    (isVendor, _) => PaymentViewModel(repository: sl(), isVendor: isVendor),
+  );
   sl.registerFactory(() => OnboardingViewModel(sl()));
   sl.registerFactory(() => HomeViewmodel(repository: sl()));
   sl.registerFactory(() => NotificationViewmodel(repository: sl()));

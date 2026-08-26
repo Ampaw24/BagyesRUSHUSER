@@ -11,17 +11,18 @@ class CustomerDrawer extends StatefulWidget {
   final String userName;
   final String userEmail;
   final String initials;
+  final String? avatarUrl;
   final bool isVerified;
   final VoidCallback onClose;
   final VoidCallback? onProfile;
   final VoidCallback? onOrders;
   final VoidCallback? onNotifications;
-  final VoidCallback? onWallet;
+  final VoidCallback? onTransactions;
   final VoidCallback? onPaymentMethods;
   final VoidCallback? onInviteFriends;
   final VoidCallback? onPrivacyPolicy;
   final VoidCallback? onHelpSupport;
-  final VoidCallback? onResetPassword;
+  final VoidCallback? onReportProblem;
   final VoidCallback? onDeleteAccount;
   final VoidCallback? onLogout;
 
@@ -30,17 +31,18 @@ class CustomerDrawer extends StatefulWidget {
     required this.userName,
     required this.userEmail,
     required this.initials,
+    this.avatarUrl,
     this.isVerified = false,
     required this.onClose,
     this.onProfile,
     this.onOrders,
     this.onNotifications,
-    this.onWallet,
+    this.onTransactions,
     this.onPaymentMethods,
     this.onInviteFriends,
     this.onPrivacyPolicy,
     this.onHelpSupport,
-    this.onResetPassword,
+    this.onReportProblem,
     this.onDeleteAccount,
     this.onLogout,
   });
@@ -183,6 +185,7 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                   userName: widget.userName,
                   userEmail: widget.userEmail,
                   initials: widget.initials,
+                  avatarUrl: widget.avatarUrl,
                   isVerified: widget.isVerified,
                   onClose: _close,
                   animation: _controller,
@@ -223,9 +226,9 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 badgeCount: unreadNotifications,
                               ),
                               DrawerTile(
-                                icon: HugeIcons.strokeRoundedWallet01,
-                                label: 'Wallet',
-                                onTap: widget.onWallet,
+                                icon: HugeIcons.strokeRoundedTransactionHistory,
+                                label: 'Transactions',
+                                onTap: widget.onTransactions,
                                 fadeAnim: _staggeredFade(3),
                                 slideAnim: _staggeredSlide(3),
                               ),
@@ -258,9 +261,9 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 slideAnim: _staggeredSlide(7),
                               ),
                               DrawerTile(
-                                icon: HugeIcons.strokeRoundedLock,
-                                label: 'Reset Password',
-                                onTap: widget.onResetPassword,
+                                icon: HugeIcons.strokeRoundedFlag02,
+                                label: 'Report a Problem',
+                                onTap: widget.onReportProblem,
                                 fadeAnim: _staggeredFade(8),
                                 slideAnim: _staggeredSlide(8),
                               ),
@@ -310,6 +313,7 @@ class DrawerHeader extends StatelessWidget {
   final String userName;
   final String userEmail;
   final String initials;
+  final String? avatarUrl;
   final bool isVerified;
   final VoidCallback onClose;
   final AnimationController animation;
@@ -319,6 +323,7 @@ class DrawerHeader extends StatelessWidget {
     required this.userName,
     required this.userEmail,
     required this.initials,
+    this.avatarUrl,
     required this.isVerified,
     required this.onClose,
     required this.animation,
@@ -372,14 +377,19 @@ class DrawerHeader extends StatelessWidget {
                 child: CircleAvatar(
                   radius: w * 0.07,
                   backgroundColor: AppColors.primary,
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: w * 0.05,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
+                      ? NetworkImage(avatarUrl!)
+                      : null,
+                  child: avatarUrl == null || avatarUrl!.isEmpty
+                      ? Text(
+                          initials,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: w * 0.05,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
                 ),
               ),
               SizedBox(width: w * 0.03),

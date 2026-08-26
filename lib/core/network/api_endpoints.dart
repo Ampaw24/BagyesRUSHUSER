@@ -149,13 +149,24 @@ abstract final class ApiEndpoints {
   // ─── Vendor Payment Methods ────────────────────────────────────────────────
   static const String vendorPaymentMethods = '/vendors/payment-methods';
 
-  /// `POST /vendors/payment-methods/:id/send-otp`
-  static String vendorPaymentMethodSendOtp(String id) =>
-      '/vendors/payment-methods/$id/send-otp';
+  /// `DELETE /vendors/payment-methods/:id`
+  static String vendorPaymentMethodById(String id) =>
+      '$vendorPaymentMethods/$id';
 
-  /// `POST /vendors/payment-methods/:id/verify-otp`
-  static String vendorPaymentMethodVerifyOtp(String id) =>
-      '/vendors/payment-methods/$id/verify-otp';
+  /// `PATCH /vendors/payment-methods/:id/default`
+  static String vendorPaymentMethodDefault(String id) =>
+      '$vendorPaymentMethods/$id/default';
+
+  // ─── Customer Payment Methods ──────────────────────────────────────────────
+  static const String customerPaymentMethods = '/customer/payment-methods';
+
+  /// `DELETE /customer/payment-methods/:id`
+  static String customerPaymentMethodById(String id) =>
+      '$customerPaymentMethods/$id';
+
+  /// `PATCH /customer/payment-methods/:id/default`
+  static String customerPaymentMethodDefault(String id) =>
+      '$customerPaymentMethods/$id/default';
 
   // ─── Vendor Wallet ─────────────────────────────────────────────────────────
   static const String vendorWallet = '/vendors/wallet';
@@ -219,4 +230,20 @@ abstract final class ApiEndpoints {
 
   /// `GET /vendor/me/reports/:id`
   static String vendorReportById(String id) => '$vendorReports/$id';
+
+  // ─── Customer Parcels ──────────────────────────────────────────────────────
+  static const String customerParcels = '/customer/parcels';
+  static const String customerParcelPhotos = '/customer/parcels/photos';
+  static const String customerParcelQuotes = '$customerParcels/quotes';
+
+  /// `DELETE /customer/parcels/photos/:id`
+  static String customerParcelPhotoById(String id) =>
+      '$customerParcelPhotos/$id';
+
+  /// `GET /customer/parcels/:id`
+  static String customerParcelById(String id) => '$customerParcels/$id';
+
+  /// `PATCH /customer/parcels/:id/cancel`
+  static String customerParcelCancel(String id) =>
+      '$customerParcels/$id/cancel';
 }

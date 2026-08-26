@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../constant/app_theme.dart';
-import '../../../../src/payment/model/payment_method.dart';
-import '../../../../src/payment/model/payout_provider.dart';
+import '../../../../../constant/app_theme.dart';
+import '../../../../../src/payment/model/payment_method.dart';
+import '../../../../../src/payment/model/payout_provider.dart';
 
 /// A premium fintech-style card tile for a single mobile money payout method.
 class PaymentMethodCard extends StatefulWidget {
@@ -48,8 +48,6 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
     _pressController.dispose();
     super.dispose();
   }
-
-  // ── Gradient / brand per provider ────────────────────────────────────────
 
   List<Color> get _gradient => switch (widget.method.provider) {
         PayoutProvider.mtnMomo => [

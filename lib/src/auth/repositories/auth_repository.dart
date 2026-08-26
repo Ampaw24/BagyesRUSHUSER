@@ -593,6 +593,7 @@ class AuthRepository {
     required String lastName,
     required String email,
     required String phone,
+    String? address,
   }) async {
     appLogger.d('AuthRepository.updateProfile → initiated');
     try {
@@ -603,6 +604,7 @@ class AuthRepository {
           'last_name': lastName,
           'email': email,
           'phone': phone,
+          if (address != null) 'address': address,
         },
       );
 
@@ -645,7 +647,7 @@ class AuthRepository {
     appLogger.d('AuthRepository.uploadAvatar → path=$filePath');
     try {
       final formData = FormData.fromMap({
-        'avatar': await MultipartFile.fromFile(filePath),
+        'image': await MultipartFile.fromFile(filePath),
       });
       final response = await _client.post(
         ApiEndpoints.customerAvatar,
