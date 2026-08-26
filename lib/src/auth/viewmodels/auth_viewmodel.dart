@@ -477,6 +477,36 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
+  /// Changes the current user's password while they remain signed in
+  /// (distinct from [resetPassword], which goes through the OTP-based
+  /// forgot-password flow). Shared by both customer and vendor screens
+  /// since password auth is role-agnostic.
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    appLogger.d('AuthViewmodel.changePassword → initiated');
+    emit(const PasswordChanging());
+
+    final result = await _repository.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.changePassword → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (_) {
+        appLogger.i('AuthViewmodel.changePassword → success');
+        emit(const PasswordChanged());
+      },
+    );
+  }
+
   Future<void> logout() async {
     appLogger.d('AuthViewmodel.logout');
     emit(const AuthLoading());

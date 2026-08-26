@@ -6,7 +6,6 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/states/profile_state.dart';
@@ -205,11 +204,6 @@ class _ProfileBody extends ConsumerWidget {
           onTap: () => context.push(AppRoutes.helpSupport),
         ),
         _ProfileTile(
-          icon: HugeIcons.strokeRoundedLock,
-          label: 'Reset Password',
-          onTap: () => _confirmResetPassword(context, ref),
-        ),
-        _ProfileTile(
           icon: HugeIcons.strokeRoundedPolicy,
           label: 'Privacy Policy',
           onTap: () {},
@@ -226,50 +220,6 @@ class _ProfileBody extends ConsumerWidget {
     );
   }
 
-
-  void _confirmResetPassword(BuildContext context, WidgetRef ref) {
-    final user = context.read<CurrentUserProvider>().user;
-    final phone = user?.phone ?? '';
-
-    if (phone.isEmpty) {
-      CustomDialog.showError(
-        context: context,
-        title: 'Phone Number Missing',
-        subtitle:
-            'We could not find your registered phone number. Please log out and sign in again.',
-      );
-      return;
-    }
-
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Reset Password',
-      subtitle:
-          'To reset your password, we will log you out and send a verification code to $phone. Proceed?',
-      confirmText: 'Proceed',
-      cancelText: 'Cancel',
-      onConfirm: () async {
-        final authViewModel = context.read<AuthViewmodel>();
-        final appState = context.read<AppState>();
-
-        // 1. Send OTP
-        await authViewModel.sendOtp(phone);
-        // 2. Perform local logout
-        await authViewModel.logout();
-
-        if (!context.mounted) return;
-
-        appState.setUser(IUser());
-        appState.setPayload(ISignup());
-
-        // 3. Route to OTP screen with forgot password flag
-        context.go(AppRoutes.otp, extra: {
-          'showSuccessOnVerify': false,
-          'isForgotPassword': true,
-        });
-      },
-    );
-  }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
     CustomDialog.showConfirmation(

@@ -689,9 +689,9 @@ class AuthRepository {
       final response = await _client.post(
         ApiEndpoints.passwordChange,
         data: {
-          'old_password': oldPassword,
-          'new_password': newPassword,
-          'confirm_new_password': confirmPassword,
+          'current_password': oldPassword,
+          'password': newPassword,
+          'password_confirmation': confirmPassword,
         },
       );
 

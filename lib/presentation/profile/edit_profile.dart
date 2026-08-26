@@ -8,6 +8,7 @@ import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -336,6 +337,13 @@ class _EditProfileState extends State<EditProfile> {
                 SizedBox(height: w * 0.032),
                 _FormCard(
                   children: [
+                    _ActionRow(
+                      icon: HugeIcons.strokeRoundedLockPassword,
+                      iconColor: AppColors.info,
+                      label: 'Change Password',
+                      onTap: () => ChangePasswordSheet.show(context),
+                    ),
+                    _FieldDivider(w: w),
                     _ActionRow(
                       icon: HugeIcons.strokeRoundedLogout01,
                       iconColor: AppColors.textSecondary,

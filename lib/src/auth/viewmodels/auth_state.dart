@@ -78,6 +78,14 @@ final class PasswordResetSuccess extends AuthState {
   const PasswordResetSuccess();
 }
 
+final class PasswordChanging extends AuthLoading {
+  const PasswordChanging();
+}
+
+final class PasswordChanged extends AuthState {
+  const PasswordChanged();
+}
+
 final class AvatarUploading extends AuthLoading {
   const AvatarUploading();
 }
