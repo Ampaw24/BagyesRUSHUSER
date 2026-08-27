@@ -13,6 +13,7 @@ import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../states/app.state.dart';
 import '../../services/auth.service.dart';
 import '../../core/widgets/custom_dialogs.dart';
+import '../../features/report/domain/entities/report.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
 import '../../features/consumer/orders/presentation/views/consumer_orders_view.dart';
 import '../../features/consumer/profile/presentation/views/consumer_profile_view.dart';
@@ -91,47 +92,9 @@ class _HomeState extends ConsumerState<Home> {
     );
   }
 
-  void _showResetPasswordConfirmDialog() {
+  void _showReportProblem() {
     _closeDrawer();
-    final user = context.read<CurrentUserProvider>().user;
-    final phone = user?.phone ?? '';
-
-    if (phone.isEmpty) {
-      CustomDialog.showError(
-        context: context,
-        title: 'Phone Number Missing',
-        subtitle: 'We could not find your registered phone number. Please log out and sign in again.',
-      );
-      return;
-    }
-
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Reset Password',
-      subtitle: 'To reset your password, we will log you out and send a verification code to $phone. Proceed?',
-      confirmText: 'Proceed',
-      cancelText: 'Cancel',
-      onConfirm: () async {
-        final authViewModel = context.read<AuthViewmodel>();
-        final appState = context.read<AppState>();
-
-        // 1. Send OTP
-        await authViewModel.sendOtp(phone);
-        // 2. Perform local logout
-        await authViewModel.logout();
-        
-        if (!mounted) return;
-        
-        appState.setUser(IUser());
-        appState.setPayload(ISignup());
-
-        // 3. Route to OTP screen with forgot password flag
-        context.go(AppRoutes.otp, extra: {
-          'showSuccessOnVerify': false,
-          'isForgotPassword': true,
-        });
-      },
-    );
+    AppNavigator.toMyReports(context, role: ReportRole.customer);
   }
 
   @override
@@ -145,6 +108,7 @@ class _HomeState extends ConsumerState<Home> {
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
     final email = user?.email ?? '';
     final isVerified = user?.phoneVerified ?? false;
+    final avatarUrl = user?.profile?.profilePictureUrl;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -190,6 +154,7 @@ class _HomeState extends ConsumerState<Home> {
                 userEmail: email,
                 initials: initials.isNotEmpty ? initials : 'U',
                 isVerified: isVerified,
+                avatarUrl: avatarUrl,
                 onClose: _closeDrawer,
                 onProfile: () {
                   _closeDrawer();
@@ -203,13 +168,13 @@ class _HomeState extends ConsumerState<Home> {
                   _closeDrawer();
                   context.push(AppRoutes.notifications);
                 },
-                onWallet: () {
+                onTransactions: () {
                   _closeDrawer();
                   context.push(AppRoutes.wallet);
                 },
                 onPaymentMethods: () {
                   _closeDrawer();
-                  context.push(AppRoutes.vendorPaymentMethods);
+                  context.push(AppRoutes.customerPaymentMethods);
                 },
                 onInviteFriends: () {
                   _closeDrawer();
@@ -220,7 +185,7 @@ class _HomeState extends ConsumerState<Home> {
                   _closeDrawer();
                   context.push(AppRoutes.helpSupport);
                 },
-                onResetPassword: _showResetPasswordConfirmDialog,
+                onReportProblem: _showReportProblem,
                 onDeleteAccount: _showDeleteAccountDialog,
                 onLogout: _handleLogout,
               ),

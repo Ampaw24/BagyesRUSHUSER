@@ -35,8 +35,7 @@ class OrdersRepositoryImpl implements IOrdersRepository {
 
   @override
   Future<ConsumerOrder> getOrderById(String orderId) async {
-    final response =
-        await _client.get(ApiEndpoints.customerOrderById(orderId));
+    final response = await _client.get(ApiEndpoints.customerOrderById(orderId));
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
@@ -52,14 +51,16 @@ class OrdersRepositoryImpl implements IOrdersRepository {
     final body = {
       'vendor_id': cart.restaurantId,
       'items': cart.items
-          .map((ci) => {
-                'menu_item_id': ci.item.id,
-                'quantity': ci.quantity,
-                'addons': ci.selectedAddons.map((a) => a.toJson()).toList(),
-                if (ci.specialInstructions != null &&
-                    ci.specialInstructions!.isNotEmpty)
-                  'special_instructions': ci.specialInstructions,
-              })
+          .map(
+            (ci) => {
+              'menu_item_id': ci.item.id,
+              'quantity': ci.quantity,
+              'addons': ci.selectedAddons.map((a) => a.toJson()).toList(),
+              if (ci.specialInstructions != null &&
+                  ci.specialInstructions!.isNotEmpty)
+                'special_instructions': ci.specialInstructions,
+            },
+          )
           .toList(),
       'delivery_address': deliveryAddress,
       if (deliveryInstructions != null && deliveryInstructions.isNotEmpty)
@@ -72,25 +73,34 @@ class OrdersRepositoryImpl implements IOrdersRepository {
         'delivery_longitude': deliveryLng,
       },
     };
-    final response = await _client.post(ApiEndpoints.customerOrders, data: body);
+    final response = await _client.post(
+      ApiEndpoints.customerOrders,
+      data: body,
+    );
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
   @override
   Future<ConsumerOrder> cancelOrder(String orderId) async {
-    final response = await _client.patch(ApiEndpoints.customerOrderCancel(orderId));
+    final response = await _client.patch(
+      ApiEndpoints.customerOrderCancel(orderId),
+    );
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
   @override
   Future<ConsumerOrder> reorder(String orderId) async {
-    final response = await _client.post(ApiEndpoints.customerOrderReorder(orderId));
+    final response = await _client.post(
+      ApiEndpoints.customerOrderReorder(orderId),
+    );
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
   @override
   Future<ConsumerOrder> trackOrder(String orderId) async {
-    final response = await _client.get(ApiEndpoints.customerOrderTrack(orderId));
+    final response = await _client.get(
+      ApiEndpoints.customerOrderTrack(orderId),
+    );
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
@@ -157,6 +167,9 @@ class OrdersRepositoryImpl implements IOrdersRepository {
         final inner = outer['data'];
         final meta = outer['meta'] as Map<String, dynamic>? ?? {};
         if (inner is List) return (inner, meta);
+
+        final orders = outer['orders'];
+        if (orders is List) return (orders, meta);
       }
 
       if (outer is List) {

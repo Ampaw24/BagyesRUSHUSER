@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../constant/app_theme.dart';
-import '../../models/payment_method_model.dart';
-import '../../models/mobile_money_model.dart';
-import '../../models/visa_card_model.dart';
+import '../../../../src/payment/model/payment_method.dart';
+import '../../../../src/payment/views/widgets/payout_provider_visuals.dart';
 
-/// A premium fintech-style card tile for a single payment method.
-/// Supports press-to-elevate, default badge, verification chip,
-/// and enable/disable toggle.
+/// A premium fintech-style card tile for a single mobile money payout method.
 class PaymentMethodCard extends StatefulWidget {
-  final PaymentMethodModel method;
+  final PaymentMethod method;
   final bool isProcessing;
   final VoidCallback? onSetDefault;
-  final VoidCallback? onToggleEnabled;
   final VoidCallback? onDelete;
   final VoidCallback? onTap;
 
@@ -20,7 +16,6 @@ class PaymentMethodCard extends StatefulWidget {
     required this.method,
     this.isProcessing = false,
     this.onSetDefault,
-    this.onToggleEnabled,
     this.onDelete,
     this.onTap,
   });
@@ -54,138 +49,47 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
     super.dispose();
   }
 
-  // ── Gradient per type ────────────────────────────────────────────────────
+  // ── Gradient / brand per provider ────────────────────────────────────────
 
   List<Color> get _gradient {
-    switch (widget.method.type) {
-      case PaymentMethodType.mobileMoney:
-        final provider = widget.method.mobileMoney?.provider;
-        return switch (provider) {
-          MobileMoneyProvider.mtnMomo => [
-              const Color(0xFFFFCC00),
-              const Color(0xFFFF8C00),
-            ],
-          MobileMoneyProvider.vodafoneCash => [
-              const Color(0xFFE53935),
-              const Color(0xFFB71C1C),
-            ],
-          MobileMoneyProvider.airtelTigo => [
-              const Color(0xFF1565C0),
-              const Color(0xFF0D47A1),
-            ],
-          null => [AppColors.primary, AppColors.primaryDark],
-        };
-      case PaymentMethodType.visaCard:
-        return [
-          const Color(0xFF1A237E),
-          const Color(0xFF283593),
-        ];
-    }
+    final provider = widget.method.provider;
+    if (provider == null) return [AppColors.primary, AppColors.primaryDark];
+    final base = payoutProviderVisual(provider).color;
+    return [base, Color.alphaBlend(Colors.black.withValues(alpha: 0.28), base)];
   }
 
   Color get _foreground {
-    switch (widget.method.type) {
-      case PaymentMethodType.mobileMoney:
-        final provider = widget.method.mobileMoney?.provider;
-        return provider == MobileMoneyProvider.mtnMomo
-            ? const Color(0xFF1A1A1A)
-            : Colors.white;
-      case PaymentMethodType.visaCard:
-        return Colors.white;
-    }
+    final provider = widget.method.provider;
+    if (provider == null) return Colors.white;
+    // Light brand colors (e.g. MTN yellow) need dark text for contrast.
+    return payoutProviderVisual(provider).color.computeLuminance() > 0.5
+        ? const Color(0xFF1A1A1A)
+        : Colors.white;
   }
-
-  // ── Provider icon / brand widget ─────────────────────────────────────────
 
   Widget _buildBrandIcon() {
-    switch (widget.method.type) {
-      case PaymentMethodType.mobileMoney:
-        final provider = widget.method.mobileMoney?.provider;
-        final asset = switch (provider) {
-          MobileMoneyProvider.mtnMomo => 'assets/icons/mtnbanner.png',
-          MobileMoneyProvider.vodafoneCash => 'assets/icons/telecel_icon.jpg',
-          MobileMoneyProvider.airtelTigo => 'assets/icons/atbanner.png',
-          null => null,
-        };
-        if (asset != null) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: Image.asset(
-              asset,
-              height: 32,
-              fit: BoxFit.contain,
-            ),
-          );
-        }
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: _foreground.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            provider?.shortName ?? 'MoMo',
-            style: TextStyle(
-              color: _foreground,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-        );
-      case PaymentMethodType.visaCard:
-        final brand = widget.method.visaCard?.brand ?? CardBrand.visa;
-        return Text(
-          brand.displayName.toUpperCase(),
+    final provider = widget.method.provider;
+    if (provider == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: _foreground.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          'MoMo',
           style: TextStyle(
             color: _foreground,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            letterSpacing: 1,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
           ),
-        );
-    }
-  }
-
-  // ── Status chip ──────────────────────────────────────────────────────────
-
-  Widget _buildStatusChip() {
-    final isVerified = widget.method.isVerified;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isVerified
-            ? AppColors.success.withValues(alpha: 0.18)
-            : AppColors.warning.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isVerified
-              ? AppColors.success.withValues(alpha: 0.4)
-              : AppColors.warning.withValues(alpha: 0.4),
-          width: 0.8,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isVerified ? Icons.verified_rounded : Icons.schedule_rounded,
-            size: 11,
-            color: isVerified ? AppColors.success : AppColors.warning,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            isVerified ? 'Verified' : 'Pending',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isVerified ? AppColors.success : AppColors.warning,
-            ),
-          ),
-        ],
-      ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: PayoutProviderAvatar(provider: provider, size: 32),
     );
   }
 
@@ -202,153 +106,131 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
       onTapCancel: () => _pressController.reverse(),
       child: ScaleTransition(
         scale: _scaleAnim,
-        child: Opacity(
-          opacity: method.isEnabled ? 1.0 : 0.6,
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: _gradient.first.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: Stack(
-              children: [
-                // Decorative circles
-                Positioned(
-                  right: -24,
-                  top: -24,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _foreground.withValues(alpha: 0.06),
-                    ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: _gradient.first.withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -24,
+                top: -24,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _foreground.withValues(alpha: 0.06),
                   ),
                 ),
-                Positioned(
-                  right: 20,
-                  bottom: -30,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _foreground.withValues(alpha: 0.04),
-                    ),
+              ),
+              Positioned(
+                right: 20,
+                bottom: -30,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _foreground.withValues(alpha: 0.04),
                   ),
                 ),
-
-                // Content
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top row: brand + menu
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildBrandIcon(),
-                          if (widget.isProcessing)
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: _foreground.withValues(alpha: 0.8),
-                              ),
-                            )
-                          else
-                            _CardMenu(
-                              foreground: _foreground,
-                              isDefault: method.isDefault,
-                              isEnabled: method.isEnabled,
-                              onSetDefault: widget.onSetDefault,
-                              onToggleEnabled: widget.onToggleEnabled,
-                              onDelete: widget.onDelete,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildBrandIcon(),
+                        if (widget.isProcessing)
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: _foreground.withValues(alpha: 0.8),
                             ),
-                        ],
+                          )
+                        else
+                          _CardMenu(
+                            foreground: _foreground,
+                            isDefault: method.isDefault,
+                            onSetDefault: widget.onSetDefault,
+                            onDelete: widget.onDelete,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      method.displayTitle,
+                      style: TextStyle(
+                        color: _foreground,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // Main info
-                      Text(
-                        method.displayTitle,
-                        style: TextStyle(
-                          color: _foreground,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      method.maskedPhone,
+                      style: TextStyle(
+                        color: _foreground.withValues(alpha: 0.75),
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (method.isDefault)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        method.displaySubtitle,
-                        style: TextStyle(
-                          color: _foreground.withValues(alpha: 0.75),
-                          fontSize: 14,
-                          letterSpacing: 0.5,
-                          fontFamily: 'monospace',
+                        decoration: BoxDecoration(
+                          color: _foreground.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Bottom row: status + default badge
-                      Row(
-                        children: [
-                          _buildStatusChip(),
-                          if (method.isDefault) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _foreground.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.star_rounded,
-                                    size: 11,
-                                    color: _foreground,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'Default',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: _foreground,
-                                    ),
-                                  ),
-                                ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.star_rounded,
+                              size: 11,
+                              color: _foreground,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Default',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _foreground,
                               ),
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -361,17 +243,13 @@ class _PaymentMethodCardState extends State<PaymentMethodCard>
 class _CardMenu extends StatelessWidget {
   final Color foreground;
   final bool isDefault;
-  final bool isEnabled;
   final VoidCallback? onSetDefault;
-  final VoidCallback? onToggleEnabled;
   final VoidCallback? onDelete;
 
   const _CardMenu({
     required this.foreground,
     required this.isDefault,
-    required this.isEnabled,
     this.onSetDefault,
-    this.onToggleEnabled,
     this.onDelete,
   });
 
@@ -386,8 +264,6 @@ class _CardMenu extends StatelessWidget {
         switch (value) {
           case 'default':
             onSetDefault?.call();
-          case 'toggle':
-            onToggleEnabled?.call();
           case 'delete':
             onDelete?.call();
         }
@@ -401,16 +277,6 @@ class _CardMenu extends StatelessWidget {
               label: 'Set as Default',
             ),
           ),
-        PopupMenuItem(
-          value: 'toggle',
-          child: _MenuItem(
-            icon: isEnabled
-                ? Icons.toggle_off_outlined
-                : Icons.toggle_on_outlined,
-            label: isEnabled ? 'Disable' : 'Enable',
-          ),
-        ),
-        const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'delete',
           child: _MenuItem(

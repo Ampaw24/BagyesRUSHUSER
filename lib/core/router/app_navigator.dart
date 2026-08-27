@@ -19,8 +19,8 @@ abstract final class AppNavigator {
   static void toWalkthrough(BuildContext context) =>
       context.push(AppRoutes.walkthrough);
   static void toOtp(BuildContext context) => context.push(AppRoutes.otp);
-  static void toResetPassword(BuildContext context, String phone) =>
-      context.push(AppRoutes.resetPassword, extra: phone);
+  static void toResetPassword(BuildContext context, String phone, String code) =>
+      context.push(AppRoutes.resetPassword, extra: {'phone': phone, 'code': code});
 
   // ── Main ──
   static void toHome(BuildContext context) => context.go(AppRoutes.home);
@@ -30,6 +30,8 @@ abstract final class AppNavigator {
       context.push(AppRoutes.profile);
   static void toEditProfile(BuildContext context) =>
       context.push(AppRoutes.editProfile);
+  static void toCustomerPaymentMethods(BuildContext context) =>
+      context.push(AppRoutes.customerPaymentMethods);
 
   // ── Courier ──
   static void toSendPackages(BuildContext context) =>

@@ -6,10 +6,8 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/domain/entities/consumer_profile.dart';
-import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/states/profile_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/profile/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
@@ -76,37 +74,46 @@ class _ProfileBody extends ConsumerWidget {
         Center(
           child: Column(
             children: [
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: w * 0.13,
-                    backgroundColor: AppColors.primary,
-                    child: Text(
-                      profile.initials,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: w * 0.09,
-                        fontWeight: FontWeight.w700,
+              GestureDetector(
+                onTap: () => context.push(AppRoutes.editProfile),
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: w * 0.13,
+                      backgroundColor: AppColors.primary,
+                      backgroundImage:
+                          profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+                              ? NetworkImage(profile.avatarUrl!)
+                              : null,
+                      child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
+                          ? Text(
+                              profile.initials,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: w * 0.09,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: EdgeInsets.all(w * 0.02),
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCamera01,
+                          color: Colors.white,
+                          size: w * 0.04,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(w * 0.02),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: HugeIcon(
-                        icon: HugeIcons.strokeRoundedCamera01,
-                        color: Colors.white,
-                        size: w * 0.04,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               SizedBox(height: w * 0.035),
               Text(
@@ -174,7 +181,7 @@ class _ProfileBody extends ConsumerWidget {
         _ProfileTile(
           icon: HugeIcons.strokeRoundedCreditCard,
           label: 'Payment Methods',
-          onTap: () {},
+          onTap: () => context.push(AppRoutes.customerPaymentMethods),
         ),
 
         SizedBox(height: w * 0.02),
@@ -185,8 +192,8 @@ class _ProfileBody extends ConsumerWidget {
           onTap: () {},
         ),
         _ProfileTile(
-          icon: HugeIcons.strokeRoundedWallet01,
-          label: 'Wallet & Rewards',
+          icon: HugeIcons.strokeRoundedTransactionHistory,
+          label: 'Transactions',
           onTap: () => context.push(AppRoutes.wallet),
         ),
         SizedBox(height: w * 0.02),
@@ -195,11 +202,6 @@ class _ProfileBody extends ConsumerWidget {
           icon: HugeIcons.strokeRoundedHelpCircle,
           label: 'Help & Support',
           onTap: () => context.push(AppRoutes.helpSupport),
-        ),
-        _ProfileTile(
-          icon: HugeIcons.strokeRoundedFlag02,
-          label: 'Report a Problem',
-          onTap: () => AppNavigator.toMyReports(context, role: ReportRole.customer),
         ),
         _ProfileTile(
           icon: HugeIcons.strokeRoundedPolicy,

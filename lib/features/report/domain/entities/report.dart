@@ -14,12 +14,18 @@ enum ReportTargetType {
   orderIssue,
   general;
 
+  /// The wire value for `POST .../reports`. The backend's `target_type`
+  /// column only accepts `"order_issue"` or `"general"` (see
+  /// `reportapis.md`) — who/what is actually being reported (vendor, rider,
+  /// customer) is carried separately via `target_name`/`target_id`, not by
+  /// this field.
   String get apiValue => switch (this) {
-        ReportTargetType.vendor => 'vendor',
-        ReportTargetType.rider => 'rider',
-        ReportTargetType.customer => 'customer',
-        ReportTargetType.orderIssue => 'order_issue',
         ReportTargetType.general => 'general',
+        ReportTargetType.vendor ||
+        ReportTargetType.rider ||
+        ReportTargetType.customer ||
+        ReportTargetType.orderIssue =>
+          'order_issue',
       };
 
   static ReportTargetType fromString(String value) {
@@ -109,11 +115,17 @@ class Report extends Equatable {
     this.resolutionNote,
   });
 
-  factory Report.fromJson(Map<String, dynamic> json) => Report(
+  /// [role] is the role the request was made under (the endpoint itself is
+  /// role-scoped — `customer/reports` vs `vendor/me/reports`) — used as the
+  /// fallback when the response has no `reporter_role` field of its own.
+  factory Report.fromJson(Map<String, dynamic> json, {ReportRole? role}) =>
+      Report(
         id: json['id'].toString(),
-        reporterRole: json['reporter_role'] == 'vendor'
-            ? ReportRole.vendor
-            : ReportRole.customer,
+        reporterRole: switch (json['reporter_role']) {
+          'vendor' => ReportRole.vendor,
+          'customer' => ReportRole.customer,
+          _ => role ?? ReportRole.customer,
+        },
         targetType: ReportTargetType.fromString(
           json['target_type'] as String? ?? '',
         ),

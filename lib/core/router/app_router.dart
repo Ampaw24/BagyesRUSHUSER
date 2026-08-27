@@ -34,6 +34,8 @@ import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_kyc_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_payout_view.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
+import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/payment_methods_screen.dart'
+    as consumer_payment_methods;
 import 'package:bagyesrushappusernew/features/vendor_wallet/views/screens/wallet_screen.dart';
 import 'package:bagyesrushappusernew/features/courier_wallet/views/screens/courier_wallet_screen.dart';
 
@@ -159,8 +161,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.resetPassword,
       builder: (context, state) {
-        final phone = state.extra as String? ?? '';
-        return ResetPasswordView(phone: phone);
+        final extra = state.extra;
+        final phone = extra is Map<String, dynamic> ? extra['phone'] as String? ?? '' : '';
+        final code = extra is Map<String, dynamic> ? extra['code'] as String? ?? '' : '';
+        return ResetPasswordView(phone: phone, code: code);
       },
     ),
 
@@ -229,6 +233,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.editProfile,
       builder: (context, state) => EditProfile(),
+    ),
+    GoRoute(
+      path: AppRoutes.customerPaymentMethods,
+      builder: (context, state) =>
+          const consumer_payment_methods.PaymentMethodsScreen(),
     ),
 
     // ── Courier / delivery ──

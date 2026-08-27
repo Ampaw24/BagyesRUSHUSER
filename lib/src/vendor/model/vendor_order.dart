@@ -113,9 +113,9 @@ class VendorOrder extends Equatable {
 
   factory VendorOrder.fromJson(Map<String, dynamic> json) {
     return VendorOrder(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       items: json['items'] as String? ?? '',
-      amount: json['amount'] as String? ?? '',
+      amount: json['amount']?.toString() ?? '',
       timeAgo: json['time_ago'] as String? ?? '',
       status: OrderStatus.fromString(json['status'] as String? ?? ''),
       customerName: json['customer_name'] as String? ?? '',

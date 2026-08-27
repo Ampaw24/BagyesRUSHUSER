@@ -2,11 +2,18 @@ import 'dart:io';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
+import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
+import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -20,33 +27,35 @@ class _EditProfileState extends State<EditProfile> {
   final _nameController    = TextEditingController();
   final _phoneController   = TextEditingController();
   final _emailController   = TextEditingController();
-  final _oldPasswordController     = TextEditingController();
-  final _newPasswordController     = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _addressController = TextEditingController();
 
   bool _loading        = false;
-  bool _obscureOld     = true;
-  bool _obscureNew     = true;
-  bool _obscureConfirm = true;
-  bool _sessionLoaded  = false;
+  bool _profileLoaded  = false;
   bool _uploadingAvatar = false;
   File? _pickedAvatar;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_sessionLoaded) return;
-    _sessionLoaded = true;
-    final user = context.read<CurrentUserProvider>().user;
-    if (user != null) {
-      final first = user.profile?.firstName ?? '';
-      final last  = user.profile?.lastName  ?? '';
-      _nameController.text  = '$first $last'.trim();
-      // Phone is stored as +233XXXXXXXXX — show only the 9-digit part
-      final raw = user.phone;
-      _phoneController.text = raw.startsWith('+233') ? raw.substring(4) : raw;
-      _emailController.text = user.email;
-    }
+    if (_profileLoaded) return;
+
+    // On cold start, restoreSession() sets a placeholder user (empty
+    // name/email, no profile) before the real profile arrives via a
+    // background fetch. Watching here — instead of a one-off context.read —
+    // means that if this screen opens before that fetch resolves, the form
+    // fills in the moment the real data lands instead of staying blank.
+    final user = context.watch<CurrentUserProvider>().user;
+    if (user == null || user.profile == null) return;
+    _profileLoaded = true;
+
+    final first = user.profile?.firstName ?? '';
+    final last  = user.profile?.lastName  ?? '';
+    _nameController.text  = '$first $last'.trim();
+    // Phone is stored as +233XXXXXXXXX — show only the 9-digit part
+    final raw = user.phone;
+    _phoneController.text = raw.startsWith('+233') ? raw.substring(4) : raw;
+    _emailController.text = user.email;
+    _addressController.text = user.profile?.address ?? '';
   }
 
   @override
@@ -54,9 +63,7 @@ class _EditProfileState extends State<EditProfile> {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _oldPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -67,6 +74,7 @@ class _EditProfileState extends State<EditProfile> {
     final fullName = _nameController.text.trim();
     final email    = _emailController.text.trim();
     final phone    = _phoneController.text.trim();
+    final address  = _addressController.text.trim();
 
     final parts     = fullName.split(' ');
     final firstName = parts.first;
@@ -76,31 +84,12 @@ class _EditProfileState extends State<EditProfile> {
 
     final authRepo = GetIt.instance<AuthRepository>();
 
-    final oldPassword = _oldPasswordController.text;
-    if (oldPassword.isNotEmpty) {
-      final passwordResult = await authRepo.changePassword(
-        oldPassword: oldPassword,
-        newPassword: _newPasswordController.text,
-        confirmPassword: _confirmPasswordController.text,
-      );
-      if (!mounted) return;
-      final failed = passwordResult.fold((failure) {
-        setState(() => _loading = false);
-        CustomDialog.showError(
-          context: context,
-          title: 'Password Change Failed',
-          subtitle: failure.message,
-        );
-        return true;
-      }, (_) => false);
-      if (failed) return;
-    }
-
     final result = await authRepo.updateProfile(
       firstName: firstName,
       lastName:  lastName,
       email:     email,
       phone:     phone.isNotEmpty ? '+233$phone' : currentUser.phone,
+      address:   address,
     );
 
     if (!mounted) return;
@@ -139,19 +128,22 @@ class _EditProfileState extends State<EditProfile> {
       _uploadingAvatar = true;
     });
 
-    final result = await GetIt.instance<AuthRepository>().uploadAvatar(file.path);
+    final authViewModel = context.read<AuthViewmodel>();
+    await authViewModel.uploadAvatar(file.path);
 
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
 
-    result.fold(
-      (failure) => CustomDialog.showError(
+    // AuthViewmodel already updates CurrentUserProvider with the new avatar
+    // on success — only failures need to be surfaced here.
+    final state = authViewModel.state;
+    if (state is AuthError) {
+      CustomDialog.showError(
         context: context,
         title: 'Photo Update Failed',
-        subtitle: failure.message,
-      ),
-      (updatedUser) => context.read<CurrentUserProvider>().setUser(updatedUser),
-    );
+        subtitle: state.message,
+      );
+    }
   }
 
   @override
@@ -247,164 +239,129 @@ class _EditProfileState extends State<EditProfile> {
             sliver: SliverList.list(
               children: [
                 _FormSection(label: 'Basic Info'),
+                SizedBox(height: w * 0.032),
+                _FieldCard(
+                  icon: HugeIcons.strokeRoundedUser,
+                  iconColor: AppColors.primary,
+                  label: 'Full Name',
+                  builder: (focusNode) => TextFormField(
+                    controller: _nameController,
+                    focusNode: focusNode,
+                    style: TextStyle(
+                      fontSize: (w * 0.04).clamp(14.0, 17.0),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: _inputDec('e.g. John Doe'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                ),
                 SizedBox(height: w * 0.03),
-                _FormCard(
-                  children: [
-                    _FieldRow(
-                      icon: HugeIcons.strokeRoundedUser,
-                      iconColor: AppColors.primary,
-                      label: 'Full Name',
-                      child: TextFormField(
-                        controller: _nameController,
-                        style: TextStyle(
-                          fontSize: (w * 0.038).clamp(13.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _inputDec('e.g. John Doe'),
-                        textInputAction: TextInputAction.next,
-                      ),
+                _FieldCard(
+                  icon: HugeIcons.strokeRoundedMail01,
+                  iconColor: const Color(0xFF3182CE),
+                  label: 'Email',
+                  builder: (focusNode) => TextFormField(
+                    controller: _emailController,
+                    focusNode: focusNode,
+                    keyboardType: TextInputType.emailAddress,
+                    style: TextStyle(
+                      fontSize: (w * 0.04).clamp(14.0, 17.0),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
-                    _FieldDivider(w: w),
-                    _FieldRow(
-                      icon: HugeIcons.strokeRoundedMail01,
-                      iconColor: const Color(0xFF3182CE),
-                      label: 'Email',
-                      child: TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: TextStyle(
-                          fontSize: (w * 0.038).clamp(13.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _inputDec('e.g. you@email.com'),
-                        textInputAction: TextInputAction.next,
-                      ),
+                    decoration: _inputDec('e.g. you@email.com'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                ),
+                SizedBox(height: w * 0.03),
+                _FieldCard(
+                  icon: HugeIcons.strokeRoundedSmartPhone01,
+                  iconColor: AppColors.success,
+                  label: 'Phone',
+                  builder: (focusNode) => TextFormField(
+                    controller: _phoneController,
+                    focusNode: focusNode,
+                    keyboardType: TextInputType.phone,
+                    maxLength: 9,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      _NoLeadingZeroFormatter(),
+                    ],
+                    style: TextStyle(
+                      fontSize: (w * 0.04).clamp(14.0, 17.0),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
-                    _FieldDivider(w: w),
-                    _FieldRow(
-                      icon: HugeIcons.strokeRoundedSmartPhone01,
-                      iconColor: AppColors.success,
-                      label: 'Phone',
-                      child: TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        maxLength: 9,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          _NoLeadingZeroFormatter(),
-                        ],
-                        style: TextStyle(
-                          fontSize: (w * 0.038).clamp(13.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _inputDec('e.g. 241234567').copyWith(
-                          counterText: '',
-                        ),
-                        textInputAction: TextInputAction.done,
-                      ),
+                    decoration: _inputDec('e.g. 241234567').copyWith(
+                      counterText: '',
                     ),
-                  ],
+                    textInputAction: TextInputAction.next,
+                  ),
+                ),
+                SizedBox(height: w * 0.03),
+                _FieldCard(
+                  icon: HugeIcons.strokeRoundedLocation01,
+                  iconColor: const Color(0xFF805AD5),
+                  label: 'Address',
+                  builder: (focusNode) => TextFormField(
+                    controller: _addressController,
+                    focusNode: focusNode,
+                    maxLines: 2,
+                    minLines: 1,
+                    style: TextStyle(
+                      fontSize: (w * 0.04).clamp(14.0, 17.0),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: _inputDec('e.g. 12 Ring Road, Accra'),
+                    textInputAction: TextInputAction.done,
+                  ),
                 ),
 
-                SizedBox(height: w * 0.06),
-                _FormSection(label: 'Change Password'),
-                SizedBox(height: w * 0.03),
+                if (_referralCode(context).isNotEmpty) ...[
+                  SizedBox(height: w * 0.07),
+                  _FormSection(label: 'Referral'),
+                  SizedBox(height: w * 0.032),
+                  _ReferralCard(
+                    code: _referralCode(context),
+                    count: _referralCount(context),
+                    onCopy: () => _copyReferralCode(context),
+                  ),
+                ],
+
+                SizedBox(height: w * 0.07),
+
+                // ── Account ──
+                _FormSection(label: 'Account'),
+                SizedBox(height: w * 0.032),
                 _FormCard(
                   children: [
-                    _FieldRow(
-                      icon: HugeIcons.strokeRoundedLock,
-                      iconColor: AppColors.warning,
-                      label: 'Old Password',
-                      child: TextFormField(
-                        controller: _oldPasswordController,
-                        obscureText: _obscureOld,
-                        style: TextStyle(
-                          fontSize: (w * 0.038).clamp(13.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _inputDec('Current password').copyWith(
-                          suffixIcon: IconButton(
-                            icon: HugeIcon(
-                              icon: _obscureOld
-                                  ? HugeIcons.strokeRoundedViewOff
-                                  : HugeIcons.strokeRoundedView,
-                              color: AppColors.textHint,
-                              size: w * 0.038,
-                            ),
-                            onPressed: () =>
-                                setState(() => _obscureOld = !_obscureOld),
-                          ),
-                        ),
-                        textInputAction: TextInputAction.next,
-                      ),
-                    ),
-                    _FieldDivider(w: w),
-                    _FieldRow(
-                      icon: HugeIcons.strokeRoundedPasswordValidation,
-                      iconColor: const Color(0xFF805AD5),
-                      label: 'New Password',
-                      child: TextFormField(
-                        controller: _newPasswordController,
-                        obscureText: _obscureNew,
-                        style: TextStyle(
-                          fontSize: (w * 0.038).clamp(13.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _inputDec('New password').copyWith(
-                          suffixIcon: IconButton(
-                            icon: HugeIcon(
-                              icon: _obscureNew
-                                  ? HugeIcons.strokeRoundedViewOff
-                                  : HugeIcons.strokeRoundedView,
-                              color: AppColors.textHint,
-                              size: w * 0.038,
-                            ),
-                            onPressed: () =>
-                                setState(() => _obscureNew = !_obscureNew),
-                          ),
-                        ),
-                        textInputAction: TextInputAction.next,
-                      ),
-                    ),
-                    _FieldDivider(w: w),
-                    _FieldRow(
-                      icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+                    _ActionRow(
+                      icon: HugeIcons.strokeRoundedLockPassword,
                       iconColor: AppColors.info,
-                      label: 'Confirm',
-                      child: TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirm,
-                        style: TextStyle(
-                          fontSize: (w * 0.038).clamp(13.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _inputDec('Confirm new password').copyWith(
-                          suffixIcon: IconButton(
-                            icon: HugeIcon(
-                              icon: _obscureConfirm
-                                  ? HugeIcons.strokeRoundedViewOff
-                                  : HugeIcons.strokeRoundedView,
-                              color: AppColors.textHint,
-                              size: w * 0.038,
-                            ),
-                            onPressed: () => setState(
-                              () => _obscureConfirm = !_obscureConfirm,
-                            ),
-                          ),
-                        ),
-                        textInputAction: TextInputAction.done,
-                      ),
+                      label: 'Change Password',
+                      onTap: () => ChangePasswordSheet.show(context),
+                    ),
+                    _FieldDivider(w: w),
+                    _ActionRow(
+                      icon: HugeIcons.strokeRoundedLogout01,
+                      iconColor: AppColors.textSecondary,
+                      label: 'Log Out',
+                      onTap: () => _confirmLogout(context),
+                    ),
+                    _FieldDivider(w: w),
+                    _ActionRow(
+                      icon: HugeIcons.strokeRoundedDelete02,
+                      iconColor: AppColors.error,
+                      label: 'Delete Account',
+                      labelColor: AppColors.error,
+                      onTap: () => _confirmDeleteAccount(context),
                     ),
                   ],
                 ),
 
-                SizedBox(height: w * 0.08),
+                SizedBox(height: w * 0.09),
 
                 // ── Save button ──
                 SizedBox(
@@ -443,7 +400,6 @@ class _EditProfileState extends State<EditProfile> {
                                 style: TextStyle(
                                   fontSize: (w * 0.042).clamp(14.0, 18.0),
                                   fontWeight: FontWeight.w800,
-                                  
                                 ),
                               ),
                             ],
@@ -455,6 +411,49 @@ class _EditProfileState extends State<EditProfile> {
           ),
         ],
       ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    CustomDialog.showConfirmation(
+      context: context,
+      title: 'Log Out',
+      subtitle: 'Are you sure you want to log out?',
+      confirmText: 'Log Out',
+      cancelText: 'Cancel',
+      onConfirm: () async {
+        final authViewModel = context.read<AuthViewmodel>();
+        final appState = context.read<AppState>();
+
+        await authViewModel.logout();
+
+        if (!context.mounted) return;
+        appState.setUser(IUser());
+        appState.setPayload(ISignup());
+        context.go(AppRoutes.login);
+      },
+    );
+  }
+
+  void _confirmDeleteAccount(BuildContext context) {
+    CustomDialog.showConfirmation(
+      context: context,
+      title: 'Delete Account',
+      subtitle:
+          'This action is permanent and cannot be undone. All your orders, '
+          'saved details, and wallet history will be permanently deleted.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: () {
+        // TODO: Call AuthRepository.deleteAccount() via AuthViewmodel once
+        // the backend endpoint for customer account deletion is available.
+        CustomDialog.showInfo(
+          context: context,
+          title: 'Coming Soon',
+          subtitle: 'Account deletion isn\'t available yet. Please contact '
+              'support if you need your account removed.',
+        );
+      },
     );
   }
 
@@ -517,6 +516,19 @@ class _EditProfileState extends State<EditProfile> {
           ],
         ),
       ),
+    );
+  }
+
+  String _referralCode(BuildContext context) =>
+      context.watch<CurrentUserProvider>().user?.profile?.referralCode ?? '';
+
+  num _referralCount(BuildContext context) =>
+      context.watch<CurrentUserProvider>().user?.profile?.referralCount ?? 0;
+
+  void _copyReferralCode(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: _referralCode(context)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Referral code copied')),
     );
   }
 }
@@ -688,12 +700,13 @@ class _FormCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -715,54 +728,281 @@ class _FieldDivider extends StatelessWidget {
   }
 }
 
-class _FieldRow extends StatelessWidget {
+// ─── Modern Field Card ──────────────────────────────────────────────────────
+//
+// Each field is its own bordered, elevatable card rather than a row in a
+// shared list — the border and shadow intensify on focus so the input
+// affordance (and which field is active) is obvious without relying on a
+// hairline divider.
+
+class _FieldCard extends StatefulWidget {
   final List<List<dynamic>> icon;
   final Color iconColor;
   final String label;
-  final Widget child;
+  final Widget Function(FocusNode focusNode) builder;
 
-  const _FieldRow({
+  const _FieldCard({
     required this.icon,
     required this.iconColor,
     required this.label,
-    required this.child,
+    required this.builder,
   });
+
+  @override
+  State<_FieldCard> createState() => _FieldCardState();
+}
+
+class _FieldCardState extends State<_FieldCard> {
+  final _focusNode = FocusNode();
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    if (mounted) setState(() => _focused = _focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.045, vertical: w * 0.038),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.032),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _focused ? AppColors.primary : AppColors.border,
+          width: _focused ? 1.6 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _focused
+                ? AppColors.primary.withValues(alpha: 0.14)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: _focused ? 18 : 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
             width: w * 0.1,
             height: w * 0.1,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
+              color: widget.iconColor.withValues(alpha: _focused ? 0.18 : 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: HugeIcon(icon: icon, color: iconColor, size: w * 0.036),
+              child: HugeIcon(
+                icon: widget.icon,
+                color: widget.iconColor,
+                size: w * 0.036,
+              ),
             ),
           ),
-          SizedBox(width: w * 0.04),
+          SizedBox(width: w * 0.035),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
+                  widget.label,
                   style: TextStyle(
-                    fontSize: (w * 0.028).clamp(10.0, 12.0),
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textHint,
+                    fontSize: (w * 0.027).clamp(10.0, 12.0),
+                    fontWeight: FontWeight.w700,
+                    color: _focused ? AppColors.primary : AppColors.textHint,
                     letterSpacing: 0.4,
                   ),
                 ),
-                SizedBox(height: w * 0.008),
-                child,
+                SizedBox(height: w * 0.006),
+                widget.builder(_focusNode),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Account Action Row ─────────────────────────────────────────────────────
+
+class _ActionRow extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final Color iconColor;
+  final String label;
+  final Color? labelColor;
+  final VoidCallback onTap;
+
+  const _ActionRow({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.onTap,
+    this.labelColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding:
+              EdgeInsets.symmetric(horizontal: w * 0.045, vertical: w * 0.038),
+          child: Row(
+            children: [
+              Container(
+                width: w * 0.1,
+                height: w * 0.1,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: HugeIcon(icon: icon, color: iconColor, size: w * 0.036),
+                ),
+              ),
+              SizedBox(width: w * 0.04),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: (w * 0.038).clamp(13.0, 16.0),
+                    fontWeight: FontWeight.w600,
+                    color: labelColor ?? AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: AppColors.textHint,
+                size: w * 0.038,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Referral Card ──────────────────────────────────────────────────────────
+
+class _ReferralCard extends StatelessWidget {
+  final String code;
+  final num count;
+  final VoidCallback onCopy;
+
+  const _ReferralCard({
+    required this.code,
+    required this.count,
+    required this.onCopy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Container(
+      padding: EdgeInsets.all(w * 0.045),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primary, Color(0xFFEF5350)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedGift,
+                color: Colors.white,
+                size: w * 0.06,
+              ),
+              SizedBox(width: w * 0.025),
+              Text(
+                'Invite Friends & Earn',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: (w * 0.04).clamp(14.0, 17.0),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: w * 0.02),
+          Text(
+            count > 0
+                ? 'You\'ve referred ${count.toInt()} ${count == 1 ? 'friend' : 'friends'} so far.'
+                : 'Share your code — friends get a discount, you earn rewards.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: (w * 0.032).clamp(11.0, 14.0),
+            ),
+          ),
+          SizedBox(height: w * 0.04),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.04,
+              vertical: w * 0.025,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    code,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: (w * 0.045).clamp(15.0, 19.0),
+                      letterSpacing: 1.2,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                InkWell(
+                  onTap: onCopy,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: EdgeInsets.all(w * 0.022),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCopy01,
+                      color: AppColors.primary,
+                      size: w * 0.04,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

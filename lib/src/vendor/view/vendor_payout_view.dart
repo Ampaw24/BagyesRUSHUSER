@@ -5,14 +5,35 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constant/app_theme.dart';
+import '../../payment/model/payout_provider_model.dart';
+import '../../payment/viewmodel/payout_providers_state.dart';
+import '../../payment/viewmodel/payout_providers_viewmodel.dart';
+import '../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../model/vendor_profile.dart';
 import '../viewmodel/settings_viewmodel.dart';
 
-const _kMobileMoneyProviders = {
-  'mtn': 'MTN Mobile Money',
-  'vodafone': 'Vodafone Cash',
-  'airteltigo': 'AirtelTigo Money',
-};
+/// Best-effort match of a provider stored as a raw string (e.g. `bank_name`
+/// free text, or the `mobile_money_provider` key like `'mtn'`) against the
+/// live-fetched catalog, so existing payout data can be preselected in the
+/// dropdown. Falls back to null (shown as the raw string) if nothing matches.
+PayoutProviderModel? _matchProvider(List<PayoutProviderModel> providers, String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  final needle = raw.trim().toLowerCase();
+  for (final p in providers) {
+    if (p.name.toLowerCase() == needle ||
+        p.shortName.toLowerCase() == needle ||
+        p.slug.toLowerCase() == needle) {
+      return p;
+    }
+  }
+  for (final p in providers) {
+    if (needle.contains(p.shortName.toLowerCase()) ||
+        p.shortName.toLowerCase().contains(needle)) {
+      return p;
+    }
+  }
+  return null;
+}
 
 /// Full-screen payout configuration for `PUT /vendor/me/payout` — lets a
 /// vendor set the bank and/or mobile-money details they get paid out to.
@@ -25,19 +46,21 @@ class VendorPayoutView extends StatefulWidget {
 
 class _VendorPayoutViewState extends State<VendorPayoutView> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _bankNameCtrl;
   late final TextEditingController _accountNumberCtrl;
   late final TextEditingController _accountNameCtrl;
   late final TextEditingController _branchCodeCtrl;
   late final TextEditingController _momoNumberCtrl;
-  String? _momoProvider;
+  PayoutProviderModel? _selectedBank;
+  PayoutProviderModel? _selectedMomo;
+  String? _pendingBankName;
+  String? _pendingMomoKey;
+  bool _pendingResolved = false;
   String? _formError;
   bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _bankNameCtrl = TextEditingController();
     _accountNumberCtrl = TextEditingController();
     _accountNameCtrl = TextEditingController();
     _branchCodeCtrl = TextEditingController();
@@ -55,18 +78,32 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
       if (vm.state.profile == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => vm.loadProfile());
       }
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => context.read<PayoutProvidersViewModel>().load(),
+      );
     }
   }
 
   void _prefill(VendorPayoutInfo payout) {
-    _bankNameCtrl.text = payout.bankName ?? '';
+    _pendingBankName = payout.bankName;
     _accountNameCtrl.text = payout.accountName ?? '';
-    _momoProvider = payout.mobileMoneyProvider;
+    _pendingMomoKey = payout.mobileMoneyProvider;
+  }
+
+  /// Resolves the raw stored `bank_name`/`mobile_money_provider` strings
+  /// into live catalog entries once the providers have loaded. Mutating
+  /// state here (outside setState) is safe: it only runs once, before the
+  /// values are read later in the same build pass.
+  void _resolvePendingSelections(PayoutProvidersViewModel providersVm) {
+    if (_pendingResolved) return;
+    if (providersVm.state is! PayoutProvidersLoaded) return;
+    _pendingResolved = true;
+    _selectedBank ??= _matchProvider(providersVm.banks, _pendingBankName);
+    _selectedMomo ??= _matchProvider(providersVm.mobileMoneyProviders, _pendingMomoKey);
   }
 
   @override
   void dispose() {
-    _bankNameCtrl.dispose();
     _accountNumberCtrl.dispose();
     _accountNameCtrl.dispose();
     _branchCodeCtrl.dispose();
@@ -77,37 +114,38 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
   Future<void> _save(SettingsViewModel vm) async {
     if (!_formKey.currentState!.validate()) return;
 
-    final bankName = _bankNameCtrl.text.trim();
+    final bank = _selectedBank;
     final accountNumber = _accountNumberCtrl.text.trim();
     final accountName = _accountNameCtrl.text.trim();
     final momoNumber = _momoNumberCtrl.text.trim();
+    final momo = _selectedMomo;
 
     final hasAnyBankField =
-        bankName.isNotEmpty || accountNumber.isNotEmpty || accountName.isNotEmpty;
+        bank != null || accountNumber.isNotEmpty || accountName.isNotEmpty;
     if (hasAnyBankField &&
-        (bankName.isEmpty || accountNumber.isEmpty || accountName.isEmpty)) {
+        (bank == null || accountNumber.isEmpty || accountName.isEmpty)) {
       setState(() => _formError =
-          'Bank name, account number, and account name are all required together');
+          'Bank, account number, and account name are all required together');
       return;
     }
-    if (momoNumber.isNotEmpty && _momoProvider == null) {
+    if (momoNumber.isNotEmpty && momo == null) {
       setState(() => _formError = 'Select a mobile money provider');
       return;
     }
-    if (_momoProvider != null && momoNumber.isEmpty) {
+    if (momo != null && momoNumber.isEmpty) {
       setState(() => _formError = 'Enter a mobile money number');
       return;
     }
     setState(() => _formError = null);
 
     final data = <String, dynamic>{
-      if (bankName.isNotEmpty) 'bank_name': bankName,
+      if (bank != null) 'bank_name': bank.name,
       if (accountNumber.isNotEmpty) 'account_number': accountNumber,
       if (accountName.isNotEmpty) 'account_name': accountName,
       if (_branchCodeCtrl.text.trim().isNotEmpty)
         'branch_code': _branchCodeCtrl.text.trim(),
       if (momoNumber.isNotEmpty) 'mobile_money_number': momoNumber,
-      if (_momoProvider != null) 'mobile_money_provider': _momoProvider,
+      if (momo != null) 'mobile_money_provider': momo.shortName.toLowerCase(),
     };
 
     if (data.isEmpty) return;
@@ -128,12 +166,14 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
     );
     if (!success) return;
 
-    _bankNameCtrl.clear();
     _accountNumberCtrl.clear();
     _accountNameCtrl.clear();
     _branchCodeCtrl.clear();
     _momoNumberCtrl.clear();
-    setState(() => _momoProvider = null);
+    setState(() {
+      _selectedBank = null;
+      _selectedMomo = null;
+    });
 
     await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
@@ -165,10 +205,11 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: Consumer<SettingsViewModel>(
-        builder: (context, vm, _) {
+      body: Consumer2<SettingsViewModel, PayoutProvidersViewModel>(
+        builder: (context, vm, providersVm, _) {
           final saving = vm.state.status == SettingsStatus.saving;
           final payout = vm.state.profile?.payout ?? const VendorPayoutInfo();
+          _resolvePendingSelections(providersVm);
 
           return Stack(
             children: [
@@ -180,19 +221,22 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _PayoutStatusHero(w: w, payout: payout),
+                        _PayoutStatusHero(w: w, payout: payout, providers: providersVm.mobileMoneyProviders),
                         SizedBox(height: w * 0.06),
                         _SectionCard(
                           w: w,
                           icon: HugeIcons.strokeRoundedBank,
                           title: 'Bank Account',
                           children: [
-                            _PayoutField(
-                              w: w,
-                              controller: _bankNameCtrl,
-                              label: 'Bank Name',
-                              hint: 'e.g. GCB Bank',
-                              icon: HugeIcons.strokeRoundedBuilding05,
+                            PayoutProviderDropdown(
+                              label: 'Bank',
+                              placeholder: 'Select bank',
+                              providers: providersVm.banks,
+                              selected: _selectedBank,
+                              isLoading: providersVm.isLoading,
+                              error: providersVm.error,
+                              onRetry: () => providersVm.load(force: true),
+                              onSelected: (p) => setState(() => _selectedBank = p),
                             ),
                             SizedBox(height: w * 0.035),
                             _PayoutField(
@@ -230,41 +274,15 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
                           icon: HugeIcons.strokeRoundedSmartPhone01,
                           title: 'Mobile Money',
                           children: [
-                            Text(
-                              'Provider',
-                              style: TextStyle(
-                                fontSize: w * 0.032,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            SizedBox(height: w * 0.018),
-                            DropdownButtonFormField<String>(
-                              initialValue: _momoProvider,
-                              hint: Text(
-                                'Select provider',
-                                style: TextStyle(
-                                  fontSize: w * 0.038,
-                                  color: AppColors.textHint,
-                                ),
-                              ),
-                              decoration: InputDecoration(
-                                prefixIcon: Padding(
-                                  padding: EdgeInsets.all(w * 0.032),
-                                  child: HugeIcon(
-                                    icon: HugeIcons.strokeRoundedMoneyExchange01,
-                                    color: AppColors.textSecondary,
-                                    size: w * 0.045,
-                                  ),
-                                ),
-                              ),
-                              items: _kMobileMoneyProviders.entries
-                                  .map((e) => DropdownMenuItem(
-                                        value: e.key,
-                                        child: Text(e.value),
-                                      ))
-                                  .toList(),
-                              onChanged: (v) => setState(() => _momoProvider = v),
+                            PayoutProviderDropdown(
+                              label: 'Provider',
+                              placeholder: 'Select provider',
+                              providers: providersVm.mobileMoneyProviders,
+                              selected: _selectedMomo,
+                              isLoading: providersVm.isLoading,
+                              error: providersVm.error,
+                              onRetry: () => providersVm.load(force: true),
+                              onSelected: (p) => setState(() => _selectedMomo = p),
                             ),
                             SizedBox(height: w * 0.035),
                             _PayoutField(
@@ -338,19 +356,22 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
 class _PayoutStatusHero extends StatelessWidget {
   final double w;
   final VendorPayoutInfo payout;
+  final List<PayoutProviderModel> providers;
 
-  const _PayoutStatusHero({required this.w, required this.payout});
+  const _PayoutStatusHero({required this.w, required this.payout, required this.providers});
 
   @override
   Widget build(BuildContext context) {
     final configured = payout.isConfigured;
+    final momoDisplayName =
+        _matchProvider(providers, payout.mobileMoneyProvider)?.name ?? payout.mobileMoneyProvider;
     final summary = configured
         ? [
             if (payout.bankName != null && payout.accountNumberLast4 != null)
               '${payout.bankName} •••• ${payout.accountNumberLast4}',
             if (payout.mobileMoneyProvider != null &&
                 payout.mobileMoneyNumberLast4 != null)
-              '${_kMobileMoneyProviders[payout.mobileMoneyProvider] ?? payout.mobileMoneyProvider} •••• ${payout.mobileMoneyNumberLast4}',
+              '$momoDisplayName •••• ${payout.mobileMoneyNumberLast4}',
           ]
         : <String>[];
 

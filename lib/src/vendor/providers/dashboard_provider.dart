@@ -81,13 +81,11 @@ class DashboardNotifier extends Notifier<DashboardState> {
     statsResult.fold(
       (failure) => state = state.copyWith(
         status: DashboardStatus.error,
-        errorMessage: failure.message,
       ),
       (stats) {
         ordersResult.fold(
           (failure) => state = state.copyWith(
             status: DashboardStatus.error,
-            errorMessage: failure.message,
           ),
           (orders) => state = state.copyWith(
             status: DashboardStatus.loaded,

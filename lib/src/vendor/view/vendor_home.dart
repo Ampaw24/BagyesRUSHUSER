@@ -28,6 +28,7 @@ import 'vendor_menu_view.dart';
 import 'vendor_earnings_view.dart';
 import '../model/vendor_order.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
+import '../../auth/views/change_password_sheet.dart';
 import '../../notification/viewmodel/notification_viewmodel.dart';
 import '../../../states/app.state.dart';
 import '../../../services/auth.service.dart' show ISignup;
@@ -226,6 +227,10 @@ class _VendorHomeState extends State<VendorHome> {
                 onPayoutSettings: () {
                   _closeDrawer();
                   context.push(AppRoutes.vendorPayout);
+                },
+                onChangePassword: () {
+                  _closeDrawer();
+                  ChangePasswordSheet.show(context);
                 },
                 onPrivacyPolicy: () {},
                 onHelpSupport: () {

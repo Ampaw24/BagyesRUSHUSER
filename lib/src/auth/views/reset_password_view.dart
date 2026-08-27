@@ -10,9 +10,10 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
 class ResetPasswordView extends StatefulWidget {
-  const ResetPasswordView({super.key, required this.phone});
+  const ResetPasswordView({super.key, required this.phone, required this.code});
 
   final String phone;
+  final String code;
 
   @override
   State<ResetPasswordView> createState() => _ResetPasswordViewState();
@@ -102,6 +103,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
     context.read<AuthViewmodel>().resetPassword(
           phone: widget.phone,
+          code: widget.code,
           password: password,
           confirmPassword: confirmPassword,
         );

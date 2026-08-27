@@ -191,6 +191,33 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
+  /// Starts the "forgot password" flow (login screen, signed-out user) by
+  /// requesting an OTP through the dedicated `/password/forgot` endpoint.
+  /// Emits the same [RequestingOTP]/[OTPSent]/[AuthError] states as [sendOtp]
+  /// so OTPView's listener handles both without change — only the endpoint
+  /// hit differs.
+  Future<void> sendForgotPasswordOtp(String phone) async {
+    _pendingPhone = phone.trim();
+    appLogger.d('AuthViewmodel.sendForgotPasswordOtp → initiated');
+    emit(const RequestingOTP());
+
+    final result = await _repository.sendForgotPasswordOtp(phone: phone.trim());
+
+    result.fold(
+      (failure) {
+        appLogger.w(
+          'AuthViewmodel.sendForgotPasswordOtp → error: ${failure.message}',
+        );
+        emit(AuthError.fromFailure(failure));
+      },
+      (response) {
+        _otpResponse = response;
+        appLogger.i('AuthViewmodel.sendForgotPasswordOtp → OTPSent');
+        emit(const OTPSent());
+      },
+    );
+  }
+
   Future<void> verifyOtp({
     required String phone,
     required String otp,
@@ -429,6 +456,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
   Future<void> resetPassword({
     required String phone,
+    required String code,
     required String password,
     required String confirmPassword,
   }) async {
@@ -437,6 +465,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
     final result = await _repository.resetPassword(
       phone: phone,
+      code: code,
       password: password,
       confirmPassword: confirmPassword,
     );
@@ -449,6 +478,60 @@ class AuthViewmodel extends ViewModel<AuthState> {
       (_) {
         appLogger.i('AuthViewmodel.resetPassword → success');
         emit(const PasswordResetSuccess());
+      },
+    );
+  }
+
+  /// Uploads a new profile picture for the current customer.
+  ///
+  /// Emits [AvatarUploading] while the request is in flight, updates
+  /// [CurrentUserProvider] with the returned user on success (so the new
+  /// avatar shows up everywhere it's displayed), then emits [AvatarUploaded].
+  Future<void> uploadAvatar(String filePath) async {
+    appLogger.d('AuthViewmodel.uploadAvatar → path=$filePath');
+    emit(const AvatarUploading());
+
+    final result = await _repository.uploadAvatar(filePath);
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.uploadAvatar → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (user) {
+        appLogger.i('AuthViewmodel.uploadAvatar → success id=${user.id}');
+        _currentUserProvider.setUser(user);
+        emit(AvatarUploaded(user));
+      },
+    );
+  }
+
+  /// Changes the current user's password while they remain signed in
+  /// (distinct from [resetPassword], which goes through the OTP-based
+  /// forgot-password flow). Shared by both customer and vendor screens
+  /// since password auth is role-agnostic.
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    appLogger.d('AuthViewmodel.changePassword → initiated');
+    emit(const PasswordChanging());
+
+    final result = await _repository.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+
+    result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.changePassword → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (_) {
+        appLogger.i('AuthViewmodel.changePassword → success');
+        emit(const PasswordChanged());
       },
     );
   }

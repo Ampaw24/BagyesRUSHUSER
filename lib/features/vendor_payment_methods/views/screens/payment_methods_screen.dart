@@ -1,35 +1,42 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/custom_dialogs.dart';
-import '../../providers/payment_providers.dart';
-import '../../viewmodels/payment_methods_viewmodel.dart';
-import '../../models/payment_method_model.dart';
+import '../../../../src/payment/model/payment_method.dart';
+import '../../../../src/payment/viewmodel/payment_state.dart';
+import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
 import '../widgets/payment_method_card.dart';
-import 'add_payment_method_screen.dart';
+import 'add_mobile_money_screen.dart';
 
 /// Main vendor payment methods management screen.
-class PaymentMethodsScreen extends ConsumerStatefulWidget {
+class PaymentMethodsScreen extends StatelessWidget {
   const PaymentMethodsScreen({super.key});
 
   @override
-  ConsumerState<PaymentMethodsScreen> createState() =>
-      _PaymentMethodsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<PaymentViewModel>(
+      create: (_) {
+        final vm = sl<PaymentViewModel>(param1: true);
+        vm.loadPaymentMethods();
+        return vm;
+      },
+      child: const _PaymentMethodsView(),
+    );
+  }
 }
 
-class _PaymentMethodsScreenState
-    extends ConsumerState<PaymentMethodsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(paymentMethodsProvider.notifier).load();
-    });
-  }
+class _PaymentMethodsView extends StatefulWidget {
+  const _PaymentMethodsView();
 
-  // ── Delete confirmation ───────────────────────────────────────────────────
+  @override
+  State<_PaymentMethodsView> createState() => _PaymentMethodsViewState();
+}
+
+class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
+  String? _processingId;
 
   Future<bool> _confirmDelete(BuildContext context, String title) async {
     final completer = Completer<bool>();
@@ -44,10 +51,15 @@ class _PaymentMethodsScreenState
     return completer.future;
   }
 
-  void _showAddScreen() {
-    Navigator.of(context).push(
+  void _showAddScreen(BuildContext context) {
+    final vm = context.read<PaymentViewModel>();
+    Navigator.of(context)
+        .push(
       PageRouteBuilder(
-        pageBuilder: (_, anim, _) => const AddPaymentMethodScreen(),
+        pageBuilder: (_, anim, _) => ChangeNotifierProvider<PaymentViewModel>.value(
+          value: vm,
+          child: const AddMobileMoneyScreen(),
+        ),
         transitionsBuilder: (_, anim, _, child) => SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(0, 1),
@@ -57,97 +69,97 @@ class _PaymentMethodsScreenState
         ),
         transitionDuration: const Duration(milliseconds: 380),
       ),
-    );
+    )
+        .then((_) => vm.loadPaymentMethods());
+  }
+
+  Future<void> _delete(PaymentMethod method) async {
+    final vm = context.read<PaymentViewModel>();
+    setState(() => _processingId = method.id);
+    final ok = await vm.deletePaymentMethod(method.id);
+    if (!mounted) return;
+    setState(() => _processingId = null);
+    if (ok) vm.loadPaymentMethods();
+  }
+
+  Future<void> _setDefault(PaymentMethod method) async {
+    final vm = context.read<PaymentViewModel>();
+    setState(() => _processingId = method.id);
+    final ok = await vm.setDefault(method.id);
+    if (!mounted) return;
+    setState(() => _processingId = null);
+    if (ok) vm.loadPaymentMethods();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(paymentMethodsProvider);
-    final notifier = ref.read(paymentMethodsProvider.notifier);
-
-    // Show error snackbar reactively
-    ref.listen<PaymentMethodsState>(paymentMethodsProvider, (prev, next) {
-      if (next.errorMessage != null &&
-          prev?.errorMessage != next.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!)),
-        );
-      }
-    });
+    final state = context.watch<PaymentViewModel>().state;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(
         title: const Text('Payment Methods'),
         actions: [
-          if (state.paymentMethods.isNotEmpty)
+          if (state is PaymentMethodsLoaded && state.methods.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.add_rounded),
-              onPressed: _showAddScreen,
+              onPressed: () => _showAddScreen(context),
               tooltip: 'Add payment method',
             ),
         ],
       ),
-      body: SafeArea(
-        child: _buildBody(state, notifier, context),
-      ),
+      body: SafeArea(child: _buildBody(context, state)),
     );
   }
 
-  Widget _buildBody(
-    PaymentMethodsState state,
-    PaymentMethodsNotifier notifier,
-    BuildContext context,
-  ) {
-    switch (state.status) {
-      case PaymentMethodsStatus.initial:
-      case PaymentMethodsStatus.loading:
-        return const _SkeletonLoader();
-
-      case PaymentMethodsStatus.error:
-        return _ErrorView(
-          message: state.errorMessage ?? 'Failed to load payment methods',
-          onRetry: notifier.load,
-        );
-
-      case PaymentMethodsStatus.loaded:
-        if (state.isEmpty) {
-          return _EmptyState(onAdd: _showAddScreen);
-        }
-        return RefreshIndicator(
-          color: Theme.of(context).colorScheme.primary,
-          onRefresh: notifier.load,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(top: 8, bottom: 100),
-            itemCount: state.paymentMethods.length,
-            itemBuilder: (_, index) {
-              final method = state.paymentMethods[index];
-              return _DismissibleCard(
-                method: method,
-                isProcessing: state.processingId == method.id,
-                onConfirmDelete: () =>
-                    _confirmDelete(context, method.displayTitle),
-                onDelete: () => notifier.delete(method.id),
-                onSetDefault: () => notifier.setDefault(method.id),
-                onToggleEnabled: () => notifier.toggleEnabled(method.id),
-              );
-            },
-          ),
-        );
+  Widget _buildBody(BuildContext context, PaymentState state) {
+    if (state is PaymentInitial || state is PaymentLoading) {
+      return const _SkeletonLoader();
     }
+
+    if (state is PaymentError) {
+      return _ErrorView(
+        message: state.message,
+        onRetry: () => context.read<PaymentViewModel>().loadPaymentMethods(),
+      );
+    }
+
+    final methods = state is PaymentMethodsLoaded ? state.methods : <PaymentMethod>[];
+
+    if (methods.isEmpty) {
+      return _EmptyState(onAdd: () => _showAddScreen(context));
+    }
+
+    return RefreshIndicator(
+      color: Theme.of(context).colorScheme.primary,
+      onRefresh: () => context.read<PaymentViewModel>().loadPaymentMethods(),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(top: 8, bottom: 100),
+        itemCount: methods.length,
+        itemBuilder: (_, index) {
+          final method = methods[index];
+          return _DismissibleCard(
+            method: method,
+            isProcessing: _processingId == method.id,
+            onConfirmDelete: () => _confirmDelete(context, method.displayTitle),
+            onDelete: () => _delete(method),
+            onSetDefault: () => _setDefault(method),
+          );
+        },
+      ),
+    );
   }
 }
 
 // ── Dismissible wrapper ───────────────────────────────────────────────────────
 
 class _DismissibleCard extends StatelessWidget {
-  final PaymentMethodModel method;
+  final PaymentMethod method;
   final bool isProcessing;
   final Future<bool> Function() onConfirmDelete;
   final VoidCallback onDelete;
   final VoidCallback onSetDefault;
-  final VoidCallback onToggleEnabled;
 
   const _DismissibleCard({
     required this.method,
@@ -155,7 +167,6 @@ class _DismissibleCard extends StatelessWidget {
     required this.onConfirmDelete,
     required this.onDelete,
     required this.onSetDefault,
-    required this.onToggleEnabled,
   });
 
   @override
@@ -193,7 +204,6 @@ class _DismissibleCard extends StatelessWidget {
         method: method,
         isProcessing: isProcessing,
         onSetDefault: method.isDefault ? null : onSetDefault,
-        onToggleEnabled: onToggleEnabled,
         onDelete: onDelete,
       ),
     );

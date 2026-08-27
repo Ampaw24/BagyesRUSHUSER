@@ -21,6 +21,15 @@ class ProfileViewModel extends Notifier<ProfileState> {
 
   @override
   ProfileState build() {
+    // On cold start, restoreSession() sets a placeholder user (no profile
+    // yet) before the real profile arrives from a background fetch. Without
+    // this listener, the one-off _loadProfile() below would freeze this
+    // screen's name/avatar on that placeholder — listening keeps it in sync
+    // with CurrentUserProvider for the lifetime of this provider.
+    final currentUserProvider = GetIt.instance<CurrentUserProvider>();
+    currentUserProvider.addListener(_loadProfile);
+    ref.onDispose(() => currentUserProvider.removeListener(_loadProfile));
+
     _loadProfile();
     return const ProfileLoading();
   }

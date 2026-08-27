@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
+import '../../payment/model/payout_provider_model.dart';
 import '../model/vendor_profile.dart';
 import '../repository/vendor_dashboard_repository.dart';
 import '../../../core/common/app/current_user_provider.dart';
@@ -28,6 +29,14 @@ class VendorKycState extends Equatable {
   final String? errorMessage;
   final String? uploadProgressMessage;
 
+  // ── Payout (step 3) ──
+  final PayoutProviderModel? selectedBank;
+  final String bankAccountNumber;
+  final String bankAccountName;
+  final String branchCode;
+  final PayoutProviderModel? selectedMomoProvider;
+  final String momoNumber;
+
   const VendorKycState({
     this.status = VendorKycStatus.initial,
     this.businessCertPath,
@@ -38,6 +47,12 @@ class VendorKycState extends Equatable {
     this.estimatedPrepTimeMinutes = 30,
     this.errorMessage,
     this.uploadProgressMessage,
+    this.selectedBank,
+    this.bankAccountNumber = '',
+    this.bankAccountName = '',
+    this.branchCode = '',
+    this.selectedMomoProvider,
+    this.momoNumber = '',
   });
 
   VendorKycState copyWith({
@@ -52,6 +67,14 @@ class VendorKycState extends Equatable {
     int? estimatedPrepTimeMinutes,
     String? errorMessage,
     String? uploadProgressMessage,
+    PayoutProviderModel? selectedBank,
+    bool clearSelectedBank = false,
+    String? bankAccountNumber,
+    String? bankAccountName,
+    String? branchCode,
+    PayoutProviderModel? selectedMomoProvider,
+    bool clearSelectedMomoProvider = false,
+    String? momoNumber,
   }) {
     return VendorKycState(
       status: status ?? this.status,
@@ -66,6 +89,14 @@ class VendorKycState extends Equatable {
       estimatedPrepTimeMinutes: estimatedPrepTimeMinutes ?? this.estimatedPrepTimeMinutes,
       errorMessage: errorMessage,
       uploadProgressMessage: uploadProgressMessage ?? this.uploadProgressMessage,
+      selectedBank: clearSelectedBank ? null : (selectedBank ?? this.selectedBank),
+      bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+      bankAccountName: bankAccountName ?? this.bankAccountName,
+      branchCode: branchCode ?? this.branchCode,
+      selectedMomoProvider: clearSelectedMomoProvider
+          ? null
+          : (selectedMomoProvider ?? this.selectedMomoProvider),
+      momoNumber: momoNumber ?? this.momoNumber,
     );
   }
 
@@ -80,6 +111,12 @@ class VendorKycState extends Equatable {
         estimatedPrepTimeMinutes,
         errorMessage,
         uploadProgressMessage,
+        selectedBank,
+        bankAccountNumber,
+        bankAccountName,
+        branchCode,
+        selectedMomoProvider,
+        momoNumber,
       ];
 }
 
@@ -115,6 +152,93 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
   }
 
   void clearError() => emit(state.copyWith(errorMessage: null));
+
+  // ── Payout (step 3) ──
+
+  void setSelectedBank(PayoutProviderModel? bank) => emit(state.copyWith(
+        selectedBank: bank,
+        clearSelectedBank: bank == null,
+      ));
+  void setBankAccountNumber(String value) =>
+      emit(state.copyWith(bankAccountNumber: value));
+  void setBankAccountName(String value) =>
+      emit(state.copyWith(bankAccountName: value));
+  void setBranchCode(String value) => emit(state.copyWith(branchCode: value));
+  void setSelectedMomoProvider(PayoutProviderModel? provider) => emit(state.copyWith(
+        selectedMomoProvider: provider,
+        clearSelectedMomoProvider: provider == null,
+      ));
+  void setMomoNumber(String value) => emit(state.copyWith(momoNumber: value));
+
+  /// Validates and submits the payout step via the same `PUT /vendor/me/payout`
+  /// endpoint used by the standalone Payout Settings screen. Required: at
+  /// least one of a complete bank set or a complete mobile-money set.
+  Future<bool> submitPayoutDetails() async {
+    final bank = state.selectedBank;
+    final accountNumber = state.bankAccountNumber.trim();
+    final accountName = state.bankAccountName.trim();
+    final momo = state.selectedMomoProvider;
+    final momoNumber = state.momoNumber.trim();
+
+    final hasAnyBankField = bank != null || accountNumber.isNotEmpty || accountName.isNotEmpty;
+    final bankComplete = bank != null && accountNumber.isNotEmpty && accountName.isNotEmpty;
+    final momoComplete = momo != null && momoNumber.isNotEmpty;
+
+    if (hasAnyBankField && !bankComplete) {
+      emit(state.copyWith(
+        status: VendorKycStatus.error,
+        errorMessage: 'Bank, account number, and account name are all required together',
+      ));
+      return false;
+    }
+    if ((momo != null) != momoNumber.isNotEmpty) {
+      emit(state.copyWith(
+        status: VendorKycStatus.error,
+        errorMessage: momo == null
+            ? 'Select a mobile money provider'
+            : 'Enter a mobile money number',
+      ));
+      return false;
+    }
+    if (!bankComplete && !momoComplete) {
+      emit(state.copyWith(
+        status: VendorKycStatus.error,
+        errorMessage: 'Add a bank account or mobile money number to receive payouts',
+      ));
+      return false;
+    }
+
+    emit(state.copyWith(
+      status: VendorKycStatus.saving,
+      uploadProgressMessage: 'Saving payout details...',
+    ));
+
+    final data = <String, dynamic>{
+      if (bankComplete) 'bank_name': bank.name,
+      if (bankComplete) 'account_number': accountNumber,
+      if (bankComplete) 'account_name': accountName,
+      if (bankComplete && state.branchCode.trim().isNotEmpty)
+        'branch_code': state.branchCode.trim(),
+      if (momoComplete) 'mobile_money_number': momoNumber,
+      if (momoComplete) 'mobile_money_provider': momo.shortName.toLowerCase(),
+    };
+
+    final result = await _dashboardRepository.updateVendorPayout(data);
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(
+          status: VendorKycStatus.error,
+          errorMessage: 'Failed to save payout details: ${failure.message}',
+        ));
+        return false;
+      },
+      (profile) {
+        _syncProfile(profile);
+        emit(state.copyWith(status: VendorKycStatus.initial, errorMessage: null));
+        return true;
+      },
+    );
+  }
 
   /// Submits operating hours, operating days, and estimated prep time via
   /// the dedicated operations-KYC endpoint. Called when the vendor advances

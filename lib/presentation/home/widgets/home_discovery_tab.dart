@@ -92,6 +92,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     final avatarInitials =
         '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
+    final String? avatarUrl = user?.profile?.profilePictureUrl;
 
     return CustomScrollView(
       controller: _scrollController,
@@ -203,14 +204,19 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                     CircleAvatar(
                       radius: w * 0.05,
                       backgroundColor: AppColors.primary,
-                      child: Text(
-                        avatarInitials.isNotEmpty ? avatarInitials : 'U',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: w * 0.035,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      child: avatarUrl == null || avatarUrl.isEmpty
+                          ? Text(
+                              avatarInitials.isNotEmpty ? avatarInitials : 'U',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: w * 0.035,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : null,
                     ),
                   ],
                 ),

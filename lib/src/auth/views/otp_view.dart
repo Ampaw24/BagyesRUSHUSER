@@ -594,6 +594,12 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   late final _OtpInputController _input;
   late final _ResendTimer        _resendTimer;
 
+  /// The code from the most recent verify attempt, retained only for the
+  /// forgot-password flow — the reset-password endpoint re-validates the
+  /// code alongside the new password, so it must survive past the input
+  /// fields' security wipe until the redirect to ResetPasswordView.
+  String? _verifiedOtp;
+
   // ── Animations ────────────────────────────────────────────────────────────
   late final AnimationController _entryCtrl;
   late final AnimationController _shakeCtrl;
@@ -740,8 +746,11 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
     final phone = _phone;
     final otp   = _input.otp; // capture before clear
+    _verifiedOtp = otp;
 
-    // Security: wipe fields immediately — OTP must not linger in widget state.
+    // Security: wipe input fields immediately — the raw digits must not
+    // linger in the on-screen boxes. (`_verifiedOtp` is kept separately,
+    // only for the forgot-password redirect below.)
     _input.clearAll();
 
     context.read<AuthViewmodel>().verifyOtp(phone: phone, otp: otp);
@@ -749,7 +758,12 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
   void _resendOtp() {
     if (!_resendTimer.canResend) return;
-    context.read<AuthViewmodel>().sendOtp(_phone);
+    final vm = context.read<AuthViewmodel>();
+    if (widget.isForgotPassword) {
+      vm.sendForgotPasswordOtp(_phone);
+    } else {
+      vm.sendOtp(_phone);
+    }
   }
 
   // ── State transitions ─────────────────────────────────────────────────────
@@ -789,7 +803,9 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
     if (!mounted) return;
 
     if (widget.isForgotPassword) {
-      AppNavigator.toResetPassword(context, _phone);
+      final code = _verifiedOtp ?? '';
+      _verifiedOtp = null;
+      AppNavigator.toResetPassword(context, _phone, code);
       return;
     }
 
