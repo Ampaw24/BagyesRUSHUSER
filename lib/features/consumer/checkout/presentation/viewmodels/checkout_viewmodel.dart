@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/domain/entities/checkout_model.dart';
@@ -21,8 +23,39 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
     return const CheckoutForm();
   }
 
+  /// For hand-typed address input. Explicitly drops any previously-resolved
+  /// coordinates (rebuilds `CheckoutForm` directly rather than via
+  /// `copyWith`, since `copyWith`'s `??` semantics can't null a field back
+  /// out) — editing the text after a GPS/map pick means the pin no longer
+  /// matches, so a stale coordinate must not silently ride along.
   void updateAddress(String address) {
-    state = CheckoutIdle(form: _currentForm.copyWith(deliveryAddress: address));
+    final form = _currentForm;
+    state = CheckoutIdle(
+      form: CheckoutForm(
+        deliveryAddress: address,
+        deliveryInstructions: form.deliveryInstructions,
+        paymentMethod: form.paymentMethod,
+      ),
+    );
+  }
+
+  /// For GPS ("use current location") or the map picker, where a real
+  /// coordinate is available alongside the resolved address string.
+  void updateAddressWithCoordinates(
+    String address, {
+    required double latitude,
+    required double longitude,
+  }) {
+    final form = _currentForm;
+    state = CheckoutIdle(
+      form: CheckoutForm(
+        deliveryAddress: address,
+        deliveryInstructions: form.deliveryInstructions,
+        paymentMethod: form.paymentMethod,
+        deliveryLat: latitude,
+        deliveryLng: longitude,
+      ),
+    );
   }
 
   void updateInstructions(String instructions) {
@@ -48,9 +81,16 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
                 ? null
                 : form.deliveryInstructions,
             paymentMethod: form.paymentMethod.label,
+            deliveryLat: form.deliveryLat,
+            deliveryLng: form.deliveryLng,
           );
       ref.read(cartProvider.notifier).clear();
       state = CheckoutSuccess(orderId: order.id);
+    } on DioException catch (e) {
+      state = CheckoutError(
+        form: form,
+        message: NetworkUtils.handleDioException(e).value.message,
+      );
     } catch (e) {
       state = CheckoutError(
         form: form,

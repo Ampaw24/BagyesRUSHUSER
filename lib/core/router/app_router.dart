@@ -7,7 +7,6 @@ import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart'
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
 import 'package:bagyesrushappusernew/presentation/splash_screen.dart';
 import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
-import 'package:bagyesrushappusernew/presentation/orders/track_order.dart';
 import 'package:bagyesrushappusernew/presentation/profile/profile.dart';
 import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
 import 'package:bagyesrushappusernew/features/parcel/presentation/views/send_parcel_view.dart';
@@ -201,12 +200,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.trackOrder,
       builder: (context, state) {
-        // Accept orderId via `extra` (from placeOrder) or fall back to legacy TrackOrder
+        // orderId is always passed via `extra` from placeOrder/order-history nav.
         final orderId = state.extra as String?;
         if (orderId != null) {
           return OrderTrackingView(orderId: orderId);
         }
-        return TrackOrder();
+        return Scaffold(
+          appBar: AppBar(title: const Text('Track Order')),
+          body: const Center(child: Text('Order not found')),
+        );
       },
     ),
 

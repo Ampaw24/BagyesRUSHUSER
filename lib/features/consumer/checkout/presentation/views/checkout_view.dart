@@ -73,7 +73,11 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       final address =
           _buildAddressString(placemarks.isNotEmpty ? placemarks.first : null, pos);
       _addressController.text = address;
-      ref.read(checkoutProvider.notifier).updateAddress(address);
+      ref.read(checkoutProvider.notifier).updateAddressWithCoordinates(
+            address,
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+          );
     } catch (_) {}
   }
 
@@ -84,9 +88,13 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       backgroundColor: Colors.transparent,
       builder: (_) => MapLocationPickerSheet(
         title: 'Delivery Address',
-        onConfirm: (LatLng _, String address) {
+        onConfirm: (LatLng latLng, String address) {
           _addressController.text = address;
-          ref.read(checkoutProvider.notifier).updateAddress(address);
+          ref.read(checkoutProvider.notifier).updateAddressWithCoordinates(
+                address,
+                latitude: latLng.latitude,
+                longitude: latLng.longitude,
+              );
           Navigator.pop(context);
         },
       ),

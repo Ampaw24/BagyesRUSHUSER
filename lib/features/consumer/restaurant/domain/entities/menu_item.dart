@@ -53,6 +53,24 @@ class MenuItem {
         maximumOrderQty: json['maximum_order_qty'] as int?,
       );
 
+  /// Mirrors [fromJson]'s key names so a round trip through this and back
+  /// reproduces the same [MenuItem]. Used for local cart persistence only —
+  /// never sent to the backend.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'restaurant_id': restaurantId,
+        'name': name,
+        'description': description,
+        'image_url': imageUrl,
+        'price': price,
+        'category': category,
+        'is_available': isAvailable,
+        'is_popular': isPopular,
+        'addon_groups': addonGroups.map((g) => g.toJson()).toList(),
+        'minimum_order_qty': minimumOrderQty,
+        'maximum_order_qty': maximumOrderQty,
+      };
+
   @override
   bool operator ==(Object other) =>
       other is MenuItem && other.id == id;

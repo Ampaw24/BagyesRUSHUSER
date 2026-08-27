@@ -11,12 +11,26 @@ class OrdersRepositoryImpl implements IOrdersRepository {
   final Dio _client;
 
   @override
-  Future<List<ConsumerOrder>> getOrders() async {
-    final response = await _client.get(ApiEndpoints.customerOrders);
-    final list = _dataList(response);
-    return list
+  Future<OrdersPage> getOrdersPaged({int page = 1, int limit = 20}) async {
+    final response = await _client.get(
+      ApiEndpoints.customerOrders,
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    final (list, meta) = _extractPagedList(response);
+    final orders = list
         .map((e) => ConsumerOrder.fromJson(e as Map<String, dynamic>))
         .toList();
+
+    final currentPage = (meta['current_page'] ?? meta['page']) as num? ?? page;
+    final lastPage = (meta['last_page'] ?? meta['totalPages']) as num? ?? 1;
+    final total = meta['total'] as num? ?? orders.length;
+
+    return OrdersPage(
+      orders: orders,
+      page: currentPage.toInt(),
+      totalPages: lastPage.toInt(),
+      total: total.toInt(),
+    );
   }
 
   @override
@@ -32,6 +46,8 @@ class OrdersRepositoryImpl implements IOrdersRepository {
     required String deliveryAddress,
     String? deliveryInstructions,
     required String paymentMethod,
+    double? deliveryLat,
+    double? deliveryLng,
   }) async {
     final body = {
       'vendor_id': cart.restaurantId,
@@ -49,6 +65,12 @@ class OrdersRepositoryImpl implements IOrdersRepository {
       if (deliveryInstructions != null && deliveryInstructions.isNotEmpty)
         'delivery_instructions': deliveryInstructions,
       'payment_method': paymentMethod,
+      // Best-effort: only sent when resolved via GPS/map-pick. Omitted
+      // entirely (not sent as null) when the user hand-typed the address.
+      if (deliveryLat != null && deliveryLng != null) ...{
+        'delivery_latitude': deliveryLat,
+        'delivery_longitude': deliveryLng,
+      },
     };
     final response = await _client.post(ApiEndpoints.customerOrders, data: body);
     return ConsumerOrder.fromJson(_dataMap(response));
@@ -111,17 +133,38 @@ class OrdersRepositoryImpl implements IOrdersRepository {
     return const {};
   }
 
-  List<dynamic> _dataList(Response response) {
+  /// Handles the response shapes seen across this backend's paginated
+  /// endpoints (mirrors `RestaurantRepositoryImpl._extractPagedList`):
+  ///   Shape A (flat):        { "data": [...], "meta": {...} }
+  ///   Shape B (nested):      { "data": { "data": [...], "meta": {...} } }
+  ///   Shape C (bare list):   [...]
+  ///   Shape D (items/page):  { "data": { "items": [...], "pagination": {...} } }
+  (List<dynamic>, Map<String, dynamic>) _extractPagedList(Response response) {
     final body = response.data;
-    if (body is List) return body;
+
+    if (body is List) return (body, {});
+
     if (body is Map<String, dynamic>) {
-      final d = body['data'];
-      if (d is List) return d;
-      if (d is Map<String, dynamic>) {
-        final inner = d['data'];
-        if (inner is List) return inner;
+      final outer = body['data'];
+
+      if (outer is Map<String, dynamic>) {
+        final items = outer['items'];
+        if (items is List) {
+          final pagination = outer['pagination'] as Map<String, dynamic>? ?? {};
+          return (items, pagination);
+        }
+
+        final inner = outer['data'];
+        final meta = outer['meta'] as Map<String, dynamic>? ?? {};
+        if (inner is List) return (inner, meta);
+      }
+
+      if (outer is List) {
+        final meta = body['meta'] as Map<String, dynamic>? ?? {};
+        return (outer, meta);
       }
     }
-    return const [];
+
+    return (const [], {});
   }
 }

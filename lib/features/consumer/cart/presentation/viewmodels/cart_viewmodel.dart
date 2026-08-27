@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/core/services/cart_storage_service.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/domain/entities/cart_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
@@ -7,12 +11,20 @@ import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entitie
 
 // ─── Cart ViewModel ────────────────────────────────────────────────────────
 
+final cartStorageServiceProvider =
+    Provider<CartStorageService>((_) => sl<CartStorageService>());
+
 class CartViewModel extends Notifier<CartState> {
   /// Maximum length for special instructions to prevent abuse.
   static const int _maxInstructionLength = 500;
 
+  CartStorageService get _storage => ref.read(cartStorageServiceProvider);
+
+  /// Fire-and-forget: cart mutations shouldn't block on a disk write.
+  void _persist() => unawaited(_storage.saveCart(state));
+
   @override
-  CartState build() => const CartState.empty();
+  CartState build() => _storage.cachedCart ?? const CartState.empty();
 
   /// Returns true if added, false if the user must confirm clearing the cart
   /// (different restaurant). Caller decides UI flow.
@@ -54,6 +66,7 @@ class CartViewModel extends Notifier<CartState> {
       items: updated,
       deliveryFee: restaurant.deliveryFee,
     );
+    _persist();
     return true;
   }
 
@@ -64,6 +77,7 @@ class CartViewModel extends Notifier<CartState> {
     } else {
       state = state.copyWith(items: updated);
     }
+    _persist();
   }
 
   void updateQuantity(String itemId, int quantity) {
@@ -76,6 +90,7 @@ class CartViewModel extends Notifier<CartState> {
       return ci;
     }).toList();
     state = state.copyWith(items: updated);
+    _persist();
   }
 
   /// Update the restaurant-level special instructions / note.
@@ -89,6 +104,7 @@ class CartViewModel extends Notifier<CartState> {
         ? sanitized.substring(0, _maxInstructionLength)
         : sanitized;
     state = state.copyWith(specialInstructions: capped);
+    _persist();
   }
 
   void clearAndAdd(
@@ -112,9 +128,13 @@ class CartViewModel extends Notifier<CartState> {
         ),
       ],
     );
+    _persist();
   }
 
-  void clear() => state = const CartState.empty();
+  void clear() {
+    state = const CartState.empty();
+    unawaited(_storage.clearCart());
+  }
 }
 
 final cartProvider =

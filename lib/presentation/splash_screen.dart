@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/common/app/current_user_provider.dart';
+import '../core/services/fcm_service.dart';
 import '../src/auth/repositories/auth_repository.dart';
 import '../src/auth/viewmodels/auth_viewmodel.dart';
 import '../src/auth/viewmodels/auth_state.dart';
@@ -82,6 +83,14 @@ class _SplashScreenState extends State<SplashScreen>
         context.go(AppRoutes.vendorHome);
       } else {
         context.go(AppRoutes.home);
+        // Cold-launched by tapping an order-related push (see
+        // FcmService.pendingOrderId) — consume once, then land on tracking
+        // on top of the home screen we just routed to.
+        final orderId = FcmService.pendingOrderId;
+        if (orderId != null) {
+          FcmService.pendingOrderId = null;
+          if (mounted) context.push(AppRoutes.trackOrder, extra: orderId);
+        }
       }
     } else if (authState is AuthError) {
       // Token existed but was expired/invalid → go straight to login

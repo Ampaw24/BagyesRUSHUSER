@@ -11,7 +11,20 @@ class OrdersLoading extends OrdersState {
 
 class OrdersLoaded extends OrdersState {
   final List<ConsumerOrder> orders;
-  const OrdersLoaded({required this.orders});
+
+  /// Pagination over the chronological order-history feed (used by the
+  /// Past tab's infinite scroll — Active orders are always few, so they're
+  /// never paginated, just derived from whatever's already loaded).
+  final bool hasMore;
+  final bool isLoadingMore;
+  final int currentPage;
+
+  const OrdersLoaded({
+    required this.orders,
+    this.hasMore = false,
+    this.isLoadingMore = false,
+    this.currentPage = 1,
+  });
 
   List<ConsumerOrder> get active =>
       orders.where((o) => o.status.isActive).toList();

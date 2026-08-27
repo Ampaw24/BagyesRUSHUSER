@@ -17,8 +17,6 @@ abstract final class AppRoutes {
 
   // ── Main app (bottom bar shell) ──
   static const String home = '/home';
-  static const String search = '/search';
-  static const String orders = '/orders';
   static const String notifications = '/notifications';
   static const String wallet = '/wallet';
 

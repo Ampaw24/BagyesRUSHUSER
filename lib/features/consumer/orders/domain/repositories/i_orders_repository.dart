@@ -1,14 +1,33 @@
 import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 
+class OrdersPage {
+  final List<ConsumerOrder> orders;
+  final int page;
+  final int totalPages;
+  final int total;
+
+  const OrdersPage({
+    required this.orders,
+    required this.page,
+    required this.totalPages,
+    required this.total,
+  });
+
+  bool get hasMore => page < totalPages;
+}
+
 abstract interface class IOrdersRepository {
-  Future<List<ConsumerOrder>> getOrders();
+  /// Paginated order history (chronological — not filtered by active/past).
+  Future<OrdersPage> getOrdersPaged({int page = 1, int limit = 20});
   Future<ConsumerOrder> getOrderById(String orderId);
   Future<ConsumerOrder> placeOrder({
     required CartState cart,
     required String deliveryAddress,
     String? deliveryInstructions,
     required String paymentMethod,
+    double? deliveryLat,
+    double? deliveryLng,
   });
   Future<ConsumerOrder> cancelOrder(String orderId);
   Future<ConsumerOrder> reorder(String orderId);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/search/presentation/states/search_state.dart';
@@ -5,10 +7,22 @@ import 'package:bagyesrushappusernew/features/consumer/search/presentation/state
 // ─── Search ViewModel ─────────────────────────────────────────────────────
 
 class SearchViewModel extends Notifier<SearchState> {
-  @override
-  SearchState build() => const SearchIdle();
+  // Matches the debounce duration already used by SelectedCategoryNotifier
+  // and MapLocationPickerSheet's own search box.
+  static const _debounceDuration = Duration(milliseconds: 350);
 
-  Future<void> search(String query) async {
+  Timer? _debounce;
+
+  @override
+  SearchState build() {
+    ref.onDispose(() => _debounce?.cancel());
+    return const SearchIdle();
+  }
+
+  /// Shows the loading state immediately (instant feedback while typing),
+  /// but debounces the actual network call.
+  void search(String query) {
+    _debounce?.cancel();
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
       state = const SearchIdle();
@@ -16,6 +30,10 @@ class SearchViewModel extends Notifier<SearchState> {
     }
 
     state = SearchLoading(query: trimmed);
+    _debounce = Timer(_debounceDuration, () => _performSearch(trimmed));
+  }
+
+  Future<void> _performSearch(String trimmed) async {
     try {
       final results = await ref
           .read(restaurantRepositoryProvider)
@@ -26,7 +44,10 @@ class SearchViewModel extends Notifier<SearchState> {
     }
   }
 
-  void clear() => state = const SearchIdle();
+  void clear() {
+    _debounce?.cancel();
+    state = const SearchIdle();
+  }
 }
 
 final searchProvider =

@@ -4,7 +4,24 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'package:bagyesrushappusernew/core/router/app_router.dart';
+import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+
+/// Same order-related push convention already used by the in-app
+/// notification list (see `NotificationDetailsScreen._isOrderRelated`):
+/// an order id under `orderId`/`order_id`, tagged with one of these types
+/// (or an explicit `screen: order_tracking`).
+const _orderRelatedTypes = {'order_placed', 'order_update', 'delivery'};
+
+String? _orderIdFrom(RemoteMessage message) {
+  final data = message.data;
+  final orderId = (data['orderId'] ?? data['order_id'])?.toString();
+  if (orderId == null || orderId.isEmpty) return null;
+  final isOrderRelated = _orderRelatedTypes.contains(data['type']) ||
+      data['screen'] == 'order_tracking';
+  return isOrderRelated ? orderId : null;
+}
 
 const AndroidNotificationChannel _androidChannel = AndroidNotificationChannel(
   'high_importance_channel',
@@ -38,6 +55,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class FcmService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
+  /// Set when the app is cold-launched by tapping an order-related push,
+  /// before the router/widget tree exists to navigate into it yet.
+  /// Consumed once by [SplashScreen] after it finishes its normal
+  /// auth-based routing.
+  static String? pendingOrderId;
+
   static Future<void> initialize() async {
     final settings = await _messaging.requestPermission();
 
@@ -61,17 +84,26 @@ class FcmService {
     // needs to be turned into a visible notification manually.
     FirebaseMessaging.onMessage.listen(_showLocalNotification);
 
-    // User tapped a notification while the app was backgrounded.
+    // User tapped a notification while the app was backgrounded — the app
+    // (and its router) is already up, so navigate immediately.
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       appLogger.i('Notification opened app: ${message.messageId}');
+      final orderId = _orderIdFrom(message);
+      if (orderId != null) {
+        appRouter.push(AppRoutes.trackOrder, extra: orderId);
+      }
     });
 
     // App was launched from a terminated state by tapping a notification.
+    // The router isn't guaranteed to exist yet at this point (this races
+    // against runApp() in main.dart) — stash the id for SplashScreen to
+    // pick up once it's actually mounted, instead of navigating here.
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       appLogger.i(
         'App launched from notification: ${initialMessage.messageId}',
       );
+      pendingOrderId = _orderIdFrom(initialMessage);
     }
   }
 

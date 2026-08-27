@@ -1,17 +1,75 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
 
-class OrderTrackingView extends ConsumerWidget {
+class OrderTrackingView extends ConsumerStatefulWidget {
   final String orderId;
 
   const OrderTrackingView({super.key, required this.orderId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrderTrackingView> createState() => _OrderTrackingViewState();
+}
+
+class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
+    with WidgetsBindingObserver {
+  static const _pollInterval = Duration(seconds: 15);
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _poll();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
+  }
+
+  Future<void> _poll() async {
+    final current = ref.read(orderByIdProvider(widget.orderId));
+    if (current != null && !current.status.isActive) {
+      _pollTimer?.cancel();
+      return;
+    }
+    try {
+      await ref.read(ordersProvider.notifier).trackOrder(widget.orderId);
+    } catch (_) {
+      // Transient blip on a background poll — keep the last-known-good
+      // state and retry next tick, don't surface a SnackBar every 15s.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final orderId = widget.orderId;
     final order = ref.watch(orderByIdProvider(orderId));
     final w = MediaQuery.sizeOf(context).width;
 
@@ -413,6 +471,18 @@ class _DriverCard extends StatelessWidget {
 
   const _DriverCard({required this.order});
 
+  bool get _canCall => (order.driverPhone ?? '').trim().isNotEmpty;
+
+  Future<void> _callDriver(BuildContext context) async {
+    final uri = Uri(scheme: 'tel', path: order.driverPhone!.replaceAll(' ', ''));
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to start a call on this device.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -462,14 +532,22 @@ class _DriverCard extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: EdgeInsets.all(w * 0.03),
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
+          GestureDetector(
+            onTap: _canCall
+                ? () {
+                    HapticFeedback.lightImpact();
+                    _callDriver(context);
+                  }
+                : null,
+            child: Container(
+              padding: EdgeInsets.all(w * 0.03),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.phone_rounded,
+                  color: Colors.white, size: w * 0.045),
             ),
-            child: Icon(Icons.phone_rounded,
-                color: Colors.white, size: w * 0.045),
           ),
         ],
       ),

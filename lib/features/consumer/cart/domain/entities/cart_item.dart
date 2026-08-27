@@ -33,6 +33,23 @@ class CartItem {
     );
   }
 
+  /// Local cart persistence only — never sent to the backend.
+  Map<String, dynamic> toJson() => {
+        'item': item.toJson(),
+        'quantity': quantity,
+        'special_instructions': specialInstructions,
+        'selected_addons': selectedAddons.map((a) => a.toJson()).toList(),
+      };
+
+  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
+        item: MenuItem.fromJson(json['item'] as Map<String, dynamic>),
+        quantity: json['quantity'] as int? ?? 1,
+        specialInstructions: json['special_instructions'] as String?,
+        selectedAddons: (json['selected_addons'] as List<dynamic>? ?? [])
+            .map((e) => SelectedAddon.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
   @override
   bool operator ==(Object other) =>
       other is CartItem && other.item.id == item.id;

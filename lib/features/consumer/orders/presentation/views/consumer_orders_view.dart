@@ -6,6 +6,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/presentation/states/orders_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
 import 'package:bagyesrushappusernew/features/report/presentation/report_flow_args.dart';
@@ -16,9 +17,6 @@ class ConsumerOrdersView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final active = ref.watch(activeOrdersProvider);
-    final past = ref.watch(pastOrdersProvider);
-
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -36,11 +34,96 @@ class ConsumerOrdersView extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
+        body: const TabBarView(
           children: [
-            _OrderList(orders: active, isActive: true),
-            _OrderList(orders: past, isActive: false),
+            _ActiveOrdersList(),
+            _PastOrdersList(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Active orders are always few — refreshable, but never paginated.
+class _ActiveOrdersList extends ConsumerWidget {
+  const _ActiveOrdersList();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(activeOrdersProvider);
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
+      child: _OrderList(orders: active, isActive: true),
+    );
+  }
+}
+
+/// Order history can be arbitrarily long — refreshable and infinite-scroll
+/// paginated via `OrdersViewModel.loadMore()`.
+class _PastOrdersList extends ConsumerStatefulWidget {
+  const _PastOrdersList();
+
+  @override
+  ConsumerState<_PastOrdersList> createState() => _PastOrdersListState();
+}
+
+class _PastOrdersListState extends ConsumerState<_PastOrdersList> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      ref.read(ordersProvider.notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ordersState = ref.watch(ordersProvider);
+    final past = ordersState is OrdersLoaded ? ordersState.past : const <ConsumerOrder>[];
+    final isLoadingMore =
+        ordersState is OrdersLoaded && ordersState.isLoadingMore;
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
+      child: _OrderList(
+        orders: past,
+        isActive: false,
+        scrollController: _scrollController,
+        footer: isLoadingMore ? const _LoadMoreFooter() : null,
+      ),
+    );
+  }
+}
+
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: w * 0.06),
+      child: const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+          strokeWidth: 2.5,
         ),
       ),
     );
@@ -50,97 +133,118 @@ class ConsumerOrdersView extends ConsumerWidget {
 class _OrderList extends StatelessWidget {
   final List<ConsumerOrder> orders;
   final bool isActive;
+  final ScrollController? scrollController;
+  final Widget? footer;
 
-  const _OrderList({required this.orders, required this.isActive});
+  const _OrderList({
+    required this.orders,
+    required this.isActive,
+    this.scrollController,
+    this.footer,
+  });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
     if (orders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive
-                  ? Icons.delivery_dining_rounded
-                  : Icons.receipt_long_rounded,
-              size: w * 0.18,
-              color: AppColors.textHint,
-            ),
-            SizedBox(height: w * 0.04),
-            Text(
-              isActive ? 'No active orders' : 'No past orders',
-              style: TextStyle(
-                fontSize: w * 0.044,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+      // Wrapped in a scrollable (rather than a bare Center) so the
+      // enclosing RefreshIndicator's pull gesture still has something to
+      // attach to when there's no data yet.
+      return ListView(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.6,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isActive
+                        ? Icons.delivery_dining_rounded
+                        : Icons.receipt_long_rounded,
+                    size: w * 0.18,
+                    color: AppColors.textHint,
+                  ),
+                  SizedBox(height: w * 0.04),
+                  Text(
+                    isActive ? 'No active orders' : 'No past orders',
+                    style: TextStyle(
+                      fontSize: w * 0.044,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: w * 0.015),
+                  Text(
+                    isActive
+                        ? 'Place an order to see it here'
+                        : 'Your order history will appear here',
+                    style: TextStyle(
+                      fontSize: w * 0.033,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: w * 0.015),
-            Text(
-              isActive
-                  ? 'Place an order to see it here'
-                  : 'Your order history will appear here',
-              style: TextStyle(
-                fontSize: w * 0.033,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            //[This section is commented out in the original code, but you can uncomment it if you want to add a button for browsing restaurants.]
-            // if (isActive) ...[
-            //   SizedBox(height: w * 0.06),
-            //   ElevatedButton(
-            //     onPressed: () => context.go(AppRoutes.home),
-            //     child: const Text('Browse Restaurant'),
-            //   ),
-            // ],
-          ],
-        ),
+          ),
+        ],
       );
     }
 
+    final itemCount = orders.length + (footer != null ? 1 : 0);
     return ListView.builder(
+      controller: scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, w * 0.05),
-      itemCount: orders.length,
-      itemBuilder: (ctx, i) => Consumer(
-        builder: (ctx, ref, _) => _OrderCard(
-          order: orders[i],
-          onTap: () => context.push(AppRoutes.trackOrder, extra: orders[i].id),
-          onReorder: () async {
-            await ref.read(ordersProvider.notifier).reorder(orders[i].id);
-            if (ctx.mounted) {
-              context.push(AppRoutes.trackOrder, extra: orders[i].id);
-            }
-          },
-          onReport: () => ReportQuickActionSheet.show(
-            context,
-            role: ReportRole.customer,
-            orderId: orders[i].id,
-            primaryTarget: ReportFlowArgs(
-              role: ReportRole.customer,
-              targetType: ReportTargetType.vendor,
-              orderId: orders[i].id,
-              targetId: orders[i].restaurantId,
-              targetName: orders[i].restaurantName,
-              targetImageUrl: orders[i].restaurantImageUrl,
-            ),
-            riderTarget:
-                orders[i].driverName != null && orders[i].driverName!.isNotEmpty
-                ? ReportFlowArgs(
-                    role: ReportRole.customer,
-                    targetType: ReportTargetType.rider,
-                    orderId: orders[i].id,
-                    targetName: orders[i].driverName!,
-                    targetPhone: orders[i].driverPhone,
-                  )
-                : null,
-          ),
-        ),
-      ),
+      itemCount: itemCount,
+      itemBuilder: (ctx, i) {
+        if (i >= orders.length) return footer!;
+        return _buildOrderCard(ctx, orders[i]);
+      },
     );
   }
+}
+
+/// Shared per-order card wiring, reused by both the Active and Past lists.
+Widget _buildOrderCard(BuildContext context, ConsumerOrder order) {
+  return Consumer(
+    builder: (ctx, ref, _) => _OrderCard(
+      order: order,
+      onTap: () => context.push(AppRoutes.trackOrder, extra: order.id),
+      onReorder: () async {
+        await ref.read(ordersProvider.notifier).reorder(order.id);
+        if (ctx.mounted) {
+          context.push(AppRoutes.trackOrder, extra: order.id);
+        }
+      },
+      onReport: () => ReportQuickActionSheet.show(
+        context,
+        role: ReportRole.customer,
+        orderId: order.id,
+        primaryTarget: ReportFlowArgs(
+          role: ReportRole.customer,
+          targetType: ReportTargetType.vendor,
+          orderId: order.id,
+          targetId: order.restaurantId,
+          targetName: order.restaurantName,
+          targetImageUrl: order.restaurantImageUrl,
+        ),
+        riderTarget: order.driverName != null && order.driverName!.isNotEmpty
+            ? ReportFlowArgs(
+                role: ReportRole.customer,
+                targetType: ReportTargetType.rider,
+                orderId: order.id,
+                targetName: order.driverName!,
+                targetPhone: order.driverPhone,
+              )
+            : null,
+      ),
+    ),
+  );
 }
 
 class _OrderCard extends StatelessWidget {

@@ -9,7 +9,6 @@ import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/reposit
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
-import 'package:bagyesrushappusernew/src/home/viewmodels/home_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/home/models/ads_banner.dart';
 
 // ─── Repository provider ──────────────────────────────────────────────────
@@ -41,8 +40,6 @@ class SelectedCategoryNotifier extends Notifier<String> {
     });
   }
 }
-
-final homeViewmodelProvider = ChangeNotifierProvider((ref) => sl<HomeViewmodel>());
 
 final homeBannersProvider = FutureProvider<AdBannerModel>((ref) async {
   final repo = sl<HomeRepository>();

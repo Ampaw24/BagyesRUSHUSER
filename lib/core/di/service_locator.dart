@@ -9,7 +9,6 @@ import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import '../../src/home/repositories/home_repository.dart';
 import '../../src/onboarding/services/onboarding_service.dart';
 import '../../src/onboarding/viewmodels/onboarding_viewmodel.dart';
-import '../../src/home/viewmodels/home_viewmodel.dart';
 import '../../src/notification/repository/notification_repository.dart';
 import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../src/vendor_registration/repositories/vendor_repository.dart';
@@ -84,7 +83,6 @@ Future<void> init() async {
   sl.registerFactory(() => PaymentViewmodel(repository: sl()));
   sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => OnboardingViewModel(sl()));
-  sl.registerFactory(() => HomeViewmodel(repository: sl()));
   sl.registerFactory(() => NotificationViewmodel(repository: sl()));
   sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => vendor_orders.OrdersViewModel(sl()));

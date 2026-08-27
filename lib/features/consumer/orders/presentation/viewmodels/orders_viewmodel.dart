@@ -26,10 +26,51 @@ class OrdersViewModel extends Notifier<OrdersState> {
 
   Future<void> _loadOrders() async {
     try {
-      final orders = await _repo.getOrders();
-      state = OrdersLoaded(orders: orders);
+      final result = await _repo.getOrdersPaged(page: 1);
+      state = OrdersLoaded(
+        orders: result.orders,
+        hasMore: result.hasMore,
+        currentPage: result.page,
+      );
     } catch (e) {
       state = OrdersError(message: e.toString());
+    }
+  }
+
+  /// Pull-to-refresh: re-fetch page 1 and replace the list.
+  Future<void> refresh() => _loadOrders();
+
+  /// Infinite scroll on the Past tab.
+  Future<void> loadMore() async {
+    final current = state;
+    if (current is! OrdersLoaded ||
+        current.isLoadingMore ||
+        !current.hasMore) {
+      return;
+    }
+
+    state = OrdersLoaded(
+      orders: current.orders,
+      hasMore: current.hasMore,
+      isLoadingMore: true,
+      currentPage: current.currentPage,
+    );
+
+    try {
+      final result = await _repo.getOrdersPaged(page: current.currentPage + 1);
+      state = OrdersLoaded(
+        orders: [...current.orders, ...result.orders],
+        hasMore: result.hasMore,
+        currentPage: result.page,
+      );
+    } catch (_) {
+      // Keep existing data; clear loading flag so the user can retry by
+      // scrolling again.
+      state = OrdersLoaded(
+        orders: current.orders,
+        hasMore: current.hasMore,
+        currentPage: current.currentPage,
+      );
     }
   }
 
@@ -38,17 +79,25 @@ class OrdersViewModel extends Notifier<OrdersState> {
     required String deliveryAddress,
     String? deliveryInstructions,
     required String paymentMethod,
+    double? deliveryLat,
+    double? deliveryLng,
   }) async {
     final order = await _repo.placeOrder(
       cart: cart,
       deliveryAddress: deliveryAddress,
       deliveryInstructions: deliveryInstructions,
       paymentMethod: paymentMethod,
+      deliveryLat: deliveryLat,
+      deliveryLng: deliveryLng,
     );
 
     final current = state;
     if (current is OrdersLoaded) {
-      state = OrdersLoaded(orders: [order, ...current.orders]);
+      state = OrdersLoaded(
+        orders: [order, ...current.orders],
+        hasMore: current.hasMore,
+        currentPage: current.currentPage,
+      );
     } else {
       state = OrdersLoaded(orders: [order]);
     }
@@ -63,6 +112,8 @@ class OrdersViewModel extends Notifier<OrdersState> {
       orders: current.orders
           .map((o) => o.id == updated.id ? updated : o)
           .toList(),
+      hasMore: current.hasMore,
+      currentPage: current.currentPage,
     );
   }
 
@@ -75,7 +126,11 @@ class OrdersViewModel extends Notifier<OrdersState> {
     final newOrder = await _repo.reorder(orderId);
     final current = state;
     if (current is OrdersLoaded) {
-      state = OrdersLoaded(orders: [newOrder, ...current.orders]);
+      state = OrdersLoaded(
+        orders: [newOrder, ...current.orders],
+        hasMore: current.hasMore,
+        currentPage: current.currentPage,
+      );
     } else {
       state = OrdersLoaded(orders: [newOrder]);
     }
