@@ -253,6 +253,10 @@ abstract final class ApiEndpoints {
   static String customerOrderVerifyPayment(String orderId) =>
       '$customerOrders/$orderId/verify-payment';
 
+  /// `GET /customer/delivery-quote` — live delivery-fee quote for a food
+  /// order. Query params: `vendor_id` (required), `address_id` (nullable).
+  static const String customerDeliveryQuote = '/customer/delivery-quote';
+
   /// `GET /categories/:id`
   static String categoryById(String id) => '/categories/$id';
 

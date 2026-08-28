@@ -1,5 +1,9 @@
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
+/// Sentinel distinguishing "leave unchanged" from "set to null" in
+/// [CheckoutForm.copyWith] for genuinely-nullable fields.
+const _unset = Object();
+
 /// Holds the form inputs the user fills in during checkout.
 class CheckoutForm {
   final String deliveryAddress;
@@ -14,12 +18,25 @@ class CheckoutForm {
   final double? deliveryLat;
   final double? deliveryLng;
 
+  /// Live delivery-fee quote state (`GET /customer/delivery-quote`) — a
+  /// display-only preview; the amount actually charged is always whatever
+  /// the backend computes when the order is created, same as `cart.total`
+  /// already isn't authoritative until then.
+  final bool isFetchingDeliveryQuote;
+  final String? deliveryQuoteError;
+  final double? deliveryQuoteFee;
+  final String? deliveryQuoteCurrency;
+
   const CheckoutForm({
     this.deliveryAddress = '',
     this.deliveryInstructions = '',
     this.selectedPaymentMethod,
     this.deliveryLat,
     this.deliveryLng,
+    this.isFetchingDeliveryQuote = false,
+    this.deliveryQuoteError,
+    this.deliveryQuoteFee,
+    this.deliveryQuoteCurrency,
   });
 
   CheckoutForm copyWith({
@@ -28,6 +45,10 @@ class CheckoutForm {
     PaymentMethod? selectedPaymentMethod,
     double? deliveryLat,
     double? deliveryLng,
+    bool? isFetchingDeliveryQuote,
+    Object? deliveryQuoteError = _unset,
+    Object? deliveryQuoteFee = _unset,
+    Object? deliveryQuoteCurrency = _unset,
   }) {
     return CheckoutForm(
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
@@ -35,6 +56,17 @@ class CheckoutForm {
       selectedPaymentMethod: selectedPaymentMethod ?? this.selectedPaymentMethod,
       deliveryLat: deliveryLat ?? this.deliveryLat,
       deliveryLng: deliveryLng ?? this.deliveryLng,
+      isFetchingDeliveryQuote:
+          isFetchingDeliveryQuote ?? this.isFetchingDeliveryQuote,
+      deliveryQuoteError: identical(deliveryQuoteError, _unset)
+          ? this.deliveryQuoteError
+          : deliveryQuoteError as String?,
+      deliveryQuoteFee: identical(deliveryQuoteFee, _unset)
+          ? this.deliveryQuoteFee
+          : deliveryQuoteFee as double?,
+      deliveryQuoteCurrency: identical(deliveryQuoteCurrency, _unset)
+          ? this.deliveryQuoteCurrency
+          : deliveryQuoteCurrency as String?,
     );
   }
 }

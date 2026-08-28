@@ -1,4 +1,5 @@
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/delivery_quote.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
 class OrdersPage {
@@ -34,4 +35,8 @@ abstract interface class IOrdersRepository {
   Future<ConsumerOrder> trackOrder(String orderId);
   Future<Map<String, dynamic>> payOrder(String orderId, {required String paymentMethod});
   Future<ConsumerOrder> verifyPayment(String orderId, {required String reference});
+  Future<DeliveryQuote> getDeliveryQuote({
+    required String vendorId,
+    String? addressId,
+  });
 }

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/delivery_quote.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/repositories/i_orders_repository.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
@@ -144,6 +145,21 @@ class OrdersRepositoryImpl implements IOrdersRepository {
       data: {'reference': reference},
     );
     return ConsumerOrder.fromJson(_dataMap(response));
+  }
+
+  @override
+  Future<DeliveryQuote> getDeliveryQuote({
+    required String vendorId,
+    String? addressId,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.customerDeliveryQuote,
+      queryParameters: {
+        'vendor_id': vendorId,
+        if (addressId != null) 'address_id': addressId,
+      },
+    );
+    return DeliveryQuote.fromJson(_dataMap(response));
   }
 
   // ─── Private helpers ───────────────────────────────────────────────────────

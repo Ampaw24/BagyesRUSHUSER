@@ -42,6 +42,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
   final _addressController = TextEditingController();
   final _instructionsController = TextEditingController();
   bool _isLocatingCurrentPosition = false;
+  bool _hasRequestedDeliveryQuote = false;
 
   @override
   void initState() {
@@ -202,10 +203,26 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     final hasValidAddress = form.deliveryAddress.trim().length >= 5;
     final hasPaymentMethod = form.selectedPaymentMethod != null;
 
+    // Prefer the live quote once it's loaded; fall back to the cart's
+    // (possibly stale) embedded fee while loading, on error, or before the
+    // first fetch completes — the screen never shows a broken/empty total.
+    final effectiveDeliveryFee =
+        form.deliveryQuoteFee ?? cart?.deliveryFee ?? 0;
+    final deliveryFeeCurrency = form.deliveryQuoteCurrency ?? 'GHS';
+    final effectiveTotal = (cart?.subtotal ?? 0) + effectiveDeliveryFee;
+
     if (cart == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
+    }
+
+    if (!_hasRequestedDeliveryQuote) {
+      _hasRequestedDeliveryQuote = true;
+      final vendorId = cart.vendorId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(checkoutProvider.notifier).fetchDeliveryQuote(vendorId);
+      });
     }
 
     return Scaffold(
@@ -354,13 +371,20 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                           )),
                       const Divider(color: AppColors.divider),
                       _TotalRow(label: 'Subtotal', value: cart.subtotal),
-                      _TotalRow(
-                          label: 'Delivery fee',
-                          value: cart.deliveryFee ?? 0),
+                      _DeliveryFeeRow(
+                        isFetching: form.isFetchingDeliveryQuote,
+                        error: form.deliveryQuoteError,
+                        fee: effectiveDeliveryFee,
+                        currency: deliveryFeeCurrency,
+                        onRetry: () => ref
+                            .read(checkoutProvider.notifier)
+                            .fetchDeliveryQuote(cart.vendorId),
+                      ),
                       SizedBox(height: w * 0.01),
                       _TotalRow(
                         label: 'Total',
-                        value: cart.total,
+                        value: effectiveTotal,
+                        currency: deliveryFeeCurrency,
                         isBold: true,
                       ),
                     ],
@@ -417,7 +441,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                           ),
                         )
                       : Text(
-                          'Place Order · GHS ${cart.total.toStringAsFixed(2)}',
+                          'Place Order · $deliveryFeeCurrency ${effectiveTotal.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: w * 0.038,
                             fontWeight: FontWeight.w700,
@@ -845,15 +869,93 @@ class _ValidationWarning extends StatelessWidget {
   }
 }
 
+/// The "Delivery fee" line — shows a spinner while the live quote
+/// (`GET /customer/delivery-quote`) is loading, a Retry action if it failed,
+/// or the resolved fee otherwise. [fee] is always the effective value
+/// (quote if loaded, else the cart's own fee) so the total stays honest
+/// even while this row is mid-fetch or errored.
+class _DeliveryFeeRow extends StatelessWidget {
+  final bool isFetching;
+  final String? error;
+  final double fee;
+  final String currency;
+  final VoidCallback onRetry;
+
+  const _DeliveryFeeRow({
+    required this.isFetching,
+    required this.error,
+    required this.fee,
+    required this.currency,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    if (isFetching) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: w * 0.01),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Delivery fee',
+              style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
+            ),
+            SizedBox(
+              width: w * 0.035,
+              height: w * 0.035,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (error != null) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: w * 0.01),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Delivery fee unavailable',
+                style: TextStyle(fontSize: w * 0.033, color: AppColors.error),
+              ),
+            ),
+            GestureDetector(
+              onTap: onRetry,
+              child: Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: w * 0.033,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _TotalRow(label: 'Delivery fee', value: fee, currency: currency);
+  }
+}
+
 class _TotalRow extends StatelessWidget {
   final String label;
   final double value;
   final bool isBold;
+  final String currency;
 
   const _TotalRow({
     required this.label,
     required this.value,
     this.isBold = false,
+    this.currency = 'GHS',
   });
 
   @override
@@ -875,7 +977,7 @@ class _TotalRow extends StatelessWidget {
             ),
           ),
           Text(
-            'GHS ${value.toStringAsFixed(2)}',
+            '$currency ${value.toStringAsFixed(2)}',
             style: TextStyle(
               fontSize: isBold ? w * 0.038 : w * 0.033,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,

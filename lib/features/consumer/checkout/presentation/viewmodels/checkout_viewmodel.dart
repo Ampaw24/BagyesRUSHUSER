@@ -119,6 +119,48 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
       state = CheckoutIdle(form: s.form);
     }
   }
+
+  /// Fetches a live delivery-fee quote for [vendorId] via
+  /// `GET /customer/delivery-quote` so checkout shows the authoritative fee
+  /// instead of the (possibly stale) one embedded in the cart response.
+  /// Display-only: what's actually charged is still decided by the backend
+  /// when the order is created, so a failure here doesn't block checkout —
+  /// the UI falls back to the cart's fee and offers a manual retry.
+  Future<void> fetchDeliveryQuote(String vendorId) async {
+    state = CheckoutIdle(
+      form: _currentForm.copyWith(
+        isFetchingDeliveryQuote: true,
+        deliveryQuoteError: null,
+      ),
+    );
+
+    try {
+      final quote = await ref
+          .read(ordersRepositoryProvider)
+          .getDeliveryQuote(vendorId: vendorId);
+      state = CheckoutIdle(
+        form: _currentForm.copyWith(
+          isFetchingDeliveryQuote: false,
+          deliveryQuoteFee: quote.fee,
+          deliveryQuoteCurrency: quote.currency,
+        ),
+      );
+    } on DioException catch (e) {
+      state = CheckoutIdle(
+        form: _currentForm.copyWith(
+          isFetchingDeliveryQuote: false,
+          deliveryQuoteError: NetworkUtils.handleDioException(e).value.message,
+        ),
+      );
+    } catch (_) {
+      state = CheckoutIdle(
+        form: _currentForm.copyWith(
+          isFetchingDeliveryQuote: false,
+          deliveryQuoteError: 'Could not fetch delivery fee. Please retry.',
+        ),
+      );
+    }
+  }
 }
 
 final checkoutProvider =
