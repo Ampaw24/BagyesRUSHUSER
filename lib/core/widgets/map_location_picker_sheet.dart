@@ -52,6 +52,16 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
   // Below this movement, a camera-idle re-geocode is skipped — the address
   // wouldn't meaningfully change and it saves a geocoding API call.
   static const _minRegeocodeDistanceMeters = 10.0;
+  // The unscoped `locationFromAddress` fallback (used when Places
+  // Autocomplete returns nothing — e.g. no API key configured) queries the
+  // OS-level geocoder with no country/region restriction. A generic or
+  // misspelled query can match a same-named place on another continent,
+  // which then fails the backend's delivery-radius check with a confusing
+  // "N,NNNkm away" error. Since this is a hyperlocal delivery service (the
+  // backend itself caps pickup↔dropoff at 40km), any forward-geocode match
+  // further than this from the current map center is almost certainly a
+  // false positive and is discarded rather than silently accepted.
+  static const _maxForwardGeocodeDistanceMeters = 100000.0;
 
   // ── Map controller ─────────────────────────────────────────────────────────
   final Completer<GoogleMapController> _mapController = Completer();
@@ -276,7 +286,16 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       if (results.isEmpty) {
         try {
           final locations = await locationFromAddress(text);
-          results = locations.take(5).map((loc) {
+          results = locations
+              .where((loc) => Geolocator.distanceBetween(
+                    _center.latitude,
+                    _center.longitude,
+                    loc.latitude,
+                    loc.longitude,
+                  ) <=
+                  _maxForwardGeocodeDistanceMeters)
+              .take(5)
+              .map((loc) {
             return PlacePrediction(
               placeId: '${loc.latitude},${loc.longitude}',
               description: text,
@@ -338,8 +357,16 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     if (latLng == null) {
       try {
         final locations = await locationFromAddress(prediction.description);
-        if (locations.isNotEmpty) {
-          latLng = LatLng(locations.first.latitude, locations.first.longitude);
+        final nearby = locations.where((loc) => Geolocator.distanceBetween(
+              _center.latitude,
+              _center.longitude,
+              loc.latitude,
+              loc.longitude,
+            ) <=
+            _maxForwardGeocodeDistanceMeters);
+        if (nearby.isNotEmpty) {
+          final match = nearby.first;
+          latLng = LatLng(match.latitude, match.longitude);
         }
       } catch (e, s) {
         appLogger.w(

@@ -103,16 +103,35 @@ class OrdersRepositoryImpl implements IOrdersRepository {
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
+  /// Retries only on connection-level failures — the request never left the
+  /// device, so re-sending can't double-charge. A timeout/5xx *after* the
+  /// request reached the server is ambiguous (the charge may have already
+  /// been initiated), so those are surfaced to the caller instead of being
+  /// silently retried; the UI offers a manual retry for that case.
+  static const _payOrderMaxAttempts = 3;
+  static const _payOrderRetryDelay = Duration(milliseconds: 500);
+
   @override
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
   }) async {
-    final response = await _client.post(
-      ApiEndpoints.customerOrderPay(orderId),
-      data: {'payment_method': paymentMethod},
-    );
-    return _dataMap(response);
+    for (var attempt = 1; attempt <= _payOrderMaxAttempts; attempt++) {
+      try {
+        final response = await _client.post(
+          ApiEndpoints.customerOrderPay(orderId),
+          data: {'payment_method': paymentMethod},
+        );
+        return _dataMap(response);
+      } on DioException catch (e) {
+        final retryable = e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.connectionTimeout;
+        if (!retryable || attempt == _payOrderMaxAttempts) rethrow;
+        await Future.delayed(_payOrderRetryDelay * attempt);
+      }
+    }
+    // Unreachable: the loop above always returns or rethrows.
+    throw StateError('payOrder: exhausted retries without a result');
   }
 
   @override

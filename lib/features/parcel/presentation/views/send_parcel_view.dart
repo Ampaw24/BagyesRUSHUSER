@@ -254,7 +254,7 @@ class SendParcelView extends ConsumerWidget {
       case ParcelStep.availableRiders:
         return 'Choose a Rider';
       case ParcelStep.summary:
-        return 'Order Summary';
+        return 'Delivery Summary';
     }
   }
 }

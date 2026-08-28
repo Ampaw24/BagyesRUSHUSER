@@ -22,6 +22,7 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
     with WidgetsBindingObserver {
   static const _pollInterval = Duration(seconds: 15);
   Timer? _pollTimer;
+  bool _isPaying = false;
 
   @override
   void initState() {
@@ -64,6 +65,38 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
     } catch (_) {
       // Transient blip on a background poll — keep the last-known-good
       // state and retry next tick, don't surface a SnackBar every 15s.
+    }
+  }
+
+  /// Initiates payment. Connection-level failures are already retried
+  /// transparently inside the repository; anything that gets here (a
+  /// timeout after the request reached the server, a 5xx, etc.) is
+  /// ambiguous enough that we surface it and let the user decide to retry,
+  /// rather than risk firing a second charge attempt automatically.
+  Future<void> _payNow(String orderId, String paymentMethod) async {
+    if (_isPaying) return;
+    setState(() => _isPaying = true);
+    try {
+      await ref
+          .read(ordersProvider.notifier)
+          .payOrder(orderId, paymentMethod: paymentMethod);
+      if (!mounted) return;
+      // Refresh right away so the screen reflects the new payment status
+      // without waiting for the next 15s poll tick.
+      await ref.read(ordersProvider.notifier).trackOrder(orderId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Payment failed. Please try again.'),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _payNow(orderId, paymentMethod),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isPaying = false);
     }
   }
 
@@ -258,12 +291,19 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
-                  await ref
-                      .read(ordersProvider.notifier)
-                      .payOrder(orderId, paymentMethod: order.paymentMethod);
-                },
-                child: const Text('Pay Now'),
+                onPressed: _isPaying
+                    ? null
+                    : () => _payNow(orderId, order.paymentMethod),
+                child: _isPaying
+                    ? SizedBox(
+                        width: w * 0.05,
+                        height: w * 0.05,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Pay Now'),
               ),
             ),
           ],

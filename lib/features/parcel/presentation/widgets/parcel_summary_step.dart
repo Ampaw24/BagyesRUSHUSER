@@ -11,6 +11,7 @@ import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/scr
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
 
 import '../../../../constant/app_theme.dart';
 import '../../data/models/delivery_stop.dart';
@@ -91,7 +92,7 @@ class ParcelSummaryStep extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Order Summary',
+            'Delivery Summary',
             style: TextStyle(
               fontSize: w * 0.05,
               fontWeight: FontWeight.w800,
@@ -889,6 +890,14 @@ class _PaymentMethodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = method.provider;
+    final providerName = provider?.name;
+    // `displayTitle` falls back to the provider name when there's no custom
+    // label, so only show it as a separate line when it adds information
+    // beyond the title (i.e. the title is a custom label like "My MoMo").
+    final showProviderLine =
+        providerName != null && providerName != method.displayTitle;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -905,11 +914,13 @@ class _PaymentMethodTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.account_balance_wallet_outlined,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: w * 0.055,
-            ),
+            provider != null
+                ? PayoutProviderAvatar(provider: provider, size: w * 0.09)
+                : Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                    size: w * 0.055,
+                  ),
             SizedBox(width: w * 0.03),
             Expanded(
               child: Column(
@@ -923,6 +934,15 @@ class _PaymentMethodTile extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
+                  if (showProviderLine)
+                    Text(
+                      providerName,
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   Text(
                     method.maskedPhone,
                     style: TextStyle(
