@@ -22,7 +22,7 @@ class DecorativeBackground extends StatelessWidget {
     return Stack(
       children: [
         const Positioned.fill(child: _DecorativeMotifLayer()),
-        child,
+        Positioned.fill(child: child),
       ],
     );
   }
