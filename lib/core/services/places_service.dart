@@ -36,6 +36,7 @@ class PlacesService {
       'https://maps.googleapis.com/maps/api/place/autocomplete/json';
   static const _detailsUrl =
       'https://maps.googleapis.com/maps/api/place/details/json';
+  static const _geocodeUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
 
   // Default location bias: central Accra
   static const _defaultBias =
@@ -159,5 +160,60 @@ class PlacesService {
   static Future<LatLng?> fetchPlaceLatLng(String placeId) async {
     final detail = await fetchPlaceDetail(placeId);
     return detail?.latLng;
+  }
+
+  /// Reverse-geocodes [latitude]/[longitude] via the Google Geocoding API —
+  /// unlike the native `geocoding` package (used elsewhere in the app), this
+  /// hits Google's own service directly, which tends to have denser address
+  /// coverage than the platform geocoders in some regions.
+  ///
+  /// Returns Google's `formatted_address` for the closest result, or `null`
+  /// on any failure (network error, non-OK status, or zero results).
+  static Future<String?> reverseGeocode(
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        _geocodeUrl,
+        queryParameters: {
+          'latlng': '$latitude,$longitude',
+          'key': Config.mapsApiKey,
+          'language': 'en',
+        },
+      );
+
+      final data = response.data;
+      if (data == null) {
+        appLogger.w('[Places] reverseGeocode: null response body');
+        return null;
+      }
+
+      final status = data['status'] as String?;
+      if (status != 'OK') {
+        appLogger.w(
+          '[Places] reverseGeocode status: $status '
+          '— error: ${data['error_message'] ?? 'none'}',
+        );
+        return null;
+      }
+
+      final results = data['results'] as List<dynamic>;
+      if (results.isEmpty) return null;
+
+      final formattedAddress =
+          ((results.first as Map<String, dynamic>)['formatted_address']
+                  as String?)
+              ?.trim();
+      return (formattedAddress != null && formattedAddress.isNotEmpty)
+          ? formattedAddress
+          : null;
+    } on DioException catch (e, s) {
+      appLogger.e('[Places] reverseGeocode network error', error: e, stackTrace: s);
+      return null;
+    } catch (e, s) {
+      appLogger.e('[Places] reverseGeocode unexpected error', error: e, stackTrace: s);
+      return null;
+    }
   }
 }

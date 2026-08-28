@@ -8,6 +8,7 @@ import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart'
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
 import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
 import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
+import 'package:bagyesrushappusernew/core/services/places_service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
@@ -24,6 +25,30 @@ class AppInitializer {
     // Firebase, analytics, push notifications, location — do NOT block splash.
     await FcmService.initialize();
     await LocationHelper.ensurePermission();
+    await _logStartupLocation();
+  }
+
+  static Future<void> _logStartupLocation() async {
+    final result = await LocationHelper.getCurrentLocation();
+    final position = result.position;
+    appLogger.i(
+      '[AppInitializer] Startup location — status: ${result.status.name}, '
+      'address: ${result.address}, '
+      'lat: ${position?.latitude}, lng: ${position?.longitude}',
+    );
+
+    if (position == null) return;
+
+    // Cross-check against Google's own Geocoding API — the native platform
+    // geocoder above can have thin address coverage in some regions.
+    final googleAddress = await PlacesService.reverseGeocode(
+      position.latitude,
+      position.longitude,
+    );
+    appLogger.i(
+      '[AppInitializer] Google reverse-geocoded address: '
+      '${googleAddress ?? 'unavailable'}',
+    );
   }
 
   static Future<void> _initCriticalServices() async {
