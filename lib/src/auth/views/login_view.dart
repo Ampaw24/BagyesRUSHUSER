@@ -1,4 +1,3 @@
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -9,11 +8,12 @@ import 'package:provider/provider.dart';
 
 import 'package:go_router/go_router.dart';
 
-import '../../../constant/constant.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
+import '../../../core/widgets/app_logo_card.dart';
+import '../../../core/widgets/decorative_background.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -177,68 +177,70 @@ class _LoginViewState extends State<LoginView>
     final keyboardVisible = keyboardHeight > 0;
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isTablet = constraints.maxWidth > 600;
-            final horizontalPadding = isTablet
-                ? constraints.maxWidth * 0.15
-                : constraints.maxWidth * 0.06;
+      backgroundColor: kDecorativeBackgroundColor,
+      body: DecorativeBackground(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isTablet = constraints.maxWidth > 600;
+              final horizontalPadding = isTablet
+                  ? constraints.maxWidth * 0.15
+                  : constraints.maxWidth * 0.06;
 
-            final sw = constraints.maxWidth;
-            final sh = constraints.maxHeight;
+              final sw = constraints.maxWidth;
+              final sh = constraints.maxHeight;
 
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: sh),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: EdgeInsets.only(
-                            top: keyboardVisible ? sh * 0.012 : sh * 0.04,
-                          ),
-                          child: FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: SlideTransition(
-                              position: _slideAnimation,
-                              child: _buildLogoSection(sw, isTablet),
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: sh),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: EdgeInsets.only(
+                              top: keyboardVisible ? sh * 0.012 : sh * 0.04,
+                            ),
+                            child: FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: SlideTransition(
+                                position: _slideAnimation,
+                                child: _buildLogoSection(sw, isTablet),
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(height: sh * 0.025),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeaderSection(sw),
-                              SizedBox(height: sh * 0.060),
-                              _buildPhoneInputSection(loading, sw),
-                              SizedBox(height: sh * 0.025),
-                              _buildPasswordInputSection(loading, sw),
-                              SizedBox(height: sh * 0.070),
-                              _buildLoginButton(context, loading, sw, sh),
-                              const Spacer(),
-                              _buildSignUpLink(sw, sh),
-                            ],
+                          SizedBox(height: sh * 0.025),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildHeaderSection(sw),
+                                SizedBox(height: sh * 0.060),
+                                _buildPhoneInputSection(loading, sw),
+                                SizedBox(height: sh * 0.025),
+                                _buildPasswordInputSection(loading, sw),
+                                SizedBox(height: sh * 0.070),
+                                _buildLoginButton(context, loading, sw, sh),
+                                const Spacer(),
+                                _buildSignUpLink(sw, sh),
+                              ],
+                            ),
                           ),
-                        ),
-                        SizedBox(height: sh * 0.015),
-                      ],
+                          SizedBox(height: sh * 0.015),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -270,15 +272,7 @@ class _LoginViewState extends State<LoginView>
           ),
         ),
         SizedBox(width: sw * 0.03),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(logoSize * 0.15),
-          child: Image.asset(
-            AssetImages.bagyesLogo,
-            width: logoSize,
-            height: logoSize,
-            fit: BoxFit.contain,
-          ),
-        ),
+        AppLogoCard(size: logoSize),
       ],
     );
   }
@@ -495,10 +489,7 @@ class _ForgotPasswordSheetContentState
             topRight: Radius.circular(24),
           ),
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 20,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

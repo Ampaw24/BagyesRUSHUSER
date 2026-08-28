@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import '../../../constant/constant.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../core/widgets/app_logo_card.dart';
+import '../../../core/widgets/decorative_background.dart';
 import '../models/app_role.dart';
 import '../viewmodels/onboarding_viewmodel.dart';
 
@@ -131,65 +132,67 @@ class _OnboardingViewState extends State<OnboardingView>
     final viewModel = context.watch<OnboardingViewModel>();
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isTablet = constraints.maxWidth > 600;
-            final horizontalPadding = isTablet
-                ? constraints.maxWidth * 0.15
-                : constraints.maxWidth * 0.06;
+      backgroundColor: kDecorativeBackgroundColor,
+      body: DecorativeBackground(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isTablet = constraints.maxWidth > 600;
+              final horizontalPadding = isTablet
+                  ? constraints.maxWidth * 0.15
+                  : constraints.maxWidth * 0.06;
 
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: Column(
-                      children: [
-                        SizedBox(height: size.height * 0.02),
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(height: size.height * 0.02),
 
-                        // Hero Card — logo, brand badge, headline & subtext
-                        FadeTransition(
-                          opacity: _heroFade,
-                          child: SlideTransition(
-                            position: _heroSlide,
-                            child: _buildHeroCard(size),
+                          // Hero Card — logo, brand badge, headline & subtext
+                          FadeTransition(
+                            opacity: _heroFade,
+                            child: SlideTransition(
+                              position: _heroSlide,
+                              child: _buildHeroCard(size),
+                            ),
                           ),
-                        ),
 
-                        SizedBox(height: size.height * 0.03),
+                          SizedBox(height: size.height * 0.03),
 
-                        // "I am a" label
-                        _buildSectionLabel(size),
+                          // "I am a" label
+                          _buildSectionLabel(size),
 
-                        SizedBox(height: size.height * 0.015),
+                          SizedBox(height: size.height * 0.015),
 
-                        // Role Cards
-                        _buildRoleCards(size, viewModel),
+                          // Role Cards
+                          _buildRoleCards(size, viewModel),
 
-                        SizedBox(height: size.height * 0.08),
+                          SizedBox(height: size.height * 0.08),
 
-                        // Continue Button
-                        _buildContinueButton(size, viewModel),
+                          // Continue Button
+                          _buildContinueButton(size, viewModel),
 
-                        const Spacer(),
-                        SizedBox(height: size.height * 0.02),
-                        // Login Link
-                        _buildLoginLink(size),
+                          const Spacer(),
+                          SizedBox(height: size.height * 0.02),
+                          // Login Link
+                          _buildLoginLink(size),
 
-                        SizedBox(height: size.height * 0.03),
-                      ],
+                          SizedBox(height: size.height * 0.03),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -244,12 +247,7 @@ class _OnboardingViewState extends State<OnboardingView>
           children: [
             GestureDetector(
               onTap: () => context.go(AppRoutes.vendorHome),
-              child: Image.asset(
-                AssetImages.bagyesLogo,
-                width: size.width * 0.19,
-                height: size.width * 0.19,
-                fit: BoxFit.cover,
-              ),
+              child: AppLogoCard(size: size.width * 0.22),
             ),
           ],
         ),

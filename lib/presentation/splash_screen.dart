@@ -1,13 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:bagyesrushappusernew/constant/constant.dart';
-import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../core/common/app/current_user_provider.dart';
 import '../core/services/fcm_service.dart';
+import '../core/widgets/app_logo_card.dart';
+import '../core/widgets/decorative_background.dart';
 import '../src/auth/repositories/auth_repository.dart';
 import '../src/auth/viewmodels/auth_viewmodel.dart';
 import '../src/auth/viewmodels/auth_state.dart';
@@ -25,10 +29,13 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
+  String? _versionLabel;
+
   @override
   void initState() {
     super.initState();
     _setupAnimations();
+    _loadVersion();
     _navigateToNextScreen();
   }
 
@@ -50,6 +57,15 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _animationController.forward();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _versionLabel = 'v${info.version}');
+    } catch (_) {
+      // Non-critical: the version label simply stays hidden if unavailable.
+    }
   }
 
   @override
@@ -103,88 +119,107 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final logoSize = size.width * 0.35; // Responsive logo size
-
     return Scaffold(
-      backgroundColor: whiteBackgroundColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animated Logo
-            ScaleTransition(
-              scale: _scaleAnimation,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: Image.asset(
-                  AssetImages.bagyesLogo,
-                  width: logoSize,
-                  height: logoSize,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
+      backgroundColor: kDecorativeBackgroundColor,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
 
-            SizedBox(height: size.height * 0.03),
+          // Card is clamped so it stays comfortable on both small phones
+          // and large tablets, while still scaling with the viewport.
+          final cardSize = (math.min(width, height) * 0.34).clamp(120.0, 260.0);
+          final loaderWidth = (width * 0.32).clamp(96.0, 220.0);
 
-            // Animated App Name
-            FadeTransition(
-              opacity: _fadeAnimation,
+          return DecorativeBackground(
+            child: SafeArea(
               child: Column(
                 children: [
-                  Text(
-                    'BagyesRush',
-                    style: TextStyle(
-                      fontSize: size.width * 0.1,
-                      fontWeight: FontWeight.w400,
-                      color: primaryColor,
-                      letterSpacing: 0.5,
-                      fontFamily: 'Pacifico',
+                  const Spacer(flex: 5),
+                  ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: AppLogoCard(size: cardSize),
                     ),
                   ),
-                  Text(
-                    'Delivery',
-                    style: TextStyle(
-                      fontSize: size.width * 0.05,
-                      fontWeight: FontWeight.w500,
-                      color: primaryColor,
-                      letterSpacing: 1,
-                      fontFamily: 'Mukta',
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 22),
+                      child: Container(
+                        width: 40,
+                        height: 2.5,
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: size.height * 0.01),
-                  Text(
-                    'FAST • RELIABLE • QUALITY',
-                    style: TextStyle(
-                      fontSize: size.width * 0.03,
-                      color: Colors.grey[400],
-                      letterSpacing: 3,
-                      fontWeight: FontWeight.w600,
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: 18,
+                        left: 24,
+                        right: 24,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'FAST · RELIABLE · QUALITY',
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: greyColor.withValues(alpha: 0.8),
+                            letterSpacing: 3,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(flex: 6),
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SizedBox(
+                      width: loaderWidth,
+                      height: 3,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            primaryColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 20),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Text(
+                        _versionLabel ?? '',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: greyColor.withValues(alpha: 0.6),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-
-            SizedBox(height: size.height * 0.08),
-
-            // Modern Loader
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: const SizedBox(
-                height: 40,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
+
+

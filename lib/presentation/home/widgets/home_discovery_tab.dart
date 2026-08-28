@@ -155,11 +155,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: AppColors.primary,
-                                size: w * 0.04,
-                              ),
+                             
                             ],
                           ),
                         ],

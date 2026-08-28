@@ -19,14 +19,12 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   // Phase 1 — legacy vendor/onboarding services
   await di.init();
-
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,
   // AuthRepository, AuthViewmodel); guarded with isRegistered checks.
-
   await AppInitializer.initialize();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
+    DeviceOrientation.portraitDown,                                                              
   ]).then((_) {
     runApp(
       ProviderScope(
@@ -37,7 +35,6 @@ void main() async {
       ),
     );
   });
-
   // Phase 3 — non-critical background init (analytics, push notifications, etc.)
   AppInitializer.initializeRemaining();
 }
