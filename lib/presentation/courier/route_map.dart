@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../constant/config.dart';
 import '../../core/enums/map_style_type.dart';
 import '../../core/services/map_style_service.dart';
+import '../../core/utils/app_logger.dart';
 
 enum Trip { PICKUP, DROPOFF, WAIT }
 
@@ -120,28 +121,44 @@ class _RouteMapState extends State<RouteMap> {
   }
 
   Future<void> setPolylines() async {
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      googleApiKey: googleAPIKey,
-      request: PolylineRequest(
-        origin: PointLatLng(
-          sourceLocatioon.latitude,
-          sourceLocatioon.longitude,
+    PolylineResult result;
+    try {
+      result = await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: googleAPIKey,
+        request: PolylineRequest(
+          origin: PointLatLng(
+            sourceLocatioon.latitude,
+            sourceLocatioon.longitude,
+          ),
+          destination: PointLatLng(
+            destLocatioon.latitude,
+            destLocatioon.longitude,
+          ),
+          mode: TravelMode.driving,
         ),
-        destination: PointLatLng(
-          destLocatioon.latitude,
-          destLocatioon.longitude,
-        ),
-        mode: TravelMode.driving,
-      ),
-    );
-    if (result.points.isNotEmpty) {
-      // loop through all PointLatLng points and convert them
-      // to a list of LatLng, required by the Polyline
-      for (var point in result.points) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      }
+      );
+    } catch (e, s) {
+      // Leave the map showing just the pickup/dropoff pins rather than
+      // letting a Directions API failure surface as an unhandled error.
+      appLogger.e('[RouteMap] Failed to fetch route', error: e, stackTrace: s);
+      return;
     }
 
+    if (result.points.isEmpty) {
+      appLogger.w(
+        '[RouteMap] No route points returned — status: ${result.status}, '
+        'error: ${result.errorMessage ?? 'none'}',
+      );
+      return;
+    }
+
+    // loop through all PointLatLng points and convert them
+    // to a list of LatLng, required by the Polyline
+    for (var point in result.points) {
+      polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+    }
+
+    if (!mounted) return;
     setState(() {
       // create a Polyline instance
       // with an id, an RGB color and the list of LatLng pairs

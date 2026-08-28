@@ -72,7 +72,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     final result = await LocationHelper.getCurrentLocation();
     if (mounted) {
       setState(() {
-        _currentLocation = result['address'];
+        _currentLocation = result.address;
       });
     }
   }

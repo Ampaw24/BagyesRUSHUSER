@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:geolocator/geolocator.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../features/report/domain/entities/report.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -289,7 +288,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   Future<void> _fetchLocation() async {
     final result = await LocationHelper.getCurrentLocation();
     if (mounted) {
-      setState(() => _currentLocation = result['address']);
+      setState(() => _currentLocation = result.address);
     }
   }
 
@@ -325,48 +324,51 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         return;
       }
 
-      // 2. Check location availability
-      final locationEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!locationEnabled) {
-        if (mounted) {
-          StoreStatusToast.show(
-            context,
-            isSuccess: false,
-            title: 'Location Services Disabled',
-            subtitle:
-                'Enable location services so customers can find your store.',
-          );
-        }
-        return;
-      }
+      // 2. Check location availability + fetch a fresh, live fix — this
+      // must not reuse the header's cached _currentLocation, since the
+      // vendor may have moved since the dashboard first loaded.
+      final result = await LocationHelper.getCurrentLocation(
+        resolveAddress: false,
+      );
 
-      final result = await LocationHelper.getCurrentLocation();
-      final position = result['position'] as Position?;
-
-      if (position == null) {
-        if (mounted) {
-          StoreStatusToast.show(
-            context,
-            isSuccess: false,
-            title: 'Location Required',
-            subtitle:
-                'Enable location services so customers can find your store.',
-          );
-        }
-        return;
-      }
-
-      // Validate that we actually got coordinates
-      if (position.latitude == 0.0 && position.longitude == 0.0) {
-        if (mounted) {
-          StoreStatusToast.show(
-            context,
-            isSuccess: false,
-            title: 'Unable to Determine Location',
-            subtitle: 'Could not get your current location. Please try again.',
-          );
-        }
-        return;
+      switch (result.status) {
+        case LocationStatus.serviceDisabled:
+          if (mounted) {
+            StoreStatusToast.show(
+              context,
+              isSuccess: false,
+              title: 'Location Services Disabled',
+              subtitle:
+                  'Enable location services so customers can find your store.',
+            );
+          }
+          return;
+        case LocationStatus.permissionDenied:
+        case LocationStatus.permissionDeniedForever:
+          if (mounted) {
+            StoreStatusToast.show(
+              context,
+              isSuccess: false,
+              title: 'Location Required',
+              subtitle:
+                  'Enable location services so customers can find your store.',
+            );
+          }
+          return;
+        case LocationStatus.timeout:
+        case LocationStatus.error:
+          if (mounted) {
+            StoreStatusToast.show(
+              context,
+              isSuccess: false,
+              title: 'Unable to Determine Location',
+              subtitle:
+                  'Could not get your current location. Please try again.',
+            );
+          }
+          return;
+        case LocationStatus.success:
+          break;
       }
 
       // 3. All checks passed — open the store

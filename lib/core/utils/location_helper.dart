@@ -1,10 +1,42 @@
+import 'dart:async';
+
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import '../utils/app_logger.dart';
 
+/// Outcome status of a [LocationHelper.getCurrentLocation] attempt.
+enum LocationStatus {
+  success,
+  permissionDenied,
+  permissionDeniedForever,
+  serviceDisabled,
+  timeout,
+  error,
+}
+
+/// Result of [LocationHelper.getCurrentLocation].
+///
+/// [address] is always populated (falling back to a coordinate string when
+/// geocoding is skipped or fails) so callers can render it directly.
+class LocationResult {
+  final LocationStatus status;
+  final Position? position;
+  final String address;
+
+  const LocationResult({
+    required this.status,
+    required this.position,
+    required this.address,
+  });
+
+  bool get isSuccess => status == LocationStatus.success;
+}
+
 /// A utility class for handling location and geocoding operations.
 /// Follows DRY principles to share logic across User, Courier, and Vendor homes.
 class LocationHelper {
+  static const _unavailableAddress = 'Location unavailable';
+
   // Android/iOS only track one in-flight permission request at a time; a
   // second concurrent `requestPermission()` call never resolves instead of
   // erroring. Callers share this in-flight future so the launch-time
@@ -37,69 +69,193 @@ class LocationHelper {
     }
   }
 
-  /// Fetches the current location coordinates and resolves them into a human-readable address.
+  /// Fetches the current device position and, by default, reverse-geocodes
+  /// it into a human-readable address.
   ///
-  /// Returns a Map containing:
-  /// - 'address': The resolved address string
-  /// - 'position': The [Position] object
-  static Future<Map<String, dynamic>> getCurrentLocation() async {
+  /// [accuracy] defaults to low — cheap, good enough for a passive header
+  /// display. Pass [LocationAccuracy.high] for anything driving a delivery
+  /// pin (checkout, parcel pickup/drop-off, the map picker's GPS button).
+  ///
+  /// [resolveAddress] can be set to false to skip the reverse-geocode call
+  /// entirely when only coordinates are needed (e.g. a nearby-search query
+  /// that discards the address) — `address` still comes back populated with
+  /// the coordinate-string fallback.
+  static Future<LocationResult> getCurrentLocation({
+    LocationAccuracy accuracy = LocationAccuracy.low,
+    bool resolveAddress = true,
+    Duration timeLimit = const Duration(seconds: 10),
+  }) async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      appLogger.w('[LocationHelper] Location services disabled');
+      return const LocationResult(
+        status: LocationStatus.serviceDisabled,
+        position: null,
+        address: _unavailableAddress,
+      );
+    }
+
+    final permission = await ensurePermission();
+    if (permission == LocationPermission.denied) {
+      appLogger.w('[LocationHelper] Permission denied — skipping fetch');
+      return const LocationResult(
+        status: LocationStatus.permissionDenied,
+        position: null,
+        address: _unavailableAddress,
+      );
+    }
+    if (permission == LocationPermission.deniedForever) {
+      appLogger.w('[LocationHelper] Permission denied forever — skipping fetch');
+      return const LocationResult(
+        status: LocationStatus.permissionDeniedForever,
+        position: null,
+        address: _unavailableAddress,
+      );
+    }
+
+    final Position position;
     try {
-      final permission = await ensurePermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        appLogger.w(
-          '[LocationHelper] Permission denied ($permission) — skipping fetch',
-        );
-        return {'address': 'Location unavailable', 'position': null};
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 10),
+      position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: accuracy,
+        timeLimit: timeLimit,
       );
-
-      appLogger.i(
-        '[LocationHelper] Coordinates — '
-        'lat: ${position.latitude}, lng: ${position.longitude}',
-      );
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      
-      final place = placemarks.isNotEmpty ? placemarks.first : null;
-      final resolved = resolveAddress(place, position);
-
-      return {'address': resolved, 'position': position};
-    } catch (e, s) {
+    } on LocationServiceDisabledException catch (e, s) {
       appLogger.e(
-        '[LocationHelper] Failed to fetch location',
+        '[LocationHelper] Location services disabled mid-fetch',
         error: e,
         stackTrace: s,
       );
-      return {'address': 'Location unavailable', 'position': null};
+      return const LocationResult(
+        status: LocationStatus.serviceDisabled,
+        position: null,
+        address: _unavailableAddress,
+      );
+    } on PermissionDeniedException catch (e, s) {
+      appLogger.e(
+        '[LocationHelper] Permission denied mid-fetch',
+        error: e,
+        stackTrace: s,
+      );
+      return const LocationResult(
+        status: LocationStatus.permissionDenied,
+        position: null,
+        address: _unavailableAddress,
+      );
+    } on TimeoutException catch (e, s) {
+      appLogger.e('[LocationHelper] GPS fetch timed out', error: e, stackTrace: s);
+      return const LocationResult(
+        status: LocationStatus.timeout,
+        position: null,
+        address: _unavailableAddress,
+      );
+    } catch (e, s) {
+      appLogger.e('[LocationHelper] Failed to fetch position', error: e, stackTrace: s);
+      return const LocationResult(
+        status: LocationStatus.error,
+        position: null,
+        address: _unavailableAddress,
+      );
     }
+
+    // A (0,0) fix is a bogus/no-fix result on some devices — treat it the
+    // same as a failed fetch rather than handing callers coordinates that
+    // point at Null Island.
+    if (position.latitude == 0.0 && position.longitude == 0.0) {
+      appLogger.w('[LocationHelper] Discarding bogus (0,0) fix');
+      return const LocationResult(
+        status: LocationStatus.error,
+        position: null,
+        address: _unavailableAddress,
+      );
+    }
+
+    appLogger.i(
+      '[LocationHelper] Coordinates — '
+      'lat: ${position.latitude}, lng: ${position.longitude}',
+    );
+
+    if (!resolveAddress) {
+      return LocationResult(
+        status: LocationStatus.success,
+        position: position,
+        address: LocationHelper.resolveAddress(
+          null,
+          latitude: position.latitude,
+          longitude: position.longitude,
+        ),
+      );
+    }
+
+    // Reverse-geocoding gets its own try/catch, separate from the GPS fetch
+    // above: a geocode failure (network blip, no Play Services) shouldn't
+    // discard an already-successful position — it should just fall back to
+    // the coordinate-string address while keeping status = success.
+    Placemark? place;
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      ).timeout(const Duration(seconds: 8));
+      place = placemarks.isNotEmpty ? placemarks.first : null;
+    } catch (e, s) {
+      appLogger.e(
+        '[LocationHelper] Reverse geocode failed',
+        error: e,
+        stackTrace: s,
+      );
+    }
+
+    return LocationResult(
+      status: LocationStatus.success,
+      position: position,
+      address: LocationHelper.resolveAddress(
+        place,
+        latitude: position.latitude,
+        longitude: position.longitude,
+      ),
+    );
   }
 
-  /// Formats a [Placemark] into a concise address string.
-  static String resolveAddress(Placemark? p, Position pos) {
+  /// Formats a [Placemark] into a concise, human-readable address string.
+  /// Falls back to a 5-decimal coordinate string when [p] is null or has no
+  /// usable fields.
+  static String resolveAddress(
+    Placemark? p, {
+    required double latitude,
+    required double longitude,
+  }) {
     if (p != null) {
-      final sub = p.subLocality?.isNotEmpty == true ? p.subLocality : null;
-      final locality = p.locality?.isNotEmpty == true ? p.locality : null;
-      final street = p.street?.isNotEmpty == true ? p.street : null;
-      final area = p.administrativeArea?.isNotEmpty == true ? p.administrativeArea : null;
-      final country = p.country?.isNotEmpty == true ? p.country : null;
+      final street = _nonEmpty(p.street ?? p.thoroughfare);
+      final sub = _nonEmpty(p.subLocality);
+      final locality = _nonEmpty(p.locality);
+      final subAdmin = _nonEmpty(p.subAdministrativeArea);
+      final admin = _nonEmpty(p.administrativeArea);
+      final country = _nonEmpty(p.country);
 
-      if (street != null && locality != null) return '$street, $locality';
-      if (street != null) return street;
-      if (sub != null && locality != null) return '$sub, $locality';
-      if (sub != null) return sub;
-      
-      final parts = [locality, area ?? country].whereType<String>().toList();
+      final parts = <String>[];
+      if (street != null) parts.add(street);
+      if (sub != null) parts.add(sub);
+      if (locality != null) parts.add(locality);
+      if (parts.isEmpty && subAdmin != null) parts.add(subAdmin);
+      if (parts.length < 2 && admin != null) parts.add(admin);
+      if (country != null && !parts.contains(country)) parts.add(country);
+
       if (parts.isNotEmpty) return parts.join(', ');
-      if (country != null) return country;
     }
-    return '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
+    return _coordFallback(latitude, longitude);
   }
+
+  static String? _nonEmpty(String? s) =>
+      (s != null && s.trim().isNotEmpty) ? s.trim() : null;
+
+  static String _coordFallback(double latitude, double longitude) =>
+      '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
+
+  /// Opens the OS app-settings screen — use for a permanently-denied
+  /// permission. Returns whether the settings screen was actually opened.
+  static Future<bool> openAppSettings() => Geolocator.openAppSettings();
+
+  /// Opens the OS location-services settings screen — use for disabled GPS.
+  /// Returns whether the settings screen was actually opened.
+  static Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
 }

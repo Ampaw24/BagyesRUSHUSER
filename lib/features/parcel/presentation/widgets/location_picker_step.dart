@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import '../../../../core/utils/location_helper.dart';
 import '../../../../core/widgets/map_location_picker_sheet.dart';
 
 class LocationPickerStep extends StatefulWidget {
@@ -33,66 +33,59 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
   Future<void> _useCurrentLocation() async {
     setState(() => _isLocating = true);
     try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
+      final result = await LocationHelper.getCurrentLocation(
+        accuracy: LocationAccuracy.high,
+      );
+
+      if (!mounted) return;
+
+      switch (result.status) {
+        case LocationStatus.success:
+          final position = result.position!;
+          final latLng = LatLng(position.latitude, position.longitude);
+          widget.onLocationSelected(latLng, result.address);
+          break;
+        case LocationStatus.serviceDisabled:
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Location permission permanently denied. Enable it in Settings.'),
+              content: Text(
+                  'Location services are disabled. Enable GPS and try again.'),
               behavior: SnackBarBehavior.floating,
             ),
           );
-        }
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      final place = placemarks.isNotEmpty ? placemarks.first : null;
-      final address = place != null
-          ? '${place.street ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}'
-              .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
-              .replaceAll(RegExp(r',\s*,'), ',')
-          : '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
-
-      final latLng = LatLng(position.latitude, position.longitude);
-      widget.onLocationSelected(latLng, address);
-    } on LocationServiceDisabledException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location services are disabled. Enable GPS and try again.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } on PermissionDeniedException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location permission denied. Please allow access in Settings.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not detect location. Try searching for your address.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+          break;
+        case LocationStatus.permissionDeniedForever:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                  'Location permission permanently denied. Enable it in Settings.'),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: LocationHelper.openAppSettings,
+              ),
+            ),
+          );
+          break;
+        case LocationStatus.permissionDenied:
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Location permission denied. Please allow access in Settings.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          break;
+        case LocationStatus.timeout:
+        case LocationStatus.error:
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Could not detect location. Try searching for your address.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          break;
       }
     } finally {
       if (mounted) setState(() => _isLocating = false);

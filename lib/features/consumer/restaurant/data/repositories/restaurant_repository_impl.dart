@@ -91,8 +91,10 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
   Future<List<Restaurant>> getNearbyRestaurants() async {
     appLogger.d('RestaurantRepository.getNearbyRestaurants → initiated');
     try {
-      final location = await LocationHelper.getCurrentLocation();
-      final position = location['position'];
+      final location = await LocationHelper.getCurrentLocation(
+        resolveAddress: false,
+      );
+      final position = location.position;
       if (position == null) {
         appLogger.w(
             'RestaurantRepository.getNearbyRestaurants → no device location, falling back to open vendors');

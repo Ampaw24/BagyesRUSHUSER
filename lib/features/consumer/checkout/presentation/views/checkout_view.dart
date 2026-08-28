@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -10,6 +9,7 @@ import 'package:provider/provider.dart' as legacy;
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
 import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/domain/entities/checkout_model.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/states/checkout_state.dart';
@@ -41,6 +41,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
   // Address starts empty — user MUST provide an address before placing order.
   final _addressController = TextEditingController();
   final _instructionsController = TextEditingController();
+  bool _isLocatingCurrentPosition = false;
 
   @override
   void initState() {
@@ -65,30 +66,53 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
   }
 
   Future<void> _useCurrentLocation() async {
+    if (_isLocatingCurrentPosition) return;
+    setState(() => _isLocatingCurrentPosition = true);
     try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+      final result = await LocationHelper.getCurrentLocation(
+        accuracy: LocationAccuracy.high,
       );
-      final placemarks =
-          await placemarkFromCoordinates(pos.latitude, pos.longitude);
-      final address =
-          _buildAddressString(placemarks.isNotEmpty ? placemarks.first : null, pos);
-      _addressController.text = address;
-      ref.read(checkoutProvider.notifier).updateAddressWithCoordinates(
-            address,
-            latitude: pos.latitude,
-            longitude: pos.longitude,
-          );
-    } catch (_) {}
+
+      if (!mounted) return;
+
+      switch (result.status) {
+        case LocationStatus.success:
+          final position = result.position!;
+          _addressController.text = result.address;
+          ref.read(checkoutProvider.notifier).updateAddressWithCoordinates(
+                result.address,
+                latitude: position.latitude,
+                longitude: position.longitude,
+              );
+          break;
+        case LocationStatus.serviceDisabled:
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Location services disabled. Enable GPS and try again.'),
+          ));
+          break;
+        case LocationStatus.permissionDeniedForever:
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                const Text('Location permission denied. Enable it in Settings.'),
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: LocationHelper.openAppSettings,
+            ),
+          ));
+          break;
+        case LocationStatus.permissionDenied:
+        case LocationStatus.timeout:
+        case LocationStatus.error:
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Could not detect your location. Try picking on the map instead.'),
+          ));
+          break;
+      }
+    } finally {
+      if (mounted) setState(() => _isLocatingCurrentPosition = false);
+    }
   }
 
   void _openMapPicker() {
@@ -135,19 +159,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     if (!mounted || result == null) return;
     ref.invalidate(checkoutPaymentMethodsProvider);
     ref.read(checkoutProvider.notifier).selectPaymentMethod(result);
-  }
-
-  String _buildAddressString(Placemark? p, Position pos) {
-    if (p != null) {
-      final street = p.street?.isNotEmpty == true ? p.street : null;
-      final sub = p.subLocality?.isNotEmpty == true ? p.subLocality : null;
-      final locality = p.locality?.isNotEmpty == true ? p.locality : null;
-      if (street != null && locality != null) return '$street, $locality';
-      if (street != null) return street;
-      if (sub != null && locality != null) return '$sub, $locality';
-      if (locality != null) return locality;
-    }
-    return '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
   }
 
   @override
@@ -216,6 +227,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 _AddressSelectorTile(
                   controller: _addressController,
                   hasValidAddress: hasValidAddress,
+                  isLocatingCurrentPosition: _isLocatingCurrentPosition,
                   onChanged: (v) =>
                       ref.read(checkoutProvider.notifier).updateAddress(v),
                   onUseCurrentLocation: _useCurrentLocation,
@@ -426,6 +438,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 class _AddressSelectorTile extends StatelessWidget {
   final TextEditingController controller;
   final bool hasValidAddress;
+  final bool isLocatingCurrentPosition;
   final ValueChanged<String> onChanged;
   final VoidCallback onUseCurrentLocation;
   final VoidCallback onPickOnMap;
@@ -433,6 +446,7 @@ class _AddressSelectorTile extends StatelessWidget {
   const _AddressSelectorTile({
     required this.controller,
     required this.hasValidAddress,
+    required this.isLocatingCurrentPosition,
     required this.onChanged,
     required this.onUseCurrentLocation,
     required this.onPickOnMap,
@@ -489,7 +503,10 @@ class _AddressSelectorTile extends StatelessWidget {
               children: [
                 _QuickAddressChip(
                   icon: Icons.my_location_rounded,
-                  label: 'Use current location',
+                  label: isLocatingCurrentPosition
+                      ? 'Locating…'
+                      : 'Use current location',
+                  isLoading: isLocatingCurrentPosition,
                   onTap: () {
                     HapticFeedback.selectionClick();
                     onUseCurrentLocation();
@@ -517,18 +534,20 @@ class _QuickAddressChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool isLoading;
 
   const _QuickAddressChip({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: w * 0.025,
@@ -541,7 +560,17 @@ class _QuickAddressChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: w * 0.035, color: AppColors.primary),
+            if (isLoading)
+              SizedBox(
+                width: w * 0.035,
+                height: w * 0.035,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              )
+            else
+              Icon(icon, size: w * 0.035, color: AppColors.primary),
             SizedBox(width: w * 0.015),
             Text(
               label,

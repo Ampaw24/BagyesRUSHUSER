@@ -38,7 +38,8 @@ class PlacesService {
       'https://maps.googleapis.com/maps/api/place/details/json';
 
   // Default location bias: central Accra
-  static const _defaultBias = LatLng(5.6037, -0.1870);
+  static const _defaultBias =
+      LatLng(Config.defaultMapCenterLat, Config.defaultMapCenterLng);
 
   /// Returns up to 7 autocomplete predictions for [input].
   ///

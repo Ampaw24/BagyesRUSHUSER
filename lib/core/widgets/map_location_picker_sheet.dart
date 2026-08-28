@@ -8,10 +8,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../constant/app_theme.dart';
+import '../../constant/config.dart';
 import '../../core/utils/app_logger.dart';
 import '../enums/map_style_type.dart';
 import '../services/map_style_service.dart';
 import '../services/places_service.dart';
+import '../utils/location_helper.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point
@@ -44,8 +46,12 @@ class MapLocationPickerSheet extends StatefulWidget {
 class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     with SingleTickerProviderStateMixin {
   // ── Constants ──────────────────────────────────────────────────────────────
-  static const _accraFallback = LatLng(5.6037, -0.1870);
+  static const _accraFallback =
+      LatLng(Config.defaultMapCenterLat, Config.defaultMapCenterLng);
   static const _defaultZoom = 15.0;
+  // Below this movement, a camera-idle re-geocode is skipped — the address
+  // wouldn't meaningfully change and it saves a geocoding API call.
+  static const _minRegeocodeDistanceMeters = 10.0;
 
   // ── Map controller ─────────────────────────────────────────────────────────
   final Completer<GoogleMapController> _mapController = Completer();
@@ -57,6 +63,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
   bool _isLocating = false;
   bool _isCameraMoving = false;
   String? _mapStyle;
+  LatLng? _lastGeocodedCenter;
 
   // ── Pin animation ──────────────────────────────────────────────────────────
   late final AnimationController _pinAnim;
@@ -114,50 +121,39 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
   // ── Address reverse-geocoding ──────────────────────────────────────────────
 
   Future<void> _reverseGeocode(LatLng position) async {
+    // Mark this point as attempted immediately (not just on success) so the
+    // camera-idle distance guard doesn't retry a spot that just failed.
+    _lastGeocodedCenter = position;
     setState(() => _isReverseGeocoding = true);
     try {
       final placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
-      );
+      ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       final p = placemarks.isNotEmpty ? placemarks.first : null;
       setState(() {
-        _address = p != null ? _buildAddress(p, position) : _coordFallback(position);
+        _address = LocationHelper.resolveAddress(
+          p,
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
       });
-    } catch (_) {
-      if (mounted) setState(() => _address = _coordFallback(position));
+    } catch (e, s) {
+      appLogger.e('[MapPicker] Reverse geocode failed', error: e, stackTrace: s);
+      if (mounted) {
+        setState(() {
+          _address = LocationHelper.resolveAddress(
+            null,
+            latitude: position.latitude,
+            longitude: position.longitude,
+          );
+        });
+      }
     } finally {
       if (mounted) setState(() => _isReverseGeocoding = false);
     }
   }
-
-  String _buildAddress(Placemark p, LatLng pos) {
-    final street   = _nonEmpty(p.street ?? p.thoroughfare);
-    final sub      = _nonEmpty(p.subLocality);
-    final locality = _nonEmpty(p.locality);
-    final subAdmin = _nonEmpty(p.subAdministrativeArea);
-    final admin    = _nonEmpty(p.administrativeArea);
-    final country  = _nonEmpty(p.country);
-
-    final parts = <String>[];
-
-    if (street != null)   parts.add(street);
-    if (sub != null)      parts.add(sub);
-    if (locality != null) parts.add(locality);
-
-    if (parts.isEmpty && subAdmin != null) parts.add(subAdmin);
-    if (parts.length < 2 && admin != null) parts.add(admin);
-    if (parts.isEmpty && country != null)  parts.add(country);
-
-    return parts.isNotEmpty ? parts.join(', ') : _coordFallback(pos);
-  }
-
-  String? _nonEmpty(String? s) =>
-      (s != null && s.trim().isNotEmpty) ? s.trim() : null;
-
-  String _coordFallback(LatLng pos) =>
-      '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}';
 
   // ── Camera events ──────────────────────────────────────────────────────────
 
@@ -176,6 +172,18 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     _pinAnim.reverse();
     if (_skipNextReverseGeocode) {
       _skipNextReverseGeocode = false;
+      _lastGeocodedCenter = _center;
+      return;
+    }
+    final last = _lastGeocodedCenter;
+    if (last != null &&
+        Geolocator.distanceBetween(
+              last.latitude,
+              last.longitude,
+              _center.latitude,
+              _center.longitude,
+            ) <
+            _minRegeocodeDistanceMeters) {
       return;
     }
     _reverseGeocode(_center);
@@ -186,38 +194,52 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
   Future<void> _goToMyLocation() async {
     setState(() => _isLocating = true);
     try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.deniedForever) return;
+      final result = await LocationHelper.getCurrentLocation(
+        accuracy: LocationAccuracy.high,
+        resolveAddress: false,
+      );
 
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      appLogger.i(
-        '[Location] Map picker GPS — '
-        'lat: ${position.latitude}, lng: ${position.longitude}, '
-        'accuracy: ${position.accuracy.toStringAsFixed(1)} m',
-      );
-      final latLng = LatLng(position.latitude, position.longitude);
-      final controller = await _mapController.future;
-      await controller.animateCamera(
-        CameraUpdate.newLatLngZoom(latLng, _defaultZoom),
-      );
-    } on LocationServiceDisabledException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Location services disabled. Enable GPS and try again.'),
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not get your location. Try dragging the map.'),
-          behavior: SnackBarBehavior.floating,
-        ));
+      if (!mounted) return;
+
+      switch (result.status) {
+        case LocationStatus.success:
+          final position = result.position!;
+          appLogger.i(
+            '[Location] Map picker GPS — '
+            'lat: ${position.latitude}, lng: ${position.longitude}, '
+            'accuracy: ${position.accuracy.toStringAsFixed(1)} m',
+          );
+          final latLng = LatLng(position.latitude, position.longitude);
+          final controller = await _mapController.future;
+          if (!mounted) return;
+          await controller.animateCamera(
+            CameraUpdate.newLatLngZoom(latLng, _defaultZoom),
+          );
+          break;
+        case LocationStatus.serviceDisabled:
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Location services disabled. Enable GPS and try again.'),
+            behavior: SnackBarBehavior.floating,
+          ));
+          break;
+        case LocationStatus.permissionDeniedForever:
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Location permission denied. Enable it in Settings.'),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: LocationHelper.openAppSettings,
+            ),
+          ));
+          break;
+        case LocationStatus.permissionDenied:
+        case LocationStatus.timeout:
+        case LocationStatus.error:
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not get your location. Try dragging the map.'),
+            behavior: SnackBarBehavior.floating,
+          ));
+          break;
       }
     } finally {
       if (mounted) setState(() => _isLocating = false);
@@ -260,7 +282,13 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
               description: text,
             );
           }).toList();
-        } catch (_) {}
+        } catch (e, s) {
+          appLogger.w(
+            '[MapPicker] Forward geocode fallback failed for "$text"',
+            error: e,
+            stackTrace: s,
+          );
+        }
       }
 
       if (mounted) {
@@ -298,7 +326,13 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
       try {
         final parts = prediction.placeId.split(',');
         latLng = LatLng(double.parse(parts[0]), double.parse(parts[1]));
-      } catch (_) {}
+      } catch (e, s) {
+        appLogger.w(
+          '[MapPicker] Failed to parse coordinate placeId',
+          error: e,
+          stackTrace: s,
+        );
+      }
     }
 
     if (latLng == null) {
@@ -307,7 +341,14 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
         if (locations.isNotEmpty) {
           latLng = LatLng(locations.first.latitude, locations.first.longitude);
         }
-      } catch (_) {}
+      } catch (e, s) {
+        appLogger.w(
+          '[MapPicker] Forward geocode fallback failed for '
+          '"${prediction.description}"',
+          error: e,
+          stackTrace: s,
+        );
+      }
     }
 
     if (latLng == null) {
@@ -327,6 +368,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
 
     _center = latLng;
     final controller = await _mapController.future;
+    if (!mounted) return;
     await controller.animateCamera(
       CameraUpdate.newLatLngZoom(latLng, _defaultZoom),
     );
