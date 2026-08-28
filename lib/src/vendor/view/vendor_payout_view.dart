@@ -5,35 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constant/app_theme.dart';
+import '../../payment/model/payout_provider_matching.dart';
 import '../../payment/model/payout_provider_model.dart';
 import '../../payment/viewmodel/payout_providers_state.dart';
 import '../../payment/viewmodel/payout_providers_viewmodel.dart';
 import '../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../model/vendor_profile.dart';
 import '../viewmodel/settings_viewmodel.dart';
-
-/// Best-effort match of a provider stored as a raw string (e.g. `bank_name`
-/// free text, or the `mobile_money_provider` key like `'mtn'`) against the
-/// live-fetched catalog, so existing payout data can be preselected in the
-/// dropdown. Falls back to null (shown as the raw string) if nothing matches.
-PayoutProviderModel? _matchProvider(List<PayoutProviderModel> providers, String? raw) {
-  if (raw == null || raw.trim().isEmpty) return null;
-  final needle = raw.trim().toLowerCase();
-  for (final p in providers) {
-    if (p.name.toLowerCase() == needle ||
-        p.shortName.toLowerCase() == needle ||
-        p.slug.toLowerCase() == needle) {
-      return p;
-    }
-  }
-  for (final p in providers) {
-    if (needle.contains(p.shortName.toLowerCase()) ||
-        p.shortName.toLowerCase().contains(needle)) {
-      return p;
-    }
-  }
-  return null;
-}
 
 /// Full-screen payout configuration for `PUT /vendor/me/payout` — lets a
 /// vendor set the bank and/or mobile-money details they get paid out to.
@@ -98,8 +76,8 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
     if (_pendingResolved) return;
     if (providersVm.state is! PayoutProvidersLoaded) return;
     _pendingResolved = true;
-    _selectedBank ??= _matchProvider(providersVm.banks, _pendingBankName);
-    _selectedMomo ??= _matchProvider(providersVm.mobileMoneyProviders, _pendingMomoKey);
+    _selectedBank ??= matchPayoutProvider(providersVm.banks, _pendingBankName);
+    _selectedMomo ??= matchPayoutProvider(providersVm.mobileMoneyProviders, _pendingMomoKey);
   }
 
   @override
@@ -364,7 +342,7 @@ class _PayoutStatusHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final configured = payout.isConfigured;
     final momoDisplayName =
-        _matchProvider(providers, payout.mobileMoneyProvider)?.name ?? payout.mobileMoneyProvider;
+        matchPayoutProvider(providers, payout.mobileMoneyProvider)?.name ?? payout.mobileMoneyProvider;
     final summary = configured
         ? [
             if (payout.bankName != null && payout.accountNumberLast4 != null)

@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
 import '../utils/network_utility.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/src/cart/repositories/cart_repository.dart';
+import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/orders/repositories/orders_repository.dart';
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
@@ -68,6 +70,7 @@ Future<void> init() async {
 
   // ── Validators ──────────────────────────────────────────────────────────────
   sl.registerLazySingleton(() => AuthRepository(client: sl(), cacheHelper: sl()));
+  sl.registerLazySingleton(() => CartRepository(client: sl()));
   sl.registerLazySingleton(() => OrdersRepository(client: sl()));
   sl.registerLazySingleton(() => ParcelRepository(client: sl()));
   sl.registerLazySingleton(() => PaymentRepository(client: sl()));
@@ -77,6 +80,9 @@ Future<void> init() async {
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
   sl.registerFactory(() => AuthViewmodel(repository: sl(), currentUserProvider: sl()));
+  // Singleton (not factory) — cart is shared app-wide state (restaurant
+  // detail, cart screen, checkout all read/mutate the same instance).
+  sl.registerLazySingleton(() => CartViewModel(repository: sl()));
   sl.registerFactory(() => PaymentViewmodel(repository: sl()));
   sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => ParcelViewModel(repository: sl()));

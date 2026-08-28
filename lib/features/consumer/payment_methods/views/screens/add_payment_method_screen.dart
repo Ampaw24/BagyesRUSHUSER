@@ -74,7 +74,7 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
     setState(() => _isSubmitting = false);
 
     if (method != null) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(method);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to add payment method')),

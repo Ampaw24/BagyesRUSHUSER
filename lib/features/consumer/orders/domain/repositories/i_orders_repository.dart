@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
 class OrdersPage {
   final List<ConsumerOrder> orders;
@@ -22,7 +22,7 @@ abstract interface class IOrdersRepository {
   Future<OrdersPage> getOrdersPaged({int page = 1, int limit = 20});
   Future<ConsumerOrder> getOrderById(String orderId);
   Future<ConsumerOrder> placeOrder({
-    required CartState cart,
+    required CartModel cart,
     required String deliveryAddress,
     String? deliveryInstructions,
     required String paymentMethod,

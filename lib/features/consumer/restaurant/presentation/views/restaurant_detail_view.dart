@@ -1,19 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart' as legacy;
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/menu_item.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/item_addon_sheet.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/menu_item_card.dart';
+import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 
 class RestaurantDetailView extends ConsumerStatefulWidget {
   final String restaurantId;
@@ -33,6 +34,10 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
   /// Key for the cart FAB — used to trigger bounce animations.
   final GlobalKey<_CartFabState> _cartFabKey = GlobalKey<_CartFabState>();
 
+  /// Saved reference so dispose() doesn't call context.read on an unmounted
+  /// widget, and so the listener can be detached.
+  CartViewModel? _cartVm;
+
   @override
   void initState() {
     super.initState();
@@ -40,7 +45,18 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     // setState-during-build lifecycle violations.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _listenForMenuChanges();
+      _cartVm = legacy.Provider.of<CartViewModel>(context, listen: false);
+      _cartVm!.addListener(_onCartChanged);
     });
+  }
+
+  /// A mutation (add/update/remove) failed — the cart already rolled back
+  /// to its last known-good state, this just surfaces why.
+  void _onCartChanged() {
+    final message = _cartVm?.errorMessage;
+    if (message == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    _cartVm!.clearError();
   }
 
   /// Attach a listener to the menu provider so tab init happens outside
@@ -58,6 +74,24 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
       },
       fireImmediately: true,
     );
+
+    // Load this vendor's cart once the restaurant (and its numeric id) is
+    // available, so quantities/FAB reflect items already added here.
+    ref.listenManual(
+      restaurantDetailProvider(widget.restaurantId),
+      (prev, next) {
+        next.whenData((restaurant) {
+          final vendorId = _vendorId(restaurant);
+          if (vendorId == null) return;
+          final cartVm =
+              legacy.Provider.of<CartViewModel>(context, listen: false);
+          if (cartVm.cart?.vendorId != vendorId) {
+            cartVm.loadCart(vendorId);
+          }
+        });
+      },
+      fireImmediately: true,
+    );
   }
 
   void _rebuildTabController(int count) {
@@ -70,71 +104,79 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
   @override
   void dispose() {
     _tabController?.dispose();
+    _cartVm?.removeListener(_onCartChanged);
     super.dispose();
   }
 
-  Future<void> _onAddItem(Restaurant restaurant, MenuItem item) async {
-    final cart = ref.read(cartProvider);
-    final hasConflict =
-        cart.restaurantId != null && cart.restaurantId != restaurant.id;
+  /// The vendor's cart-API id (an integer, distinct from [Restaurant.id]'s
+  /// ULID). Menu items likewise use their numeric-id string as
+  /// [MenuItem.id] — both are required as `int`s by the cart endpoints.
+  String? _vendorId(Restaurant restaurant) => restaurant.numericId?.toString();
 
+  Future<void> _onAddItem(Restaurant restaurant, MenuItem item) async {
+    final vendorId = _vendorId(restaurant);
+    if (vendorId == null) return;
+    final cartVm = legacy.Provider.of<CartViewModel>(context, listen: false);
+
+    final bool succeeded;
     if (item.hasAddons) {
       final result = await ItemAddonSheet.show(context, item);
       if (result == null || !mounted) return;
-      if (hasConflict) {
-        _showReplaceCartDialog(
-          restaurant,
-          item,
-          quantity: result.quantity,
-          selectedAddons: result.selectedAddons,
-        );
-        return;
-      }
-      ref.read(cartProvider.notifier).addItem(
-            restaurant,
-            item,
-            quantity: result.quantity,
-            selectedAddons: result.selectedAddons,
-          );
+      // CartViewModel.addItem updates local state (and the FAB) instantly,
+      // before its network call resolves, so the badge/quantity bump feels
+      // instant even though we still await the outcome below to report a
+      // rejected mutation (e.g. server-side validation) back to the user.
+      succeeded = await _addToCart(
+        cartVm,
+        vendorId,
+        item,
+        quantity: result.quantity,
+        selectedAddons: result.selectedAddons,
+      );
     } else {
-      if (hasConflict) {
-        _showReplaceCartDialog(restaurant, item);
-        return;
-      }
-      ref.read(cartProvider.notifier).addItem(restaurant, item);
+      succeeded = await _addToCart(cartVm, vendorId, item);
     }
 
-    // Haptic feedback + bounce animation on the cart FAB
+    if (!mounted) return;
     HapticFeedback.lightImpact();
     _cartFabKey.currentState?.bounce();
+
+    if (!succeeded) {
+      final message = cartVm.errorMessage;
+      if (message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        cartVm.clearError();
+      }
+    }
   }
 
-  void _showReplaceCartDialog(
-    Restaurant restaurant,
+  Future<bool> _addToCart(
+    CartViewModel cartVm,
+    String vendorId,
     MenuItem item, {
     int quantity = 1,
     List<SelectedAddon> selectedAddons = const [],
   }) {
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Replace cart?',
-      subtitle:
-          'Your cart has items from ${ref.read(cartProvider).restaurantName}. '
-          'Starting a new cart will remove those items.',
-      confirmText: 'Replace',
-      cancelText: 'Keep current',
-      onConfirm: () {
-        ref.read(cartProvider.notifier).clearAndAdd(
-              restaurant,
-              item,
-              quantity: quantity,
-              selectedAddons: selectedAddons,
-            );
-        HapticFeedback.lightImpact();
-        _cartFabKey.currentState?.bounce();
-      },
+    return cartVm.addItem(
+      vendorId: vendorId,
+      menuItemId: int.tryParse(item.id) ?? 0,
+      quantity: quantity,
+      addonOptionIds: _flattenAddonOptionIds(selectedAddons),
+      name: item.name,
+      imageUrl: item.imageUrl,
+      price: item.price,
+      addonOptions: selectedAddons,
     );
   }
+
+  /// The cart API takes a flat `addon_option_ids` array with no per-option
+  /// quantity field — an option picked N times (e.g. "2× extra cheese") is
+  /// represented by repeating its id N times.
+  List<int> _flattenAddonOptionIds(List<SelectedAddon> addons) => addons
+      .expand((a) => List.filled(a.quantity, int.tryParse(a.optionId) ?? 0))
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +184,7 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     final restaurantAsync =
         ref.watch(restaurantDetailProvider(widget.restaurantId));
     final menuAsync = ref.watch(restaurantMenuProvider(widget.restaurantId));
-    final cart = ref.watch(cartProvider);
+    final cartVm = legacy.Provider.of<CartViewModel>(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -159,11 +201,11 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
           data: (restaurant) {
             return menuAsync.when(
               loading: () => _buildBody(
-                context, restaurant, const {}, cart, w,
+                context, restaurant, const {}, cartVm, w,
                 isMenuLoading: true,
               ),
               error: (e, _) => _buildBody(
-                context, restaurant, const {}, cart, w,
+                context, restaurant, const {}, cartVm, w,
                 isMenuLoading: false,
                 hasMenuError: true,
               ),
@@ -171,7 +213,7 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                 // Tab controller is now managed via ref.listenManual
                 // in initState — no setState inside build.
                 return _buildBody(
-                  context, restaurant, menu, cart, w,
+                  context, restaurant, menu, cartVm, w,
                   isMenuLoading: false,
                 );
               },
@@ -179,11 +221,12 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
           },
         ),
         // ── Cart FAB ──
-        floatingActionButton: cart.isEmpty
+        floatingActionButton: cartVm.isEmpty
             ? null
             : _CartFab(
                 key: _cartFabKey,
-                cart: cart,
+                totalItems: cartVm.totalItems,
+                total: cartVm.total,
                 onTap: () {
                   HapticFeedback.mediumImpact();
                   context.push(AppRoutes.cart);
@@ -198,7 +241,7 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
     BuildContext context,
     Restaurant restaurant,
     Map<String, List<MenuItem>> menu,
-    CartState cart,
+    CartViewModel cartVm,
     double w, {
     required bool isMenuLoading,
     bool hasMenuError = false,
@@ -367,18 +410,23 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                   itemCount: items.length,
                   itemBuilder: (ctx, i) {
                     final item = items[i];
-                    final qty = cart.items
-                        .where((ci) => ci.item.id == item.id)
-                        .fold(0, (sum, ci) => sum + ci.quantity);
+                    final cartItems = cartVm.cart?.items ?? const [];
+                    final matching =
+                        cartItems.where((ci) => ci.menuItemId == item.id);
+                    final qty =
+                        matching.fold(0, (sum, ci) => sum + ci.quantity);
                     return MenuItemCard(
                       item: item,
                       cartQuantity: qty,
                       onAdd: () => _onAddItem(restaurant, item),
                       onRemove: () {
                         HapticFeedback.lightImpact();
-                        ref
-                            .read(cartProvider.notifier)
-                            .updateQuantity(item.id, qty - 1);
+                        final cartItemId = matching.isEmpty
+                            ? null
+                            : matching.first.id;
+                        if (cartItemId != null) {
+                          cartVm.updateItemQuantity(cartItemId, qty - 1);
+                        }
                       },
                       onTapCard: item.hasAddons
                           ? () => _onAddItem(restaurant, item)
@@ -518,10 +566,16 @@ class _StatChip extends StatelessWidget {
 
 /// Cart floating action button with bounce animation on item add.
 class _CartFab extends StatefulWidget {
-  final CartState cart;
+  final int totalItems;
+  final double total;
   final VoidCallback onTap;
 
-  const _CartFab({super.key, required this.cart, required this.onTap});
+  const _CartFab({
+    super.key,
+    required this.totalItems,
+    required this.total,
+    required this.onTap,
+  });
 
   @override
   State<_CartFab> createState() => _CartFabState();
@@ -600,8 +654,8 @@ class _CartFabState extends State<_CartFab>
                       child: child,
                     ),
                     child: Text(
-                      '${widget.cart.totalItems}',
-                      key: ValueKey(widget.cart.totalItems),
+                      '${widget.totalItems}',
+                      key: ValueKey(widget.totalItems),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -622,7 +676,7 @@ class _CartFabState extends State<_CartFab>
                   ),
                 ),
                 Text(
-                  'GHS ${widget.cart.total.toStringAsFixed(2)}',
+                  'GHS ${widget.total.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/domain/entities/checkout_model.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/states/checkout_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
+import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
 // ─── Checkout ViewModel ────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
       form: CheckoutForm(
         deliveryAddress: address,
         deliveryInstructions: form.deliveryInstructions,
-        paymentMethod: form.paymentMethod,
+        selectedPaymentMethod: form.selectedPaymentMethod,
       ),
     );
   }
@@ -51,7 +51,7 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
       form: CheckoutForm(
         deliveryAddress: address,
         deliveryInstructions: form.deliveryInstructions,
-        paymentMethod: form.paymentMethod,
+        selectedPaymentMethod: form.selectedPaymentMethod,
         deliveryLat: latitude,
         deliveryLng: longitude,
       ),
@@ -64,13 +64,21 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
   }
 
   void selectPaymentMethod(PaymentMethod method) {
-    state =
-        CheckoutIdle(form: _currentForm.copyWith(paymentMethod: method));
+    state = CheckoutIdle(
+        form: _currentForm.copyWith(selectedPaymentMethod: method));
   }
 
-  Future<void> placeOrder(CartState cart) async {
+  Future<void> placeOrder(CartModel cart) async {
     if (cart.isEmpty) return;
     final form = _currentForm;
+    final method = form.selectedPaymentMethod;
+    if (method == null) {
+      state = CheckoutError(
+        form: form,
+        message: 'Please select a payment method',
+      );
+      return;
+    }
     state = CheckoutPlacing(form: form);
 
     try {
@@ -80,11 +88,17 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
             deliveryInstructions: form.deliveryInstructions.isEmpty
                 ? null
                 : form.deliveryInstructions,
-            paymentMethod: form.paymentMethod.label,
+            // The backend's payment_method enum only accepts 'card' or
+            // 'mobile_money' — checkout only ever offers saved mobile-money
+            // accounts (see checkoutPaymentMethodsProvider), so this is
+            // always 'mobile_money'. method.displayTitle is a human-readable
+            // nickname/provider name and isn't a valid value here.
+            paymentMethod: 'mobile_money',
             deliveryLat: form.deliveryLat,
             deliveryLng: form.deliveryLng,
           );
-      ref.read(cartProvider.notifier).clear();
+      // Cart clearing is handled by the view (CartViewModel lives in the
+      // `provider` ecosystem, not reachable from this Riverpod Notifier).
       state = CheckoutSuccess(orderId: order.id);
     } on DioException catch (e) {
       state = CheckoutError(

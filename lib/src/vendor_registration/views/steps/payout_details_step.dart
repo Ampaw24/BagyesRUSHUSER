@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
+import '../../../payment/model/payout_provider_matching.dart';
+import '../../../payment/model/payout_provider_model.dart';
+import '../../../payment/viewmodel/payout_providers_viewmodel.dart';
+import '../../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../../models/payout_details_data.dart';
 import '../widgets/vendor_text_field.dart';
 
@@ -28,6 +33,9 @@ class _PayoutDetailsStepState extends State<PayoutDetailsStep> {
 
   int _selectedTab = 0; // 0 = Bank, 1 = Mobile Money
 
+  PayoutProviderModel? _selectedMomo;
+  bool _momoResolved = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +51,10 @@ class _PayoutDetailsStepState extends State<PayoutDetailsStep> {
     if ((widget.data.mobileMoneyNumber ?? '').isNotEmpty) {
       _selectedTab = 1;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<PayoutProvidersViewModel>().load(),
+    );
   }
 
   @override
@@ -74,9 +86,23 @@ class _PayoutDetailsStepState extends State<PayoutDetailsStep> {
     );
   }
 
+  /// Resolves the previously-picked provider (stored as its `shortName`,
+  /// e.g. `'mtn'`) back into a live catalog entry once providers have
+  /// loaded, so returning to this step re-selects it in the dropdown.
+  void _resolvePendingMomoSelection(PayoutProvidersViewModel providersVm) {
+    if (_momoResolved) return;
+    final providers = providersVm.mobileMoneyProviders;
+    if (providers.isEmpty) return;
+    _momoResolved = true;
+    _selectedMomo ??=
+        matchPayoutProvider(providers, widget.data.mobileMoneyProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final providersVm = context.watch<PayoutProvidersViewModel>();
+    _resolvePendingMomoSelection(providersVm);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +130,7 @@ class _PayoutDetailsStepState extends State<PayoutDetailsStep> {
               ? CrossFadeState.showFirst
               : CrossFadeState.showSecond,
           firstChild: _buildBankForm(size),
-          secondChild: _buildMomoForm(size),
+          secondChild: _buildMomoForm(size, providersVm),
         ),
       ],
     );
@@ -182,28 +208,28 @@ class _PayoutDetailsStepState extends State<PayoutDetailsStep> {
     );
   }
 
-  Widget _buildMomoForm(Size size) {
+  Widget _buildMomoForm(Size size, PayoutProvidersViewModel providersVm) {
+    final w = size.width;
     return Column(
       children: [
-        // Provider selection
-        Text(
-          'Mobile Money Provider',
-          style: TextStyle(
-            fontSize: size.width * 0.034,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: size.height * 0.012),
-        _MomoProviderSelector(
-          selected: widget.data.mobileMoneyProvider,
-          onChanged: (provider) {
+        PayoutProviderDropdown(
+          label: 'Mobile Money Provider',
+          placeholder: 'Select provider',
+          providers: providersVm.mobileMoneyProviders,
+          selected: _selectedMomo,
+          isLoading: providersVm.isLoading,
+          error: providersVm.error,
+          onRetry: () => providersVm.load(force: true),
+          onSelected: (p) {
+            setState(() => _selectedMomo = p);
             widget.onChanged(
-              widget.data.copyWith(mobileMoneyProvider: provider),
+              widget.data.copyWith(
+                mobileMoneyProvider: p.shortName.toLowerCase(),
+              ),
             );
           },
         ),
-        SizedBox(height: size.height * 0.022),
+        SizedBox(height: w * 0.055),
         VendorTextField(
           label: 'Mobile Money Number',
           hint: '024 123 4567',
@@ -213,59 +239,6 @@ class _PayoutDetailsStepState extends State<PayoutDetailsStep> {
           onChanged: (_) => _emitMomo(),
         ),
       ],
-    );
-  }
-}
-
-class _MomoProviderSelector extends StatelessWidget {
-  final String? selected;
-  final ValueChanged<String> onChanged;
-
-  const _MomoProviderSelector({
-    required this.selected,
-    required this.onChanged,
-  });
-
-  static const _providers = ['MTN MoMo', 'Vodafone Cash', 'AirtelTigo Money'];
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return Wrap(
-      spacing: size.width * 0.025,
-      runSpacing: size.height * 0.01,
-      children: _providers.map((provider) {
-        final isSelected = selected == provider;
-        return GestureDetector(
-          onTap: () => onChanged(provider),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: EdgeInsets.symmetric(
-              horizontal: size.width * 0.04,
-              vertical: size.height * 0.012,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(size.width * 0.025),
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.1)
-                  : AppColors.surfaceVariant,
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.border,
-                width: isSelected ? 1.5 : 1.0,
-              ),
-            ),
-            child: Text(
-              provider,
-              style: TextStyle(
-                fontSize: size.width * 0.032,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

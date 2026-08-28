@@ -1,25 +1,13 @@
-/// Payment method options available at checkout.
-enum PaymentMethod {
-  mobileMoney('Mobile Money'),
-  card('Visa / Mastercard'),
-  cashOnDelivery('Cash on Delivery');
-
-  final String label;
-  const PaymentMethod(this.label);
-
-  static PaymentMethod fromLabel(String label) {
-    return PaymentMethod.values.firstWhere(
-      (m) => m.label == label,
-      orElse: () => PaymentMethod.mobileMoney,
-    );
-  }
-}
+import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
 /// Holds the form inputs the user fills in during checkout.
 class CheckoutForm {
   final String deliveryAddress;
   final String deliveryInstructions;
-  final PaymentMethod paymentMethod;
+
+  /// The customer's chosen saved payment method. Null until the async list
+  /// of saved methods has loaded and one has been picked (or auto-selected).
+  final PaymentMethod? selectedPaymentMethod;
 
   /// Resolved from GPS or the map picker. Null when the user hand-typed the
   /// address instead — [deliveryAddress] is always required, these aren't.
@@ -29,7 +17,7 @@ class CheckoutForm {
   const CheckoutForm({
     this.deliveryAddress = '',
     this.deliveryInstructions = '',
-    this.paymentMethod = PaymentMethod.mobileMoney,
+    this.selectedPaymentMethod,
     this.deliveryLat,
     this.deliveryLng,
   });
@@ -37,14 +25,14 @@ class CheckoutForm {
   CheckoutForm copyWith({
     String? deliveryAddress,
     String? deliveryInstructions,
-    PaymentMethod? paymentMethod,
+    PaymentMethod? selectedPaymentMethod,
     double? deliveryLat,
     double? deliveryLng,
   }) {
     return CheckoutForm(
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
       deliveryInstructions: deliveryInstructions ?? this.deliveryInstructions,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
+      selectedPaymentMethod: selectedPaymentMethod ?? this.selectedPaymentMethod,
       deliveryLat: deliveryLat ?? this.deliveryLat,
       deliveryLng: deliveryLng ?? this.deliveryLng,
     );

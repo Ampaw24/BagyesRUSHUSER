@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/repositories/i_orders_repository.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
 class OrdersRepositoryImpl implements IOrdersRepository {
   OrdersRepositoryImpl({required Dio client}) : _client = client;
@@ -41,7 +41,7 @@ class OrdersRepositoryImpl implements IOrdersRepository {
 
   @override
   Future<ConsumerOrder> placeOrder({
-    required CartState cart,
+    required CartModel cart,
     required String deliveryAddress,
     String? deliveryInstructions,
     required String paymentMethod,
@@ -49,16 +49,15 @@ class OrdersRepositoryImpl implements IOrdersRepository {
     double? deliveryLng,
   }) async {
     final body = {
-      'vendor_id': cart.restaurantId,
+      'vendor_id': int.tryParse(cart.vendorId) ?? cart.vendorId,
       'items': cart.items
           .map(
             (ci) => {
-              'menu_item_id': ci.item.id,
+              'menu_item_id': ci.menuItemId,
               'quantity': ci.quantity,
-              'addons': ci.selectedAddons.map((a) => a.toJson()).toList(),
-              if (ci.specialInstructions != null &&
-                  ci.specialInstructions!.isNotEmpty)
-                'special_instructions': ci.specialInstructions,
+              'addons': ci.addonOptions.map((a) => a.toJson()).toList(),
+              if (ci.notes != null && ci.notes!.isNotEmpty)
+                'special_instructions': ci.notes,
             },
           )
           .toList(),

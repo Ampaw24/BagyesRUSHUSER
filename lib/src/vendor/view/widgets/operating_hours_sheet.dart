@@ -50,26 +50,19 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
     'sunday': 'Sunday',
   };
 
-  late Map<String, DayHours> _weeklyHours;
+  // The backend stores a single opening/closing time shared by every
+  // operating day — not per-day hours — so the sheet edits exactly that:
+  // one time range plus which days it applies to.
+  late String _openingTime;
+  late String _closingTime;
   late List<String> _operatingDays;
 
   @override
   void initState() {
     super.initState();
-    _weeklyHours = Map<String, DayHours>.from(widget.profile.weeklyHours);
+    _openingTime = widget.profile.openingTime;
+    _closingTime = widget.profile.closingTime;
     _operatingDays = List<String>.from(widget.profile.operatingDays);
-
-    // Initialize any missing days
-    for (final day in _days) {
-      _weeklyHours.putIfAbsent(
-        day,
-        () => DayHours(
-          open: widget.profile.openingTime,
-          close: widget.profile.closingTime,
-          isClosed: !_operatingDays.contains(day),
-        ),
-      );
-    }
   }
 
   Future<TimeOfDay?> _pickTime(String currentTime) async {
@@ -81,14 +74,23 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
       context: context,
       initialTime: TimeOfDay(hour: hour, minute: minute),
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primary,
-                  onPrimary: Colors.white,
-                ),
+        // Clamp text scaling: an inflated system font scale can push the
+        // picker's intrinsic height past its dialog constraints, producing
+        // an invalid (minHeight > maxHeight) BoxConstraints at layout time.
+        final clampedScaler = MediaQuery.textScalerOf(
+          context,
+        ).clamp(minScaleFactor: 0.8, maxScaleFactor: 1.2);
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: clampedScaler),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                  ),
+            ),
+            child: child!,
           ),
-          child: child!,
         );
       },
     );
@@ -101,18 +103,10 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
   }
 
   void _save() {
-    final operatingDays = <String>[];
-    for (final day in _days) {
-      if (!(_weeklyHours[day]?.isClosed ?? true)) {
-        operatingDays.add(day);
-      }
-    }
-
     final updated = widget.profile.copyWith(
-      weeklyHours: _weeklyHours,
-      operatingDays: operatingDays,
-      openingTime: _weeklyHours[_days.first]?.open ?? '08:00',
-      closingTime: _weeklyHours[_days.first]?.close ?? '22:00',
+      openingTime: _openingTime,
+      closingTime: _closingTime,
+      operatingDays: _operatingDays,
     );
 
     widget.onSave(updated);
@@ -122,6 +116,7 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final today = _days[DateTime.now().weekday - 1];
 
     return Container(
       constraints: BoxConstraints(
@@ -188,7 +183,7 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: w * 0.05),
             child: Text(
-              'Set when your shop is open for each day',
+              'One set of hours applies to every day you\'re open',
               style: TextStyle(
                 fontSize: w * 0.03,
                 color: AppColors.textSecondary,
@@ -197,167 +192,112 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
           ),
           SizedBox(height: w * 0.02),
           const Divider(),
-          // Days list
           Flexible(
-            child: ListView.separated(
-              padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.04),
-              itemCount: _days.length,
-              separatorBuilder: (_, _) => SizedBox(height: w * 0.02),
-              itemBuilder: (context, index) {
-                final day = _days[index];
-                final hours = _weeklyHours[day]!;
-                final isToday = DateTime.now().weekday - 1 == index;
-
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  padding: EdgeInsets.all(w * 0.035),
-                  decoration: BoxDecoration(
-                    color: hours.isClosed
-                        ? AppColors.surfaceVariant.withValues(alpha: 0.5)
-                        : isToday
-                            ? AppColors.primary.withValues(alpha: 0.05)
-                            : Colors.white,
-                    borderRadius: BorderRadius.circular(w * 0.035),
-                    border: Border.all(
-                      color: isToday
-                          ? AppColors.primary.withValues(alpha: 0.3)
-                          : AppColors.border,
-                      width: isToday ? 1.5 : 0.5,
-                    ),
-                  ),
-                  child: Column(
+            child: SingleChildScrollView(
+              padding:
+                  EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.04),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SectionHeader(label: 'Hours', w: w),
+                  SizedBox(height: w * 0.03),
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Text(
-                                  _dayLabels[day]!,
-                                  style: TextStyle(
-                                    fontSize: w * 0.038,
-                                    fontWeight: FontWeight.w600,
-                                    color: hours.isClosed
-                                        ? AppColors.textHint
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
-                                if (isToday) ...[
-                                  SizedBox(width: w * 0.02),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: w * 0.015,
-                                      vertical: w * 0.005,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius:
-                                          BorderRadius.circular(w * 0.01),
-                                    ),
-                                    child: Text(
-                                      'TODAY',
-                                      style: TextStyle(
-                                        fontSize: w * 0.02,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          // Open/Closed toggle
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _weeklyHours[day] = hours.copyWith(
-                                  isClosed: !hours.isClosed,
-                                );
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: w * 0.025,
-                                vertical: w * 0.012,
-                              ),
-                              decoration: BoxDecoration(
-                                color: hours.isClosed
-                                    ? AppColors.error.withValues(alpha: 0.1)
-                                    : AppColors.success.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(w * 0.04),
-                              ),
-                              child: Text(
-                                hours.isClosed ? 'Closed' : 'Open',
-                                style: TextStyle(
-                                  fontSize: w * 0.028,
-                                  fontWeight: FontWeight.w700,
-                                  color: hours.isClosed
-                                      ? AppColors.error
-                                      : AppColors.success,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Time pickers (shown only when open)
-                      if (!hours.isClosed) ...[
-                        SizedBox(height: w * 0.03),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _TimePickerTile(
-                                label: 'Opens',
-                                time: hours.open,
-                                onTap: () async {
-                                  final picked = await _pickTime(hours.open);
-                                  if (picked != null) {
-                                    setState(() {
-                                      _weeklyHours[day] = hours.copyWith(
-                                        open: _formatTimeOfDay(picked),
-                                      );
-                                    });
-                                  }
-                                },
-                                w: w,
-                              ),
-                            ),
-                            Padding(
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: w * 0.03),
-                              child: HugeIcon(
-                                icon: HugeIcons.strokeRoundedArrowRight01,
-                                color: AppColors.textHint,
-                                size: w * 0.04,
-                              ),
-                            ),
-                            Expanded(
-                              child: _TimePickerTile(
-                                label: 'Closes',
-                                time: hours.close,
-                                onTap: () async {
-                                  final picked = await _pickTime(hours.close);
-                                  if (picked != null) {
-                                    setState(() {
-                                      _weeklyHours[day] = hours.copyWith(
-                                        close: _formatTimeOfDay(picked),
-                                      );
-                                    });
-                                  }
-                                },
-                                w: w,
-                              ),
-                            ),
-                          ],
+                      Expanded(
+                        child: _TimePickerTile(
+                          label: 'Opens',
+                          time: _openingTime,
+                          onTap: () async {
+                            final picked = await _pickTime(_openingTime);
+                            if (picked != null) {
+                              setState(
+                                () => _openingTime = _formatTimeOfDay(picked),
+                              );
+                            }
+                          },
+                          w: w,
                         ),
-                      ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.03),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          color: AppColors.textHint,
+                          size: w * 0.04,
+                        ),
+                      ),
+                      Expanded(
+                        child: _TimePickerTile(
+                          label: 'Closes',
+                          time: _closingTime,
+                          onTap: () async {
+                            final picked = await _pickTime(_closingTime);
+                            if (picked != null) {
+                              setState(
+                                () => _closingTime = _formatTimeOfDay(picked),
+                              );
+                            }
+                          },
+                          w: w,
+                        ),
+                      ),
                     ],
                   ),
-                );
-              },
+                  SizedBox(height: w * 0.06),
+                  _SectionHeader(label: 'Open Days', w: w),
+                  SizedBox(height: w * 0.03),
+                  Wrap(
+                    spacing: w * 0.025,
+                    runSpacing: w * 0.025,
+                    children: _days.map((day) {
+                      final isOpen = _operatingDays.contains(day);
+                      final isToday = day == today;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isOpen) {
+                              _operatingDays.remove(day);
+                            } else {
+                              _operatingDays.add(day);
+                            }
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: w * 0.035,
+                            vertical: w * 0.022,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isOpen
+                                ? AppColors.primary
+                                : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(w * 0.03),
+                            border: isToday
+                                ? Border.all(
+                                    color: isOpen
+                                        ? Colors.white
+                                        : AppColors.primary,
+                                    width: 1.5,
+                                  )
+                                : null,
+                          ),
+                          child: Text(
+                            _dayLabels[day]!,
+                            style: TextStyle(
+                              fontSize: w * 0.033,
+                              fontWeight: FontWeight.w600,
+                              color: isOpen
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
             ),
           ),
           // Save button
@@ -385,6 +325,38 @@ class _OperatingHoursSheetState extends State<OperatingHoursSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final double w;
+
+  const _SectionHeader({required this.label, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: w * 0.008,
+          height: w * 0.04,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(w * 0.004),
+          ),
+        ),
+        SizedBox(width: w * 0.02),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: w * 0.038,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
     );
   }
 }

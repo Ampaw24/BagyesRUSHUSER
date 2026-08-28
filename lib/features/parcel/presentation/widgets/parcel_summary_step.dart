@@ -1,13 +1,23 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart' as legacy;
+
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_payment_methods_provider.dart';
+import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/add_payment_method_screen.dart';
+import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
 
 import '../../../../constant/app_theme.dart';
 import '../../data/models/delivery_stop.dart';
 import '../../data/models/rider_model.dart';
+import '../viewmodels/send_parcel_viewmodel.dart';
 
-class ParcelSummaryStep extends StatelessWidget {
+class ParcelSummaryStep extends ConsumerWidget {
   final String packageType;
   final String weightText;
   final String pickupAddress;
@@ -33,10 +43,47 @@ class ParcelSummaryStep extends StatelessWidget {
     required this.packageImages,
   });
 
+  /// Pushes the shared "Add Payment Method" screen (Profile → Payment
+  /// Methods / Checkout use the same one), then selects the newly-created
+  /// method and refreshes the saved-methods list.
+  Future<void> _addPaymentMethod(BuildContext context, WidgetRef ref) async {
+    final result = await Navigator.of(context).push<PaymentMethod>(
+      MaterialPageRoute(
+        builder: (_) => legacy.MultiProvider(
+          providers: [
+            legacy.ChangeNotifierProvider<PaymentViewModel>(
+              create: (_) => sl<PaymentViewModel>(param1: false),
+            ),
+            legacy.ChangeNotifierProvider<PayoutProvidersViewModel>(
+              create: (_) => sl<PayoutProvidersViewModel>(),
+            ),
+          ],
+          child: const AddPaymentMethodScreen(),
+        ),
+      ),
+    );
+    if (result == null) return;
+    ref.invalidate(checkoutPaymentMethodsProvider);
+    ref.read(sendParcelProvider.notifier).selectPaymentMethod(result);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final w = MediaQuery.sizeOf(context).width;
     final hasExtraStops = deliveryStops.length > 1;
+    final sendState = ref.watch(sendParcelProvider);
+
+    // Auto-select the customer's default (or first) saved payment method
+    // once the list loads, so they aren't forced to tap it explicitly.
+    ref.listen<AsyncValue<List<PaymentMethod>>>(checkoutPaymentMethodsProvider,
+        (_, next) {
+      final methods = next.valueOrNull;
+      if (methods == null || methods.isEmpty) return;
+      if (ref.read(sendParcelProvider).selectedPaymentMethod != null) return;
+      final defaultMethod =
+          methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
+      ref.read(sendParcelProvider.notifier).selectPaymentMethod(defaultMethod);
+    });
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
@@ -127,39 +174,48 @@ class ParcelSummaryStep extends StatelessWidget {
               accent: true,
             ),
           ],
+          SizedBox(height: w * 0.015),
+          Text(
+            'Estimated breakdown — the amount charged is confirmed by the '
+            'total below.',
+            style: TextStyle(fontSize: w * 0.028, color: AppColors.textHint),
+          ),
           SizedBox(height: w * 0.03),
 
-          // Total box
-          Container(
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(w * 0.03),
-              border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: TextStyle(
-                    fontSize: w * 0.042,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  'GHS ${totalCostGhs.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: w * 0.05,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
+          // Total box — always driven by the backend quote, never the
+          // client-side estimate above, since that's what actually gets
+          // charged.
+          _QuoteTotalBox(
+            isFetchingQuote: sendState.isFetchingQuote,
+            quoteError: sendState.quoteError,
+            quotedPrice: sendState.quotedPrice,
+            quoteCurrency: sendState.quoteCurrency,
+            onRetry: () => ref.read(sendParcelProvider.notifier).fetchQuote(),
+            w: w,
+          ),
+
+          SizedBox(height: w * 0.05),
+          _Divider(),
+          SizedBox(height: w * 0.05),
+
+          // ── Payment method ──────────────────────────────────────────────
+          Text(
+            'Payment Method',
+            style: TextStyle(
+              fontSize: w * 0.042,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
             ),
           ),
+          SizedBox(height: w * 0.03),
+          _PaymentMethodSection(
+            selectedMethod: sendState.selectedPaymentMethod,
+            onSelect: (m) =>
+                ref.read(sendParcelProvider.notifier).selectPaymentMethod(m),
+            onAddNew: () => _addPaymentMethod(context, ref),
+            w: w,
+          ),
+
           SizedBox(height: w * 0.02),
         ],
       ),
@@ -656,6 +712,273 @@ class _CostRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Quote total box ─────────────────────────────────────────────────────────
+//
+// Always reflects the authoritative backend quote — never the client-side
+// estimate above — since that is the amount that will actually be charged.
+
+class _QuoteTotalBox extends StatelessWidget {
+  final bool isFetchingQuote;
+  final String? quoteError;
+  final double? quotedPrice;
+  final String? quoteCurrency;
+  final VoidCallback onRetry;
+  final double w;
+
+  const _QuoteTotalBox({
+    required this.isFetchingQuote,
+    required this.quoteError,
+    required this.quotedPrice,
+    required this.quoteCurrency,
+    required this.onRetry,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    if (isFetchingQuote) {
+      return Row(
+        children: [
+          SizedBox(
+            width: w * 0.045,
+            height: w * 0.045,
+            child: const CircularProgressIndicator(strokeWidth: 2.2),
+          ),
+          SizedBox(width: w * 0.03),
+          Text(
+            'Calculating price…',
+            style: TextStyle(
+              fontSize: w * 0.038,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (quoteError != null) {
+      return Row(
+        children: [
+          Icon(Icons.error_outline_rounded, color: AppColors.error, size: w * 0.05),
+          SizedBox(width: w * 0.025),
+          Expanded(
+            child: Text(
+              'Couldn\'t get a delivery price. Please retry.',
+              style: TextStyle(fontSize: w * 0.034, color: AppColors.error),
+            ),
+          ),
+          GestureDetector(
+            onTap: onRetry,
+            child: Text(
+              'Retry',
+              style: TextStyle(
+                fontSize: w * 0.034,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final price = quotedPrice;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Total',
+          style: TextStyle(
+            fontSize: w * 0.042,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        Text(
+          price != null
+              ? '${quoteCurrency ?? 'GHS'} ${price.toStringAsFixed(2)}'
+              : '—',
+          style: TextStyle(
+            fontSize: w * 0.05,
+            fontWeight: FontWeight.w900,
+            color: AppColors.primary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Payment method section ────────────────────────────────────────────────
+
+class _PaymentMethodSection extends ConsumerWidget {
+  final PaymentMethod? selectedMethod;
+  final ValueChanged<PaymentMethod> onSelect;
+  final VoidCallback onAddNew;
+  final double w;
+
+  const _PaymentMethodSection({
+    required this.selectedMethod,
+    required this.onSelect,
+    required this.onAddNew,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final methodsAsync = ref.watch(checkoutPaymentMethodsProvider);
+
+    return methodsAsync.when(
+      loading: () => Padding(
+        padding: EdgeInsets.symmetric(vertical: w * 0.04),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => Text(
+        'Failed to load payment methods.',
+        style: TextStyle(fontSize: w * 0.034, color: AppColors.error),
+      ),
+      data: (methods) {
+        return Column(
+          children: [
+            for (final method in methods) ...[
+              _PaymentMethodTile(
+                method: method,
+                isSelected: selectedMethod?.id == method.id,
+                onTap: () => onSelect(method),
+                w: w,
+              ),
+              SizedBox(height: w * 0.025),
+            ],
+            _AddPaymentMethodTile(onTap: onAddNew, w: w),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PaymentMethodTile extends StatelessWidget {
+  final PaymentMethod method;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final double w;
+
+  const _PaymentMethodTile({
+    required this.method,
+    required this.isSelected,
+    required this.onTap,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(w * 0.035),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(w * 0.03),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.account_balance_wallet_outlined,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              size: w * 0.055,
+            ),
+            SizedBox(width: w * 0.03),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    method.displayTitle,
+                    style: TextStyle(
+                      fontSize: w * 0.036,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    method.maskedPhone,
+                    style: TextStyle(
+                      fontSize: w * 0.03,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
+              color: isSelected ? AppColors.primary : AppColors.textHint,
+              size: w * 0.055,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddPaymentMethodTile extends StatelessWidget {
+  final VoidCallback onTap;
+  final double w;
+
+  const _AddPaymentMethodTile({required this.onTap, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: w * 0.035, horizontal: w * 0.035),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(w * 0.03),
+          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.add_circle_outline_rounded,
+                color: AppColors.primary, size: w * 0.05),
+            SizedBox(width: w * 0.025),
+            Text(
+              'Add payment method',
+              style: TextStyle(
+                fontSize: w * 0.034,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -88,7 +88,8 @@ class _VendorHomeState extends State<VendorHome> {
     CustomDialog.showConfirmation(
       context: context,
       title: 'Delete Account',
-      subtitle: 'This action is permanent and cannot be undone. '
+      subtitle:
+          'This action is permanent and cannot be undone. '
           'All your shop data, menu items, order history, and earnings records will be permanently deleted.',
       confirmText: 'Delete',
       cancelText: 'Cancel',
@@ -129,8 +130,9 @@ class _VendorHomeState extends State<VendorHome> {
   Widget build(BuildContext context) {
     final user = context.watch<CurrentUserProvider>().user;
     final vendorProfile = user?.profile as VendorProfile?;
-    final unreadNotifications =
-        context.watch<NotificationViewmodel>().unreadCount;
+    final unreadNotifications = context
+        .watch<NotificationViewmodel>()
+        .unreadCount;
 
     String initials = '??';
     if (vendorProfile != null) {
@@ -443,17 +445,22 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   hasUnreadNotifications: hasUnreadNotifications,
                   onNotificationTap: () => Navigator.of(context).push(
                     PageRouteBuilder(
-                      pageBuilder: (_, anim, _) => const VendorNotificationsScreen(),
-                      transitionsBuilder: (_, anim, _, child) => SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, -0.06),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: anim,
-                          curve: Curves.easeOutCubic,
-                        )),
-                        child: FadeTransition(opacity: anim, child: child),
-                      ),
+                      pageBuilder: (_, anim, _) =>
+                          const VendorNotificationsScreen(),
+                      transitionsBuilder: (_, anim, _, child) =>
+                          SlideTransition(
+                            position:
+                                Tween<Offset>(
+                                  begin: const Offset(0, -0.06),
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: anim,
+                                    curve: Curves.easeOutCubic,
+                                  ),
+                                ),
+                            child: FadeTransition(opacity: anim, child: child),
+                          ),
                       transitionDuration: const Duration(milliseconds: 320),
                     ),
                   ),
@@ -496,17 +503,19 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                       ],
                       if (profile != null) ...[
                         _InfoPill(
-                          label: '${profile.openingTime} – ${profile.closingTime}',
+                          label:
+                              '${profile.openingTime} – ${profile.closingTime}',
                           w: w,
                         ),
                         SizedBox(width: w * 0.02),
-                        _InfoPill(
-                          label: profile.deliveryRadiusKm > 0
-                              ? '${profile.deliveryRadiusKm}km Radius'
-                              : 'Radius not set',
-                          w: w,
-                          muted: profile.deliveryRadiusKm <= 0,
-                        ),
+                        //["Removed radius pill for vendors "]
+                        // _InfoPill(
+                        //   label: profile.deliveryRadiusKm > 0
+                        //       ? '${profile.deliveryRadiusKm}km Radius'
+                        //       : 'Radius not set',
+                        //   w: w,
+                        //   muted: profile.deliveryRadiusKm <= 0,
+                        // ),
                       ],
                     ],
                   ),
@@ -556,12 +565,15 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   _SetupPendingStoreRow(w: w),
                 ],
 
-                if (state.activeOrders.any((o) => o.status == OrderStatus.pending)) ...[
+                if (state.activeOrders.any(
+                  (o) => o.status == OrderStatus.pending,
+                )) ...[
                   SizedBox(height: w * 0.05),
                   Builder(
                     builder: (_) {
-                      final newest = state.activeOrders
-                          .firstWhere((o) => o.status == OrderStatus.pending);
+                      final newest = state.activeOrders.firstWhere(
+                        (o) => o.status == OrderStatus.pending,
+                      );
                       return NewOrderBanner(
                         orderId: newest.id,
                         amount: newest.amount,
@@ -569,8 +581,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         itemCount: newest.itemList.length,
                         secondsLeft: 87,
                         onTap: () {},
-                        onAccept: () =>
-                            ref.read(dashboardProvider.notifier).acceptOrder(newest.id),
+                        onAccept: () => ref
+                            .read(dashboardProvider.notifier)
+                            .acceptOrder(newest.id),
                       );
                     },
                   ),
@@ -602,7 +615,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   borderRadius: BorderRadius.circular(w * 0.05),
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: w * 0.08, horizontal: w * 0.06),
+                    padding: EdgeInsets.symmetric(
+                      vertical: w * 0.08,
+                      horizontal: w * 0.06,
+                    ),
                     color: Colors.transparent,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -651,28 +667,25 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
           SliverPadding(
             padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final order = state.activeOrders[index];
-                  final notifier = ref.read(dashboardProvider.notifier);
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: w * 0.035),
-                    child: OrderCard(
-                      order: order,
-                      onTap: () {},
-                      onAccept: () => notifier.acceptOrder(order.id),
-                      onDecline: () => notifier.rejectOrder(order.id),
-                      onMarkPreparing: () => notifier.markPreparing(order.id),
-                      onMarkReady: () => notifier.markReady(order.id),
-                      onMarkOutForDelivery: () =>
-                          notifier.markOutForDelivery(order.id),
-                      onMarkDelivered: () => notifier.markDelivered(order.id),
-                      onCancel: () => notifier.cancelOrder(order.id),
-                    ),
-                  );
-                },
-                childCount: state.activeOrders.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final order = state.activeOrders[index];
+                final notifier = ref.read(dashboardProvider.notifier);
+                return Padding(
+                  padding: EdgeInsets.only(bottom: w * 0.035),
+                  child: OrderCard(
+                    order: order,
+                    onTap: () {},
+                    onAccept: () => notifier.acceptOrder(order.id),
+                    onDecline: () => notifier.rejectOrder(order.id),
+                    onMarkPreparing: () => notifier.markPreparing(order.id),
+                    onMarkReady: () => notifier.markReady(order.id),
+                    onMarkOutForDelivery: () =>
+                        notifier.markOutForDelivery(order.id),
+                    onMarkDelivered: () => notifier.markDelivered(order.id),
+                    onCancel: () => notifier.cancelOrder(order.id),
+                  ),
+                );
+              }, childCount: state.activeOrders.length),
             ),
           ),
       ],
@@ -881,16 +894,11 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(top: w * 0.025),
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.035,
-        vertical: w * 0.025,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.035, vertical: w * 0.025),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border(
-          left: BorderSide(color: color, width: 3),
-        ),
+        border: Border(left: BorderSide(color: color, width: 3)),
       ),
       child: Row(
         children: [

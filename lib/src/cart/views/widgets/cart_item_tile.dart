@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/domain/entities/cart_item.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
 
 class CartItemTile extends StatelessWidget {
-  final CartItem cartItem;
+  final CartItemModel cartItem;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
   final VoidCallback onRemove;
+  final VoidCallback onEditNote;
 
   const CartItemTile({
     super.key,
@@ -14,12 +15,12 @@ class CartItemTile extends StatelessWidget {
     required this.onIncrease,
     required this.onDecrease,
     required this.onRemove,
+    required this.onEditNote,
   });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final item = cartItem.item;
 
     return Container(
       margin: EdgeInsets.only(bottom: w * 0.035),
@@ -38,7 +39,7 @@ class CartItemTile extends StatelessWidget {
               width: w * 0.2,
               height: w * 0.2,
               child: Image.network(
-                item.imageUrl,
+                cartItem.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
                   color: AppColors.shimmerBase,
@@ -54,7 +55,7 @@ class CartItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  cartItem.name,
                   style: TextStyle(
                     fontSize: w * 0.037,
                     fontWeight: FontWeight.w700,
@@ -62,11 +63,12 @@ class CartItemTile extends StatelessWidget {
                   ),
                 ),
                 // Selected addons
-                if (cartItem.selectedAddons.isNotEmpty) ...[
+                if (cartItem.addonOptions.isNotEmpty) ...[
                   SizedBox(height: w * 0.006),
-                  ...cartItem.selectedAddons.map(
+                  ...cartItem.addonOptions.map(
                     (addon) {
-                      final qtyPrefix = addon.quantity > 1 ? '${addon.quantity}× ' : '';
+                      final qtyPrefix =
+                          addon.quantity > 1 ? '${addon.quantity}× ' : '';
                       final priceStr = addon.additionalPrice > 0
                           ? ' (GHS ${(addon.additionalPrice * addon.quantity).toStringAsFixed(2)})'
                           : '';
@@ -80,27 +82,41 @@ class CartItemTile extends StatelessWidget {
                     },
                   ),
                 ],
-                if (cartItem.specialInstructions != null &&
-                    cartItem.specialInstructions!.isNotEmpty) ...[
-                  SizedBox(height: w * 0.007),
-                  Text(
-                    cartItem.specialInstructions!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: w * 0.028,
-                      color: AppColors.textSecondary,
-                      fontStyle: FontStyle.italic,
-                    ),
+                SizedBox(height: w * 0.007),
+                GestureDetector(
+                  onTap: onEditNote,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.note_alt_outlined,
+                        size: w * 0.032,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: w * 0.01),
+                      Expanded(
+                        child: Text(
+                          (cartItem.notes?.trim().isNotEmpty ?? false)
+                              ? cartItem.notes!
+                              : 'Add note',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: w * 0.028,
+                            color: AppColors.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
                 SizedBox(height: w * 0.015),
                 Row(
                   children: [
                     Text(
-                      cartItem.addonsTotalPerUnit > 0
-                          ? 'GHS ${(item.price + cartItem.addonsTotalPerUnit).toStringAsFixed(2)} each'
-                          : 'GHS ${item.price.toStringAsFixed(2)}',
+                      cartItem.addonsUnitTotal > 0
+                          ? 'GHS ${(cartItem.price + cartItem.addonsUnitTotal).toStringAsFixed(2)} each'
+                          : 'GHS ${cartItem.price.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: w * 0.033,
                         color: AppColors.textSecondary,

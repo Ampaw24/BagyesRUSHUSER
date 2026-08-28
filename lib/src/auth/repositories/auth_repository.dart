@@ -127,7 +127,7 @@ class AuthRepository {
       "business_address": businessAddress,
       "city": city,
       "description": description,
-      //"tax_identification_number": taxIdentificationNumber,
+      "tax_identification_number": taxIdentificationNumber,
       "cuisine_types": cuisineTypes.map((e) => e.trim().toLowerCase()).toList(),
       "delivery_radius_km": deliveryRadiusKm,
       // Store hours/operating days/prep time are collected later, during

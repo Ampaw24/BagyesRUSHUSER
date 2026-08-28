@@ -201,6 +201,24 @@ abstract final class ApiEndpoints {
   /// `POST /payments/paystack/webhook` — Paystack → backend server-to-server
   /// notification. Never called by this app; not exposed as a client constant.
 
+  // ─── Customer Cart ─────────────────────────────────────────────────────────
+  /// `GET /customer/carts` — one cart per vendor.
+  static const String customerCarts = '/customer/carts';
+
+  /// `GET /customer/carts/:vendorId` | `DELETE /customer/carts/:vendorId`
+  static String customerCartByVendor(String vendorId) =>
+      '$customerCarts/$vendorId';
+
+  /// `POST /customer/carts/:vendorId/items`
+  static String customerCartItems(String vendorId) =>
+      '$customerCarts/$vendorId/items';
+
+  static const String customerCartItemsBase = '/customer/cart-items';
+
+  /// `PATCH /customer/cart-items/:id` | `DELETE /customer/cart-items/:id`
+  static String customerCartItemById(String id) =>
+      '$customerCartItemsBase/$id';
+
   // ─── Customer Home ─────────────────────────────────────────────────────────
   static const String categories = '/categories';
   static const String businessTypes = '/business-types';

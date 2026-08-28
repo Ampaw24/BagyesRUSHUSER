@@ -149,18 +149,35 @@ class DashboardNotifier extends Notifier<DashboardState> {
     state = state.copyWith(storeOpen: isOpen);
 
     final result = await _repository.toggleStoreStatus();
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
         // Revert on failure
         state = state.copyWith(
           storeOpen: previous,
           errorMessage: failure.message,
         );
       },
-      (serverIsOpen) {
-        // Reconcile with the server's actual resulting state and clear
-        // any previous error.
-        state = state.copyWith(storeOpen: serverIsOpen, errorMessage: null);
+      (serverIsOpen) async {
+        if (serverIsOpen == isOpen) {
+          state = state.copyWith(storeOpen: serverIsOpen, errorMessage: null);
+          return;
+        }
+        // `toggle-open` is a stateless flip, not a "set to X" call — if our
+        // locally-tracked storeOpen had drifted from the server's, this
+        // flip lands opposite of what the user asked for. Issue one
+        // corrective flip so it converges to the requested state right
+        // away instead of requiring a second tap.
+        final retry = await _repository.toggleStoreStatus();
+        retry.fold(
+          (failure) => state = state.copyWith(
+            storeOpen: serverIsOpen,
+            errorMessage: failure.message,
+          ),
+          (correctedIsOpen) => state = state.copyWith(
+            storeOpen: correctedIsOpen,
+            errorMessage: null,
+          ),
+        );
       },
     );
   }

@@ -43,6 +43,7 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _cityCtrl;
+  late final TextEditingController _taxIdCtrl;
   late final TextEditingController _instagramCtrl;
   late final TextEditingController _facebookCtrl;
   late final TextEditingController _tiktokCtrl;
@@ -60,6 +61,7 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
     _emailCtrl = TextEditingController(text: p.email);
     _addressCtrl = TextEditingController(text: p.address);
     _cityCtrl = TextEditingController(text: p.city);
+    _taxIdCtrl = TextEditingController(text: p.taxIdentificationNumber);
     _instagramCtrl = TextEditingController(text: p.instagramUrl ?? '');
     _facebookCtrl = TextEditingController(text: p.facebookUrl ?? '');
     _tiktokCtrl = TextEditingController(text: p.tiktokUrl ?? '');
@@ -76,6 +78,7 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
     _emailCtrl.dispose();
     _addressCtrl.dispose();
     _cityCtrl.dispose();
+    _taxIdCtrl.dispose();
     _instagramCtrl.dispose();
     _facebookCtrl.dispose();
     _tiktokCtrl.dispose();
@@ -94,6 +97,7 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
       email: _emailCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
       city: _cityCtrl.text.trim(),
+      taxIdentificationNumber: _taxIdCtrl.text.trim(),
       cuisineTypes: _selectedCuisines,
       instagramUrl: _instagramCtrl.text.trim().isEmpty
           ? null
@@ -274,6 +278,14 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
                       w: w,
                       validator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    SizedBox(height: w * 0.035),
+                    _buildField(
+                      controller: _taxIdCtrl,
+                      label: 'Tax ID (TIN)',
+                      hint: 'e.g. C0001234567',
+                      icon: HugeIcons.strokeRoundedDocumentValidation,
+                      w: w,
                     ),
                     SizedBox(height: w * 0.05),
 

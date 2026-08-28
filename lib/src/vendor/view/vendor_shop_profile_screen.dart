@@ -77,8 +77,20 @@ class _VendorShopProfileScreenState extends State<VendorShopProfileScreen>
       (profile) {
         final currentUser = context.read<CurrentUserProvider>().user;
         if (currentUser == null) return;
+        // /vendor/me returns the vendor profile document only — account-level
+        // phone/email live on the user record itself (see User.fromJson),
+        // so merge them back in to avoid clobbering the login-time values.
         context.read<CurrentUserProvider>().setUser(
-              currentUser.copyWith(profile: profile),
+              currentUser.copyWith(
+                profile: profile.copyWith(
+                  phone: profile.phone.isNotEmpty
+                      ? profile.phone
+                      : currentUser.phone,
+                  email: profile.email.isNotEmpty
+                      ? profile.email
+                      : currentUser.email,
+                ),
+              ),
             );
         // Drop any local overlay now that fresh server data has landed —
         // otherwise a stale in-session edit would keep shadowing it.

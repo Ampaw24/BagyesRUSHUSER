@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'parcel_stop.dart';
 
 class Parcel extends Equatable {
   const Parcel({
@@ -6,19 +7,11 @@ class Parcel extends Equatable {
     required this.deliveryQuoteId,
     required this.paymentMethod,
     required this.paymentMethodId,
-    required this.itemDescription,
-    required this.quantity,
-    required this.isFragile,
-    required this.declaredValue,
     required this.pickupAddress,
     required this.pickupContactName,
     required this.pickupContactPhone,
     required this.pickupInstructions,
-    required this.dropoffAddress,
-    required this.recipientName,
-    required this.recipientPhone,
-    required this.deliveryInstructions,
-    required this.photoIds,
+    required this.stops,
     required this.status,
     required this.trackingNumber,
     required this.createdAt,
@@ -29,19 +22,11 @@ class Parcel extends Equatable {
   final int? deliveryQuoteId;
   final String paymentMethod;
   final int? paymentMethodId;
-  final String itemDescription;
-  final int quantity;
-  final bool isFragile;
-  final double? declaredValue;
   final String pickupAddress;
   final String? pickupContactName;
   final String? pickupContactPhone;
   final String? pickupInstructions;
-  final String dropoffAddress;
-  final String? recipientName;
-  final String? recipientPhone;
-  final String? deliveryInstructions;
-  final List<int> photoIds;
+  final List<ParcelStop> stops;
   final String status;
   final String? trackingNumber;
   final DateTime? createdAt;
@@ -52,19 +37,11 @@ class Parcel extends Equatable {
     int? deliveryQuoteId,
     String? paymentMethod,
     int? paymentMethodId,
-    String? itemDescription,
-    int? quantity,
-    bool? isFragile,
-    double? declaredValue,
     String? pickupAddress,
     String? pickupContactName,
     String? pickupContactPhone,
     String? pickupInstructions,
-    String? dropoffAddress,
-    String? recipientName,
-    String? recipientPhone,
-    String? deliveryInstructions,
-    List<int>? photoIds,
+    List<ParcelStop>? stops,
     String? status,
     String? trackingNumber,
     DateTime? createdAt,
@@ -75,19 +52,11 @@ class Parcel extends Equatable {
       deliveryQuoteId: deliveryQuoteId ?? this.deliveryQuoteId,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
-      itemDescription: itemDescription ?? this.itemDescription,
-      quantity: quantity ?? this.quantity,
-      isFragile: isFragile ?? this.isFragile,
-      declaredValue: declaredValue ?? this.declaredValue,
       pickupAddress: pickupAddress ?? this.pickupAddress,
       pickupContactName: pickupContactName ?? this.pickupContactName,
       pickupContactPhone: pickupContactPhone ?? this.pickupContactPhone,
       pickupInstructions: pickupInstructions ?? this.pickupInstructions,
-      dropoffAddress: dropoffAddress ?? this.dropoffAddress,
-      recipientName: recipientName ?? this.recipientName,
-      recipientPhone: recipientPhone ?? this.recipientPhone,
-      deliveryInstructions: deliveryInstructions ?? this.deliveryInstructions,
-      photoIds: photoIds ?? this.photoIds,
+      stops: stops ?? this.stops,
       status: status ?? this.status,
       trackingNumber: trackingNumber ?? this.trackingNumber,
       createdAt: createdAt ?? this.createdAt,
@@ -96,25 +65,19 @@ class Parcel extends Equatable {
   }
 
   factory Parcel.fromJson(Map<String, dynamic> json) {
-    final rawPhotoIds = json['photo_ids'] as List<dynamic>? ?? [];
+    final rawStops = json['stops'] as List<dynamic>? ?? [];
     return Parcel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       deliveryQuoteId: (json['delivery_quote_id'] as num?)?.toInt(),
       paymentMethod: json['payment_method']?.toString() ?? '',
       paymentMethodId: (json['payment_method_id'] as num?)?.toInt(),
-      itemDescription: json['item_description']?.toString() ?? '',
-      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-      isFragile: json['is_fragile'] as bool? ?? false,
-      declaredValue: (json['declared_value'] as num?)?.toDouble(),
       pickupAddress: json['pickup_address']?.toString() ?? '',
       pickupContactName: json['pickup_contact_name']?.toString(),
       pickupContactPhone: json['pickup_contact_phone']?.toString(),
       pickupInstructions: json['pickup_instructions']?.toString(),
-      dropoffAddress: json['dropoff_address']?.toString() ?? '',
-      recipientName: json['recipient_name']?.toString(),
-      recipientPhone: json['recipient_phone']?.toString(),
-      deliveryInstructions: json['delivery_instructions']?.toString(),
-      photoIds: rawPhotoIds.map((e) => (e as num).toInt()).toList(),
+      stops: rawStops
+          .map((e) => ParcelStop.fromJson(e as Map<String, dynamic>))
+          .toList(),
       status: json['status']?.toString() ?? '',
       trackingNumber: json['tracking_number']?.toString(),
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
@@ -127,19 +90,11 @@ class Parcel extends Equatable {
         'delivery_quote_id': deliveryQuoteId,
         'payment_method': paymentMethod,
         'payment_method_id': paymentMethodId,
-        'item_description': itemDescription,
-        'quantity': quantity,
-        'is_fragile': isFragile,
-        'declared_value': declaredValue,
         'pickup_address': pickupAddress,
         'pickup_contact_name': pickupContactName,
         'pickup_contact_phone': pickupContactPhone,
         'pickup_instructions': pickupInstructions,
-        'dropoff_address': dropoffAddress,
-        'recipient_name': recipientName,
-        'recipient_phone': recipientPhone,
-        'delivery_instructions': deliveryInstructions,
-        'photo_ids': photoIds,
+        'stops': stops.map((s) => s.toJson()).toList(),
         'status': status,
         'tracking_number': trackingNumber,
         'created_at': createdAt?.toIso8601String(),
@@ -147,7 +102,7 @@ class Parcel extends Equatable {
       };
 
   @override
-  String toString() => '$id, $status, $pickupAddress → $dropoffAddress';
+  String toString() => '$id, $status, $pickupAddress → ${stops.length} stop(s)';
 
   @override
   List<Object?> get props => [
@@ -155,19 +110,11 @@ class Parcel extends Equatable {
         deliveryQuoteId,
         paymentMethod,
         paymentMethodId,
-        itemDescription,
-        quantity,
-        isFragile,
-        declaredValue,
         pickupAddress,
         pickupContactName,
         pickupContactPhone,
         pickupInstructions,
-        dropoffAddress,
-        recipientName,
-        recipientPhone,
-        deliveryInstructions,
-        photoIds,
+        stops,
         status,
         trackingNumber,
         createdAt,

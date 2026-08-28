@@ -9,6 +9,7 @@ class ParcelBottomBar extends StatelessWidget {
   final bool canProceed;
   final VoidCallback onBack;
   final VoidCallback onContinue;
+  final bool isLoading;
 
   const ParcelBottomBar({
     super.key,
@@ -16,6 +17,7 @@ class ParcelBottomBar extends StatelessWidget {
     required this.canProceed,
     required this.onBack,
     required this.onContinue,
+    this.isLoading = false,
   });
 
   bool get _isFirstStep => currentStep == ParcelStep.packageType;
@@ -51,7 +53,8 @@ class ParcelBottomBar extends StatelessWidget {
               icon: _isFinalStep
                   ? HugeIcons.strokeRoundedCreditCard
                   : HugeIcons.strokeRoundedArrowRight01,
-              canProceed: canProceed,
+              canProceed: canProceed && !isLoading,
+              isLoading: isLoading,
               onTap: onContinue,
               w: w,
             ),
@@ -97,6 +100,7 @@ class _ContinueButton extends StatelessWidget {
   final String label;
   final List<List<dynamic>> icon;
   final bool canProceed;
+  final bool isLoading;
   final VoidCallback onTap;
   final double w;
 
@@ -106,20 +110,22 @@ class _ContinueButton extends StatelessWidget {
     required this.canProceed,
     required this.onTap,
     required this.w,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final active = canProceed && !isLoading;
     return GestureDetector(
-      onTap: canProceed ? onTap : null,
+      onTap: active ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(vertical: w * 0.042),
         decoration: BoxDecoration(
-          color: canProceed ? AppColors.primary : AppColors.border,
+          color: (canProceed || isLoading) ? AppColors.primary : AppColors.border,
           borderRadius: BorderRadius.circular(w * 0.03),
-          boxShadow: canProceed
+          boxShadow: active
               ? [
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.3),
@@ -129,26 +135,37 @@ class _ContinueButton extends StatelessWidget {
                 ]
               : [],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: w * 0.04,
-                fontWeight: FontWeight.w700,
-                color: canProceed ? Colors.white : AppColors.textHint,
-                letterSpacing: 0.3,
+        child: isLoading
+            ? Center(
+                child: SizedBox(
+                  width: w * 0.05,
+                  height: w * 0.05,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: Colors.white,
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: w * 0.04,
+                      fontWeight: FontWeight.w700,
+                      color: canProceed ? Colors.white : AppColors.textHint,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  SizedBox(width: w * 0.025),
+                  HugeIcon(
+                    icon: icon,
+                    color: canProceed ? Colors.white : AppColors.textHint,
+                    size: w * 0.045,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: w * 0.025),
-            HugeIcon(
-              icon: icon,
-              color: canProceed ? Colors.white : AppColors.textHint,
-              size: w * 0.045,
-            ),
-          ],
-        ),
       ),
     );
   }

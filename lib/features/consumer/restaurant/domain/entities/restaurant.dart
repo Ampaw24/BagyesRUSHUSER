@@ -3,6 +3,13 @@ library;
 
 class Restaurant {
   final String id;
+
+  /// The vendor's numeric database row id — distinct from [id], which is
+  /// the ULID-style public `vendor_id` used for routing/lookup. Endpoints
+  /// that require an integer vendor reference (e.g. order creation) need
+  /// this field instead of [id].
+  final int? numericId;
+
   final String name;
   final String imageUrl;
   final String cuisineType;
@@ -40,6 +47,7 @@ class Restaurant {
     required this.longitude,
     this.promoText,
     this.discountPercent,
+    this.numericId,
   });
 
   String get deliveryTimeLabel => '$deliveryTimeMin–$deliveryTimeMax min';
@@ -74,6 +82,7 @@ class Restaurant {
         longitude: (json['longitude'] as num? ?? 0).toDouble(),
         promoText: json['promo_text'] as String?,
         discountPercent: (json['discount_percent'] as num?)?.toDouble(),
+        numericId: (json['id'] as num?)?.toInt(),
       );
 
   static String _firstNonEmpty(List<String?> candidates) {

@@ -8,6 +8,7 @@ import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import '../model/parcel.dart';
 import '../model/parcel_photo.dart';
 import '../model/parcel_quote.dart';
+import '../model/parcel_stop.dart';
 
 class ParcelRepository {
   const ParcelRepository({required Dio client}) : _client = client;
@@ -77,19 +78,11 @@ class ParcelRepository {
     required int deliveryQuoteId,
     required String paymentMethod,
     int? paymentMethodId,
-    required String itemDescription,
-    int? quantity,
-    bool? isFragile,
-    double? declaredValue,
+    required List<ParcelStop> stops,
     required String pickupAddress,
     String? pickupContactName,
     String? pickupContactPhone,
     String? pickupInstructions,
-    required String dropoffAddress,
-    String? recipientName,
-    String? recipientPhone,
-    String? deliveryInstructions,
-    List<int>? photoIds,
   }) async {
     appLogger.d('ParcelRepository.createParcel → initiated');
     try {
@@ -97,19 +90,11 @@ class ParcelRepository {
         'delivery_quote_id': deliveryQuoteId,
         'payment_method': paymentMethod,
         'payment_method_id': paymentMethodId,
-        'item_description': itemDescription,
-        'quantity': quantity,
-        'is_fragile': isFragile,
-        'declared_value': declaredValue,
+        'stops': stops.map((s) => s.toJson()).toList(),
         'pickup_address': pickupAddress,
         'pickup_contact_name': pickupContactName,
         'pickup_contact_phone': pickupContactPhone,
         'pickup_instructions': pickupInstructions,
-        'dropoff_address': dropoffAddress,
-        'recipient_name': recipientName,
-        'recipient_phone': recipientPhone,
-        'delivery_instructions': deliveryInstructions,
-        'photo_ids': photoIds,
       };
       final response =
           await _client.post(ApiEndpoints.customerParcels, data: body);
@@ -179,11 +164,7 @@ class ParcelRepository {
     required String pickupAddress,
     required double pickupLatitude,
     required double pickupLongitude,
-    required String dropoffAddress,
-    required double dropoffLatitude,
-    required double dropoffLongitude,
-    required String size,
-    bool? isFragile,
+    required List<ParcelStop> stops,
   }) async {
     appLogger.d('ParcelRepository.getParcelQuote → initiated');
     try {
@@ -191,11 +172,7 @@ class ParcelRepository {
         'pickup_address': pickupAddress,
         'pickup_latitude': pickupLatitude,
         'pickup_longitude': pickupLongitude,
-        'dropoff_address': dropoffAddress,
-        'dropoff_latitude': dropoffLatitude,
-        'dropoff_longitude': dropoffLongitude,
-        'size': size,
-        'is_fragile': isFragile,
+        'stops': stops.map((s) => s.toQuoteJson()).toList(),
       };
       final response =
           await _client.post(ApiEndpoints.customerParcelQuotes, data: body);

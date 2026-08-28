@@ -3,6 +3,7 @@ import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import '../model/parcel.dart';
 import '../model/parcel_photo.dart';
 import '../model/parcel_quote.dart';
+import '../model/parcel_stop.dart';
 import '../repository/parcel_repository.dart';
 import 'parcel_state.dart';
 
@@ -57,19 +58,11 @@ class ParcelViewModel extends ViewModel<ParcelState> {
     required int deliveryQuoteId,
     required String paymentMethod,
     int? paymentMethodId,
-    required String itemDescription,
-    int? quantity,
-    bool? isFragile,
-    double? declaredValue,
+    required List<ParcelStop> stops,
     required String pickupAddress,
     String? pickupContactName,
     String? pickupContactPhone,
     String? pickupInstructions,
-    required String dropoffAddress,
-    String? recipientName,
-    String? recipientPhone,
-    String? deliveryInstructions,
-    List<int>? photoIds,
   }) async {
     appLogger.d('ParcelViewModel.createParcel → initiated');
     emit(const ParcelLoading());
@@ -78,19 +71,11 @@ class ParcelViewModel extends ViewModel<ParcelState> {
       deliveryQuoteId: deliveryQuoteId,
       paymentMethod: paymentMethod,
       paymentMethodId: paymentMethodId,
-      itemDescription: itemDescription,
-      quantity: quantity,
-      isFragile: isFragile,
-      declaredValue: declaredValue,
+      stops: stops,
       pickupAddress: pickupAddress,
       pickupContactName: pickupContactName,
       pickupContactPhone: pickupContactPhone,
       pickupInstructions: pickupInstructions,
-      dropoffAddress: dropoffAddress,
-      recipientName: recipientName,
-      recipientPhone: recipientPhone,
-      deliveryInstructions: deliveryInstructions,
-      photoIds: photoIds,
     );
 
     return result.fold(
@@ -137,11 +122,7 @@ class ParcelViewModel extends ViewModel<ParcelState> {
     required String pickupAddress,
     required double pickupLatitude,
     required double pickupLongitude,
-    required String dropoffAddress,
-    required double dropoffLatitude,
-    required double dropoffLongitude,
-    required String size,
-    bool? isFragile,
+    required List<ParcelStop> stops,
   }) async {
     appLogger.d('ParcelViewModel.getQuote → initiated');
     emit(const ParcelLoading());
@@ -150,11 +131,7 @@ class ParcelViewModel extends ViewModel<ParcelState> {
       pickupAddress: pickupAddress,
       pickupLatitude: pickupLatitude,
       pickupLongitude: pickupLongitude,
-      dropoffAddress: dropoffAddress,
-      dropoffLatitude: dropoffLatitude,
-      dropoffLongitude: dropoffLongitude,
-      size: size,
-      isFragile: isFragile,
+      stops: stops,
     );
 
     return result.fold(

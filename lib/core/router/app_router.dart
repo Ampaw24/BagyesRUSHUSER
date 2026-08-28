@@ -41,8 +41,8 @@ import 'package:bagyesrushappusernew/features/courier_wallet/views/screens/couri
 
 // ── Consumer feature screens ──
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/views/restaurant_detail_view.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/views/cart_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/views/checkout_view.dart';
+import 'package:bagyesrushappusernew/src/cart/views/cart_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/views/order_tracking_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/search/presentation/views/consumer_search_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/notifications/view/screens/consumer_notifications_screen.dart';

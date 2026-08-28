@@ -1,6 +1,7 @@
 import 'package:bagyesrushappusernew/core/di/service_locator.dart' show sl;
 import 'package:bagyesrushappusernew/core/providers/app_providers.dart'
     as core_providers;
+import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/notification/viewmodel/notification_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/parcel_viewmodel.dart';
@@ -27,6 +28,7 @@ class ScwProviders {
           create: (_) => sl<VendorRegistrationViewModel>(),
         ),
         ChangeNotifierProvider(create: (_) => sl<OrdersViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<CartViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<MenuViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<EarningsViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<SettingsViewModel>()),

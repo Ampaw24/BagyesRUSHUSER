@@ -65,6 +65,11 @@ class PackageDetailsStep extends StatefulWidget {
   final bool fragile;
   final ValueChanged<bool> onFragileChanged;
 
+  /// Currently selected backend size category id (e.g. 'small'), sent as
+  /// `size` on every stop when the parcel is created.
+  final String selectedSize;
+  final ValueChanged<String> onSizeChanged;
+
   const PackageDetailsStep({
     super.key,
     required this.images,
@@ -75,6 +80,8 @@ class PackageDetailsStep extends StatefulWidget {
     required this.maxImages,
     required this.fragile,
     required this.onFragileChanged,
+    required this.selectedSize,
+    required this.onSizeChanged,
   });
 
   @override
@@ -143,8 +150,12 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 
     _customCtrl = TextEditingController(text: widget.weightText);
 
-    // Auto-restore selection when returning to this step
-    if (widget.weightText.isNotEmpty) {
+    // Auto-restore selection when returning to this step — prefer the
+    // explicitly selected size category over re-deriving it from weight.
+    if (widget.selectedSize.isNotEmpty &&
+        _categories.any((c) => c.id == widget.selectedSize)) {
+      _selectedCategoryId = widget.selectedSize;
+    } else if (widget.weightText.isNotEmpty) {
       final kg = double.tryParse(widget.weightText);
       if (kg != null) {
         final match = _categories.where((c) => c.matches(kg)).firstOrNull;
@@ -232,21 +243,24 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
     });
     _customCtrl.text = cat.defaultKg;
     widget.onWeightChanged(cat.defaultKg);
+    widget.onSizeChanged(cat.id);
   }
 
   void _onCustomWeightChanged(String value) {
     final kg = double.tryParse(value);
+    _WCategory? match;
     setState(() {
       _overLimit = kg != null && kg > 20.0;
       if (kg != null) {
         // Smart: auto-highlight matching category tile while typing
-        final match = _categories.where((c) => c.matches(kg)).firstOrNull;
+        match = _categories.where((c) => c.matches(kg)).firstOrNull;
         _selectedCategoryId = match?.id;
       } else {
         _selectedCategoryId = null;
       }
     });
     widget.onWeightChanged(value);
+    if (match != null) widget.onSizeChanged(match!.id);
   }
 
   @override

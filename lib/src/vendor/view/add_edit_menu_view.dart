@@ -12,25 +12,19 @@ import '../../orders/viewmodels/orders_state.dart';
 
 const _stepTitles = ['Basic Info', 'Details', 'Photo'];
 
-// TODO: replace with a vendor-scoped addon-options endpoint once available —
-// options are currently a fixed dropdown so vendors can't free-type values.
-const _dummyAddonOptions = [
-  'Egg',
-  'Boiled Egg',
-  'Fried Egg',
-  'Chicken',
-  'Beef',
-  'Goat Meat',
-  'Fish',
-  'Turkey',
-  'Sausage',
-  'Cheese',
-  'Extra Cheese',
-  'Avocado',
-  'Coleslaw',
-  'Extra Sauce',
-  'Plantain',
-  'Salad',
+/// Suggested addon-group names shown in [_AddonGroupNameField]. Vendors can
+/// still pick "Other" to type a name that isn't in this list.
+const _addonGroupNamePresets = [
+  'Choose Protein',
+  'Spice Level',
+  'Choose Size',
+  'Extra Toppings',
+  'Sauce Choice',
+  'Side Choice',
+  'Choose Drink',
+  'Bread Choice',
+  'Choose Base',
+  'Cooking Style',
 ];
 
 class AddEditMenuView extends StatefulWidget {
@@ -773,14 +767,9 @@ class _AddonGroupEditorState extends State<_AddonGroupEditor> {
   bool _expanded = true;
 
   void _addOption() {
-    final used = widget.group.options.map((o) => o.name).toSet();
-    final name = _dummyAddonOptions.firstWhere(
-      (o) => !used.contains(o),
-      orElse: () => _dummyAddonOptions.first,
-    );
     final newOption = AddonOption(
       id: 'opt_${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
+      name: '',
       additionalPrice: 0,
     );
     widget.onChanged(
@@ -982,11 +971,13 @@ class _OptionRow extends StatefulWidget {
 }
 
 class _OptionRowState extends State<_OptionRow> {
+  late final TextEditingController _nameCtrl;
   late final TextEditingController _priceCtrl;
 
   @override
   void initState() {
     super.initState();
+    _nameCtrl = TextEditingController(text: widget.option.name);
     _priceCtrl = TextEditingController(
       text: widget.option.additionalPrice > 0
           ? widget.option.additionalPrice.toStringAsFixed(2)
@@ -996,6 +987,7 @@ class _OptionRowState extends State<_OptionRow> {
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _priceCtrl.dispose();
     super.dispose();
   }
@@ -1003,6 +995,12 @@ class _OptionRowState extends State<_OptionRow> {
   void _emitPrice() {
     final price = double.tryParse(_priceCtrl.text.trim()) ?? 0.0;
     widget.onChanged(widget.option.copyWith(additionalPrice: price));
+  }
+
+  bool get _isDuplicate {
+    final name = _nameCtrl.text.trim().toLowerCase();
+    if (name.isEmpty) return false;
+    return widget.usedNames.map((n) => n.trim().toLowerCase()).contains(name);
   }
 
   @override
@@ -1015,35 +1013,24 @@ class _OptionRowState extends State<_OptionRow> {
         children: [
           Expanded(
             flex: 5,
-            child: DropdownButtonFormField<String>(
-              initialValue: widget.option.name.isNotEmpty
-                  ? widget.option.name
-                  : null,
-              isExpanded: true,
+            child: TextField(
+              controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
               style: TextStyle(
                 fontSize: w * 0.034,
                 color: AppColors.textPrimary,
               ),
               decoration: InputDecoration(
-                hintText: 'Select option',
+                hintText: 'e.g. Extra Cheese',
+                errorText: _isDuplicate ? 'Duplicate option' : null,
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: w * 0.025,
                   vertical: w * 0.02,
                 ),
                 isDense: true,
               ),
-              items: _dummyAddonOptions
-                  .where(
-                    (o) =>
-                        o == widget.option.name ||
-                        !widget.usedNames.contains(o),
-                  )
-                  .map((o) => DropdownMenuItem(value: o, child: Text(o)))
-                  .toList(),
-              onChanged: (v) {
-                if (v == null) return;
-                widget.onChanged(widget.option.copyWith(name: v));
-              },
+              onChanged: (v) =>
+                  widget.onChanged(widget.option.copyWith(name: v)),
             ),
           ),
           SizedBox(width: w * 0.025),
@@ -1108,7 +1095,7 @@ class _AddAddonGroupSheet extends StatefulWidget {
 }
 
 class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
-  final _nameCtrl = TextEditingController();
+  String _groupName = '';
   bool _isRequired = false;
   int _maxSelections = 1;
   final List<_OptionDraft> _options = [];
@@ -1116,24 +1103,12 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
   @override
   void initState() {
     super.initState();
-    // Start with one option ready to go — options are dropdown-only, so
-    // there's always a valid default rather than an empty/unselected row.
+    // Start with one option row ready to go rather than an empty list.
     _addOptionDraft();
   }
 
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    super.dispose();
-  }
-
   void _addOptionDraft() {
-    final used = _options.map((o) => o.name).toSet();
-    final next = _dummyAddonOptions.firstWhere(
-      (o) => !used.contains(o),
-      orElse: () => _dummyAddonOptions.first,
-    );
-    setState(() => _options.add(_OptionDraft(name: next)));
+    setState(() => _options.add(_OptionDraft(name: '')));
   }
 
   void _removeOptionDraft(int index) {
@@ -1141,7 +1116,7 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
   }
 
   void _submit() {
-    final name = _nameCtrl.text.trim();
+    final name = _groupName.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -1154,6 +1129,20 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
       ).showSnackBar(const SnackBar(content: Text('Add at least one option')));
       return;
     }
+    final optionNames = _options.map((o) => o.name.trim()).toList();
+    if (optionNames.any((n) => n.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Every option needs a name')),
+      );
+      return;
+    }
+    final lowerNames = optionNames.map((n) => n.toLowerCase()).toSet();
+    if (lowerNames.length != optionNames.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Option names must be unique')),
+      );
+      return;
+    }
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     Navigator.of(context).pop(
@@ -1163,14 +1152,14 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
         isRequired: _isRequired,
         minSelections: _isRequired ? 1 : 0,
         maxSelections: _maxSelections,
-        options: _options
+        options: optionNames
             .asMap()
             .entries
             .map(
               (e) => AddonOption(
                 id: 'opt_${timestamp}_${e.key}',
-                name: e.value.name,
-                additionalPrice: e.value.price,
+                name: e.value,
+                additionalPrice: _options[e.key].price,
               ),
             )
             .toList(),
@@ -1252,20 +1241,12 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
                 children: [
                   _SectionLabel(label: 'Group Name *', w: w),
                   SizedBox(height: w * 0.02),
-                  TextField(
-                    controller: _nameCtrl,
-                    textCapitalization: TextCapitalization.words,
-                    style: TextStyle(fontSize: w * 0.038),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Choose Protein',
-                      prefixIcon: Icon(
-                        Icons.tune_rounded,
-                        size: w * 0.05,
-                        color: AppColors.textHint,
-                      ),
-                    ),
+                  _AddonGroupNameField(
+                    initialValue: _groupName,
+                    onChanged: (v) => _groupName = v,
+                    w: w,
                   ),
-                  SizedBox(height: w * 0.04),
+                  SizedBox(height: w * 0.05),
 
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1291,14 +1272,18 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
                       ),
                       SizedBox(width: w * 0.04),
                       Expanded(
-                        child: _ToggleRow(
-                          icon: Icons.priority_high_rounded,
-                          iconColor: AppColors.primary,
-                          label: 'Required',
-                          subtitle: 'Customer must choose',
-                          value: _isRequired,
-                          onChanged: (v) => setState(() => _isRequired = v),
-                          w: w,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _SectionLabel(label: 'Required', w: w),
+                            SizedBox(height: w * 0.02),
+                            _RequiredToggleCard(
+                              value: _isRequired,
+                              onChanged: (v) =>
+                                  setState(() => _isRequired = v),
+                              w: w,
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1410,11 +1395,13 @@ class _OptionDraftRow extends StatefulWidget {
 }
 
 class _OptionDraftRowState extends State<_OptionDraftRow> {
+  late final TextEditingController _nameCtrl;
   late final TextEditingController _priceCtrl;
 
   @override
   void initState() {
     super.initState();
+    _nameCtrl = TextEditingController(text: widget.draft.name);
     _priceCtrl = TextEditingController(
       text: widget.draft.price > 0 ? widget.draft.price.toStringAsFixed(2) : '',
     );
@@ -1422,8 +1409,15 @@ class _OptionDraftRowState extends State<_OptionDraftRow> {
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _priceCtrl.dispose();
     super.dispose();
+  }
+
+  bool get _isDuplicate {
+    final name = _nameCtrl.text.trim().toLowerCase();
+    if (name.isEmpty) return false;
+    return widget.usedNames.map((n) => n.trim().toLowerCase()).contains(name);
   }
 
   @override
@@ -1437,12 +1431,13 @@ class _OptionDraftRowState extends State<_OptionDraftRow> {
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 5,
-            child: DropdownButtonFormField<String>(
-              initialValue: widget.draft.name,
-              isExpanded: true,
+            child: TextField(
+              controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
               style: TextStyle(
                 fontSize: w * 0.034,
                 color: AppColors.textPrimary,
@@ -1451,21 +1446,14 @@ class _OptionDraftRowState extends State<_OptionDraftRow> {
                 isDense: true,
                 filled: true,
                 fillColor: Colors.white,
+                hintText: 'e.g. Extra Cheese',
+                errorText: _isDuplicate ? 'Duplicate' : null,
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: w * 0.025,
                   vertical: w * 0.02,
                 ),
               ),
-              items: _dummyAddonOptions
-                  .where(
-                    (o) =>
-                        o == widget.draft.name || !widget.usedNames.contains(o),
-                  )
-                  .map((o) => DropdownMenuItem(value: o, child: Text(o)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) widget.onNameChanged(v);
-              },
+              onChanged: widget.onNameChanged,
             ),
           ),
           SizedBox(width: w * 0.025),
@@ -1926,6 +1914,317 @@ class _ToggleRow extends StatelessWidget {
             activeTrackColor: iconColor,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Compact required/optional switch card used inside [_AddAddonGroupSheet],
+/// sized to sit side-by-side with the Max Selections stepper without
+/// wrapping its label or subtitle awkwardly.
+class _RequiredToggleCard extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final double w;
+
+  const _RequiredToggleCard({
+    required this.value,
+    required this.onChanged,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.03,
+          vertical: w * 0.025,
+        ),
+        decoration: BoxDecoration(
+          color: value
+              ? AppColors.primary.withValues(alpha: 0.07)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(w * 0.03),
+          border: Border.all(
+            color: value
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : AppColors.border,
+            width: value ? 1.3 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value ? 'Customer must choose' : 'Optional for customer',
+                style: TextStyle(
+                  fontSize: w * 0.027,
+                  color: value ? AppColors.primary : AppColors.textHint,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            SizedBox(width: w * 0.015),
+            Transform.scale(
+              scale: 0.8,
+              child: Switch(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: Colors.white,
+                activeTrackColor: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated dropdown for choosing an addon-group name from
+/// [_addonGroupNamePresets], with an "Other" option that reveals an inline
+/// text field for a custom name.
+class _AddonGroupNameField extends StatefulWidget {
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+  final double w;
+
+  const _AddonGroupNameField({
+    required this.initialValue,
+    required this.onChanged,
+    required this.w,
+  });
+
+  @override
+  State<_AddonGroupNameField> createState() => _AddonGroupNameFieldState();
+}
+
+class _AddonGroupNameFieldState extends State<_AddonGroupNameField> {
+  static const _otherLabel = 'Other';
+
+  late String? _selected;
+  late final TextEditingController _customCtrl;
+  bool _isExpanded = false;
+
+  bool get _isCustom => _selected == _otherLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialValue.trim();
+    if (initial.isEmpty) {
+      _selected = null;
+      _customCtrl = TextEditingController();
+    } else if (_addonGroupNamePresets.contains(initial)) {
+      _selected = initial;
+      _customCtrl = TextEditingController();
+    } else {
+      _selected = _otherLabel;
+      _customCtrl = TextEditingController(text: initial);
+    }
+  }
+
+  @override
+  void dispose() {
+    _customCtrl.dispose();
+    super.dispose();
+  }
+
+  void _select(String value) {
+    setState(() {
+      _selected = value;
+      _isExpanded = false;
+    });
+    widget.onChanged(value == _otherLabel ? _customCtrl.text.trim() : value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.w;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.035,
+              vertical: w * 0.032,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(w * 0.03),
+              border: Border.all(
+                color: _isExpanded ? AppColors.primary : AppColors.border,
+                width: _isExpanded ? 1.4 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.tune_rounded,
+                  size: w * 0.05,
+                  color: AppColors.textHint,
+                ),
+                SizedBox(width: w * 0.025),
+                Expanded(
+                  child: Text(
+                    _selected ?? 'e.g. Choose Protein',
+                    style: TextStyle(
+                      fontSize: w * 0.038,
+                      color: _selected == null
+                          ? AppColors.textHint
+                          : AppColors.textPrimary,
+                      fontWeight: _selected == null
+                          ? FontWeight.w400
+                          : FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: _isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: w * 0.055,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: !_isExpanded
+              ? const SizedBox(width: double.infinity)
+              : Container(
+                  width: double.infinity,
+                  margin: EdgeInsets.only(top: w * 0.02),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(w * 0.03),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: w * 0.02,
+                        offset: Offset(0, w * 0.008),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ..._addonGroupNamePresets.map(
+                        (name) => _AddonGroupNameOption(
+                          label: name,
+                          selected: _selected == name,
+                          w: w,
+                          onTap: () => _select(name),
+                        ),
+                      ),
+                      Divider(height: 1, color: AppColors.border),
+                      _AddonGroupNameOption(
+                        label: 'Other (type your own)',
+                        icon: Icons.edit_rounded,
+                        selected: _isCustom,
+                        w: w,
+                        onTap: () => _select(_otherLabel),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: !_isCustom
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: EdgeInsets.only(top: w * 0.025),
+                  child: TextField(
+                    controller: _customCtrl,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.words,
+                    style: TextStyle(fontSize: w * 0.038),
+                    onChanged: widget.onChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Type your custom group name',
+                      prefixIcon: Icon(
+                        Icons.edit_rounded,
+                        size: w * 0.05,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddonGroupNameOption extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final bool selected;
+  final double w;
+  final VoidCallback onTap;
+
+  const _AddonGroupNameOption({
+    required this.label,
+    this.icon,
+    required this.selected,
+    required this.w,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.035,
+          vertical: w * 0.03,
+        ),
+        color: selected
+            ? AppColors.primary.withValues(alpha: 0.06)
+            : Colors.transparent,
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: w * 0.045, color: AppColors.textSecondary),
+              SizedBox(width: w * 0.025),
+            ],
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: w * 0.036,
+                  color: selected ? AppColors.primary : AppColors.textPrimary,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_rounded, size: w * 0.045, color: AppColors.primary),
+          ],
+        ),
       ),
     );
   }

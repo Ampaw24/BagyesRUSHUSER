@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/states/cart_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/data/repositories/orders_repository_impl.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/repositories/i_orders_repository.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/states/orders_state.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
 // ─── Repository provider ──────────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ class OrdersViewModel extends Notifier<OrdersState> {
   }
 
   Future<ConsumerOrder> placeOrder({
-    required CartState cart,
+    required CartModel cart,
     required String deliveryAddress,
     String? deliveryInstructions,
     required String paymentMethod,

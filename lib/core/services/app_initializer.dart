@@ -2,12 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bagyesrushappusernew/constant/baseurl.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
-import 'package:bagyesrushappusernew/core/services/cart_storage_service.dart';
 import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
 import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
@@ -77,20 +75,6 @@ class AppInitializer {
 
     // 8. Restore session — re-fetch user profile if token + userId are present
     await _sl<AuthViewmodel>().restoreSession();
-
-    // 9. CartStorageService — warm the persisted cart from disk so
-    //    CartViewModel.build() can read it synchronously.
-    if (!_sl.isRegistered<SharedPreferences>()) {
-      _sl.registerSingleton<SharedPreferences>(
-        await SharedPreferences.getInstance(),
-      );
-    }
-    if (!_sl.isRegistered<CartStorageService>()) {
-      _sl.registerSingleton<CartStorageService>(
-        CartStorageService(prefs: _sl()),
-      );
-    }
-    await _sl<CartStorageService>().hydrate();
   }
 
   static Dio _configureDio() {

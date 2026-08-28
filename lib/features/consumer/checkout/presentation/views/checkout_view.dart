@@ -5,14 +5,30 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart' as legacy;
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart';
-import 'package:bagyesrushappusernew/features/consumer/cart/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/domain/entities/checkout_model.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/states/checkout_state.dart';
+import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_payment_methods_provider.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_viewmodel.dart';
+import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/add_payment_method_screen.dart';
+import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
+
+/// Unwraps whichever [CheckoutState] variant carries a [CheckoutForm].
+CheckoutForm _formFromState(CheckoutState state) => switch (state) {
+      CheckoutIdle(:final form) => form,
+      CheckoutPlacing(:final form) => form,
+      CheckoutError(:final form) => form,
+      _ => const CheckoutForm(),
+    };
 
 class CheckoutView extends ConsumerStatefulWidget {
   const CheckoutView({super.key});
@@ -31,13 +47,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     super.initState();
     // Sync address controller with checkout state after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = ref.read(checkoutProvider);
-      final form = switch (state) {
-        CheckoutIdle(:final form) => form,
-        CheckoutPlacing(:final form) => form,
-        CheckoutError(:final form) => form,
-        _ => const CheckoutForm(),
-      };
+      final form = _formFromState(ref.read(checkoutProvider));
       if (form.deliveryAddress.isNotEmpty) {
         _addressController.text = form.deliveryAddress;
       }
@@ -101,6 +111,32 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     );
   }
 
+  /// Pushes the existing "Add Payment Method" screen (the same one used
+  /// from Profile → Payment Methods), providing it the `ChangeNotifier`s it
+  /// expects since checkout's widget tree doesn't already have them. On
+  /// success it pops back here with the newly-created method, which is then
+  /// selected and the saved-methods list is refreshed.
+  Future<void> _addPaymentMethod(BuildContext context) async {
+    final result = await Navigator.of(context).push<PaymentMethod>(
+      MaterialPageRoute(
+        builder: (_) => legacy.MultiProvider(
+          providers: [
+            legacy.ChangeNotifierProvider<PaymentViewModel>(
+              create: (_) => sl<PaymentViewModel>(param1: false),
+            ),
+            legacy.ChangeNotifierProvider<PayoutProvidersViewModel>(
+              create: (_) => sl<PayoutProvidersViewModel>(),
+            ),
+          ],
+          child: const AddPaymentMethodScreen(),
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    ref.invalidate(checkoutPaymentMethodsProvider);
+    ref.read(checkoutProvider.notifier).selectPaymentMethod(result);
+  }
+
   String _buildAddressString(Placemark? p, Position pos) {
     if (p != null) {
       final street = p.street?.isNotEmpty == true ? p.street : null;
@@ -117,12 +153,14 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final cart = ref.watch(cartProvider);
+    final cartVm = legacy.Provider.of<CartViewModel>(context);
+    final cart = cartVm.cart;
     final checkoutState = ref.watch(checkoutProvider);
 
-    // React to success → navigate to tracking
+    // React to success → clear the server cart, then navigate to tracking
     ref.listen<CheckoutState>(checkoutProvider, (_, next) {
       if (next is CheckoutSuccess) {
+        legacy.Provider.of<CartViewModel>(context, listen: false).clearCart();
         context.go(AppRoutes.trackOrder, extra: next.orderId);
       } else if (next is CheckoutError) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -132,15 +170,32 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       }
     });
 
+    // Auto-select the customer's default (or first) saved payment method
+    // once the list loads, so they aren't forced to tap it explicitly.
+    ref.listen<AsyncValue<List<PaymentMethod>>>(checkoutPaymentMethodsProvider,
+        (_, next) {
+      final methods = next.valueOrNull;
+      if (methods == null || methods.isEmpty) return;
+      if (_formFromState(ref.read(checkoutProvider)).selectedPaymentMethod !=
+          null) {
+        return;
+      }
+      final defaultMethod =
+          methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
+      ref.read(checkoutProvider.notifier).selectPaymentMethod(defaultMethod);
+    });
+
     final isPlacing = checkoutState is CheckoutPlacing;
-    final form = switch (checkoutState) {
-      CheckoutIdle(:final form) => form,
-      CheckoutPlacing(:final form) => form,
-      CheckoutError(:final form) => form,
-      _ => const CheckoutForm(),
-    };
+    final form = _formFromState(checkoutState);
 
     final hasValidAddress = form.deliveryAddress.trim().length >= 5;
+    final hasPaymentMethod = form.selectedPaymentMethod != null;
+
+    if (cart == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -189,68 +244,42 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                   ),
                 ),
 
-                // ── Cart note preview ──
-                if (cart.hasSpecialInstructions) ...[
-                  SizedBox(height: w * 0.025),
-                  Container(
-                    padding: EdgeInsets.all(w * 0.035),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(w * 0.025),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.note_alt_rounded,
-                            color: AppColors.primary, size: w * 0.045),
-                        SizedBox(width: w * 0.02),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Restaurant note',
-                                style: TextStyle(
-                                  fontSize: w * 0.03,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                cart.specialInstructions,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: w * 0.028,
-                                  color: AppColors.textSecondary,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
                 SizedBox(height: w * 0.055),
 
                 // ── Step 2: Payment method ──
                 _SectionHeader(number: '2', title: 'Payment Method'),
                 SizedBox(height: w * 0.03),
-                ...PaymentMethod.values.map((method) => _PaymentOption(
-                      method: method,
-                      isSelected: form.paymentMethod == method,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        ref
-                            .read(checkoutProvider.notifier)
-                            .selectPaymentMethod(method);
-                      },
-                    )),
+                ref.watch(checkoutPaymentMethodsProvider).when(
+                      loading: () => const _PaymentMethodsLoading(),
+                      error: (_, _) => _PaymentMethodsErrorView(
+                        onRetry: () =>
+                            ref.invalidate(checkoutPaymentMethodsProvider),
+                      ),
+                      data: (methods) => methods.isEmpty
+                          ? _NoPaymentMethodsCard(
+                              onAdd: () => _addPaymentMethod(context),
+                            )
+                          : Column(
+                              children: [
+                                ...methods.map((m) => _PaymentOption(
+                                      method: m,
+                                      isSelected:
+                                          form.selectedPaymentMethod?.id ==
+                                              m.id,
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        ref
+                                            .read(checkoutProvider.notifier)
+                                            .selectPaymentMethod(m);
+                                      },
+                                    )),
+                                SizedBox(height: w * 0.02),
+                                _AddPaymentMethodButton(
+                                  onTap: () => _addPaymentMethod(context),
+                                ),
+                              ],
+                            ),
+                    ),
 
                 SizedBox(height: w * 0.055),
 
@@ -293,7 +322,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                                 SizedBox(width: w * 0.025),
                                 Expanded(
                                   child: Text(
-                                    ci.item.name,
+                                    ci.name,
                                     style: TextStyle(
                                       fontSize: w * 0.033,
                                       color: AppColors.textPrimary,
@@ -314,8 +343,8 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                       const Divider(color: AppColors.divider),
                       _TotalRow(label: 'Subtotal', value: cart.subtotal),
                       _TotalRow(
-                          label: 'Delivery fee', value: cart.deliveryFee),
-                      _TotalRow(label: 'Service fee', value: cart.serviceFee),
+                          label: 'Delivery fee',
+                          value: cart.deliveryFee ?? 0),
                       SizedBox(height: w * 0.01),
                       _TotalRow(
                         label: 'Total',
@@ -340,35 +369,26 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Address validation warning
+                // Validation warnings
                 if (!hasValidAddress)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: w * 0.025),
-                    child: Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: AppColors.warning, size: w * 0.045),
-                        SizedBox(width: w * 0.02),
-                        Expanded(
-                          child: Text(
-                            'Please enter a valid delivery address to continue',
-                            style: TextStyle(
-                              fontSize: w * 0.03,
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  const _ValidationWarning(
+                    message:
+                        'Please enter a valid delivery address to continue',
+                  )
+                else if (!hasPaymentMethod)
+                  const _ValidationWarning(
+                    message: 'Please select a payment method to continue',
                   ),
                 ElevatedButton(
-                  onPressed: (isPlacing || !hasValidAddress)
-                      ? null
-                      : () {
-                          HapticFeedback.mediumImpact();
-                          ref.read(checkoutProvider.notifier).placeOrder(cart);
-                        },
+                  onPressed:
+                      (isPlacing || !hasValidAddress || !hasPaymentMethod)
+                          ? null
+                          : () {
+                              HapticFeedback.mediumImpact();
+                              ref
+                                  .read(checkoutProvider.notifier)
+                                  .placeOrder(cart);
+                            },
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size(double.infinity, w * 0.13),
                     shape: RoundedRectangleBorder(
@@ -593,20 +613,10 @@ class _PaymentOption extends StatelessWidget {
     required this.onTap,
   });
 
-  static IconData _icon(PaymentMethod method) {
-    switch (method) {
-      case PaymentMethod.mobileMoney:
-        return Icons.phone_android_rounded;
-      case PaymentMethod.card:
-        return Icons.credit_card_rounded;
-      case PaymentMethod.cashOnDelivery:
-        return Icons.money_rounded;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final provider = method.provider;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -625,23 +635,37 @@ class _PaymentOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(_icon(method),
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
-                size: w * 0.055),
+            provider != null
+                ? PayoutProviderAvatar(provider: provider, size: w * 0.09)
+                : Icon(Icons.phone_android_rounded,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                    size: w * 0.055),
             SizedBox(width: w * 0.03),
             Expanded(
-              child: Text(
-                method.label,
-                style: TextStyle(
-                  fontSize: w * 0.037,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    method.displayTitle,
+                    style: TextStyle(
+                      fontSize: w * 0.037,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '${provider?.isBank == true ? 'Bank Account' : 'Mobile Money'} • ${method.maskedPhone}',
+                    style: TextStyle(
+                      fontSize: w * 0.03,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
             if (isSelected)
@@ -649,6 +673,144 @@ class _PaymentOption extends StatelessWidget {
                   color: AppColors.primary),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AddPaymentMethodButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddPaymentMethodButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.add),
+      label: const Text('Add Payment Method'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.primary),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(w * 0.03),
+        ),
+        minimumSize: Size(double.infinity, w * 0.12),
+      ),
+    );
+  }
+}
+
+class _PaymentMethodsLoading extends StatelessWidget {
+  const _PaymentMethodsLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: w * 0.06),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _PaymentMethodsErrorView extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _PaymentMethodsErrorView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Container(
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded,
+              color: AppColors.error, size: w * 0.055),
+          SizedBox(width: w * 0.03),
+          Expanded(
+            child: Text(
+              'Could not load your payment methods',
+              style:
+                  TextStyle(fontSize: w * 0.034, color: AppColors.textPrimary),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoPaymentMethodsCard extends StatelessWidget {
+  final VoidCallback onAdd;
+
+  const _NoPaymentMethodsCard({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Container(
+      padding: EdgeInsets.all(w * 0.05),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.account_balance_wallet_outlined,
+              size: w * 0.09, color: AppColors.textSecondary),
+          SizedBox(height: w * 0.025),
+          Text(
+            'No payment method added yet',
+            style: TextStyle(
+              fontSize: w * 0.036,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: w * 0.02),
+          _AddPaymentMethodButton(onTap: onAdd),
+        ],
+      ),
+    );
+  }
+}
+
+class _ValidationWarning extends StatelessWidget {
+  final String message;
+
+  const _ValidationWarning({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Padding(
+      padding: EdgeInsets.only(bottom: w * 0.025),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              color: AppColors.warning, size: w * 0.045),
+          SizedBox(width: w * 0.02),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: w * 0.03,
+                color: AppColors.warning,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

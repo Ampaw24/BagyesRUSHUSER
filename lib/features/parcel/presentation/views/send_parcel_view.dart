@@ -23,6 +23,19 @@ class SendParcelView extends ConsumerWidget {
     final notifier = ref.read(sendParcelProvider.notifier);
     final isSummary = state.currentStep == ParcelStep.summary;
 
+    // React to a successful backend submission or a submission failure.
+    ref.listen<SendParcelState>(sendParcelProvider, (previous, next) {
+      if (next.createdParcel != null &&
+          next.createdParcel != previous?.createdParcel) {
+        AppNavigator.toOrderTracking(context, next.createdParcel!.id);
+      } else if (next.submitError != null &&
+          next.submitError != previous?.submitError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.submitError!)),
+        );
+      }
+    });
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -62,6 +75,7 @@ class SendParcelView extends ConsumerWidget {
             ParcelBottomBar(
               currentStep: state.currentStep,
               canProceed: state.canProceed,
+              isLoading: state.isSubmitting,
               onBack: notifier.goBack,
               onContinue: () => _handleContinue(context, state, notifier),
             ),
@@ -145,6 +159,8 @@ class SendParcelView extends ConsumerWidget {
           maxImages: SendParcelNotifier.maxImages,
           fragile: state.fragile,
           onFragileChanged: notifier.setFragile,
+          selectedSize: state.packageSize,
+          onSizeChanged: notifier.setPackageSize,
         );
 
       case ParcelStep.pickupLocation:
@@ -217,7 +233,7 @@ class SendParcelView extends ConsumerWidget {
     SendParcelNotifier notifier,
   ) {
     if (state.currentStep == ParcelStep.summary) {
-      AppNavigator.toVendorPaymentMethods(context);
+      notifier.submitParcel();
       return;
     }
     notifier.advance();

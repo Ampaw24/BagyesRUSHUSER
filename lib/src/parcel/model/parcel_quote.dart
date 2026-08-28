@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'parcel_stop.dart';
 
 class ParcelQuote extends Equatable {
   const ParcelQuote({
@@ -6,11 +7,7 @@ class ParcelQuote extends Equatable {
     required this.pickupAddress,
     required this.pickupLatitude,
     required this.pickupLongitude,
-    required this.dropoffAddress,
-    required this.dropoffLatitude,
-    required this.dropoffLongitude,
-    required this.size,
-    required this.isFragile,
+    required this.stops,
     required this.price,
     required this.currency,
     required this.distanceKm,
@@ -21,11 +18,7 @@ class ParcelQuote extends Equatable {
   final String pickupAddress;
   final double pickupLatitude;
   final double pickupLongitude;
-  final String dropoffAddress;
-  final double dropoffLatitude;
-  final double dropoffLongitude;
-  final String size;
-  final bool isFragile;
+  final List<ParcelStop> stops;
   final double price;
   final String currency;
   final double? distanceKm;
@@ -38,20 +31,15 @@ class ParcelQuote extends Equatable {
         json['fee'] ??
         json['total'] ??
         json['cost'];
+    final rawStops = json['stops'] as List<dynamic>? ?? [];
     return ParcelQuote(
       id: (rawId as num?)?.toInt() ?? 0,
       pickupAddress: json['pickup_address']?.toString() ?? '',
-      pickupLatitude:
-          (json['pickup_latitude'] as num?)?.toDouble() ?? 0.0,
-      pickupLongitude:
-          (json['pickup_longitude'] as num?)?.toDouble() ?? 0.0,
-      dropoffAddress: json['dropoff_address']?.toString() ?? '',
-      dropoffLatitude:
-          (json['dropoff_latitude'] as num?)?.toDouble() ?? 0.0,
-      dropoffLongitude:
-          (json['dropoff_longitude'] as num?)?.toDouble() ?? 0.0,
-      size: json['size']?.toString() ?? '',
-      isFragile: json['is_fragile'] as bool? ?? false,
+      pickupLatitude: (json['pickup_latitude'] as num?)?.toDouble() ?? 0.0,
+      pickupLongitude: (json['pickup_longitude'] as num?)?.toDouble() ?? 0.0,
+      stops: rawStops
+          .map((e) => ParcelStop.fromJson(e as Map<String, dynamic>))
+          .toList(),
       price: (rawPrice as num?)?.toDouble() ?? 0.0,
       currency: json['currency']?.toString() ?? 'GHS',
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
@@ -64,11 +52,7 @@ class ParcelQuote extends Equatable {
         'pickup_address': pickupAddress,
         'pickup_latitude': pickupLatitude,
         'pickup_longitude': pickupLongitude,
-        'dropoff_address': dropoffAddress,
-        'dropoff_latitude': dropoffLatitude,
-        'dropoff_longitude': dropoffLongitude,
-        'size': size,
-        'is_fragile': isFragile,
+        'stops': stops.map((s) => s.toQuoteJson()).toList(),
         'price': price,
         'currency': currency,
         'distance_km': distanceKm,
@@ -76,7 +60,7 @@ class ParcelQuote extends Equatable {
       };
 
   @override
-  String toString() => '$id, $size, $currency $price';
+  String toString() => '$id, ${stops.length} stop(s), $currency $price';
 
   @override
   List<Object?> get props => [
@@ -84,11 +68,7 @@ class ParcelQuote extends Equatable {
         pickupAddress,
         pickupLatitude,
         pickupLongitude,
-        dropoffAddress,
-        dropoffLatitude,
-        dropoffLongitude,
-        size,
-        isFragile,
+        stops,
         price,
         currency,
         distanceKm,

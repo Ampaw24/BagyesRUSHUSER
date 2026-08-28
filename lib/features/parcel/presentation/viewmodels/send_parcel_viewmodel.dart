@@ -4,8 +4,17 @@ import 'dart:math' show cos, sqrt, asin, max;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
+import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
+import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import '../../data/models/delivery_stop.dart';
 import '../../data/models/rider_model.dart';
+
+/// Sentinel used by [SendParcelState.copyWith] to distinguish "leave
+/// unchanged" from "explicitly set to null" for nullable fields.
+const _unset = Object();
 
 // ── Step enum ────────────────────────────────────────────────────────────────
 
@@ -44,6 +53,23 @@ class SendParcelState {
   /// Matches the booking-level toggle used by Lalamove and GrabExpress.
   final bool fragile;
 
+  /// Backend size category (e.g. 'envelope', 'small', 'medium', 'large',
+  /// 'heavy') selected in [PackageDetailsStep] — sent as `size` on every
+  /// stop in the create/quote requests.
+  final String packageSize;
+
+  // ── Backend quote (authoritative price) ───────────────────────────────────
+  final bool isFetchingQuote;
+  final String? quoteError;
+  final double? quotedPrice;
+  final String? quoteCurrency;
+
+  // ── Payment + submission ────────────────────────────────────────────────
+  final PaymentMethod? selectedPaymentMethod;
+  final bool isSubmitting;
+  final String? submitError;
+  final Parcel? createdParcel;
+
   const SendParcelState({
     this.currentStep = ParcelStep.packageType,
     this.packageType,
@@ -58,6 +84,15 @@ class SendParcelState {
     this.distanceKm = 0.0,
     this.isLoadingRiders = false,
     this.fragile = false,
+    this.packageSize = '',
+    this.isFetchingQuote = false,
+    this.quoteError,
+    this.quotedPrice,
+    this.quoteCurrency,
+    this.selectedPaymentMethod,
+    this.isSubmitting = false,
+    this.submitError,
+    this.createdParcel,
   });
 
   // ── Computed ───────────────────────────────────────────────────────────────
@@ -93,7 +128,7 @@ class SendParcelState {
       case ParcelStep.availableRiders:
         return selectedRiderId != null;
       case ParcelStep.summary:
-        return true;
+        return selectedPaymentMethod != null && !isSubmitting;
     }
   }
 
@@ -111,6 +146,15 @@ class SendParcelState {
     double? distanceKm,
     bool? isLoadingRiders,
     bool? fragile,
+    String? packageSize,
+    bool? isFetchingQuote,
+    Object? quoteError = _unset,
+    Object? quotedPrice = _unset,
+    Object? quoteCurrency = _unset,
+    Object? selectedPaymentMethod = _unset,
+    bool? isSubmitting,
+    Object? submitError = _unset,
+    Object? createdParcel = _unset,
   }) =>
       SendParcelState(
         currentStep: currentStep ?? this.currentStep,
@@ -126,6 +170,26 @@ class SendParcelState {
         distanceKm: distanceKm ?? this.distanceKm,
         isLoadingRiders: isLoadingRiders ?? this.isLoadingRiders,
         fragile: fragile ?? this.fragile,
+        packageSize: packageSize ?? this.packageSize,
+        isFetchingQuote: isFetchingQuote ?? this.isFetchingQuote,
+        quoteError:
+            identical(quoteError, _unset) ? this.quoteError : quoteError as String?,
+        quotedPrice: identical(quotedPrice, _unset)
+            ? this.quotedPrice
+            : quotedPrice as double?,
+        quoteCurrency: identical(quoteCurrency, _unset)
+            ? this.quoteCurrency
+            : quoteCurrency as String?,
+        selectedPaymentMethod: identical(selectedPaymentMethod, _unset)
+            ? this.selectedPaymentMethod
+            : selectedPaymentMethod as PaymentMethod?,
+        isSubmitting: isSubmitting ?? this.isSubmitting,
+        submitError: identical(submitError, _unset)
+            ? this.submitError
+            : submitError as String?,
+        createdParcel: identical(createdParcel, _unset)
+            ? this.createdParcel
+            : createdParcel as Parcel?,
       );
 }
 
@@ -145,6 +209,13 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
   /// Monotonically increasing counter — ensures stop IDs are never recycled
   /// after a remove+add cycle, preventing stale `_StopCardState` reuse.
   int _stopCounter = 1;
+
+  /// Backend photo id for each already-uploaded image, keyed by its index
+  /// in [SendParcelState.packageImages]. Avoids re-uploading the same
+  /// image if the user retries submission after a failure.
+  final Map<int, int> _uploadedPhotoIds = {};
+
+  ParcelRepository get _repository => sl<ParcelRepository>();
 
   // ── Step navigation ──────────────────────────────────────────────────────
 
@@ -166,6 +237,14 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
         distanceKm: dist,
         availableRiders: riders,
       );
+      return;
+    }
+
+    // When entering the summary step, fetch the authoritative backend
+    // quote up front so the customer sees the real price before paying.
+    if (nextStep == ParcelStep.summary) {
+      state = state.copyWith(currentStep: nextStep);
+      fetchQuote();
       return;
     }
 
@@ -203,6 +282,11 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
   void setWeight(String weight) => state = state.copyWith(weightText: weight);
 
   void setFragile(bool value) => state = state.copyWith(fragile: value);
+
+  /// Sets the backend size category (e.g. 'small', 'medium') selected in
+  /// the package-size picker. Sent as `size` on every stop.
+  void setPackageSize(String size) =>
+      state = state.copyWith(packageSize: size);
 
   // ── Pickup location ───────────────────────────────────────────────────────
 
@@ -271,7 +355,186 @@ class SendParcelNotifier extends StateNotifier<SendParcelState> {
   void selectRider(String riderId) =>
       state = state.copyWith(selectedRiderId: riderId);
 
+  // ── Payment method ────────────────────────────────────────────────────────
+
+  void selectPaymentMethod(PaymentMethod method) =>
+      state = state.copyWith(selectedPaymentMethod: method, submitError: null);
+
+  // ── Backend quote ────────────────────────────────────────────────────────
+
+  /// Fetches the authoritative delivery quote from the backend so the
+  /// customer sees the real price on the summary screen before paying.
+  /// This is a display-only fetch — [submitParcel] always requests a fresh
+  /// quote of its own right before creating the parcel, so a stale price
+  /// shown here can never be what actually gets charged.
+  Future<void> fetchQuote() async {
+    if (state.pickupLatLng == null || state.deliveryStops.isEmpty) return;
+
+    state = state.copyWith(isFetchingQuote: true, quoteError: null);
+
+    final result = await _repository.getParcelQuote(
+      pickupAddress: state.pickupAddress,
+      pickupLatitude: state.pickupLatLng!.latitude,
+      pickupLongitude: state.pickupLatLng!.longitude,
+      stops: _quoteStops(),
+    );
+
+    result.fold(
+      (failure) => state = state.copyWith(
+        isFetchingQuote: false,
+        quoteError: failure.message,
+      ),
+      (quote) => state = state.copyWith(
+        isFetchingQuote: false,
+        quotedPrice: quote.price,
+        quoteCurrency: quote.currency,
+      ),
+    );
+  }
+
+  // ── Submission ───────────────────────────────────────────────────────────
+
+  /// Uploads any tagged photos, requests a fresh backend quote, then
+  /// creates the parcel using that quote's id — the price actually charged
+  /// always comes from the backend, never from the client-side estimate.
+  Future<bool> submitParcel() async {
+    if (state.pickupLatLng == null ||
+        state.deliveryStops.isEmpty ||
+        !state.deliveryStops.every((s) => s.isComplete)) {
+      return false;
+    }
+    final method = state.selectedPaymentMethod;
+    if (method == null) {
+      state = state.copyWith(submitError: 'Please select a payment method.');
+      return false;
+    }
+
+    state = state.copyWith(isSubmitting: true, submitError: null);
+
+    try {
+      final stops = await _buildStopsWithPhotos();
+
+      final quoteResult = await _repository.getParcelQuote(
+        pickupAddress: state.pickupAddress,
+        pickupLatitude: state.pickupLatLng!.latitude,
+        pickupLongitude: state.pickupLatLng!.longitude,
+        stops: stops,
+      );
+
+      return await quoteResult.fold(
+        (failure) {
+          state = state.copyWith(isSubmitting: false, submitError: failure.message);
+          return false;
+        },
+        (quote) async {
+          final createResult = await _repository.createParcel(
+            deliveryQuoteId: quote.id,
+            // Customers only ever have saved mobile-money accounts (see
+            // getCustomerPaymentMethods) — mirrors the checkout flow, where
+            // 'card' is likewise never offered to select from.
+            paymentMethod: 'mobile_money',
+            paymentMethodId: int.tryParse(method.id),
+            stops: stops,
+            pickupAddress: state.pickupAddress,
+          );
+
+          return createResult.fold(
+            (failure) {
+              state =
+                  state.copyWith(isSubmitting: false, submitError: failure.message);
+              return false;
+            },
+            (parcel) {
+              state = state.copyWith(isSubmitting: false, createdParcel: parcel);
+              return true;
+            },
+          );
+        },
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Something went wrong. Please try again.',
+      );
+      return false;
+    }
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  String get _resolvedSize => state.packageSize.isNotEmpty
+      ? state.packageSize
+      : 'medium';
+
+  double? get _resolvedWeightKg => double.tryParse(state.weightText);
+
+  /// Lightweight stop shape for the quote endpoint — location, size,
+  /// fragility and weight only.
+  List<ParcelStop> _quoteStops() => state.deliveryStops
+      .where((s) => s.latLng != null)
+      .map(
+        (s) => ParcelStop(
+          address: s.address,
+          latitude: s.latLng!.latitude,
+          longitude: s.latLng!.longitude,
+          size: _resolvedSize,
+          isFragile: state.fragile,
+          weightKg: _resolvedWeightKg,
+        ),
+      )
+      .toList();
+
+  /// Full stop shape for the create endpoint, uploading any tagged photos
+  /// that haven't been uploaded yet and reusing cached ids for the rest.
+  Future<List<ParcelStop>> _buildStopsWithPhotos() async {
+    final stops = <ParcelStop>[];
+
+    for (final stop in state.deliveryStops) {
+      final photoIds = <int>[];
+      for (final imageIndex in stop.selectedImageIndices) {
+        if (imageIndex >= state.packageImages.length) continue;
+
+        final cachedId = _uploadedPhotoIds[imageIndex];
+        if (cachedId != null) {
+          photoIds.add(cachedId);
+          continue;
+        }
+
+        final uploadResult = await _repository.uploadParcelPhoto(
+          filePath: state.packageImages[imageIndex].path,
+        );
+        uploadResult.fold(
+          (_) {},
+          (photo) {
+            _uploadedPhotoIds[imageIndex] = photo.id;
+            photoIds.add(photo.id);
+          },
+        );
+      }
+
+      stops.add(
+        ParcelStop(
+          address: stop.address,
+          latitude: stop.latLng!.latitude,
+          longitude: stop.latLng!.longitude,
+          recipientName: stop.recipientName.isEmpty ? null : stop.recipientName,
+          recipientPhone:
+              stop.recipientPhone.isEmpty ? null : stop.recipientPhone,
+          instructions:
+              stop.specialInstructions.isEmpty ? null : stop.specialInstructions,
+          itemDescription:
+              stop.itemDescription.isEmpty ? null : stop.itemDescription,
+          size: _resolvedSize,
+          quantity: stop.quantity,
+          isFragile: state.fragile,
+          weightKg: _resolvedWeightKg,
+          photoIds: photoIds.isEmpty ? null : photoIds,
+        ),
+      );
+    }
+
+    return stops;
+  }
 
   /// Calculates the total route distance:
   /// pickup → stop[0] → stop[1] → … → stop[n-1]
