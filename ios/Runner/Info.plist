@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>bagyesRUSH</string>
+	<string>BagyesRush Delivery</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>bagyesRUSH</string>
+	<string>BagyesRush Delivery</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,17 +27,17 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>bagyesRUSH needs camera access to take photos for your profile and orders.</string>
+	<string>BagyesRush Delivery needs camera access to take photos for your profile and orders.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>bagyesRUSH needs your location in the background to track active deliveries.</string>
+	<string>BagyesRush Delivery needs your location in the background to track active deliveries.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>bagyesRUSH needs your location in the background to track active deliveries.</string>
+	<string>BagyesRush Delivery needs your location in the background to track active deliveries.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>bagyesRUSH needs your location to show nearby services and track deliveries.</string>
+	<string>BagyesRush Delivery needs your location to show nearby services and track deliveries.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>bagyesRUSH needs permission to save photos to your library.</string>
+	<string>BagyesRush Delivery needs permission to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>bagyesRUSH needs photo library access to select images for your profile and orders.</string>
+	<string>BagyesRush Delivery needs photo library access to select images for your profile and orders.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

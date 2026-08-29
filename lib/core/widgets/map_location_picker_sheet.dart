@@ -136,6 +136,20 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     _lastGeocodedCenter = position;
     setState(() => _isReverseGeocoding = true);
     try {
+      // Google's Geocoding API first — the same technique validated at app
+      // start (AppInitializer._logStartupLocation) — since the native
+      // platform geocoder below can return only a broad locality/district
+      // name in regions with thin street-level coverage, which isn't
+      // specific enough to identify a delivery drop-off point.
+      final googleAddress = await PlacesService.reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
+      if (googleAddress != null && googleAddress.isNotEmpty) {
+        if (mounted) setState(() => _address = googleAddress);
+        return;
+      }
+
       final placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,

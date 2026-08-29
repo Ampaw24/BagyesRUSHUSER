@@ -23,7 +23,13 @@ class AppInitializer {
 
   static Future<void> initializeRemaining() async {
     // Firebase, analytics, push notifications, location — do NOT block splash.
-    await FcmService.initialize();
+    // Each step is best-effort: a failure here (e.g. no APNS token yet on the
+    // iOS Simulator) must not prevent the steps that follow from running.
+    try {
+      await FcmService.initialize();
+    } catch (e, s) {
+      appLogger.e('[AppInitializer] FcmService.initialize failed', error: e, stackTrace: s);
+    }
     await LocationHelper.ensurePermission();
     await _logStartupLocation();
   }

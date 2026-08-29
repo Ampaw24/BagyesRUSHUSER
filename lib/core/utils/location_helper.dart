@@ -251,6 +251,25 @@ class LocationHelper {
   static String _coordFallback(double latitude, double longitude) =>
       '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
 
+  /// Returns the OS's cached last-known position, if any, without waiting
+  /// for a fresh GPS fix — resolves instantly, or `null` if the OS has never
+  /// obtained a fix for this app. Use to paint a location optimistically
+  /// while [getCurrentLocation] acquires a fresh fix in the background —
+  /// a fresh fix's [getCurrentLocation] `timeLimit` can otherwise elapse
+  /// before the OS reports a position on a cold GPS start.
+  static Future<Position?> getLastKnownPosition() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } catch (e, s) {
+      appLogger.e(
+        '[LocationHelper] getLastKnownPosition failed',
+        error: e,
+        stackTrace: s,
+      );
+      return null;
+    }
+  }
+
   /// Opens the OS app-settings screen — use for a permanently-denied
   /// permission. Returns whether the settings screen was actually opened.
   static Future<bool> openAppSettings() => Geolocator.openAppSettings();
