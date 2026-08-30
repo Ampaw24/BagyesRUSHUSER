@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -25,9 +26,7 @@ class RouteMap extends StatefulWidget {
 }
 
 class _RouteMapState extends State<RouteMap> {
-  double cameraZoom = 13;
-  double cameraTilt = 30;
-  double cameraBearing = 10;
+  static const double _initialZoom = 13;
   late LatLng sourceLocatioon;
   late LatLng destLocatioon;
 
@@ -74,10 +73,11 @@ class _RouteMapState extends State<RouteMap> {
 
   @override
   Widget build(BuildContext context) {
+    // Placeholder camera for the first frame — onMapCreated immediately
+    // fits both pickup and dropoff into view, so bearing/tilt/zoom here
+    // only matter for the brief moment before that runs.
     CameraPosition initialLocation = CameraPosition(
-      zoom: cameraZoom,
-      bearing: cameraBearing,
-      tilt: cameraTilt,
+      zoom: _initialZoom,
       target: sourceLocatioon,
     );
     return GoogleMap(
@@ -96,7 +96,37 @@ class _RouteMapState extends State<RouteMap> {
   void onMapCreated(GoogleMapController controller) {
     _controller.complete(controller);
     setMapPins();
+    _fitToRoute([sourceLocatioon, destLocatioon]);
     setPolylines();
+  }
+
+  LatLngBounds _boundsFor(List<LatLng> points) {
+    var minLat = points.first.latitude, maxLat = points.first.latitude;
+    var minLng = points.first.longitude, maxLng = points.first.longitude;
+    for (final p in points) {
+      minLat = math.min(minLat, p.latitude);
+      maxLat = math.max(maxLat, p.latitude);
+      minLng = math.min(minLng, p.longitude);
+      maxLng = math.max(maxLng, p.longitude);
+    }
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+  }
+
+  /// Fits the camera to [points] with padding. Deferred to the next frame —
+  /// `newLatLngBounds` needs the map already laid out with a non-zero size,
+  /// which isn't guaranteed yet inside `onMapCreated`.
+  void _fitToRoute(List<LatLng> points) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final controller = await _controller.future;
+      if (!mounted) return;
+      await controller.animateCamera(
+        CameraUpdate.newLatLngBounds(_boundsFor(points), 80),
+      );
+    });
   }
 
   void setMapPins() {
@@ -174,6 +204,11 @@ class _RouteMapState extends State<RouteMap> {
       // end up showing up on the map
       _polylines.add(polyline);
     });
+
+    // The actual road route can bow outside the straight-line box between
+    // pickup and dropoff (a detour, a route around water, etc.) — re-fit
+    // using every point on it so the whole path stays on screen.
+    _fitToRoute(polylineCoordinates);
   }
 }
 

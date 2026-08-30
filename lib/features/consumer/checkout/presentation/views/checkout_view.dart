@@ -117,12 +117,19 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
   }
 
   void _openMapPicker() {
+    final form = _formFromState(ref.read(checkoutProvider));
+    final initialPosition = (form.deliveryLat != null && form.deliveryLng != null)
+        ? LatLng(form.deliveryLat!, form.deliveryLng!)
+        : null;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => MapLocationPickerSheet(
         title: 'Delivery Address',
+        initialPosition: initialPosition,
         onConfirm: (LatLng latLng, String address) {
           _addressController.text = address;
           ref.read(checkoutProvider.notifier).updateAddressWithCoordinates(

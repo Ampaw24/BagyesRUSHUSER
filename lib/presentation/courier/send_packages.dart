@@ -5,6 +5,8 @@ import 'dart:typed_data';
 
 import 'package:bagyesrushappusernew/constant/constant.dart';
 import 'package:bagyesrushappusernew/constant/image_constants.dart';
+import 'package:bagyesrushappusernew/core/enums/map_style_type.dart';
+import 'package:bagyesrushappusernew/core/services/map_style_service.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
@@ -496,7 +498,15 @@ class _SendPackagesState extends State<SendPackages> {
                             initialPosition: SendPackages.kInitialPosition,
                             useCurrentLocation: true,
                             selectInitialPosition: true,
-
+                            onMapCreated: (controller) async {
+                              // PlacePicker doesn't expose GoogleMap's newer
+                              // `style` constructor param, so this is the
+                              // only way to apply the app's map style here.
+                              final style = await MapStyleService.load(
+                                MapStyleType.silver,
+                              );
+                              controller.setMapStyle(style);
+                            },
                             //usePlaceDetailSearch: true,
                             onPlacePicked: (result) {
                               selectedPickupPlace = result;
@@ -649,7 +659,15 @@ class _SendPackagesState extends State<SendPackages> {
                             initialPosition: SendPackages.kInitialPosition,
                             useCurrentLocation: true,
                             selectInitialPosition: true,
-
+                            onMapCreated: (controller) async {
+                              // PlacePicker doesn't expose GoogleMap's newer
+                              // `style` constructor param, so this is the
+                              // only way to apply the app's map style here.
+                              final style = await MapStyleService.load(
+                                MapStyleType.silver,
+                              );
+                              controller.setMapStyle(style);
+                            },
                             //usePlaceDetailSearch: true,
                             onPlacePicked: (result) {
                               selectedDeliveryPlace = result;

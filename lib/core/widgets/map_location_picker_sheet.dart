@@ -92,6 +92,13 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
   // that would otherwise overwrite it with a less-detailed string.
   bool _skipNextReverseGeocode = false;
 
+  // Camera moves/idles fire for programmatic repositioning too, not just
+  // user drags. Set right before a GPS-driven auto-move on open so that
+  // move's idle event doesn't produce a haptic buzz / pin-lift animation
+  // the user never asked for — those are reserved for direct interaction
+  // (dragging, or tapping the "My Location" FAB).
+  bool _suppressCameraFeedback = false;
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
@@ -112,6 +119,25 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     _center = widget.initialPosition ?? _accraFallback;
     if (widget.initialPosition != null) {
       _reverseGeocode(_center);
+    } else {
+      // Optimistic instant seed from the OS's cached fix (resolves
+      // immediately, no GPS/network wait), refined moments later by an
+      // accurate fix via _centerOnCurrentLocation — mirrors the "My
+      // Location" FAB's own flow. Failures stay silent here (no snackbar)
+      // so the sheet doesn't nag the instant it opens; the FAB still
+      // notifies on tap.
+      LocationHelper.getLastKnownPosition().then((cached) async {
+        if (cached == null || !mounted) return;
+        _center = LatLng(cached.latitude, cached.longitude);
+        final controller = await _mapController.future;
+        if (mounted) {
+          _suppressCameraFeedback = true;
+          await controller.moveCamera(
+            CameraUpdate.newLatLngZoom(_center, _defaultZoom),
+          );
+        }
+      });
+      _centerOnCurrentLocation(notifyOnFailure: false);
     }
     _searchCtrl.addListener(_onSearchChanged);
     MapStyleService.load(MapStyleType.silver).then((s) {
@@ -185,15 +211,21 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     _center = position.target;
     if (!_isCameraMoving) {
       setState(() => _isCameraMoving = true);
-      HapticFeedback.lightImpact();
-      _pinAnim.forward();
+      if (!_suppressCameraFeedback) {
+        HapticFeedback.lightImpact();
+        _pinAnim.forward();
+      }
     }
   }
 
   void _onCameraIdle() {
     setState(() => _isCameraMoving = false);
-    HapticFeedback.mediumImpact();
-    _pinAnim.reverse();
+    if (_suppressCameraFeedback) {
+      _suppressCameraFeedback = false;
+    } else {
+      HapticFeedback.mediumImpact();
+      _pinAnim.reverse();
+    }
     if (_skipNextReverseGeocode) {
       _skipNextReverseGeocode = false;
       _lastGeocodedCenter = _center;
@@ -215,7 +247,14 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
 
   // ── GPS ────────────────────────────────────────────────────────────────────
 
-  Future<void> _goToMyLocation() async {
+  Future<void> _goToMyLocation() =>
+      _centerOnCurrentLocation(notifyOnFailure: true);
+
+  /// Fetches an accurate GPS fix and animates the camera to it. Shared by
+  /// the "My Location" FAB (with failure snackbars) and by [initState]'s
+  /// GPS-first open (silently — the FAB stays available to retry with
+  /// feedback if this fails on load).
+  Future<void> _centerOnCurrentLocation({required bool notifyOnFailure}) async {
     setState(() => _isLocating = true);
     try {
       final result = await LocationHelper.getCurrentLocation(
@@ -236,33 +275,40 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
           final latLng = LatLng(position.latitude, position.longitude);
           final controller = await _mapController.future;
           if (!mounted) return;
+          if (!notifyOnFailure) _suppressCameraFeedback = true;
           await controller.animateCamera(
             CameraUpdate.newLatLngZoom(latLng, _defaultZoom),
           );
           break;
         case LocationStatus.serviceDisabled:
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Location services disabled. Enable GPS and try again.'),
-            behavior: SnackBarBehavior.floating,
-          ));
+          if (notifyOnFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Location services disabled. Enable GPS and try again.'),
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
           break;
         case LocationStatus.permissionDeniedForever:
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Location permission denied. Enable it in Settings.'),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Settings',
-              onPressed: LocationHelper.openAppSettings,
-            ),
-          ));
+          if (notifyOnFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: const Text('Location permission denied. Enable it in Settings.'),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: LocationHelper.openAppSettings,
+              ),
+            ));
+          }
           break;
         case LocationStatus.permissionDenied:
         case LocationStatus.timeout:
         case LocationStatus.error:
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not get your location. Try dragging the map.'),
-            behavior: SnackBarBehavior.floating,
-          ));
+          if (notifyOnFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Could not get your location. Try dragging the map.'),
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
           break;
       }
     } finally {
