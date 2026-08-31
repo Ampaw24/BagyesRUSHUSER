@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/constant/image_constants.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -12,7 +13,6 @@ import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
-import '../../../core/widgets/app_logo_card.dart';
 import '../../../core/widgets/decorative_background.dart';
 
 class LoginView extends StatefulWidget {
@@ -272,7 +272,12 @@ class _LoginViewState extends State<LoginView>
           ),
         ),
         SizedBox(width: sw * 0.03),
-        AppLogoCard(size: logoSize),
+        Image.asset(
+          AssetImages.bagyesLogoTransparent,
+          width: logoSize,
+          height: logoSize,
+          fit: BoxFit.contain,
+        ),
       ],
     );
   }

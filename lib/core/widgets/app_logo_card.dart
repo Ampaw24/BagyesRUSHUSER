@@ -10,9 +10,17 @@ import '../../constant/image_constants.dart';
 /// Padding is proportional to [size] so the mark never touches an edge
 /// regardless of the source asset's aspect ratio.
 class AppLogoCard extends StatelessWidget {
-  const AppLogoCard({super.key, required this.size});
+  const AppLogoCard({
+    super.key,
+    required this.size,
+    this.assetPath = AssetImages.bagyesLogo,
+  });
 
   final double size;
+
+  /// Defaults to [AssetImages.bagyesLogo]; pass a different [AssetImages]
+  /// constant (e.g. [AssetImages.bagyesLogoTransparent]) to swap the mark.
+  final String assetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +41,7 @@ class AppLogoCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(size * 0.12),
-        child: Image.asset(AssetImages.bagyesLogo, fit: BoxFit.contain),
+        child: Image.asset(assetPath, fit: BoxFit.contain),
       ),
     );
   }

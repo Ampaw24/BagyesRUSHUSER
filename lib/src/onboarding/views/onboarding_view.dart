@@ -7,8 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../constant/constant.dart';
 import '../../../constant/app_theme.dart';
+import '../../../constant/image_constants.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../core/widgets/app_logo_card.dart';
 import '../../../core/widgets/decorative_background.dart';
 import '../models/app_role.dart';
 import '../viewmodels/onboarding_viewmodel.dart';
@@ -247,7 +247,12 @@ class _OnboardingViewState extends State<OnboardingView>
           children: [
             GestureDetector(
               onTap: () => context.go(AppRoutes.vendorHome),
-              child: AppLogoCard(size: size.width * 0.22),
+              child: Image.asset(
+                AssetImages.bagyesLogoTransparent,
+                width: size.width * 0.22,
+                height: size.width * 0.22,
+                fit: BoxFit.contain,
+              ),
             ),
           ],
         ),
