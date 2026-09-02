@@ -36,12 +36,6 @@ abstract final class AppNavigator {
   // ── Courier ──
   static void toSendPackages(BuildContext context) =>
       context.push(AppRoutes.sendPackages);
-  static void toFoodDelivery(BuildContext context) =>
-      context.push(AppRoutes.foodDelivery);
-  static void toGroceryDelivery(BuildContext context) =>
-      context.push(AppRoutes.groceryDelivery);
-  static void toRestaurantItems(BuildContext context) =>
-      context.push(AppRoutes.restaurantItems);
 
   // ── Cart & payment ──
   static void toCart(BuildContext context) => context.push(AppRoutes.cart);

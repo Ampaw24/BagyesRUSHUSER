@@ -27,6 +27,9 @@ class CheckoutForm {
   final double? deliveryQuoteFee;
   final String? deliveryQuoteCurrency;
 
+  /// `service_fee` from the same delivery-quote response, when present.
+  final double? deliveryQuoteServiceFee;
+
   const CheckoutForm({
     this.deliveryAddress = '',
     this.deliveryInstructions = '',
@@ -37,6 +40,7 @@ class CheckoutForm {
     this.deliveryQuoteError,
     this.deliveryQuoteFee,
     this.deliveryQuoteCurrency,
+    this.deliveryQuoteServiceFee,
   });
 
   CheckoutForm copyWith({
@@ -49,6 +53,7 @@ class CheckoutForm {
     Object? deliveryQuoteError = _unset,
     Object? deliveryQuoteFee = _unset,
     Object? deliveryQuoteCurrency = _unset,
+    Object? deliveryQuoteServiceFee = _unset,
   }) {
     return CheckoutForm(
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
@@ -67,6 +72,9 @@ class CheckoutForm {
       deliveryQuoteCurrency: identical(deliveryQuoteCurrency, _unset)
           ? this.deliveryQuoteCurrency
           : deliveryQuoteCurrency as String?,
+      deliveryQuoteServiceFee: identical(deliveryQuoteServiceFee, _unset)
+          ? this.deliveryQuoteServiceFee
+          : deliveryQuoteServiceFee as double?,
     );
   }
 }

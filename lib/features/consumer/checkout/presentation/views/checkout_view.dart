@@ -215,8 +215,11 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     // first fetch completes — the screen never shows a broken/empty total.
     final effectiveDeliveryFee =
         form.deliveryQuoteFee ?? cart?.deliveryFee ?? 0;
+    final effectiveServiceFee =
+        form.deliveryQuoteServiceFee ?? cart?.serviceFee ?? 0;
     final deliveryFeeCurrency = form.deliveryQuoteCurrency ?? 'GHS';
-    final effectiveTotal = (cart?.subtotal ?? 0) + effectiveDeliveryFee;
+    final effectiveTotal =
+        (cart?.subtotal ?? 0) + effectiveDeliveryFee + effectiveServiceFee;
 
     if (cart == null) {
       return const Scaffold(
@@ -387,6 +390,14 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                             .read(checkoutProvider.notifier)
                             .fetchDeliveryQuote(cart.vendorId),
                       ),
+                      if (!form.isFetchingDeliveryQuote &&
+                          form.deliveryQuoteError == null &&
+                          effectiveServiceFee > 0)
+                        _TotalRow(
+                          label: 'Service fee',
+                          value: effectiveServiceFee,
+                          currency: deliveryFeeCurrency,
+                        ),
                       SizedBox(height: w * 0.01),
                       _TotalRow(
                         label: 'Total',

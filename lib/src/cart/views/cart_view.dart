@@ -314,6 +314,11 @@ class _CartViewState extends State<CartView> {
                     label: 'Delivery fee',
                     value: 'GHS ${cart.deliveryFee!.toStringAsFixed(2)}',
                   ),
+                if (cart.serviceFee != null && cart.serviceFee! > 0)
+                  _SummaryRow(
+                    label: 'Service fee',
+                    value: 'GHS ${cart.serviceFee!.toStringAsFixed(2)}',
+                  ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: w * 0.02),
                   child: const Divider(color: AppColors.divider),

@@ -27,9 +27,6 @@ abstract final class AppRoutes {
 
   // ── Courier / delivery ──
   static const String sendPackages = '/send-packages';
-  static const String foodDelivery = '/food-delivery';
-  static const String groceryDelivery = '/grocery-delivery';
-  static const String restaurantItems = '/restaurant-items';
 
   // ── Cart & payment ──
   static const String cart = '/cart';

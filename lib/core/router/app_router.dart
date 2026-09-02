@@ -10,9 +10,6 @@ import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
 import 'package:bagyesrushappusernew/presentation/profile/profile.dart';
 import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
 import 'package:bagyesrushappusernew/features/parcel/presentation/views/send_parcel_view.dart';
-import 'package:bagyesrushappusernew/presentation/courier/get_food_deliver.dart';
-import 'package:bagyesrushappusernew/presentation/courier/get_grocery_deliver.dart';
-import 'package:bagyesrushappusernew/presentation/courier/restaurant_items.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
 import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
 import 'package:bagyesrushappusernew/presentation/invite_friend/invite_friend.dart';
@@ -63,6 +60,18 @@ const _publicRoutes = {
   AppRoutes.vendorRegistration,
 };
 
+/// Public routes that stay reachable even once the user already holds a
+/// session token — unlike login/signup, these are mid-flow screens a
+/// just-registered (but not yet phone-verified) or otherwise token-holding
+/// user must still be able to reach. Without this, rule 2 below bounces them
+/// to home before they ever see the OTP screen, so the auto-sent code from
+/// signup goes to waste and the user's next tap re-sends it, hitting the
+/// backend's resend cooldown.
+const _authRoutesReachableWhileSignedIn = {
+  AppRoutes.otp,
+  AppRoutes.resetPassword,
+};
+
 /// Routes exempt from KYC verification checks (user is logged in but
 /// allowed to access these even when not fully verified).
 const _kycExemptRoutes = {
@@ -96,7 +105,10 @@ final GoRouter appRouter = GoRouter(
     }
 
     // 2. Authenticated user trying to access auth pages → role-based home
-    if (hasToken && isPublicRoute && location != AppRoutes.splash) {
+    if (hasToken &&
+        isPublicRoute &&
+        location != AppRoutes.splash &&
+        !_authRoutesReachableWhileSignedIn.contains(location)) {
       final sl = GetIt.instance;
       if (sl.isRegistered<CurrentUserProvider>()) {
         final user = sl<CurrentUserProvider>().user;
@@ -144,18 +156,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.otp,
       builder: (context, state) {
         final extra = state.extra;
-        bool showSuccess = false;
-        bool isForgotPassword = false;
-        if (extra is bool) {
-          showSuccess = extra;
-        } else if (extra is Map<String, dynamic>) {
-          showSuccess = extra['showSuccessOnVerify'] as bool? ?? false;
-          isForgotPassword = extra['isForgotPassword'] as bool? ?? false;
-        }
-        return OTPView(
-          showSuccessOnVerify: showSuccess,
-          isForgotPassword: isForgotPassword,
-        );
+        final isForgotPassword = extra is Map<String, dynamic>
+            ? extra['isForgotPassword'] as bool? ?? false
+            : false;
+        return OTPView(isForgotPassword: isForgotPassword);
       },
     ),
     GoRoute(
@@ -244,18 +248,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.sendPackages,
       builder: (context, state) => const SendParcelView(),
-    ),
-    GoRoute(
-      path: AppRoutes.foodDelivery,
-      builder: (context, state) => GetFoodDeliver(),
-    ),
-    GoRoute(
-      path: AppRoutes.groceryDelivery,
-      builder: (context, state) => GetGroceryDeliver(),
-    ),
-    GoRoute(
-      path: AppRoutes.restaurantItems,
-      builder: (context, state) => RestaurantItems(),
     ),
 
     // ── Legacy cart & payment ──

@@ -14,12 +14,16 @@ class DeliveryQuote extends Equatable {
     required this.currency,
     this.distanceKm,
     this.expiresAt,
+    this.serviceFee,
   });
 
   final double fee;
   final String currency;
   final double? distanceKm;
   final DateTime? expiresAt;
+
+  /// `service_fee` on the quote response, when the backend sends one.
+  final double? serviceFee;
 
   factory DeliveryQuote.fromJson(Map<String, dynamic> json) {
     final rawFee = json['fee'] ??
@@ -33,9 +37,10 @@ class DeliveryQuote extends Equatable {
       currency: json['currency']?.toString() ?? 'GHS',
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
       expiresAt: DateTime.tryParse(json['expires_at']?.toString() ?? ''),
+      serviceFee: (json['service_fee'] as num?)?.toDouble(),
     );
   }
 
   @override
-  List<Object?> get props => [fee, currency, distanceKm, expiresAt];
+  List<Object?> get props => [fee, currency, distanceKm, expiresAt, serviceFee];
 }

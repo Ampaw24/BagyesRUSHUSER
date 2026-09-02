@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
-import '../../../core/widgets/custom_dialogs.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
@@ -36,6 +36,15 @@ abstract final class _Strings {
 const int _kOtpLength      = 6;
 const int _kResendCooldown = 60; // seconds
 const int _kMaxOtpAttempts = 5;  // client-side lockout after N consecutive failures
+
+/// Extracts a "wait N seconds" cooldown from a backend rate-limit message
+/// (e.g. "Please wait 28 seconds before requesting another code."), so the
+/// resend countdown can resync to the server's actual remaining cooldown
+/// instead of leaving the button re-tappable straight into the same error.
+int? _parseCooldownSeconds(String message) {
+  final match = RegExp(r'(\d+)\s*second').firstMatch(message);
+  return match != null ? int.tryParse(match.group(1)!) : null;
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SECTION 3 — Responsive dimensions
@@ -332,9 +341,11 @@ class _ResendTimer {
   int  get remaining => _remaining;
   bool get canResend => _remaining == 0;
 
-  /// Restarts the countdown from [durationSeconds].
-  void start() {
-    _remaining = durationSeconds;
+  /// Restarts the countdown from [durationSeconds], or from [seconds] when
+  /// given — used to resync to a server-reported cooldown after a resend is
+  /// rejected for being too soon.
+  void start({int? seconds}) {
+    _remaining = seconds ?? durationSeconds;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_remaining <= 1) {
@@ -571,16 +582,11 @@ class OTPView extends StatefulWidget {
   const OTPView({
     super.key,
     this.obscureDigits = false,
-    this.showSuccessOnVerify = false,
     this.isForgotPassword = false,
   });
 
   /// Whether each entered digit should be rendered as `•`.
   final bool obscureDigits;
-
-  /// When `true`, shows a success dialog after verification before navigating
-  /// home. Used when coming from the phone verification / KYC flow.
-  final bool showSuccessOnVerify;
 
   /// When `true`, redirects to ResetPasswordView on successful verification.
   final bool isForgotPassword;
@@ -613,6 +619,10 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   bool    _isSuccess       = false;
   String? _errorMessage;
   int     _failedAttempts  = 0;
+
+  /// True while a resend request is in flight — drives the resend row's
+  /// spinner and blocks re-tapping until the request settles either way.
+  bool    _isResending     = false;
 
   /// Saved reference so dispose() doesn't call context.read on an unmounted widget.
   AuthViewmodel? _vm;
@@ -696,13 +706,21 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
       _handleVerified();
     } else if (state is OTPSent) {
       vm.resetState();
+      _isResending = false;
       _failedAttempts = 0; // new OTP issued — reset attempt counter
       _resendTimer.start();
       setState(() {});
     } else if (state is AuthError) {
       final err = state;
       vm.resetState();
-      _handleError(err.message);
+      // A resend failure (e.g. backend cooldown) is not the user's fault —
+      // handle it separately from a wrong-code verify failure so it doesn't
+      // wipe their input or count toward the lockout.
+      if (_isResending) {
+        _handleResendError(err.message);
+      } else {
+        _handleError(err.message);
+      }
     }
   }
 
@@ -757,7 +775,9 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   }
 
   void _resendOtp() {
-    if (!_resendTimer.canResend) return;
+    if (!_resendTimer.canResend || _isResending) return;
+    _clearErrorIfNeeded();
+    setState(() => _isResending = true);
     final vm = context.read<AuthViewmodel>();
     if (widget.isForgotPassword) {
       vm.sendForgotPasswordOtp(_phone);
@@ -767,6 +787,24 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   }
 
   // ── State transitions ─────────────────────────────────────────────────────
+
+  /// Handles a failed resend (e.g. backend cooldown). Unlike [_handleError],
+  /// this leaves the OTP fields and attempt counter untouched — the user
+  /// didn't submit a wrong code, they just asked for a new one too soon.
+  void _handleResendError(String message) {
+    setState(() {
+      _isResending  = false;
+      _hasError     = true;
+      _errorMessage = message;
+    });
+
+    // If the backend told us how long is left, resync the countdown to it
+    // so "Resend" doesn't go straight back to tappable into the same error.
+    final serverCooldown = _parseCooldownSeconds(message);
+    if (serverCooldown != null && serverCooldown > 0) {
+      _resendTimer.start(seconds: serverCooldown);
+    }
+  }
 
   void _handleError(String message) {
     _failedAttempts++;
@@ -809,27 +847,21 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
       return;
     }
 
-    // Show success dialog when coming from the verification / KYC flow
-    if (widget.showSuccessOnVerify) {
-      await CustomDialog.showSuccess(
-        context: context,
-        title: 'Verification Successful',
-        subtitle: 'Your phone number has been verified. Welcome to bagyesRUSH!',
-        confirmText: 'Get Started',
-        onConfirm: () {
-          if (mounted) AppNavigator.toHome(context);
-        },
-      );
-      return;
-    }
-
-    // Default: KYC check — route unverified users to verification screen
+    // Route unverified users back to the KYC gate; otherwise log them
+    // straight into home with a success toast — no blocking confirmation.
     final user = context.read<CurrentUserProvider>().user;
     if (user != null && !user.phoneVerified) {
       context.go(AppRoutes.kycVerification);
-    } else {
-      AppNavigator.toHome(context);
+      return;
     }
+
+    AppToast.show(
+      context,
+      isSuccess: true,
+      title: 'Welcome to bagyesRUSH!',
+      subtitle: 'Your phone number has been verified.',
+    );
+    AppNavigator.toHome(context);
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -1030,14 +1062,20 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
   // ── Resend row ────────────────────────────────────────────────────────────
 
   Widget _buildResendRow(_Dims d, bool isLoading) {
-    final canResend = _resendTimer.canResend && !isLoading;
+    final canResend = _resendTimer.canResend && !isLoading && !_isResending;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(_Strings.resendPrompt, style: _Styles.resendPrompt(d)),
         SizedBox(width: d.errorIconSpacing),
-        if (!_resendTimer.canResend)
+        if (_isResending)
+          SizedBox(
+            width:  d.captionFontSize,
+            height: d.captionFontSize,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          )
+        else if (!_resendTimer.canResend)
           Text(
             '${_Strings.resendCountdown}${_resendTimer.remaining}s',
             style: _Styles.resendAction(d, enabled: false),

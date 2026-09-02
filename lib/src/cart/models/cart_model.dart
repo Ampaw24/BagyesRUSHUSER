@@ -10,6 +10,7 @@ class CartModel {
   final String vendorImageUrl;
   final List<CartItemModel> items;
   final double? deliveryFee;
+  final double? serviceFee;
 
   const CartModel({
     required this.vendorId,
@@ -17,6 +18,7 @@ class CartModel {
     this.vendorImageUrl = '',
     this.items = const [],
     this.deliveryFee,
+    this.serviceFee,
   });
 
   factory CartModel.empty(String vendorId) => CartModel(vendorId: vendorId);
@@ -27,12 +29,13 @@ class CartModel {
         vendorImageUrl: vendorImageUrl,
         items: items ?? this.items,
         deliveryFee: deliveryFee,
+        serviceFee: serviceFee,
       );
 
   bool get isEmpty => items.isEmpty;
   int get totalItems => items.fold(0, (sum, i) => sum + i.quantity);
   double get subtotal => items.fold(0.0, (sum, i) => sum + i.lineTotal);
-  double get total => subtotal + (deliveryFee ?? 0);
+  double get total => subtotal + (deliveryFee ?? 0) + (serviceFee ?? 0);
 
   factory CartModel.fromJson(DataMap json) {
     final vendor = json['vendor'] as DataMap?;
@@ -48,6 +51,8 @@ class CartModel {
           .toList(),
       deliveryFee: (vendor?['delivery_fee'] as num?)?.toDouble() ??
           (json['delivery_fee'] as num?)?.toDouble(),
+      serviceFee: (vendor?['service_fee'] as num?)?.toDouble() ??
+          (json['service_fee'] as num?)?.toDouble(),
     );
   }
 }

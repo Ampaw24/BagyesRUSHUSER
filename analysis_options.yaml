@@ -10,6 +10,12 @@
 analyzer:
   exclude:
     - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
   errors:
     constant_identifier_names: ignore
     library_private_types_in_public_api: ignore

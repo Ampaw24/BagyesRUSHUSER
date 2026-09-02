@@ -1,22 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../../constant/app_theme.dart';
+import '../../constant/app_theme.dart';
 
-/// Animated overlay toast shown when the vendor opens/closes their store.
+/// Animated overlay toast for success/error feedback app-wide.
 ///
-/// - **Success**: green badge with animated check, "Store Open — Ready to
-///   receive orders"
-/// - **Error**: red badge with animated X, message explaining the failure.
+/// - **Success**: green badge with animated check.
+/// - **Error**: red badge with animated X.
 ///
 /// Auto-dismisses after [duration] and calls [onDismissed].
-class StoreStatusToast extends StatefulWidget {
+class AppToast extends StatefulWidget {
   final bool isSuccess;
   final String title;
   final String subtitle;
   final Duration duration;
   final VoidCallback? onDismissed;
 
-  const StoreStatusToast({
+  const AppToast({
     super.key,
     required this.isSuccess,
     required this.title,
@@ -36,7 +35,7 @@ class StoreStatusToast extends StatefulWidget {
   }) {
     late OverlayEntry entry;
     entry = OverlayEntry(
-      builder: (_) => StoreStatusToast(
+      builder: (_) => AppToast(
         isSuccess: isSuccess,
         title: title,
         subtitle: subtitle,
@@ -44,16 +43,15 @@ class StoreStatusToast extends StatefulWidget {
         onDismissed: () => entry.remove(),
       ),
     );
-    Overlay.of(context).insert(entry);
+    Overlay.of(context, rootOverlay: true).insert(entry);
     return entry;
   }
 
   @override
-  State<StoreStatusToast> createState() => _StoreStatusToastState();
+  State<AppToast> createState() => _AppToastState();
 }
 
-class _StoreStatusToastState extends State<StoreStatusToast>
-    with TickerProviderStateMixin {
+class _AppToastState extends State<AppToast> with TickerProviderStateMixin {
   late final AnimationController _slideController;
   late final AnimationController _iconController;
   late final Animation<Offset> _slideAnimation;

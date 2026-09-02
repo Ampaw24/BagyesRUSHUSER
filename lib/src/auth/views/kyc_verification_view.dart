@@ -74,7 +74,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
     if (state is OTPSent) {
       vm.resetState();
       setState(() => _sending = false);
-      context.push(AppRoutes.otp, extra: true);
+      context.push(AppRoutes.otp);
     } else if (state is AuthError) {
       vm.resetState();
       setState(() => _sending = false);

@@ -143,6 +143,7 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
           isFetchingDeliveryQuote: false,
           deliveryQuoteFee: quote.fee,
           deliveryQuoteCurrency: quote.currency,
+          deliveryQuoteServiceFee: quote.serviceFee,
         ),
       );
     } on DioException catch (e) {

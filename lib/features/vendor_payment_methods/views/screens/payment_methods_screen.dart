@@ -1,13 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
+import '../../../../core/common/app/current_user_provider.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/custom_dialogs.dart';
 import '../../../../src/payment/model/payment_method.dart';
 import '../../../../src/payment/viewmodel/payment_state.dart';
 import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
+import '../../../../src/vendor/model/vendor_profile.dart';
 import '../widgets/payment_method_card.dart';
 import 'add_mobile_money_screen.dart';
 
@@ -91,28 +94,106 @@ class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
     if (ok) vm.loadPaymentMethods();
   }
 
+  /// Bottom sheet with the real actions available for a method — "Set as
+  /// Default" (hidden for the method that already is) and "Remove".
+  Future<void> _showManageSheet(BuildContext context, PaymentMethod method) async {
+    final w = MediaQuery.sizeOf(context).width;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.05)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: w * 0.03),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: w * 0.05, vertical: w * 0.02),
+                child: Text(
+                  method.displayTitle,
+                  style: TextStyle(fontSize: w * 0.04, fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (!method.isDefault)
+                ListTile(
+                  leading: const Icon(Icons.star_outline_rounded),
+                  title: const Text('Set as Default'),
+                  onTap: () => Navigator.of(ctx).pop('default'),
+                ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                title: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                onTap: () => Navigator.of(ctx).pop('delete'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!context.mounted || action == null) return;
+    if (action == 'default') {
+      await _setDefault(method);
+    } else if (action == 'delete') {
+      final confirmed = await _confirmDelete(context, method.displayTitle);
+      if (confirmed) await _delete(method);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<PaymentViewModel>().state;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: AppBar(
-        title: const Text('Payment Methods'),
-        actions: [
-          if (state is PaymentMethodsLoaded && state.methods.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.add_rounded),
-              onPressed: () => _showAddScreen(context),
-              tooltip: 'Add payment method',
-            ),
-        ],
-      ),
       body: SafeArea(child: _buildBody(context, state)),
     );
   }
 
   Widget _buildBody(BuildContext context, PaymentState state) {
+    final w = MediaQuery.sizeOf(context).width;
+    final methods = state is PaymentMethodsLoaded ? state.methods : <PaymentMethod>[];
+    final showAddAction = state is PaymentMethodsLoaded && methods.isNotEmpty;
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => context.read<PaymentViewModel>().loadPaymentMethods(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.08),
+        children: [
+          _HeaderRow(showAdd: showAddAction, onAdd: () => _showAddScreen(context)),
+          SizedBox(height: w * 0.05),
+          Text(
+            'Payment methods',
+            style: TextStyle(
+              fontSize: w * 0.075,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: w * 0.015),
+          Text(
+            'Payouts and refunds go to your default method.',
+            style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
+          ),
+          SizedBox(height: w * 0.06),
+          _buildContent(context, state, methods),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    PaymentState state,
+    List<PaymentMethod> methods,
+  ) {
+    final w = MediaQuery.sizeOf(context).width;
+
     if (state is PaymentInitial || state is PaymentLoading) {
       return const _SkeletonLoader();
     }
@@ -124,90 +205,247 @@ class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
       );
     }
 
-    final methods = state is PaymentMethodsLoaded ? state.methods : <PaymentMethod>[];
-
     if (methods.isEmpty) {
       return _EmptyState(onAdd: () => _showAddScreen(context));
     }
 
-    return RefreshIndicator(
-      color: Theme.of(context).colorScheme.primary,
-      onRefresh: () => context.read<PaymentViewModel>().loadPaymentMethods(),
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 8, bottom: 100),
-        itemCount: methods.length,
-        itemBuilder: (_, index) {
-          final method = methods[index];
-          return _DismissibleCard(
-            method: method,
-            isProcessing: _processingId == method.id,
-            onConfirmDelete: () => _confirmDelete(context, method.displayTitle),
-            onDelete: () => _delete(method),
-            onSetDefault: () => _setDefault(method),
-          );
-        },
+    final defaultMethod =
+        methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
+    final others = methods.where((m) => m.id != defaultMethod.id).toList();
+
+    final user = context.watch<CurrentUserProvider>().user;
+    final vendorProfile = user?.profile as VendorProfile?;
+    final holderName = shortHolderName(
+      vendorProfile?.contactPersonName.trim().isNotEmpty == true
+          ? vendorProfile!.contactPersonName
+          : 'Account holder',
+    );
+    final holderVerified = user?.phoneVerified ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PaymentMethodHeroCard(
+          method: defaultMethod,
+          holderName: holderName,
+          holderVerified: holderVerified,
+          isProcessing: _processingId == defaultMethod.id,
+          onManage: () => _showManageSheet(context, defaultMethod),
+        ),
+        if (others.isNotEmpty) ...[
+          SizedBox(height: w * 0.07),
+          _SectionLabel(text: 'OTHER METHODS', w: w),
+          SizedBox(height: w * 0.03),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(w * 0.04),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                for (int i = 0; i < others.length; i++)
+                  PaymentMethodRow(
+                    method: others[i],
+                    isProcessing: _processingId == others[i].id,
+                    onTap: () => _showManageSheet(context, others[i]),
+                    showDivider: i < others.length - 1,
+                  ),
+              ],
+            ),
+          ),
+        ],
+        SizedBox(height: w * 0.04),
+        _AddMethodTile(onTap: () => _showAddScreen(context), w: w),
+        SizedBox(height: w * 0.06),
+        Text(
+          'Payouts arrive in 1–2 business days. You can change your default '
+          'any time.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: w * 0.03, color: AppColors.textHint),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Header (back + add) ─────────────────────────────────────────────────────────
+
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow({required this.showAdd, required this.onAdd});
+
+  final bool showAdd;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _CircleIconButton(icon: Icons.arrow_back_ios_new_rounded, onTap: () => context.pop()),
+        if (showAdd)
+          _CircleIconButton(icon: Icons.add_rounded, onTap: onAdd)
+        else
+          SizedBox(width: w * 0.11),
+      ],
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(w * 0.06),
+      child: Container(
+        width: w * 0.11,
+        height: w * 0.11,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Icon(icon, size: w * 0.045, color: AppColors.textPrimary),
       ),
     );
   }
 }
 
-// ── Dismissible wrapper ───────────────────────────────────────────────────────
+// ── Section label ────────────────────────────────────────────────────────────
 
-class _DismissibleCard extends StatelessWidget {
-  final PaymentMethod method;
-  final bool isProcessing;
-  final Future<bool> Function() onConfirmDelete;
-  final VoidCallback onDelete;
-  final VoidCallback onSetDefault;
-
-  const _DismissibleCard({
-    required this.method,
-    required this.isProcessing,
-    required this.onConfirmDelete,
-    required this.onDelete,
-    required this.onSetDefault,
-  });
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.text, required this.w});
+  final String text;
+  final double w;
 
   @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: ValueKey(method.id),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => onConfirmDelete(),
-      onDismissed: (_) => onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        padding: const EdgeInsets.only(right: 24),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
-            SizedBox(height: 4),
-            Text(
-              'Delete',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-      child: PaymentMethodCard(
-        method: method,
-        isProcessing: isProcessing,
-        onSetDefault: method.isDefault ? null : onSetDefault,
-        onDelete: onDelete,
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: w * 0.03,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textHint,
+        letterSpacing: 1.0,
       ),
     );
   }
+}
+
+// ── Add method tile ──────────────────────────────────────────────────────────
+
+class _AddMethodTile extends StatelessWidget {
+  const _AddMethodTile({required this.onTap, required this.w});
+  final VoidCallback onTap;
+  final double w;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(w * 0.04),
+      child: DottedBorderContainer(
+        w: w,
+        child: Padding(
+          padding: EdgeInsets.all(w * 0.035),
+          child: Row(
+            children: [
+              Container(
+                width: w * 0.1,
+                height: w * 0.1,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(w * 0.025),
+                ),
+                child: Icon(Icons.add_rounded, color: AppColors.primary, size: w * 0.055),
+              ),
+              SizedBox(width: w * 0.03),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add a payment method',
+                      style: TextStyle(
+                        fontSize: w * 0.037,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Mobile money account',
+                      style: TextStyle(fontSize: w * 0.031, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A dashed-outline container drawn with [CustomPaint] — no extra package
+/// needed for a simple rectangular dash border.
+class DottedBorderContainer extends StatelessWidget {
+  const DottedBorderContainer({super.key, required this.child, required this.w});
+  final Widget child;
+  final double w;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedBorderPainter(radius: w * 0.04, color: AppColors.border),
+      child: child,
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.radius, required this.color});
+  final double radius;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    const dashWidth = 6.0;
+    const gapWidth = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + gapWidth;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
@@ -218,49 +456,45 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     final w = MediaQuery.sizeOf(context).width;
+    final h = MediaQuery.sizeOf(context).height;
 
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: w * 0.1),
+    return SizedBox(
+      height: h * 0.5,
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 90,
-              height: 90,
+              width: w * 0.24,
+              height: w * 0.24,
               decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.account_balance_wallet_outlined,
-                size: 40,
-                color: primary,
+                size: w * 0.1,
+                color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: w * 0.06),
+            Text(
               'No Payment Methods Yet',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: w * 0.05,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 10),
-            const Text(
+            SizedBox(height: w * 0.025),
+            Text(
               'Add a payment method to start receiving payouts from your orders.',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
+              style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary, height: 1.5),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: w * 0.08),
             ElevatedButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add_rounded),
@@ -307,6 +541,7 @@ class _SkeletonLoaderState extends State<_SkeletonLoader>
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
     return AnimatedBuilder(
       animation: _shimmerAnim,
       builder: (_, _) {
@@ -315,29 +550,26 @@ class _SkeletonLoaderState extends State<_SkeletonLoader>
           AppColors.shimmerHighlight,
           _shimmerAnim.value,
         )!;
-        return ListView.builder(
-          padding: const EdgeInsets.only(top: 8),
-          itemCount: 3,
-          itemBuilder: (_, _) => _SkeletonCard(color: shimmerColor),
+        return Column(
+          children: [
+            Container(
+              height: w * 0.5,
+              decoration: BoxDecoration(
+                color: shimmerColor,
+                borderRadius: BorderRadius.circular(w * 0.055),
+              ),
+            ),
+            SizedBox(height: w * 0.05),
+            Container(
+              height: w * 0.3,
+              decoration: BoxDecoration(
+                color: shimmerColor,
+                borderRadius: BorderRadius.circular(w * 0.04),
+              ),
+            ),
+          ],
         );
       },
-    );
-  }
-}
-
-class _SkeletonCard extends StatelessWidget {
-  final Color color;
-  const _SkeletonCard({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 140,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
     );
   }
 }
@@ -351,27 +583,23 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+    final w = MediaQuery.sizeOf(context).width;
+    final h = MediaQuery.sizeOf(context).height;
+
+    return SizedBox(
+      height: h * 0.5,
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              size: 48,
-              color: AppColors.textHint,
-            ),
-            const SizedBox(height: 16),
+            Icon(Icons.wifi_off_rounded, size: w * 0.12, color: AppColors.textHint),
+            SizedBox(height: w * 0.04),
             Text(
               message,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: w * 0.035),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: w * 0.05),
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),

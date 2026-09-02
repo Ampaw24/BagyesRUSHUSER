@@ -13,6 +13,7 @@ import '../viewmodels/auth_state.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
 import '../../../core/widgets/app_logo_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/decorative_background.dart';
 
 class LoginView extends StatefulWidget {
@@ -59,6 +60,12 @@ class _LoginViewState extends State<LoginView>
 
     if (vm.state is LoggedIn) {
       final role = context.read<CurrentUserProvider>().user?.role;
+      AppToast.show(
+        context,
+        isSuccess: true,
+        title: 'Login Successful',
+        subtitle: 'Welcome back to bagyesRUSH!',
+      );
       if (role == 'vendor') {
         AppNavigator.toVendorHome(context);
       } else {
@@ -590,10 +597,7 @@ class _ForgotPasswordSheetContentState
                           if (!context.mounted) return;
                           context.push(
                             AppRoutes.otp,
-                            extra: {
-                              'showSuccessOnVerify': false,
-                              'isForgotPassword': true,
-                            },
+                            extra: {'isForgotPassword': true},
                           );
                         } catch (e) {
                           if (!context.mounted) return;

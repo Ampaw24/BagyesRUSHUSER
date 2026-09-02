@@ -422,6 +422,17 @@ class AuthRepository {
 
       if ([200, 201].contains(response.statusCode)) {
         appLogger.i('AuthRepository.verifyOtp → verified');
+
+        // Some backends issue a fresh, fully-scoped token once the phone is
+        // verified (the pre-verification token from signup can be limited
+        // in scope) — cache it if present so the user isn't silently logged
+        // out the next time an authenticated request rejects the old one.
+        final data = response.data;
+        if (data is DataMap) {
+          final payload = data['data'] as DataMap? ?? data;
+          await _cacheTokens(payload);
+        }
+
         return const Right(null);
       }
 

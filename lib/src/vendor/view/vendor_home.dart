@@ -14,7 +14,7 @@ import '../model/vendor_profile.dart';
 import '../providers/dashboard_provider.dart' show dashboardProvider;
 import 'widgets/vendor_header.dart';
 import 'widgets/store_toggle_card.dart';
-import 'widgets/store_status_toast.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'widgets/new_order_banner.dart';
 import 'widgets/order_card.dart';
 import 'widgets/floating_nav_bar.dart';
@@ -314,7 +314,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
 
       if (!hasInternet) {
         if (mounted) {
-          StoreStatusToast.show(
+          AppToast.show(
             context,
             isSuccess: false,
             title: 'No Internet Connection',
@@ -334,7 +334,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       switch (result.status) {
         case LocationStatus.serviceDisabled:
           if (mounted) {
-            StoreStatusToast.show(
+            AppToast.show(
               context,
               isSuccess: false,
               title: 'Location Services Disabled',
@@ -346,7 +346,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         case LocationStatus.permissionDenied:
         case LocationStatus.permissionDeniedForever:
           if (mounted) {
-            StoreStatusToast.show(
+            AppToast.show(
               context,
               isSuccess: false,
               title: 'Location Required',
@@ -358,7 +358,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         case LocationStatus.timeout:
         case LocationStatus.error:
           if (mounted) {
-            StoreStatusToast.show(
+            AppToast.show(
               context,
               isSuccess: false,
               title: 'Unable to Determine Location',
@@ -375,7 +375,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       await ref.read(dashboardProvider.notifier).toggleStore(true);
 
       if (mounted) {
-        StoreStatusToast.show(
+        AppToast.show(
           context,
           isSuccess: true,
           title: 'Store Open',
@@ -385,7 +385,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       }
     } catch (e) {
       if (mounted) {
-        StoreStatusToast.show(
+        AppToast.show(
           context,
           isSuccess: false,
           title: 'Something Went Wrong',
@@ -409,7 +409,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     ref.listen(dashboardProvider, (previous, next) {
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
-        StoreStatusToast.show(
+        AppToast.show(
           context,
           isSuccess: false,
           title: 'Something Went Wrong',
