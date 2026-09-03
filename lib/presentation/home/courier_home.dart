@@ -47,7 +47,9 @@ class _HomeState extends ConsumerState<Home> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<AuthViewmodel>().registerDeviceToken();
+      // Device token registration happens earlier now — at login success
+      // (AuthViewmodel.login) or at app launch for a restored session
+      // (AppInitializer) — rather than here.
       context.read<NotificationViewmodel>().getUnreadCount();
     });
   }

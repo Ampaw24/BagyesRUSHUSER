@@ -37,6 +37,12 @@ class LocationResult {
 class LocationHelper {
   static const _unavailableAddress = 'Location unavailable';
 
+  /// Populated once by [AppInitializer] at app launch — before login and
+  /// well before any home screen mounts. Screens should read this first and
+  /// only fall back to a fresh [getCurrentLocation] call if it's unset, so
+  /// the GPS fix isn't re-acquired on every screen mount.
+  static LocationResult? cachedResult;
+
   // Android/iOS only track one in-flight permission request at a time; a
   // second concurrent `requestPermission()` call never resolves instead of
   // erroring. Callers share this in-flight future so the launch-time

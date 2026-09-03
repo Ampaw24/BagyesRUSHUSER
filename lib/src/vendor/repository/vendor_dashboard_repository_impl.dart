@@ -62,18 +62,28 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     }
   }
 
+  /// Orders still awaiting the vendor's accept/reject decision. Once a
+  /// vendor acts on one, it moves off the home dashboard entirely —
+  /// accepted, preparing, ready, and out-for-delivery orders are tracked
+  /// on the Orders page (`fetchAllOrders`) instead.
   @override
   Future<Either<Failure, List<VendorOrder>>> fetchActiveOrders() async {
     appLogger.d('VendorDashboardRepo.fetchActiveOrders → initiated');
     try {
       final response = await _networkUtility.dio.get(
         ApiEndpoints.vendorOrders,
-        queryParameters: {'status': 'active'},
+        queryParameters: {'status': 'pending'},
       );
       if (_isSuccess(response.statusCode)) {
-        final list = _dataList(
-          response,
-        ).map((e) => VendorOrder.fromJson(e as DataMap)).toList();
+        final list = _dataList(response)
+            .map((e) => VendorOrder.fromJson(e as DataMap))
+            .toList()
+          ..sort((a, b) {
+            final aTime = a.createdAt;
+            final bTime = b.createdAt;
+            if (aTime == null || bTime == null) return 0;
+            return bTime.compareTo(aTime);
+          });
         appLogger.i(
           'VendorDashboardRepo.fetchActiveOrders → loaded ${list.length}',
         );
@@ -1073,7 +1083,9 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       final d = body['data'];
       if (d is List) return d;
       if (d is DataMap) {
-        final inner = d['data'];
+        // Paginated list endpoints (e.g. vendor orders) wrap the array as
+        // `data.items`; other list endpoints use `data.data`.
+        final inner = d['data'] ?? d['items'];
         if (inner is List) return inner;
       }
     }

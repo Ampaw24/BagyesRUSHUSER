@@ -12,6 +12,7 @@ import 'package:bagyesrushappusernew/core/services/places_service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 
 class AppInitializer {
@@ -31,11 +32,30 @@ class AppInitializer {
       appLogger.e('[AppInitializer] FcmService.initialize failed', error: e, stackTrace: s);
     }
     await LocationHelper.ensurePermission();
-    await _logStartupLocation();
+    await _fetchStartupLocation();
+    await _registerDeviceTokenIfSessionRestored();
   }
 
-  static Future<void> _logStartupLocation() async {
+  /// Registers the FCM device token for a session already restored from
+  /// secure storage in [_initCriticalServices] (a returning user reopening
+  /// the app) — so it's registered before their home screen mounts instead
+  /// of from the home screen's own `initState`. A fresh login/signup
+  /// registers its own token from [AuthViewmodel.login] instead, since no
+  /// session exists yet when this runs.
+  static Future<void> _registerDeviceTokenIfSessionRestored() async {
+    final authViewmodel = _sl<AuthViewmodel>();
+    if (authViewmodel.state is LoggedIn) {
+      await authViewmodel.registerDeviceToken();
+    }
+  }
+
+  /// Fetches the device's location once at app launch — before login and
+  /// well before any home screen mounts — and caches it on [LocationHelper]
+  /// so the customer and vendor home screens can reuse the same fix instead
+  /// of each acquiring their own.
+  static Future<void> _fetchStartupLocation() async {
     final result = await LocationHelper.getCurrentLocation();
+    LocationHelper.cachedResult = result;
     final position = result.position;
     appLogger.i(
       '[AppInitializer] Startup location — status: ${result.status.name}, '

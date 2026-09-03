@@ -58,7 +58,9 @@ class _VendorHomeState extends State<VendorHome> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<AuthViewmodel>().registerDeviceToken();
+      // Device token registration happens earlier now — at login success
+      // (AuthViewmodel.login) or at app launch for a restored session
+      // (AppInitializer) — rather than here.
       context.read<NotificationViewmodel>().getUnreadCount();
     });
   }
@@ -285,14 +287,24 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       if (!mounted) return;
       final notifier = ref.read(dashboardProvider.notifier);
       if (widget.vendorProfile != null) {
-        notifier.seedStoreOpen(widget.vendorProfile!.isOpen);
+        // `isOpenNow` is the server-computed status (manual toggle AND
+        // within operating hours) — the same field customers' restaurant
+        // cards key off of. Seeding from `isOpen` (the raw manual toggle
+        // alone) could show "Store Open" on the vendor's own dashboard
+        // while customers see the store as closed.
+        notifier.seedStoreOpen(widget.vendorProfile!.isOpenNow);
       }
       notifier.loadDashboard();
     });
   }
 
   Future<void> _fetchLocation() async {
-    final result = await LocationHelper.getCurrentLocation();
+    // Prefer the fix AppInitializer already acquired at app launch (before
+    // login) over fetching a fresh one here.
+    final cached = LocationHelper.cachedResult;
+    final result = (cached != null && cached.isSuccess)
+        ? cached
+        : await LocationHelper.getCurrentLocation();
     if (mounted) {
       setState(() => _currentLocation = result.address);
     }
@@ -342,8 +354,58 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     ref.read(dashboardProvider.notifier).cancelOrder(orderId, reason: reason);
   }
 
-  /// Pre-checks internet + location before opening the store.
-  /// Closing the store skips these checks.
+  /// Parses an "HH:mm" (24-hour) time string into minutes since midnight,
+  /// or null if malformed.
+  int? _minutesOfDay(String time) {
+    final parts = time.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return hour * 60 + minute;
+  }
+
+  /// Returns a warning (title + message) if right now falls outside
+  /// [openingTime]-[closingTime] (both "HH:mm", 24-hour) for today —
+  /// correctly handles a window that spans midnight (e.g. open 18:00,
+  /// close 02:00), where `closingTime` is numerically earlier than
+  /// `openingTime`. Returns null when within hours, or when either time is
+  /// malformed (fails open rather than blocking on bad data).
+  ({String title, String subtitle})? _operatingHoursWarning({
+    required String openingTime,
+    required String closingTime,
+  }) {
+    final open = _minutesOfDay(openingTime);
+    final close = _minutesOfDay(closingTime);
+    if (open == null || close == null) return null;
+
+    final now = TimeOfDay.now();
+    final nowMinutes = now.hour * 60 + now.minute;
+
+    final withinHours = open <= close
+        ? nowMinutes >= open && nowMinutes <= close
+        : nowMinutes >= open || nowMinutes <= close; // overnight window
+
+    if (withinHours) return null;
+
+    if (nowMinutes < open) {
+      return (
+        title: 'Too Early to Open',
+        subtitle:
+            "It's not yet your opening time ($openingTime). "
+            'Adjust your opening time in Shop Profile if you want to open earlier.',
+      );
+    }
+    return (
+      title: 'Closing Time Has Passed',
+      subtitle:
+          'Your closing time ($closingTime) has already passed for today. '
+          'Adjust your closing time in Shop Profile if you want to stay open later.',
+    );
+  }
+
+  /// Pre-checks operating hours + internet + location before opening the
+  /// store. Closing the store skips these checks.
   Future<void> _handleStoreToggle(bool wantsOpen) async {
     if (_isTogglingStore) return;
 
@@ -351,6 +413,28 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     if (!wantsOpen) {
       await ref.read(dashboardProvider.notifier).toggleStore(false);
       return;
+    }
+
+    // Don't let the vendor open outside their own configured operating
+    // hours — `is_open_now` (what customers actually see) factors in
+    // operating hours, so opening early or after closing would just desync
+    // the vendor's toggle from what customers see. No need to hit the
+    // toggle endpoint for that.
+    final profile = widget.vendorProfile;
+    if (profile != null) {
+      final warning = _operatingHoursWarning(
+        openingTime: profile.openingTime,
+        closingTime: profile.closingTime,
+      );
+      if (warning != null) {
+        AppToast.show(
+          context,
+          isSuccess: false,
+          title: warning.title,
+          subtitle: warning.subtitle,
+        );
+        return;
+      }
     }
 
     setState(() => _isTogglingStore = true);
@@ -631,7 +715,6 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         amount: newest.amount,
                         customerName: newest.customerName,
                         itemCount: newest.itemList.length,
-                        secondsLeft: 87,
                         onTap: () {},
                         onAccept: () => _handleAcceptOrder(newest.id),
                       );

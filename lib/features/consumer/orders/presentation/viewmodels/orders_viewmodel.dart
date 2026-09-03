@@ -137,8 +137,21 @@ class OrdersViewModel extends Notifier<OrdersState> {
   }
 
   Future<void> trackOrder(String orderId) async {
-    final updated = await _repo.trackOrder(orderId);
-    await _replaceOrder(updated);
+    final current = state;
+    ConsumerOrder? previous;
+    if (current is OrdersLoaded) {
+      for (final o in current.orders) {
+        if (o.id == orderId) {
+          previous = o;
+          break;
+        }
+      }
+    }
+    final updated = await _repo.trackOrder(orderId, previous: previous);
+    // With no cached `previous`, the repo falls back to parsing the slim
+    // track payload directly, which carries no `id` — stamp it so
+    // `_replaceOrder` can still match this order.
+    await _replaceOrder(previous == null ? updated.copyWith(id: orderId) : updated);
   }
 
   Future<Map<String, dynamic>> payOrder(

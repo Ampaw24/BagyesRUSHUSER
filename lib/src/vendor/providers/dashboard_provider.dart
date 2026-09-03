@@ -103,8 +103,10 @@ class DashboardNotifier extends Notifier<DashboardState> {
   }
 
   /// The dashboard endpoint doesn't report open/closed status — seed it from
-  /// the vendor's profile (`VendorProfile.isOpen`) once, before [loadDashboard]
-  /// runs. Subsequent changes come from [toggleStore]'s server response.
+  /// the vendor's profile (`VendorProfile.isOpenNow`, the server-computed
+  /// status also used by customers' restaurant cards) once, before
+  /// [loadDashboard] runs. Subsequent changes come from [toggleStore]'s
+  /// server response.
   void seedStoreOpen(bool isOpen) {
     state = state.copyWith(storeOpen: isOpen);
   }
@@ -135,6 +137,7 @@ class DashboardNotifier extends Notifier<DashboardState> {
           orderId,
           estimatedPrepMinutes: estimatedPrepMinutes,
         ),
+        removeFromActive: true,
       );
 
   Future<void> rejectOrder(String orderId, {required String reason}) =>
@@ -144,14 +147,17 @@ class DashboardNotifier extends Notifier<DashboardState> {
         removeFromActive: true,
       );
 
-  Future<void> markPreparing(String orderId) =>
-      _applyOrderAction(orderId, () => _repository.markPreparing(orderId));
+  Future<void> markPreparing(String orderId) => _applyOrderAction(
+      orderId, () => _repository.markPreparing(orderId),
+      removeFromActive: true);
 
-  Future<void> markReady(String orderId) =>
-      _applyOrderAction(orderId, () => _repository.markReady(orderId));
+  Future<void> markReady(String orderId) => _applyOrderAction(
+      orderId, () => _repository.markReady(orderId),
+      removeFromActive: true);
 
   Future<void> markOutForDelivery(String orderId) => _applyOrderAction(
-      orderId, () => _repository.markOutForDelivery(orderId));
+      orderId, () => _repository.markOutForDelivery(orderId),
+      removeFromActive: true);
 
   Future<void> markDelivered(String orderId) => _applyOrderAction(
       orderId, () => _repository.markDelivered(orderId),

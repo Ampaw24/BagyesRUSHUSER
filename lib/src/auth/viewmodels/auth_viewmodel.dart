@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
@@ -123,6 +125,10 @@ class AuthViewmodel extends ViewModel<AuthState> {
         appLogger.i('AuthViewmodel.login → LoggedIn id=${user.id}');
         _currentUserProvider.setUser(user);
         emit(const LoggedIn());
+        // Fire-and-forget: register the device token now, before the caller
+        // navigates to the home screen, rather than waiting for the home
+        // screen's own initState to do it.
+        unawaited(registerDeviceToken());
       },
     );
   }

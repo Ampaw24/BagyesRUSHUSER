@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/widgets/custom_dialogs.dart';
@@ -9,11 +8,9 @@ import '../../../features/report/domain/entities/report.dart';
 import '../../../features/report/presentation/report_flow_args.dart';
 import '../../../features/report/presentation/widgets/report_quick_action_sheet.dart';
 import '../model/vendor_order.dart';
-import '../model/vendor_order_stats.dart';
 import '../viewmodel/orders_viewmodel.dart';
 import 'widgets/order_card.dart';
 import 'widgets/order_reason_sheet.dart';
-import 'widgets/stats_row.dart';
 
 class VendorOrdersView extends StatefulWidget {
   const VendorOrdersView({super.key});
@@ -34,7 +31,6 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrdersViewModel>().loadOrders();
-      context.read<OrdersViewModel>().loadStats();
     });
   }
 
@@ -52,9 +48,9 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
   void _onSearchChanged(String query) {
     _searchDebounceTimer?.cancel();
     _searchDebounceTimer = Timer(_searchDebounce, () {
-      context
-          .read<OrdersViewModel>()
-          .loadOrders(search: query.trim().isEmpty ? null : query.trim());
+      context.read<OrdersViewModel>().loadOrders(
+        search: query.trim().isEmpty ? null : query.trim(),
+      );
     });
   }
 
@@ -76,9 +72,9 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
       onConfirm: () {
         final minutes = int.tryParse(controller.text.trim());
         context.read<OrdersViewModel>().accept(
-              order.id,
-              estimatedPrepMinutes: minutes,
-            );
+          order.id,
+          estimatedPrepMinutes: minutes,
+        );
       },
     );
   }
@@ -103,6 +99,29 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
     context.read<OrdersViewModel>().cancel(order.id, reason: reason);
   }
 
+  Future<void> _handleRefresh() {
+    final query = _searchController.text.trim();
+    return context.read<OrdersViewModel>().loadOrders(
+      search: query.isEmpty ? null : query,
+    );
+  }
+
+  /// Makes [child] fill and scroll within the available height, so
+  /// [RefreshIndicator] still has a scrollable to detect the pull gesture
+  /// against even when showing the loading spinner or empty state instead
+  /// of the order list.
+  Widget _scrollableFill(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -118,7 +137,12 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
       children: [
         // ── Header with order count ──
         Padding(
-          padding: EdgeInsets.fromLTRB(horizontalPad, w * 0.03, horizontalPad, 0),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPad,
+            w * 0.03,
+            horizontalPad,
+            0,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -146,15 +170,6 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
           ),
         ),
         SizedBox(height: w * 0.035),
-
-        // ── Stats summary ──
-        if (vm.state.stats != null) ...[
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPad),
-            child: _buildStatsRow(vm.state.stats!),
-          ),
-          SizedBox(height: w * 0.035),
-        ],
 
         // ── Search ──
         Padding(
@@ -214,87 +229,69 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
 
         // ── Order list ──
         Expanded(
-          child: vm.state.status == OrdersStatus.loading && allOrders.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : orders.isEmpty
-                  ? _EmptyView(w: w, filter: _activeFilter?.label)
-                  : ListView.separated(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPad, 0, horizontalPad, w * 0.25,
-                      ),
-                      itemCount: orders.length,
-                      separatorBuilder: (_, __) => SizedBox(height: w * 0.03),
-                      itemBuilder: (_, index) {
-                        final order = orders[index];
-                        return OrderCard(
-                          order: order,
-                          onTap: () {},
-                          onAccept: () => _handleAccept(order),
-                          onDecline: () => _handleReject(order),
-                          onMarkPreparing: () => vm.markPreparing(order.id),
-                          onMarkReady: () => vm.markReady(order.id),
-                          onMarkOutForDelivery: () =>
-                              vm.markOutForDelivery(order.id),
-                          onMarkDelivered: () => vm.markDelivered(order.id),
-                          onCancel: () => _handleCancel(order),
-                          onReport: () => ReportQuickActionSheet.show(
-                            context,
-                            role: ReportRole.vendor,
-                            orderId: order.id,
-                            primaryTarget: order.customerName.isEmpty
-                                ? null
-                                : ReportFlowArgs(
-                                    role: ReportRole.vendor,
-                                    targetType: ReportTargetType.customer,
-                                    orderId: order.id,
-                                    targetName: order.customerName,
-                                    targetPhone: order.customerPhone,
-                                  ),
-                            riderTarget: order.driverName != null &&
-                                    order.driverName!.isNotEmpty
-                                ? ReportFlowArgs(
-                                    role: ReportRole.vendor,
-                                    targetType: ReportTargetType.rider,
-                                    orderId: order.id,
-                                    targetName: order.driverName!,
-                                    targetPhone: order.driverPhone,
-                                  )
-                                : null,
-                          ),
-                        );
-                      },
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: AppColors.primary,
+            child: vm.state.status == OrdersStatus.loading && allOrders.isEmpty
+                ? _scrollableFill(
+                    const Center(child: CircularProgressIndicator()),
+                  )
+                : orders.isEmpty
+                ? _scrollableFill(
+                    _EmptyView(w: w, filter: _activeFilter?.label),
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPad,
+                      0,
+                      horizontalPad,
+                      w * 0.25,
                     ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsRow(VendorOrderStats stats) {
-    return StatsRow(
-      stats: [
-        StatItem(
-          value: '${stats.totalOrders}',
-          label: 'Total',
-          icon: HugeIcons.strokeRoundedCheckList,
-          iconColor: AppColors.primary,
-        ),
-        StatItem(
-          value: '${stats.pendingOrders}',
-          label: 'Pending',
-          icon: HugeIcons.strokeRoundedClock01,
-          iconColor: AppColors.warning,
-        ),
-        StatItem(
-          value: '${stats.deliveredOrders}',
-          label: 'Delivered',
-          icon: HugeIcons.strokeRoundedCheckmarkCircle01,
-          iconColor: AppColors.success,
-        ),
-        StatItem(
-          value: '${stats.cancelledOrders}',
-          label: 'Cancelled',
-          icon: HugeIcons.strokeRoundedAlertCircle,
-          iconColor: AppColors.error,
+                    itemCount: orders.length,
+                    separatorBuilder: (_, __) => SizedBox(height: w * 0.03),
+                    itemBuilder: (_, index) {
+                      final order = orders[index];
+                      return OrderCard(
+                        order: order,
+                        onTap: () {},
+                        onAccept: () => _handleAccept(order),
+                        onDecline: () => _handleReject(order),
+                        onMarkPreparing: () => vm.markPreparing(order.id),
+                        onMarkReady: () => vm.markReady(order.id),
+                        onMarkOutForDelivery: () =>
+                            vm.markOutForDelivery(order.id),
+                        onMarkDelivered: () => vm.markDelivered(order.id),
+                        onCancel: () => _handleCancel(order),
+                        onReport: () => ReportQuickActionSheet.show(
+                          context,
+                          role: ReportRole.vendor,
+                          orderId: order.id,
+                          primaryTarget: order.customerName.isEmpty
+                              ? null
+                              : ReportFlowArgs(
+                                  role: ReportRole.vendor,
+                                  targetType: ReportTargetType.customer,
+                                  orderId: order.id,
+                                  targetName: order.customerName,
+                                  targetPhone: order.customerPhone,
+                                ),
+                          riderTarget:
+                              order.driverName != null &&
+                                  order.driverName!.isNotEmpty
+                              ? ReportFlowArgs(
+                                  role: ReportRole.vendor,
+                                  targetType: ReportTargetType.rider,
+                                  orderId: order.id,
+                                  targetName: order.driverName!,
+                                  targetPhone: order.driverPhone,
+                                )
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ),
       ],
     );
@@ -335,9 +332,7 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? chipColor : Colors.white,
           borderRadius: BorderRadius.circular(w * 0.05),
-          border: Border.all(
-            color: selected ? chipColor : AppColors.border,
-          ),
+          border: Border.all(color: selected ? chipColor : AppColors.border),
           boxShadow: selected
               ? [
                   BoxShadow(
@@ -427,10 +422,7 @@ class _EmptyView extends StatelessWidget {
           SizedBox(height: w * 0.01),
           Text(
             'Orders will show up here when customers place them',
-            style: TextStyle(
-              fontSize: w * 0.03,
-              color: AppColors.textHint,
-            ),
+            style: TextStyle(fontSize: w * 0.03, color: AppColors.textHint),
             textAlign: TextAlign.center,
           ),
         ],

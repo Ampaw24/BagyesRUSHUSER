@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
@@ -8,7 +7,6 @@ class NewOrderBanner extends StatefulWidget {
   final String amount;
   final String customerName;
   final int itemCount;
-  final int secondsLeft;
   final VoidCallback? onTap;
   final VoidCallback? onAccept;
 
@@ -17,7 +15,6 @@ class NewOrderBanner extends StatefulWidget {
     required this.orderId,
     required this.amount,
     required this.itemCount,
-    required this.secondsLeft,
     this.customerName = '',
     this.onTap,
     this.onAccept,
@@ -29,22 +26,12 @@ class NewOrderBanner extends StatefulWidget {
 
 class _NewOrderBannerState extends State<NewOrderBanner>
     with SingleTickerProviderStateMixin {
-  late int _remaining;
-  Timer? _timer;
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _remaining = widget.secondsLeft;
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_remaining > 0) {
-        setState(() => _remaining--);
-      } else {
-        _timer?.cancel();
-      }
-    });
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -56,17 +43,8 @@ class _NewOrderBannerState extends State<NewOrderBanner>
 
   @override
   void dispose() {
-    _timer?.cancel();
     _pulseController.dispose();
     super.dispose();
-  }
-
-  double get _progress => _remaining / widget.secondsLeft;
-
-  Color get _timerColor {
-    if (_remaining <= 15) return AppColors.error;
-    if (_remaining <= 30) return AppColors.accent;
-    return Colors.white;
   }
 
   @override
@@ -96,42 +74,6 @@ class _NewOrderBannerState extends State<NewOrderBanner>
           ),
           child: Row(
             children: [
-              // Circular countdown timer
-              SizedBox(
-                width: w * 0.13,
-                height: w * 0.13,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: w * 0.13,
-                      height: w * 0.13,
-                      child: CircularProgressIndicator(
-                        value: _progress,
-                        strokeWidth: 3,
-                        backgroundColor: Colors.white.withValues(alpha: 0.15),
-                        color: _timerColor,
-                        strokeCap: StrokeCap.round,
-                      ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${_remaining}s',
-                          style: TextStyle(
-                            color: _timerColor,
-                            fontSize: w * 0.038,
-                            fontWeight: FontWeight.w800,
-                            fontFamily: 'Mukta',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: w * 0.035),
               // Order details
               Expanded(
                 child: Column(

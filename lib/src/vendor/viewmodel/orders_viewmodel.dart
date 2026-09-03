@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../model/vendor_order.dart';
-import '../model/vendor_order_stats.dart';
 import '../repository/vendor_dashboard_repository.dart';
 
 enum OrdersStatus { initial, loading, loaded, error }
@@ -13,14 +12,12 @@ class OrdersState extends Equatable {
   final List<VendorOrder> orders;
   final String? activeFilter; // null = all
   final String? errorMessage;
-  final VendorOrderStats? stats;
 
   const OrdersState({
     this.status = OrdersStatus.initial,
     this.orders = const [],
     this.activeFilter,
     this.errorMessage,
-    this.stats,
   });
 
   OrdersState copyWith({
@@ -28,7 +25,6 @@ class OrdersState extends Equatable {
     List<VendorOrder>? orders,
     String? activeFilter,
     String? errorMessage,
-    VendorOrderStats? stats,
     bool clearFilter = false,
   }) {
     return OrdersState(
@@ -36,13 +32,11 @@ class OrdersState extends Equatable {
       orders: orders ?? this.orders,
       activeFilter: clearFilter ? null : (activeFilter ?? this.activeFilter),
       errorMessage: errorMessage,
-      stats: stats ?? this.stats,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [status, orders, activeFilter, errorMessage, stats];
+  List<Object?> get props => [status, orders, activeFilter, errorMessage];
 }
 
 class OrdersViewModel extends ViewModel<OrdersState> {
@@ -81,14 +75,6 @@ class OrdersViewModel extends ViewModel<OrdersState> {
         activeFilter: status,
         clearFilter: status == null,
       )),
-    );
-  }
-
-  Future<void> loadStats() async {
-    final result = await _repository.fetchOrderStats();
-    result.fold(
-      (failure) => emit(state.copyWith(errorMessage: failure.message)),
-      (stats) => emit(state.copyWith(stats: stats)),
     );
   }
 

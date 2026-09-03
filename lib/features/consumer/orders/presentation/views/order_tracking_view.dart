@@ -423,28 +423,7 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
             SizedBox(height: w * 0.04),
 
             // ── Payment ──
-            Container(
-              padding: EdgeInsets.all(w * 0.04),
-              decoration: _cardDecoration(w),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.payment_rounded,
-                    color: AppColors.textSecondary,
-                  ),
-                  SizedBox(width: w * 0.025),
-                  Text(
-                    order.paymentStatus == PaymentStatus.pending
-                        ? 'Payment pending — ${order.paymentMethod}'
-                        : 'Paid via ${order.paymentMethod}',
-                    style: TextStyle(
-                      fontSize: w * 0.035,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _PaymentStatusCard(order: order),
 
             if (order.paymentStatus == PaymentStatus.pending) ...[
               SizedBox(height: w * 0.04),
@@ -747,6 +726,100 @@ class _OrderTimeline extends StatelessWidget {
           ],
         );
       }),
+    );
+  }
+}
+
+class _PaymentStatusCard extends StatelessWidget {
+  final ConsumerOrder order;
+
+  const _PaymentStatusCard({required this.order});
+
+  (Color, IconData, String) _statusVisuals() {
+    switch (order.paymentStatus) {
+      case PaymentStatus.paid:
+        return (AppColors.success, Icons.check_circle_rounded, 'Paid');
+      case PaymentStatus.failed:
+        return (AppColors.error, Icons.error_rounded, 'Payment failed');
+      case PaymentStatus.pending:
+        return (AppColors.paymentPending, Icons.schedule_rounded, 'Awaiting payment');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final (color, icon, label) = _statusVisuals();
+    final prepMinutes = order.estimatedPrepMinutes;
+
+    return Container(
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: _cardDecoration(w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.payment_rounded, color: AppColors.textSecondary),
+              SizedBox(width: w * 0.025),
+              Expanded(
+                child: Text(
+                  order.paymentMethod,
+                  style: TextStyle(
+                    fontSize: w * 0.035,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: w * 0.028,
+                  vertical: w * 0.013,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(w * 0.03),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: w * 0.036, color: color),
+                    SizedBox(width: w * 0.012),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: w * 0.031,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (prepMinutes != null && order.status.isActive) ...[
+            SizedBox(height: w * 0.03),
+            Row(
+              children: [
+                Icon(
+                  Icons.timer_outlined,
+                  size: w * 0.04,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(width: w * 0.02),
+                Text(
+                  'Estimated prep time: $prepMinutes min',
+                  style: TextStyle(
+                    fontSize: w * 0.033,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

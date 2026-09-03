@@ -77,8 +77,11 @@ enum PaymentStatus { pending, paid, failed }
 PaymentStatus _paymentStatusFromString(String? value) {
   switch (value) {
     case 'paid':
+    case 'success':
+    case 'successful':
       return PaymentStatus.paid;
     case 'failed':
+    case 'failure':
       return PaymentStatus.failed;
     default:
       return PaymentStatus.pending;
@@ -147,6 +150,7 @@ class ConsumerOrder {
   final String? driverPhone;
   final String paymentMethod;
   final PaymentStatus paymentStatus;
+  final int? estimatedPrepMinutes;
 
   const ConsumerOrder({
     required this.id,
@@ -166,11 +170,49 @@ class ConsumerOrder {
     this.paymentStatus = PaymentStatus.pending,
     this.deliveryInstructions,
     this.estimatedDelivery,
+    this.estimatedPrepMinutes,
     this.driverName,
     this.driverPhone,
   });
 
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
+
+  /// Applies the lightweight fields returned by the tracking endpoint
+  /// (`GET customer/orders/:id/track`) on top of a fully-loaded order,
+  /// preserving items/totals/address that the track response doesn't
+  /// include.
+  ConsumerOrder copyWith({
+    String? id,
+    OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    int? estimatedPrepMinutes,
+    DateTime? estimatedDelivery,
+    String? driverName,
+    String? driverPhone,
+  }) {
+    return ConsumerOrder(
+      id: id ?? this.id,
+      restaurantId: restaurantId,
+      restaurantName: restaurantName,
+      restaurantImageUrl: restaurantImageUrl,
+      items: items,
+      status: status ?? this.status,
+      subtotal: subtotal,
+      deliveryFee: deliveryFee,
+      serviceFee: serviceFee,
+      discount: discount,
+      total: total,
+      deliveryAddress: deliveryAddress,
+      deliveryInstructions: deliveryInstructions,
+      placedAt: placedAt,
+      paymentMethod: paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      estimatedDelivery: estimatedDelivery ?? this.estimatedDelivery,
+      estimatedPrepMinutes: estimatedPrepMinutes ?? this.estimatedPrepMinutes,
+      driverName: driverName ?? this.driverName,
+      driverPhone: driverPhone ?? this.driverPhone,
+    );
+  }
 
   factory ConsumerOrder.fromJson(Map<String, dynamic> json) {
     final vendor = json['vendor'] as Map<String, dynamic>?;
@@ -216,9 +258,10 @@ class ConsumerOrder {
       placedAt: DateTime.tryParse(
               json['created_at'] as String? ?? json['placed_at'] as String? ?? '') ??
           DateTime.now(),
-      estimatedDelivery: json['estimated_delivery'] != null
-          ? DateTime.tryParse(json['estimated_delivery'] as String)
-          : null,
+      estimatedDelivery: DateTime.tryParse(
+          (json['estimated_delivery_at'] ?? json['estimated_delivery']) as String? ?? ''),
+      estimatedPrepMinutes:
+          (json['estimated_prep_minutes'] as num?)?.toInt(),
       driverName: rider?['name'] as String? ?? json['driver_name'] as String?,
       driverPhone: rider?['phone'] as String? ?? json['driver_phone'] as String?,
       paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',

@@ -98,11 +98,24 @@ class OrdersRepositoryImpl implements IOrdersRepository {
   }
 
   @override
-  Future<ConsumerOrder> trackOrder(String orderId) async {
+  Future<ConsumerOrder> trackOrder(String orderId, {ConsumerOrder? previous}) async {
     final response = await _client.get(
       ApiEndpoints.customerOrderTrack(orderId),
     );
-    return ConsumerOrder.fromJson(_dataMap(response));
+    final data = _dataMap(response);
+    // The track payload carries no `id`/items/totals/address, only the
+    // live status fields — parsing it straight into ConsumerOrder.fromJson
+    // would blank those out, so merge onto the last known full order.
+    final tracked = ConsumerOrder.fromJson(data);
+    if (previous == null) return tracked;
+    return previous.copyWith(
+      status: tracked.status,
+      paymentStatus: tracked.paymentStatus,
+      estimatedPrepMinutes: tracked.estimatedPrepMinutes,
+      estimatedDelivery: tracked.estimatedDelivery,
+      driverName: tracked.driverName,
+      driverPhone: tracked.driverPhone,
+    );
   }
 
   /// Retries only on connection-level failures — the request never left the

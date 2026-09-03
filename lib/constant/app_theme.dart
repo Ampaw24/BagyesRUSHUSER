@@ -45,6 +45,10 @@ abstract final class AppColors {
   static const Color warning = Color(0xFFDD6B20);
   static const Color info = Color(0xFF3182CE);
 
+  // Payment status badges (order tracking) — a true yellow, distinct from
+  // the amber-orange `warning`, for the "awaiting payment" state.
+  static const Color paymentPending = Color(0xFFCA8A04);
+
   // Shimmer / skeleton
   static const Color shimmerBase = Color(0xFFE2E8F0);
   static const Color shimmerHighlight = Color(0xFFF7FAFC);

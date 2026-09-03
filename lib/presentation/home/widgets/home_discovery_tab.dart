@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -71,41 +72,51 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
   }
 
   Future<void> _fetchLocation() async {
-    // Paint an optimistic address instantly from the device's last cached
-    // fix (if any) while a fresh GPS fix is acquired below — a cold GPS
-    // start can otherwise leave the header stuck/blank for the full
-    // getCurrentLocation timeout.
-    final lastKnown = await LocationHelper.getLastKnownPosition();
-    if (lastKnown != null && mounted) {
-      final cachedAddress = await PlacesService.reverseGeocode(
-        lastKnown.latitude,
-        lastKnown.longitude,
+    // Prefer the fix AppInitializer already acquired at app launch (before
+    // login) over acquiring a fresh one here.
+    Position? position = LocationHelper.cachedResult?.position;
+
+    if (position == null) {
+      // Paint an optimistic address instantly from the device's last cached
+      // fix (if any) while a fresh GPS fix is acquired below — a cold GPS
+      // start can otherwise leave the header stuck/blank for the full
+      // getCurrentLocation timeout.
+      final lastKnown = await LocationHelper.getLastKnownPosition();
+      if (lastKnown != null && mounted) {
+        final cachedAddress = await PlacesService.reverseGeocode(
+          lastKnown.latitude,
+          lastKnown.longitude,
+        );
+        if (mounted && cachedAddress != null && cachedAddress.isNotEmpty) {
+          setState(() => _currentLocation = cachedAddress);
+        }
+      }
+
+      // Resolve the address via Google's Geocoding API — the same technique
+      // validated at app start (AppInitializer._fetchStartupLocation) — since
+      // it has denser address coverage than the native platform geocoder
+      // that LocationHelper uses by default. Give the fresh fix extra time
+      // since a cold GPS start can exceed getCurrentLocation's 10s default.
+      final result = await LocationHelper.getCurrentLocation(
+        resolveAddress: false,
+        timeLimit: const Duration(seconds: 20),
       );
-      if (mounted && cachedAddress != null && cachedAddress.isNotEmpty) {
-        setState(() => _currentLocation = cachedAddress);
+      position = result.position;
+
+      if (position == null) {
+        // Fresh fix failed/timed out. If we already painted a cached address
+        // above, keep it rather than overwriting with "Location unavailable".
+        if (_currentLocation != null) return;
+        if (mounted) setState(() => _currentLocation = result.address);
+        return;
       }
     }
 
-    // Resolve the address via Google's Geocoding API — the same technique
-    // validated at app start (AppInitializer._logStartupLocation) — since it
-    // has denser address coverage than the native platform geocoder that
-    // LocationHelper uses by default. Give the fresh fix extra time since a
-    // cold GPS start can exceed getCurrentLocation's 10s default.
-    final result = await LocationHelper.getCurrentLocation(
-      resolveAddress: false,
-      timeLimit: const Duration(seconds: 20),
-    );
-    final position = result.position;
-
-    if (position == null) {
-      // Fresh fix failed/timed out. If we already painted a cached address
-      // above, keep it rather than overwriting with "Location unavailable".
-      if (_currentLocation != null) return;
-      if (mounted) setState(() => _currentLocation = result.address);
-      return;
-    }
-
-    var address = result.address; // coordinate-string fallback
+    var address = LocationHelper.resolveAddress(
+      null,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    ); // coordinate-string fallback
     final googleAddress = await PlacesService.reverseGeocode(
       position.latitude,
       position.longitude,

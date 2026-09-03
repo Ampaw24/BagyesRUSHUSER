@@ -32,7 +32,10 @@ abstract interface class IOrdersRepository {
   });
   Future<ConsumerOrder> cancelOrder(String orderId, {required String reason});
   Future<ConsumerOrder> reorder(String orderId);
-  Future<ConsumerOrder> trackOrder(String orderId);
+  /// The track endpoint returns only a slim status/payment/ETA payload, not
+  /// the full order — [previous] (the last known full order, if any) is
+  /// merged with those fields so items/totals/address survive each poll.
+  Future<ConsumerOrder> trackOrder(String orderId, {ConsumerOrder? previous});
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
