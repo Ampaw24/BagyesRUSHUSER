@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/widgets/custom_dialogs.dart';
 import '../../../features/report/domain/entities/report.dart';
 import '../../../features/report/presentation/report_flow_args.dart';
 import '../../../features/report/presentation/widgets/report_quick_action_sheet.dart';
 import '../model/vendor_order.dart';
+import '../model/vendor_order_stats.dart';
 import '../viewmodel/orders_viewmodel.dart';
 import 'widgets/order_card.dart';
+import 'widgets/order_reason_sheet.dart';
+import 'widgets/stats_row.dart';
 
 class VendorOrdersView extends StatefulWidget {
   const VendorOrdersView({super.key});
@@ -16,18 +23,84 @@ class VendorOrdersView extends StatefulWidget {
 }
 
 class _VendorOrdersViewState extends State<VendorOrdersView> {
+  static const _searchDebounce = Duration(milliseconds: 350);
+
   OrderStatus? _activeFilter;
+  final _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrdersViewModel>().loadOrders();
+      context.read<OrdersViewModel>().loadStats();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchDebounceTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _setFilter(OrderStatus? status) {
     setState(() => _activeFilter = status);
+  }
+
+  void _onSearchChanged(String query) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(_searchDebounce, () {
+      context
+          .read<OrdersViewModel>()
+          .loadOrders(search: query.trim().isEmpty ? null : query.trim());
+    });
+  }
+
+  Future<void> _handleAccept(VendorOrder order) async {
+    final controller = TextEditingController();
+    await CustomDialog.showConfirmation(
+      context: context,
+      title: 'Accept Order',
+      subtitle: 'Optionally set an estimated preparation time (minutes).',
+      confirmText: 'Accept',
+      content: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          hintText: 'e.g. 15',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      onConfirm: () {
+        final minutes = int.tryParse(controller.text.trim());
+        context.read<OrdersViewModel>().accept(
+              order.id,
+              estimatedPrepMinutes: minutes,
+            );
+      },
+    );
+  }
+
+  Future<void> _handleReject(VendorOrder order) async {
+    final reason = await OrderReasonSheet.show(
+      context,
+      title: 'Reject Order',
+      confirmLabel: 'Reject Order',
+    );
+    if (reason == null || !mounted) return;
+    context.read<OrdersViewModel>().reject(order.id, reason: reason);
+  }
+
+  Future<void> _handleCancel(VendorOrder order) async {
+    final reason = await OrderReasonSheet.show(
+      context,
+      title: 'Cancel Order',
+      confirmLabel: 'Cancel Order',
+    );
+    if (reason == null || !mounted) return;
+    context.read<OrdersViewModel>().cancel(order.id, reason: reason);
   }
 
   @override
@@ -70,6 +143,44 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
                 ),
               ),
             ],
+          ),
+        ),
+        SizedBox(height: w * 0.035),
+
+        // ── Stats summary ──
+        if (vm.state.stats != null) ...[
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPad),
+            child: _buildStatsRow(vm.state.stats!),
+          ),
+          SizedBox(height: w * 0.035),
+        ],
+
+        // ── Search ──
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPad),
+          child: TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search orders...',
+              prefixIcon: Icon(
+                Icons.search,
+                size: w * 0.05,
+                color: AppColors.textHint,
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: w * 0.03),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(w * 0.03),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(w * 0.03),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+            ),
           ),
         ),
         SizedBox(height: w * 0.035),
@@ -118,14 +229,14 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
                         return OrderCard(
                           order: order,
                           onTap: () {},
-                          onAccept: () => vm.accept(order.id),
-                          onDecline: () => vm.reject(order.id),
+                          onAccept: () => _handleAccept(order),
+                          onDecline: () => _handleReject(order),
                           onMarkPreparing: () => vm.markPreparing(order.id),
                           onMarkReady: () => vm.markReady(order.id),
                           onMarkOutForDelivery: () =>
                               vm.markOutForDelivery(order.id),
                           onMarkDelivered: () => vm.markDelivered(order.id),
-                          onCancel: () => vm.cancel(order.id),
+                          onCancel: () => _handleCancel(order),
                           onReport: () => ReportQuickActionSheet.show(
                             context,
                             role: ReportRole.vendor,
@@ -153,6 +264,37 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
                         );
                       },
                     ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRow(VendorOrderStats stats) {
+    return StatsRow(
+      stats: [
+        StatItem(
+          value: '${stats.totalOrders}',
+          label: 'Total',
+          icon: HugeIcons.strokeRoundedCheckList,
+          iconColor: AppColors.primary,
+        ),
+        StatItem(
+          value: '${stats.pendingOrders}',
+          label: 'Pending',
+          icon: HugeIcons.strokeRoundedClock01,
+          iconColor: AppColors.warning,
+        ),
+        StatItem(
+          value: '${stats.deliveredOrders}',
+          label: 'Delivered',
+          icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+          iconColor: AppColors.success,
+        ),
+        StatItem(
+          value: '${stats.cancelledOrders}',
+          label: 'Cancelled',
+          icon: HugeIcons.strokeRoundedAlertCircle,
+          iconColor: AppColors.error,
         ),
       ],
     );

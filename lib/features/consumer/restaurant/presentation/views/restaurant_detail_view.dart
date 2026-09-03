@@ -114,6 +114,14 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
   String? _vendorId(Restaurant restaurant) => restaurant.numericId?.toString();
 
   Future<void> _onAddItem(Restaurant restaurant, MenuItem item) async {
+    if (!restaurant.isOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This vendor is currently closed and not accepting orders.'),
+        ),
+      );
+      return;
+    }
     final vendorId = _vendorId(restaurant);
     if (vendorId == null) return;
     final cartVm = legacy.Provider.of<CartViewModel>(context, listen: false);
@@ -357,6 +365,37 @@ class _RestaurantDetailViewState extends ConsumerState<RestaurantDetailView>
                     ),
                   ],
                 ),
+                if (!restaurant.isOpen) ...[
+                  SizedBox(height: w * 0.03),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(w * 0.04),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(w * 0.03),
+                      border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded,
+                            color: AppColors.error, size: 18),
+                        SizedBox(width: w * 0.02),
+                        Expanded(
+                          child: Text(
+                            'This vendor is currently closed and not accepting orders.',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                              fontSize: w * 0.033,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (restaurant.promoText != null) ...[
                   SizedBox(height: w * 0.03),
                   Container(

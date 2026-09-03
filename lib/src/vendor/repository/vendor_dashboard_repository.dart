@@ -1,7 +1,9 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failure.dart';
 import '../../../features/consumer/restaurant/domain/entities/addon.dart';
+import '../model/vendor_dashboard_stats.dart';
 import '../model/vendor_order.dart';
+import '../model/vendor_order_stats.dart';
 import '../model/menu_item.dart';
 import '../model/earnings_data.dart';
 import '../model/vendor_profile.dart';
@@ -9,7 +11,7 @@ import '../model/vendor_profile.dart';
 /// Contract for all vendor dashboard API operations.
 abstract class VendorDashboardRepository {
   // ── Dashboard ──
-  Future<Either<Failure, Map<String, dynamic>>> fetchDashboardStats();
+  Future<Either<Failure, VendorDashboardStats>> fetchDashboardStats();
   Future<Either<Failure, List<VendorOrder>>> fetchActiveOrders();
   /// Flips the store's open/closed status server-side. Returns the
   /// resulting `isOpen` state from the response — the caller doesn't
@@ -19,14 +21,44 @@ abstract class VendorDashboardRepository {
   // ── Orders ──
   // The backend exposes 7 separate action routes rather than one generic
   // status-update endpoint — each method below hits its own route.
-  Future<Either<Failure, List<VendorOrder>>> fetchAllOrders({String? status});
-  Future<Either<Failure, VendorOrder>> acceptOrder(String orderId);
-  Future<Either<Failure, VendorOrder>> rejectOrder(String orderId);
+  Future<Either<Failure, List<VendorOrder>>> fetchAllOrders({
+    String? status,
+    String? type,
+    String? paymentStatus,
+    String? search,
+    DateTime? from,
+    DateTime? to,
+    int? perPage,
+  });
+
+  /// `GET /vendor/me/orders/stats`
+  Future<Either<Failure, VendorOrderStats>> fetchOrderStats();
+
+  /// `GET /vendor/me/orders/:id`
+  Future<Either<Failure, VendorOrder>> fetchOrderById(String orderId);
+
+  /// `estimatedPrepMinutes` is optional (1-600).
+  Future<Either<Failure, VendorOrder>> acceptOrder(
+    String orderId, {
+    int? estimatedPrepMinutes,
+  });
+
+  /// `reason` is required (5-255 chars).
+  Future<Either<Failure, VendorOrder>> rejectOrder(
+    String orderId, {
+    required String reason,
+  });
+
   Future<Either<Failure, VendorOrder>> markPreparing(String orderId);
   Future<Either<Failure, VendorOrder>> markReady(String orderId);
   Future<Either<Failure, VendorOrder>> markOutForDelivery(String orderId);
   Future<Either<Failure, VendorOrder>> markDelivered(String orderId);
-  Future<Either<Failure, VendorOrder>> cancelOrder(String orderId);
+
+  /// `reason` is required (5-255 chars).
+  Future<Either<Failure, VendorOrder>> cancelOrder(
+    String orderId, {
+    required String reason,
+  });
 
   // ── Menu ──
   Future<Either<Failure, List<MenuItem>>> fetchMenuItems();

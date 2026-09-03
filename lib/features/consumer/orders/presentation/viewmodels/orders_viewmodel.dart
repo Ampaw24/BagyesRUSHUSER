@@ -117,8 +117,8 @@ class OrdersViewModel extends Notifier<OrdersState> {
     );
   }
 
-  Future<void> cancelOrder(String orderId) async {
-    final updated = await _repo.cancelOrder(orderId);
+  Future<void> cancelOrder(String orderId, {required String reason}) async {
+    final updated = await _repo.cancelOrder(orderId, reason: reason);
     await _replaceOrder(updated);
   }
 

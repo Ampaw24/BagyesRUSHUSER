@@ -8,7 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'core/di/service_locator.dart' as di;
+import 'core/di/service_locator.dart' as di;     
 import 'core/services/app_initializer.dart';
 import 'core/services/fcm_service.dart';
 

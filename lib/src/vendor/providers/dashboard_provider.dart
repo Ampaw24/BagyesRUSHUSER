@@ -81,23 +81,32 @@ class DashboardNotifier extends Notifier<DashboardState> {
     statsResult.fold(
       (failure) => state = state.copyWith(
         status: DashboardStatus.error,
+        errorMessage: failure.message,
       ),
       (stats) {
         ordersResult.fold(
           (failure) => state = state.copyWith(
             status: DashboardStatus.error,
+            errorMessage: failure.message,
           ),
           (orders) => state = state.copyWith(
             status: DashboardStatus.loaded,
-            storeOpen: stats['store_open'] as bool? ?? state.storeOpen,
-            todayRevenue: stats['today_revenue'] as String? ?? 'GH₵ 0',
-            activeOrderCount: stats['active_order_count'] as int? ?? 0,
-            avgRating: stats['avg_rating'] as String? ?? '0.0',
+            todayRevenue: 'GH₵ ${stats.today.revenue.toStringAsFixed(2)}',
+            activeOrderCount: orders.length,
+            avgRating: stats.reputation.rating.toStringAsFixed(1),
             activeOrders: orders,
+            errorMessage: null,
           ),
         );
       },
     );
+  }
+
+  /// The dashboard endpoint doesn't report open/closed status — seed it from
+  /// the vendor's profile (`VendorProfile.isOpen`) once, before [loadDashboard]
+  /// runs. Subsequent changes come from [toggleStore]'s server response.
+  void seedStoreOpen(bool isOpen) {
+    state = state.copyWith(storeOpen: isOpen);
   }
 
   Future<void> _applyOrderAction(
@@ -119,12 +128,21 @@ class DashboardNotifier extends Notifier<DashboardState> {
     );
   }
 
-  Future<void> acceptOrder(String orderId) =>
-      _applyOrderAction(orderId, () => _repository.acceptOrder(orderId));
+  Future<void> acceptOrder(String orderId, {int? estimatedPrepMinutes}) =>
+      _applyOrderAction(
+        orderId,
+        () => _repository.acceptOrder(
+          orderId,
+          estimatedPrepMinutes: estimatedPrepMinutes,
+        ),
+      );
 
-  Future<void> rejectOrder(String orderId) => _applyOrderAction(
-      orderId, () => _repository.rejectOrder(orderId),
-      removeFromActive: true);
+  Future<void> rejectOrder(String orderId, {required String reason}) =>
+      _applyOrderAction(
+        orderId,
+        () => _repository.rejectOrder(orderId, reason: reason),
+        removeFromActive: true,
+      );
 
   Future<void> markPreparing(String orderId) =>
       _applyOrderAction(orderId, () => _repository.markPreparing(orderId));
@@ -139,9 +157,12 @@ class DashboardNotifier extends Notifier<DashboardState> {
       orderId, () => _repository.markDelivered(orderId),
       removeFromActive: true);
 
-  Future<void> cancelOrder(String orderId) => _applyOrderAction(
-      orderId, () => _repository.cancelOrder(orderId),
-      removeFromActive: true);
+  Future<void> cancelOrder(String orderId, {required String reason}) =>
+      _applyOrderAction(
+        orderId,
+        () => _repository.cancelOrder(orderId, reason: reason),
+        removeFromActive: true,
+      );
 
   Future<void> toggleStore(bool isOpen) async {
     final previous = state.storeOpen;

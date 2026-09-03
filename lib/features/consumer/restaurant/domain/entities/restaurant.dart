@@ -73,7 +73,9 @@ class Restaurant {
         deliveryTimeMax: json['delivery_time_max'] as int? ?? 0,
         deliveryFee: (json['delivery_fee'] as num? ?? 0).toDouble(),
         minOrder: (json['min_order'] as num? ?? 0).toDouble(),
-        isOpen: json['is_open'] as bool? ?? false,
+        isOpen: json['is_open_now'] as bool? ??
+            json['is_open'] as bool? ??
+            false,
         isFeatured: json['is_featured'] as bool? ?? false,
         address: json['address'] as String? ??
             json['business_address'] as String? ??

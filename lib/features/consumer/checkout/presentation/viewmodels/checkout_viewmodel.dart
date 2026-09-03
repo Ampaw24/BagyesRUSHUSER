@@ -23,20 +23,13 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
     return const CheckoutForm();
   }
 
-  /// For hand-typed address input. Explicitly drops any previously-resolved
-  /// coordinates (rebuilds `CheckoutForm` directly rather than via
-  /// `copyWith`, since `copyWith`'s `??` semantics can't null a field back
-  /// out) — editing the text after a GPS/map pick means the pin no longer
-  /// matches, so a stale coordinate must not silently ride along.
+  /// For hand-typed address input. Keeps any previously-resolved GPS/map
+  /// coordinates in place — a text edit (e.g. adding "Apt 4B") doesn't mean
+  /// the pin moved, so the picked location should still be sent with the
+  /// order. Coordinates are only cleared when the user explicitly picks a
+  /// new location (see `updateAddressWithCoordinates`) or clears the field.
   void updateAddress(String address) {
-    final form = _currentForm;
-    state = CheckoutIdle(
-      form: CheckoutForm(
-        deliveryAddress: address,
-        deliveryInstructions: form.deliveryInstructions,
-        selectedPaymentMethod: form.selectedPaymentMethod,
-      ),
-    );
+    state = CheckoutIdle(form: _currentForm.copyWith(deliveryAddress: address));
   }
 
   /// For GPS ("use current location") or the map picker, where a real

@@ -81,9 +81,10 @@ class OrdersRepositoryImpl implements IOrdersRepository {
   }
 
   @override
-  Future<ConsumerOrder> cancelOrder(String orderId) async {
+  Future<ConsumerOrder> cancelOrder(String orderId, {required String reason}) async {
     final response = await _client.patch(
       ApiEndpoints.customerOrderCancel(orderId),
+      data: {'reason': reason},
     );
     return ConsumerOrder.fromJson(_dataMap(response));
   }

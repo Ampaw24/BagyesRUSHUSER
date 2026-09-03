@@ -5,6 +5,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
+import '../../../core/router/app_navigator.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import '../../../features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
@@ -486,7 +487,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
               padding: EdgeInsets.only(bottom: w * 0.04),
               child: RestaurantListCard(
                 restaurant: r,
-                onTap: () => context.push(AppRoutes.restaurantDetailPath(r.id)),
+                onTap: () => AppNavigator.toRestaurantDetail(context, r),
               ),
             );
           },

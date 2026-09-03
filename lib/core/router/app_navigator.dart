@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
 import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
 import 'package:bagyesrushappusernew/features/report/presentation/report_flow_args.dart';
 
@@ -72,8 +73,20 @@ abstract final class AppNavigator {
       context.push(AppRoutes.vendorWallet);
 
   // ── Consumer features ──
-  static void toRestaurantDetail(BuildContext context, String id) =>
-      context.push(AppRoutes.restaurantDetailPath(id));
+  /// Opens the vendor's menu — blocked with a notice when the vendor is
+  /// currently closed, so a customer can never enter the ordering flow for
+  /// a vendor that can't accept orders.
+  static void toRestaurantDetail(BuildContext context, Restaurant restaurant) {
+    if (!restaurant.isOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This vendor is currently closed and not accepting orders.'),
+        ),
+      );
+      return;
+    }
+    context.push(AppRoutes.restaurantDetailPath(restaurant.id));
+  }
 
   static void toCheckout(BuildContext context) =>
       context.push(AppRoutes.checkout);

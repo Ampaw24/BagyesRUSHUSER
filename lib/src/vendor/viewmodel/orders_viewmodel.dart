@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../model/vendor_order.dart';
+import '../model/vendor_order_stats.dart';
 import '../repository/vendor_dashboard_repository.dart';
 
 enum OrdersStatus { initial, loading, loaded, error }
@@ -12,12 +13,14 @@ class OrdersState extends Equatable {
   final List<VendorOrder> orders;
   final String? activeFilter; // null = all
   final String? errorMessage;
+  final VendorOrderStats? stats;
 
   const OrdersState({
     this.status = OrdersStatus.initial,
     this.orders = const [],
     this.activeFilter,
     this.errorMessage,
+    this.stats,
   });
 
   OrdersState copyWith({
@@ -25,6 +28,7 @@ class OrdersState extends Equatable {
     List<VendorOrder>? orders,
     String? activeFilter,
     String? errorMessage,
+    VendorOrderStats? stats,
     bool clearFilter = false,
   }) {
     return OrdersState(
@@ -32,11 +36,13 @@ class OrdersState extends Equatable {
       orders: orders ?? this.orders,
       activeFilter: clearFilter ? null : (activeFilter ?? this.activeFilter),
       errorMessage: errorMessage,
+      stats: stats ?? this.stats,
     );
   }
 
   @override
-  List<Object?> get props => [status, orders, activeFilter, errorMessage];
+  List<Object?> get props =>
+      [status, orders, activeFilter, errorMessage, stats];
 }
 
 class OrdersViewModel extends ViewModel<OrdersState> {
@@ -44,10 +50,26 @@ class OrdersViewModel extends ViewModel<OrdersState> {
 
   OrdersViewModel(this._repository) : super(const OrdersState());
 
-  Future<void> loadOrders({String? status}) async {
+  Future<void> loadOrders({
+    String? status,
+    String? type,
+    String? paymentStatus,
+    String? search,
+    DateTime? from,
+    DateTime? to,
+    int? perPage,
+  }) async {
     emit(state.copyWith(status: OrdersStatus.loading));
 
-    final result = await _repository.fetchAllOrders(status: status);
+    final result = await _repository.fetchAllOrders(
+      status: status,
+      type: type,
+      paymentStatus: paymentStatus,
+      search: search,
+      from: from,
+      to: to,
+      perPage: perPage,
+    );
     result.fold(
       (failure) => emit(state.copyWith(
         status: OrdersStatus.error,
@@ -59,6 +81,14 @@ class OrdersViewModel extends ViewModel<OrdersState> {
         activeFilter: status,
         clearFilter: status == null,
       )),
+    );
+  }
+
+  Future<void> loadStats() async {
+    final result = await _repository.fetchOrderStats();
+    result.fold(
+      (failure) => emit(state.copyWith(errorMessage: failure.message)),
+      (stats) => emit(state.copyWith(stats: stats)),
     );
   }
 
@@ -78,11 +108,18 @@ class OrdersViewModel extends ViewModel<OrdersState> {
     );
   }
 
-  Future<void> accept(String orderId) =>
-      _apply(orderId, () => _repository.acceptOrder(orderId));
+  Future<void> accept(String orderId, {int? estimatedPrepMinutes}) => _apply(
+        orderId,
+        () => _repository.acceptOrder(
+          orderId,
+          estimatedPrepMinutes: estimatedPrepMinutes,
+        ),
+      );
 
-  Future<void> reject(String orderId) =>
-      _apply(orderId, () => _repository.rejectOrder(orderId));
+  Future<void> reject(String orderId, {required String reason}) => _apply(
+        orderId,
+        () => _repository.rejectOrder(orderId, reason: reason),
+      );
 
   Future<void> markPreparing(String orderId) =>
       _apply(orderId, () => _repository.markPreparing(orderId));
@@ -96,6 +133,8 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   Future<void> markDelivered(String orderId) =>
       _apply(orderId, () => _repository.markDelivered(orderId));
 
-  Future<void> cancel(String orderId) =>
-      _apply(orderId, () => _repository.cancelOrder(orderId));
+  Future<void> cancel(String orderId, {required String reason}) => _apply(
+        orderId,
+        () => _repository.cancelOrder(orderId, reason: reason),
+      );
 }

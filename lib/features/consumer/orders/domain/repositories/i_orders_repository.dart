@@ -30,7 +30,7 @@ abstract interface class IOrdersRepository {
     double? deliveryLat,
     double? deliveryLng,
   });
-  Future<ConsumerOrder> cancelOrder(String orderId);
+  Future<ConsumerOrder> cancelOrder(String orderId, {required String reason});
   Future<ConsumerOrder> reorder(String orderId);
   Future<ConsumerOrder> trackOrder(String orderId);
   Future<Map<String, dynamic>> payOrder(

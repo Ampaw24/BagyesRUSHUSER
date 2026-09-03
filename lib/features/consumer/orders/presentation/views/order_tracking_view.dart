@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/features/consumer/orders/presentation/widgets/cancel_order_reason_sheet.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
@@ -36,6 +39,7 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
   static const _pollInterval = Duration(seconds: 15);
   Timer? _pollTimer;
   bool _isPaying = false;
+  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -101,11 +105,14 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
   /// embedded provider's slug/name, the method's own label (often something
   /// like "MTN 0987"), then — only if neither matched — fetches the payout
   /// provider catalog and looks the id up there.
-  Future<MobileMoneyProvider?> _resolveMobileMoneyProvider(PaymentMethod saved) async {
+  Future<MobileMoneyProvider?> _resolveMobileMoneyProvider(
+    PaymentMethod saved,
+  ) async {
     final provider = saved.provider;
     if (provider != null) {
-      final match =
-          _matchMobileMoneyProvider('${provider.slug} ${provider.shortName} ${provider.name}');
+      final match = _matchMobileMoneyProvider(
+        '${provider.slug} ${provider.shortName} ${provider.name}',
+      );
       if (match != null) return match;
     }
 
@@ -114,8 +121,9 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
 
     if (saved.payoutProviderId == 0) return null;
     final providers = await sl<PaymentRepository>().getPayoutProviders().then(
-          (result) => result.fold((_) => const <PayoutProviderModel>[], (list) => list),
-        );
+      (result) =>
+          result.fold((_) => const <PayoutProviderModel>[], (list) => list),
+    );
     for (final p in providers) {
       if (p.id == saved.payoutProviderId) {
         return _matchMobileMoneyProvider('${p.slug} ${p.shortName} ${p.name}');
@@ -147,7 +155,9 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
         );
       }
 
-      final methods = await sl<PaymentRepository>().getCustomerPaymentMethods().then(
+      final methods = await sl<PaymentRepository>()
+          .getCustomerPaymentMethods()
+          .then(
             (result) => result.fold(
               (failure) => throw _PayNowFailure(failure.message),
               (methods) => methods,
@@ -158,8 +168,10 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
           'No saved mobile money number. Add one under Payment Methods first.',
         );
       }
-      final PaymentMethod saved =
-          methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
+      final PaymentMethod saved = methods.firstWhere(
+        (m) => m.isDefault,
+        orElse: () => methods.first,
+      );
       final mmProvider = await _resolveMobileMoneyProvider(saved);
       if (!mounted) return;
       if (mmProvider == null) {
@@ -168,7 +180,9 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
         );
       }
 
-      final payResponse = await ref.read(ordersProvider.notifier).payOrder(
+      final payResponse = await ref
+          .read(ordersProvider.notifier)
+          .payOrder(
             orderId,
             paymentMethod: paymentMethod,
             phone: saved.phoneNumber,
@@ -178,7 +192,10 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
       if (!mounted) return;
 
       final paymentUrl =
-          (payResponse['payment_url'] ?? payResponse['paymentUrl'])?.toString();
+          (payResponse['authorization_url'] ??
+                  payResponse['payment_url'] ??
+                  payResponse['paymentUrl'])
+              ?.toString();
       if (paymentUrl != null && paymentUrl.isNotEmpty) {
         final leftGateway = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
@@ -192,9 +209,13 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
       }
 
       if (!mounted) return;
-      final reference = (payResponse['reference'] ?? payResponse['payment_reference'])?.toString();
+      final reference =
+          (payResponse['reference'] ?? payResponse['payment_reference'])
+              ?.toString();
       if (reference != null && reference.isNotEmpty) {
-        await ref.read(ordersProvider.notifier).verifyPayment(orderId, reference: reference);
+        await ref
+            .read(ordersProvider.notifier)
+            .verifyPayment(orderId, reference: reference);
       } else {
         // No reference to verify against — just refresh right away so the
         // screen reflects whatever status the /pay call already produced,
@@ -203,7 +224,9 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
       }
     } catch (e) {
       if (!mounted) return;
-      final message = e is _PayNowFailure ? e.message : 'Payment failed. Please try again.';
+      final message = e is _PayNowFailure
+          ? e.message
+          : 'Payment failed. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -218,6 +241,38 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
     }
   }
 
+  /// Opens [CancelOrderReasonSheet] to collect a required cancellation
+  /// reason, then cancels the order. Mirrors [_payNow]'s loading/error/retry
+  /// shape: guarded by [_isCancelling]; failures surface a SnackBar with a
+  /// "Retry" action that re-runs this method from the top (including
+  /// re-prompting for the reason).
+  Future<void> _cancelOrder(String orderId) async {
+    if (_isCancelling) return;
+
+    final reason = await CancelOrderReasonSheet.show(context);
+    if (reason == null || !mounted) return;
+
+    setState(() => _isCancelling = true);
+    try {
+      await ref
+          .read(ordersProvider.notifier)
+          .cancelOrder(orderId, reason: reason);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Couldn\'t cancel your order. Please try again.'),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _cancelOrder(orderId),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderId = widget.orderId;
@@ -226,7 +281,11 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
 
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Track Order')),
+        appBar: AppBar(
+          leading: const _BackButton(),
+          leadingWidth: w * 0.16,
+          title: const Text('Track Order'),
+        ),
         body: const Center(child: Text('Order not found')),
       );
     }
@@ -234,98 +293,82 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(
+        leading: const _BackButton(),
+        leadingWidth: w * 0.16,
         title: Text('Order #${order.id.split('-').last}'),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.06),
-        children: [
-          // ── Status banner ──
-          _StatusBanner(order: order),
-          SizedBox(height: w * 0.05),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () => ref.read(ordersProvider.notifier).trackOrder(orderId),
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.06),
+          children: [
+            // ── Status banner ──
+            _StatusBanner(order: order),
+            SizedBox(height: w * 0.05),
 
-          // ── Order timeline ──
-          Text(
-            'Order Progress',
-            style: TextStyle(
-              fontSize: w * 0.042,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+            // ── Order timeline ──
+            const _SectionHeader(
+              icon: Icons.timeline_rounded,
+              label: 'Order Progress',
             ),
-          ),
-          SizedBox(height: w * 0.03),
-          _OrderTimeline(currentStatus: order.status),
-          SizedBox(height: w * 0.05),
+            SizedBox(height: w * 0.03),
+            _OrderTimeline(currentStatus: order.status),
+            SizedBox(height: w * 0.05),
 
-          // ── Driver info (if picked up) ──
-          if (order.driverName != null) ...[
-            Text(
-              'Your Driver',
-              style: TextStyle(
-                fontSize: w * 0.042,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+            // ── Driver info (if picked up) ──
+            if (order.driverName != null) ...[
+              const _SectionHeader(
+                icon: Icons.delivery_dining_rounded,
+                label: 'Your Driver',
               ),
+              SizedBox(height: w * 0.025),
+              _DriverCard(order: order),
+              SizedBox(height: w * 0.05),
+            ],
+
+            // ── Delivery address ──
+            const _SectionHeader(
+              icon: Icons.location_on_rounded,
+              label: 'Delivery Address',
             ),
             SizedBox(height: w * 0.025),
-            _DriverCard(order: order),
-            SizedBox(height: w * 0.05),
-          ],
-
-          // ── Delivery address ──
-          Text(
-            'Delivery Address',
-            style: TextStyle(
-              fontSize: w * 0.042,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: w * 0.025),
-          Container(
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(w * 0.035),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.location_on_rounded,
-                    color: AppColors.primary),
-                SizedBox(width: w * 0.025),
-                Expanded(
-                  child: Text(
-                    order.deliveryAddress,
-                    style: TextStyle(
-                      fontSize: w * 0.035,
-                      color: AppColors.textPrimary,
+            Container(
+              padding: EdgeInsets.all(w * 0.04),
+              decoration: _cardDecoration(w),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: w * 0.025),
+                  Expanded(
+                    child: Text(
+                      order.deliveryAddress,
+                      style: TextStyle(
+                        fontSize: w * 0.035,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: w * 0.05),
+            SizedBox(height: w * 0.05),
 
-          // ── Order items ──
-          Text(
-            'Items Ordered',
-            style: TextStyle(
-              fontSize: w * 0.042,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+            // ── Order items ──
+            const _SectionHeader(
+              icon: Icons.receipt_long_rounded,
+              label: 'Items Ordered',
             ),
-          ),
-          SizedBox(height: w * 0.025),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(w * 0.035),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: order.items
-                  .map((item) => ListTile(
+            SizedBox(height: w * 0.025),
+            Container(
+              decoration: _cardDecoration(w),
+              child: Column(
+                children: order.items
+                    .map(
+                      (item) => ListTile(
                         dense: true,
                         leading: Text(
                           '${item.quantity}×',
@@ -347,110 +390,199 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
                             color: AppColors.textPrimary,
                           ),
                         ),
-                      ))
-                  .toList(),
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
-          ),
-          SizedBox(height: w * 0.04),
+            SizedBox(height: w * 0.04),
 
-          // ── Price summary ──
-          Container(
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(w * 0.035),
-              border: Border.all(color: AppColors.border),
+            // ── Price summary ──
+            Container(
+              padding: EdgeInsets.all(w * 0.04),
+              decoration: _cardDecoration(w),
+              child: Column(
+                children: [
+                  _PriceRow('Subtotal', order.subtotal),
+                  _PriceRow('Delivery fee', order.deliveryFee),
+                  _PriceRow('Service fee', order.serviceFee),
+                  if (order.discount > 0)
+                    _PriceRow(
+                      'Discount',
+                      -order.discount,
+                      color: AppColors.success,
+                    ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: w * 0.015),
+                    child: const Divider(color: AppColors.divider),
+                  ),
+                  _PriceRow('Total', order.total, isBold: true),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                _PriceRow('Subtotal', order.subtotal),
-                _PriceRow('Delivery fee', order.deliveryFee),
-                _PriceRow('Service fee', order.serviceFee),
-                if (order.discount > 0)
-                  _PriceRow('Discount', -order.discount, color: AppColors.success),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: w * 0.015),
-                  child: const Divider(color: AppColors.divider),
-                ),
-                _PriceRow('Total', order.total, isBold: true),
-              ],
-            ),
-          ),
-          SizedBox(height: w * 0.04),
+            SizedBox(height: w * 0.04),
 
-          // ── Payment ──
-          Container(
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(w * 0.035),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.payment_rounded,
-                    color: AppColors.textSecondary),
-                SizedBox(width: w * 0.025),
-                Text(
-                  order.paymentStatus == PaymentStatus.pending
-                      ? 'Payment pending — ${order.paymentMethod}'
-                      : 'Paid via ${order.paymentMethod}',
-                  style: TextStyle(
-                    fontSize: w * 0.035,
+            // ── Payment ──
+            Container(
+              padding: EdgeInsets.all(w * 0.04),
+              decoration: _cardDecoration(w),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.payment_rounded,
                     color: AppColors.textSecondary,
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          if (order.paymentStatus == PaymentStatus.pending) ...[
-            SizedBox(height: w * 0.04),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isPaying
-                    ? null
-                    : () => _payNow(orderId, order.paymentMethod),
-                child: _isPaying
-                    ? SizedBox(
-                        width: w * 0.05,
-                        height: w * 0.05,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Pay Now'),
+                  SizedBox(width: w * 0.025),
+                  Text(
+                    order.paymentStatus == PaymentStatus.pending
+                        ? 'Payment pending — ${order.paymentMethod}'
+                        : 'Paid via ${order.paymentMethod}',
+                    style: TextStyle(
+                      fontSize: w * 0.035,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
 
-          if (order.status == OrderStatus.pending ||
-              order.status == OrderStatus.accepted ||
-              order.status == OrderStatus.preparing) ...[
-            SizedBox(height: w * 0.03),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => ref
-                    .read(ordersProvider.notifier)
-                    .cancelOrder(orderId),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: AppColors.error),
+            if (order.paymentStatus == PaymentStatus.pending) ...[
+              SizedBox(height: w * 0.04),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isPaying
+                      ? null
+                      : () => _payNow(orderId, order.paymentMethod),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, w * 0.12),
+                  ),
+                  child: _isPaying
+                      ? SizedBox(
+                          width: w * 0.05,
+                          height: w * 0.05,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Pay Now'),
                 ),
-                child: const Text('Cancel Order'),
               ),
-            ),
+            ],
+
+            if (order.status == OrderStatus.pending ||
+                order.status == OrderStatus.accepted ||
+                order.status == OrderStatus.preparing) ...[
+              SizedBox(height: w * 0.03),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isCancelling ? null : () => _cancelOrder(orderId),
+                  icon: _isCancelling
+                      ? SizedBox(
+                          width: w * 0.04,
+                          height: w * 0.04,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.error,
+                          ),
+                        )
+                      : Icon(Icons.cancel_outlined, size: w * 0.045),
+                  label: Text(_isCancelling ? 'Cancelling…' : 'Cancel Order'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                    minimumSize: Size(double.infinity, w * 0.12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(w * 0.03),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
 // ─── Sub-widgets ──────────────────────────────────────────────────────────
+
+/// Soft-shadow card decoration shared by every section card on this screen.
+/// [AppColors.scaffold] and [AppColors.card] are both pure white, so the
+/// hairline border is kept alongside the shadow — dropping it would let
+/// cards blend into the page background.
+BoxDecoration _cardDecoration(double w) => BoxDecoration(
+  color: AppColors.card,
+  borderRadius: BorderRadius.circular(w * 0.04),
+  border: Border.all(color: AppColors.border, width: 0.6),
+  boxShadow: [
+    BoxShadow(
+      color: AppColors.secondary.withValues(alpha: 0.06),
+      blurRadius: w * 0.025,
+      offset: Offset(0, w * 0.008),
+    ),
+  ],
+);
+
+class _BackButton extends StatelessWidget {
+  const _BackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Center(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          context.canPop() ? context.pop() : AppNavigator.toHome(context);
+        },
+        child: Container(
+          width: w * 0.1,
+          height: w * 0.1,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceVariant,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: w * 0.042,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _SectionHeader({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Row(
+      children: [
+        Icon(icon, size: w * 0.045, color: AppColors.primary),
+        SizedBox(width: w * 0.02),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: w * 0.042,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _StatusBanner extends StatelessWidget {
   final ConsumerOrder order;
@@ -465,8 +597,8 @@ class _StatusBanner extends StatelessWidget {
     final color = isCancelled
         ? AppColors.error
         : isDelivered
-            ? AppColors.success
-            : AppColors.primary;
+        ? AppColors.success
+        : AppColors.primary;
 
     return Container(
       padding: EdgeInsets.all(w * 0.05),
@@ -477,6 +609,13 @@ class _StatusBanner extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(w * 0.04),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: w * 0.03,
+            offset: Offset(0, w * 0.012),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -484,8 +623,8 @@ class _StatusBanner extends StatelessWidget {
             isDelivered
                 ? Icons.check_circle_rounded
                 : isCancelled
-                    ? Icons.cancel_rounded
-                    : Icons.delivery_dining_rounded,
+                ? Icons.cancel_rounded
+                : Icons.delivery_dining_rounded,
             color: Colors.white,
             size: w * 0.12,
           ),
@@ -546,8 +685,7 @@ class _OrderTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final currentIndex =
-        _steps.indexWhere((s) => s.$1 == currentStatus);
+    final currentIndex = _steps.indexWhere((s) => s.$1 == currentStatus);
 
     return Column(
       children: List.generate(_steps.length, (i) {
@@ -571,18 +709,14 @@ class _OrderTimeline extends StatelessWidget {
                           : AppColors.surfaceVariant,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDone
-                            ? AppColors.primary
-                            : AppColors.border,
+                        color: isDone ? AppColors.primary : AppColors.border,
                         width: isCurrent ? 2.5 : 1,
                       ),
                     ),
                     child: Icon(
                       step.$2,
                       size: w * 0.04,
-                      color: isDone
-                          ? Colors.white
-                          : AppColors.textHint,
+                      color: isDone ? Colors.white : AppColors.textHint,
                     ),
                   ),
                   if (i < _steps.length - 1)
@@ -599,20 +733,13 @@ class _OrderTimeline extends StatelessWidget {
             SizedBox(width: w * 0.02),
             Expanded(
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: w * 0.015,
-                  bottom: w * 0.04,
-                ),
+                padding: EdgeInsets.only(top: w * 0.015, bottom: w * 0.04),
                 child: Text(
                   step.$3,
                   style: TextStyle(
                     fontSize: w * 0.035,
-                    fontWeight: isCurrent
-                        ? FontWeight.w700
-                        : FontWeight.w400,
-                    color: isDone
-                        ? AppColors.textPrimary
-                        : AppColors.textHint,
+                    fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
+                    color: isDone ? AppColors.textPrimary : AppColors.textHint,
                   ),
                 ),
               ),
@@ -632,7 +759,10 @@ class _DriverCard extends StatelessWidget {
   bool get _canCall => (order.driverPhone ?? '').trim().isNotEmpty;
 
   Future<void> _callDriver(BuildContext context) async {
-    final uri = Uri(scheme: 'tel', path: order.driverPhone!.replaceAll(' ', ''));
+    final uri = Uri(
+      scheme: 'tel',
+      path: order.driverPhone!.replaceAll(' ', ''),
+    );
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -647,11 +777,7 @@ class _DriverCard extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(w * 0.04),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(w * 0.035),
-        border: Border.all(color: AppColors.border),
-      ),
+      decoration: _cardDecoration(w),
       child: Row(
         children: [
           CircleAvatar(
@@ -703,8 +829,11 @@ class _DriverCard extends StatelessWidget {
                 color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.phone_rounded,
-                  color: Colors.white, size: w * 0.045),
+              child: Icon(
+                Icons.phone_rounded,
+                color: Colors.white,
+                size: w * 0.045,
+              ),
             ),
           ),
         ],
@@ -719,8 +848,7 @@ class _PriceRow extends StatelessWidget {
   final bool isBold;
   final Color? color;
 
-  const _PriceRow(this.label, this.value,
-      {this.isBold = false, this.color});
+  const _PriceRow(this.label, this.value, {this.isBold = false, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -735,8 +863,7 @@ class _PriceRow extends StatelessWidget {
             style: TextStyle(
               fontSize: w * 0.033,
               color: AppColors.textSecondary,
-              fontWeight:
-                  isBold ? FontWeight.w700 : FontWeight.w400,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
             ),
           ),
           Text(
@@ -744,8 +871,8 @@ class _PriceRow extends StatelessWidget {
             style: TextStyle(
               fontSize: isBold ? w * 0.038 : w * 0.033,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
-              color: color ??
-                  (isBold ? AppColors.primary : AppColors.textPrimary),
+              color:
+                  color ?? (isBold ? AppColors.primary : AppColors.textPrimary),
             ),
           ),
         ],

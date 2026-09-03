@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/widgets/restaurant_card.dart';
 import 'package:bagyesrushappusernew/features/consumer/search/presentation/states/search_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/search/presentation/viewmodels/search_viewmodel.dart';
@@ -89,9 +88,7 @@ class _ConsumerSearchViewState extends ConsumerState<ConsumerSearchView> {
                 itemCount: results.length,
                 itemBuilder: (ctx, i) => RestaurantListCard(
                   restaurant: results[i],
-                  onTap: () => context.push(
-                    AppRoutes.restaurantDetailPath(results[i].id),
-                  ),
+                  onTap: () => AppNavigator.toRestaurantDetail(context, results[i]),
                 ),
               ),
       },

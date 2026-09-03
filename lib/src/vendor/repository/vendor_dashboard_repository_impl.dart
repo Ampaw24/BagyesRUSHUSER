@@ -15,7 +15,9 @@ import '../../../core/utils/typedefs.dart';
 import '../../../features/consumer/restaurant/domain/entities/addon.dart';
 import '../model/earnings_data.dart';
 import '../model/menu_item.dart';
+import '../model/vendor_dashboard_stats.dart';
 import '../model/vendor_order.dart';
+import '../model/vendor_order_stats.dart';
 import '../model/vendor_profile.dart';
 import 'vendor_dashboard_repository.dart';
 
@@ -27,20 +29,21 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> fetchDashboardStats() async {
+  Future<Either<Failure, VendorDashboardStats>> fetchDashboardStats() async {
     appLogger.d('VendorDashboardRepo.fetchDashboardStats → initiated');
     try {
       final response = await _networkUtility.dio.get(
         ApiEndpoints.vendorDashStats,
       );
       if (_isSuccess(response.statusCode)) {
+        final stats = VendorDashboardStats.fromJson(_dataMap(response));
         appLogger.i('VendorDashboardRepo.fetchDashboardStats → loaded');
-        return Right(_dataMap(response));
+        return Right(stats);
       }
       appLogger.w(
         'VendorDashboardRepo.fetchDashboardStats → HTTP ${response.statusCode}',
       );
-      return NetworkUtils.handleDioResponseError<Map<String, dynamic>>(
+      return NetworkUtils.handleDioResponseError<VendorDashboardStats>(
         response,
       );
     } on DioException catch (e) {
@@ -48,9 +51,9 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
         'VendorDashboardRepo.fetchDashboardStats → DioException',
         error: e,
       );
-      return NetworkUtils.handleDioException<Map<String, dynamic>>(e);
+      return NetworkUtils.handleDioException<VendorDashboardStats>(e);
     } catch (e, s) {
-      return NetworkUtils.handleException<Map<String, dynamic>>(
+      return NetworkUtils.handleException<VendorDashboardStats>(
         e,
         s,
         repositoryName: 'VendorDashboardRepo',
@@ -139,6 +142,12 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   @override
   Future<Either<Failure, List<VendorOrder>>> fetchAllOrders({
     String? status,
+    String? type,
+    String? paymentStatus,
+    String? search,
+    DateTime? from,
+    DateTime? to,
+    int? perPage,
   }) async {
     appLogger.d(
       'VendorDashboardRepo.fetchAllOrders → status=${status ?? 'all'}',
@@ -146,7 +155,15 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     try {
       final response = await _networkUtility.dio.get(
         ApiEndpoints.vendorOrders,
-        queryParameters: status != null ? {'status': status} : null,
+        queryParameters: {
+          if (status != null) 'status': status,
+          if (type != null) 'type': type,
+          if (paymentStatus != null) 'payment_status': paymentStatus,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (from != null) 'from': _dateOnly(from),
+          if (to != null) 'to': _dateOnly(to),
+          if (perPage != null) 'per_page': perPage,
+        },
       );
       if (_isSuccess(response.statusCode)) {
         final list = _dataList(
@@ -177,14 +194,82 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, VendorOrderStats>> fetchOrderStats() async {
+    appLogger.d('VendorDashboardRepo.fetchOrderStats → initiated');
+    try {
+      final response = await _networkUtility.dio.get(
+        ApiEndpoints.vendorOrdersStats,
+      );
+      if (_isSuccess(response.statusCode)) {
+        final stats = VendorOrderStats.fromJson(_dataMap(response));
+        appLogger.i('VendorDashboardRepo.fetchOrderStats → loaded');
+        return Right(stats);
+      }
+      appLogger.w(
+        'VendorDashboardRepo.fetchOrderStats → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError<VendorOrderStats>(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'VendorDashboardRepo.fetchOrderStats → DioException',
+        error: e,
+      );
+      return NetworkUtils.handleDioException<VendorOrderStats>(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException<VendorOrderStats>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchOrderStats',
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, VendorOrder>> fetchOrderById(String orderId) async {
+    appLogger.d('VendorDashboardRepo.fetchOrderById → orderId=$orderId');
+    try {
+      final response = await _networkUtility.dio.get(
+        ApiEndpoints.vendorOrderById(orderId),
+      );
+      if (_isSuccess(response.statusCode)) {
+        final order = VendorOrder.fromJson(_dataMap(response));
+        appLogger.i('VendorDashboardRepo.fetchOrderById → id=${order.id}');
+        return Right(order);
+      }
+      appLogger.w(
+        'VendorDashboardRepo.fetchOrderById → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError<VendorOrder>(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'VendorDashboardRepo.fetchOrderById → DioException',
+        error: e,
+      );
+      return NetworkUtils.handleDioException<VendorOrder>(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException<VendorOrder>(
+        e,
+        s,
+        repositoryName: 'VendorDashboardRepo',
+        methodName: 'fetchOrderById',
+      );
+    }
+  }
+
   Future<Either<Failure, VendorOrder>> _patchOrderAction(
     String orderId,
     String action,
-    String Function(String) endpoint,
-  ) async {
+    String Function(String) endpoint, {
+    Map<String, dynamic>? data,
+  }) async {
     appLogger.d('VendorDashboardRepo.$action → orderId=$orderId');
     try {
-      final response = await _networkUtility.dio.patch(endpoint(orderId));
+      final response = await _networkUtility.dio.patch(
+        endpoint(orderId),
+        data: data,
+      );
       if (_isSuccess(response.statusCode)) {
         final order = VendorOrder.fromJson(_dataMap(response));
         appLogger.i('VendorDashboardRepo.$action → updated id=${order.id}');
@@ -206,12 +291,30 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   }
 
   @override
-  Future<Either<Failure, VendorOrder>> acceptOrder(String orderId) =>
-      _patchOrderAction(orderId, 'acceptOrder', ApiEndpoints.vendorOrderAccept);
+  Future<Either<Failure, VendorOrder>> acceptOrder(
+    String orderId, {
+    int? estimatedPrepMinutes,
+  }) =>
+      _patchOrderAction(
+        orderId,
+        'acceptOrder',
+        ApiEndpoints.vendorOrderAccept,
+        data: estimatedPrepMinutes != null
+            ? {'estimated_prep_minutes': estimatedPrepMinutes}
+            : null,
+      );
 
   @override
-  Future<Either<Failure, VendorOrder>> rejectOrder(String orderId) =>
-      _patchOrderAction(orderId, 'rejectOrder', ApiEndpoints.vendorOrderReject);
+  Future<Either<Failure, VendorOrder>> rejectOrder(
+    String orderId, {
+    required String reason,
+  }) =>
+      _patchOrderAction(
+        orderId,
+        'rejectOrder',
+        ApiEndpoints.vendorOrderReject,
+        data: {'reason': reason},
+      );
 
   @override
   Future<Either<Failure, VendorOrder>> markPreparing(String orderId) =>
@@ -242,8 +345,16 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       );
 
   @override
-  Future<Either<Failure, VendorOrder>> cancelOrder(String orderId) =>
-      _patchOrderAction(orderId, 'cancelOrder', ApiEndpoints.vendorOrderCancel);
+  Future<Either<Failure, VendorOrder>> cancelOrder(
+    String orderId, {
+    required String reason,
+  }) =>
+      _patchOrderAction(
+        orderId,
+        'cancelOrder',
+        ApiEndpoints.vendorOrderCancel,
+        data: {'reason': reason},
+      );
 
   // ── Menu ──────────────────────────────────────────────────────────────────
 
@@ -936,6 +1047,11 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
   // ── Private helpers ───────────────────────────────────────────────────────
 
   bool _isSuccess(int? code) => code != null && code >= 200 && code < 300;
+
+  String _dateOnly(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 
   DataMap _dataMap(Response response) {
     final body = response.data;

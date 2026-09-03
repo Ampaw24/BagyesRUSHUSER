@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../core/router/app_routes.dart';
+import '../../../core/router/app_navigator.dart';
 import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
 import '../../../features/consumer/restaurant/presentation/widgets/restaurant_card.dart';
 import 'shimmer_card.dart';
@@ -36,8 +35,7 @@ class PopularRestaurantsRow extends ConsumerWidget {
           itemBuilder: (ctx, i) => RestaurantCard(
             restaurant: restaurants[i],
             width: w * 0.44,
-            onTap: () =>
-                context.push(AppRoutes.restaurantDetailPath(restaurants[i].id)),
+            onTap: () => AppNavigator.toRestaurantDetail(context, restaurants[i]),
           ),
         ),
       ),

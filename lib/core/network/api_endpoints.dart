@@ -95,6 +95,9 @@ abstract final class ApiEndpoints {
   /// `GET /vendor/me/orders/:id`
   static String vendorOrderById(String orderId) => '$vendorOrders/$orderId';
 
+  /// `GET /vendor/me/orders/stats`
+  static const String vendorOrdersStats = '$vendorOrders/stats';
+
   /// `PATCH /vendor/me/orders/:id/accept`
   static String vendorOrderAccept(String orderId) =>
       '$vendorOrders/$orderId/accept';

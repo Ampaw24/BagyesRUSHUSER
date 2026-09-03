@@ -17,6 +17,7 @@ import 'widgets/store_toggle_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import 'widgets/new_order_banner.dart';
 import 'widgets/order_card.dart';
+import 'widgets/order_reason_sheet.dart';
 import 'widgets/floating_nav_bar.dart';
 import 'widgets/vendor_drawer.dart';
 import 'widgets/setup_progress_card.dart';
@@ -281,7 +282,12 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     super.initState();
     _fetchLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(dashboardProvider.notifier).loadDashboard();
+      if (!mounted) return;
+      final notifier = ref.read(dashboardProvider.notifier);
+      if (widget.vendorProfile != null) {
+        notifier.seedStoreOpen(widget.vendorProfile!.isOpen);
+      }
+      notifier.loadDashboard();
     });
   }
 
@@ -290,6 +296,50 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     if (mounted) {
       setState(() => _currentLocation = result.address);
     }
+  }
+
+  Future<void> _handleAcceptOrder(String orderId) async {
+    final controller = TextEditingController();
+    await CustomDialog.showConfirmation(
+      context: context,
+      title: 'Accept Order',
+      subtitle: 'Optionally set an estimated preparation time (minutes).',
+      confirmText: 'Accept',
+      content: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          hintText: 'e.g. 15',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      onConfirm: () {
+        final minutes = int.tryParse(controller.text.trim());
+        ref
+            .read(dashboardProvider.notifier)
+            .acceptOrder(orderId, estimatedPrepMinutes: minutes);
+      },
+    );
+  }
+
+  Future<void> _handleRejectOrder(String orderId) async {
+    final reason = await OrderReasonSheet.show(
+      context,
+      title: 'Reject Order',
+      confirmLabel: 'Reject Order',
+    );
+    if (reason == null || !mounted) return;
+    ref.read(dashboardProvider.notifier).rejectOrder(orderId, reason: reason);
+  }
+
+  Future<void> _handleCancelOrder(String orderId) async {
+    final reason = await OrderReasonSheet.show(
+      context,
+      title: 'Cancel Order',
+      confirmLabel: 'Cancel Order',
+    );
+    if (reason == null || !mounted) return;
+    ref.read(dashboardProvider.notifier).cancelOrder(orderId, reason: reason);
   }
 
   /// Pre-checks internet + location before opening the store.
@@ -583,9 +633,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         itemCount: newest.itemList.length,
                         secondsLeft: 87,
                         onTap: () {},
-                        onAccept: () => ref
-                            .read(dashboardProvider.notifier)
-                            .acceptOrder(newest.id),
+                        onAccept: () => _handleAcceptOrder(newest.id),
                       );
                     },
                   ),
@@ -677,14 +725,14 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                   child: OrderCard(
                     order: order,
                     onTap: () {},
-                    onAccept: () => notifier.acceptOrder(order.id),
-                    onDecline: () => notifier.rejectOrder(order.id),
+                    onAccept: () => _handleAcceptOrder(order.id),
+                    onDecline: () => _handleRejectOrder(order.id),
                     onMarkPreparing: () => notifier.markPreparing(order.id),
                     onMarkReady: () => notifier.markReady(order.id),
                     onMarkOutForDelivery: () =>
                         notifier.markOutForDelivery(order.id),
                     onMarkDelivered: () => notifier.markDelivered(order.id),
-                    onCancel: () => notifier.cancelOrder(order.id),
+                    onCancel: () => _handleCancelOrder(order.id),
                   ),
                 );
               }, childCount: state.activeOrders.length),
