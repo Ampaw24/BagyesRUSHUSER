@@ -1,11 +1,12 @@
 import 'package:bagyesrushappusernew/constant/constant.dart';
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/core/router/router.dart';
+import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../states/app.state.dart';
 import '../../src/notification/viewmodel/notification_viewmodel.dart';
 
 class Profile extends StatelessWidget {
@@ -13,8 +14,23 @@ class Profile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    final user = context.read<AppState>().userInfo;
+    final width = MediaQuery.sizeOf(context).width;
+    // Reference unit scales every spacing/size below relative to screen
+    // width (10.0 at a 375-wide phone, the size this layout was designed
+    // against) instead of hardcoding pixel values — clamped so spacing
+    // doesn't balloon on tablets or shrink too far on small phones.
+    final unit = (width / 37.5).clamp(8.0, 14.0);
+
+    // Watch (not read) so the avatar/name refresh immediately when
+    // EditProfile's save or avatar upload updates CurrentUserProvider —
+    // no need to leave and re-enter this screen to see the change.
+    final user = context.watch<CurrentUserProvider>().user;
+    final profile =
+        user?.profile is CustomerProfile ? user!.profile as CustomerProfile : null;
+    final fullName = [profile?.firstName, profile?.lastName]
+        .where((part) => part != null && part.isNotEmpty)
+        .join(' ');
+    final avatarUrl = profile?.profilePictureUrl;
 
     logoutDialogue() {
       CustomDialog.showConfirmation(
@@ -35,7 +51,12 @@ class Profile extends StatelessWidget {
         automaticallyImplyLeading: false,
         backgroundColor: scaffoldBgColor,
         elevation: 0.0,
-        title: Text('Profile', style: blackExtraLargeTextStyle),
+        title: Text(
+          'Profile',
+          style: blackExtraLargeTextStyle.copyWith(
+            fontSize: (unit * 2.2).clamp(18.0, 26.0),
+          ),
+        ),
       ),
       body: ListView(
         children: <Widget>[
@@ -45,7 +66,7 @@ class Profile extends StatelessWidget {
             },
             child: Container(
               width: width,
-              padding: EdgeInsets.all(fixPadding),
+              padding: EdgeInsets.all(unit),
               color: whiteColor,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -56,33 +77,45 @@ class Profile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
                       Container(
-                        width: 70.0,
-                        height: 70.0,
+                        width: unit * 7,
+                        height: unit * 7,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5.0),
+                          borderRadius: BorderRadius.circular(unit * 0.5),
                           image: DecorationImage(
-                            image: AssetImage('assets/user.jpg'),
+                            image: (avatarUrl != null && avatarUrl.isNotEmpty)
+                                ? NetworkImage(avatarUrl)
+                                : const AssetImage('assets/user.jpg')
+                                    as ImageProvider,
                             fit: BoxFit.cover,
                           ),
                         ),
                       ),
-                      widthSpace,
+                      SizedBox(width: unit),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          // Text(
-                          //   user.name,
-                          //   style: blackHeadingTextStyle,
-                          // ),
-                          heightSpace,
-                          Text(user.phone, style: greySmallTextStyle),
+                          if (fullName.isNotEmpty) ...[
+                            Text(
+                              fullName,
+                              style: blackHeadingTextStyle.copyWith(
+                                fontSize: (unit * 1.7).clamp(14.0, 19.0),
+                              ),
+                            ),
+                            SizedBox(height: unit),
+                          ],
+                          Text(
+                            user?.phone ?? '',
+                            style: greySmallTextStyle.copyWith(
+                              fontSize: (unit * 1.5).clamp(12.0, 17.0),
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                   Icon(
                     Icons.arrow_forward_ios,
-                    size: 16.0,
+                    size: unit * 1.6,
                     color: Colors.grey.withValues(alpha: 0.6),
                   ),
                 ],
@@ -90,15 +123,15 @@ class Profile extends StatelessWidget {
             ),
           ),
           Container(
-            margin: EdgeInsets.all(fixPadding),
-            padding: EdgeInsets.all(fixPadding),
+            margin: EdgeInsets.all(unit),
+            padding: EdgeInsets.all(unit),
             decoration: BoxDecoration(
               color: whiteColor,
-              borderRadius: BorderRadius.circular(5.0),
+              borderRadius: BorderRadius.circular(unit * 0.5),
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  blurRadius: 1.5,
-                  spreadRadius: 1.5,
+                  blurRadius: unit * 0.15,
+                  spreadRadius: unit * 0.15,
                   color: Colors.grey[200]!,
                 ),
               ],
@@ -115,6 +148,7 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Notifications',
+                    unit,
                     badgeCount:
                         context.watch<NotificationViewmodel>().unreadCount,
                   ),
@@ -127,6 +161,7 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Language',
+                    unit,
                   ),
                 ),
                 InkWell(
@@ -137,6 +172,7 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Settings',
+                    unit,
                   ),
                 ),
                 InkWell(
@@ -149,6 +185,7 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Invite Friends',
+                    unit,
                   ),
                 ),
                 InkWell(
@@ -159,21 +196,22 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Support',
+                    unit,
                   ),
                 ),
               ],
             ),
           ),
           Container(
-            margin: EdgeInsets.all(fixPadding),
-            padding: EdgeInsets.all(fixPadding),
+            margin: EdgeInsets.all(unit),
+            padding: EdgeInsets.all(unit),
             decoration: BoxDecoration(
               color: whiteColor,
-              borderRadius: BorderRadius.circular(5.0),
+              borderRadius: BorderRadius.circular(unit * 0.5),
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  blurRadius: 1.5,
-                  spreadRadius: 1.5,
+                  blurRadius: unit * 0.15,
+                  spreadRadius: unit * 0.15,
                   color: Colors.grey[200]!,
                 ),
               ],
@@ -188,6 +226,7 @@ class Profile extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.6),
                     ),
                     'Logout',
+                    unit,
                   ),
                 ),
               ],
@@ -198,7 +237,7 @@ class Profile extends StatelessWidget {
     );
   }
 
-  Row getTile(Icon icon, String title, {int badgeCount = 0}) {
+  Row getTile(Icon icon, String title, double unit, {int badgeCount = 0}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -208,13 +247,18 @@ class Profile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Container(
-              height: 40.0,
-              width: 40.0,
+              height: unit * 4,
+              width: unit * 4,
               alignment: Alignment.center,
               child: icon,
             ),
-            widthSpace,
-            Text(title, style: inputTextStyle),
+            SizedBox(width: unit),
+            Text(
+              title,
+              style: inputTextStyle.copyWith(
+                fontSize: (unit * 1.6).clamp(13.0, 18.0),
+              ),
+            ),
           ],
         ),
         Row(
@@ -222,25 +266,28 @@ class Profile extends StatelessWidget {
           children: [
             if (badgeCount > 0) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: EdgeInsets.symmetric(
+                  horizontal: unit * 0.7,
+                  vertical: unit * 0.2,
+                ),
                 decoration: BoxDecoration(
                   color: primaryColor,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(unit * 2),
                 ),
                 child: Text(
                   '$badgeCount',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: (unit * 1.1).clamp(9.0, 13.0),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              widthSpace,
+              SizedBox(width: unit),
             ],
             Icon(
               Icons.arrow_forward_ios,
-              size: 16.0,
+              size: unit * 1.6,
               color: Colors.grey.withValues(alpha: 0.6),
             ),
           ],

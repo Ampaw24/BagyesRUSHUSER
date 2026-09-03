@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart';
+
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
@@ -8,6 +10,67 @@ import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart'
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+
+/// Merges a user response from a *scoped* update endpoint (avatar-only,
+/// profile-only) onto the previously cached user, so a field that endpoint
+/// doesn't echo back — e.g. the avatar URL on a text-only edit, or the name
+/// on an avatar-only upload — doesn't get blanked out. Field-level merging
+/// only applies to [CustomerProfile]; vendor profiles come back complete
+/// from their own dedicated endpoints.
+User _mergeUser(User? previous, User fresh) {
+  // No previous user to merge onto, or the two records belong to different
+  // accounts (e.g. fresh is a brand-new login while previous is a stale
+  // pre-logout cache) — never blend fields across accounts.
+  if (previous == null) return fresh;
+  if (previous.id.isNotEmpty && fresh.id.isNotEmpty && previous.id != fresh.id) {
+    return fresh;
+  }
+
+  final freshProfile = fresh.profile;
+  final previousProfile = previous.profile;
+
+  dynamic mergedProfile = freshProfile ?? previousProfile;
+  if (freshProfile is CustomerProfile && previousProfile is CustomerProfile) {
+    final hasReferralInfo = freshProfile.referralCode.isNotEmpty;
+    mergedProfile = CustomerProfile(
+      id: freshProfile.id.isNotEmpty ? freshProfile.id : previousProfile.id,
+      userId: freshProfile.userId.isNotEmpty
+          ? freshProfile.userId
+          : previousProfile.userId,
+      firstName: freshProfile.firstName.isNotEmpty
+          ? freshProfile.firstName
+          : previousProfile.firstName,
+      lastName: freshProfile.lastName.isNotEmpty
+          ? freshProfile.lastName
+          : previousProfile.lastName,
+      address: freshProfile.address.isNotEmpty
+          ? freshProfile.address
+          : previousProfile.address,
+      profilePictureUrl: (freshProfile.profilePictureUrl?.isNotEmpty ?? false)
+          ? freshProfile.profilePictureUrl
+          : previousProfile.profilePictureUrl,
+      referralCode: hasReferralInfo
+          ? freshProfile.referralCode
+          : previousProfile.referralCode,
+      referralCount: hasReferralInfo
+          ? freshProfile.referralCount
+          : previousProfile.referralCount,
+      createdAt: freshProfile.createdAt ?? previousProfile.createdAt,
+      updatedAt: freshProfile.updatedAt ?? previousProfile.updatedAt,
+      v: freshProfile.v,
+    );
+  }
+
+  return User(
+    id: fresh.id.isNotEmpty ? fresh.id : previous.id,
+    email: fresh.email.isNotEmpty ? fresh.email : previous.email,
+    phone: fresh.phone.isNotEmpty ? fresh.phone : previous.phone,
+    role: fresh.role.isNotEmpty ? fresh.role : previous.role,
+    status: fresh.status.isNotEmpty ? fresh.status : previous.status,
+    phoneVerified: fresh.phoneVerified,
+    profile: mergedProfile,
+  );
+}
 
 class AuthViewmodel extends ViewModel<AuthState> {
   AuthViewmodel({
@@ -359,7 +422,14 @@ class AuthViewmodel extends ViewModel<AuthState> {
             },
           );
         } else {
-          _currentUserProvider.setUser(resolvedUser);
+          // Merge rather than replace outright: this fetch can re-run
+          // whenever the session is restored, and a thinner /auth/me
+          // response (e.g. one that omits referral info) would otherwise
+          // silently blank out fields the app already had from a fuller
+          // profile fetch or a previous edit.
+          _currentUserProvider.setUser(
+            _mergeUser(_currentUserProvider.user, resolvedUser),
+          );
         }
 
         appLogger.i(
@@ -484,9 +554,10 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
   /// Uploads a new profile picture for the current customer.
   ///
-  /// Emits [AvatarUploading] while the request is in flight, updates
-  /// [CurrentUserProvider] with the returned user on success (so the new
-  /// avatar shows up everywhere it's displayed), then emits [AvatarUploaded].
+  /// Emits [AvatarUploading] while the request is in flight, merges the
+  /// returned user onto the cached one (see [_mergeUser]) and updates
+  /// [CurrentUserProvider] on success (so the new avatar shows up everywhere
+  /// it's displayed immediately), then emits [AvatarUploaded].
   Future<void> uploadAvatar(String filePath) async {
     appLogger.d('AuthViewmodel.uploadAvatar → path=$filePath');
     emit(const AvatarUploading());
@@ -499,9 +570,49 @@ class AuthViewmodel extends ViewModel<AuthState> {
         emit(AuthError.fromFailure(failure));
       },
       (user) {
-        appLogger.i('AuthViewmodel.uploadAvatar → success id=${user.id}');
-        _currentUserProvider.setUser(user);
-        emit(AvatarUploaded(user));
+        final merged = _mergeUser(_currentUserProvider.user, user);
+        appLogger.i('AuthViewmodel.uploadAvatar → success id=${merged.id}');
+        _currentUserProvider.setUser(merged);
+        emit(AvatarUploaded(merged));
+      },
+    );
+  }
+
+  /// Updates the current customer's profile (name/email/phone/address).
+  ///
+  /// Merges the response onto the cached user (see [_mergeUser]) so a field
+  /// the endpoint doesn't echo back — e.g. the avatar URL on a text-only
+  /// edit — isn't lost, then syncs [CurrentUserProvider] so every screen
+  /// reading from it (Profile, EditProfile, drawers, ...) reflects the
+  /// change immediately, without the caller needing to leave and re-enter
+  /// the screen to see it persisted.
+  ResultFuture<User> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    String? address,
+  }) async {
+    appLogger.d('AuthViewmodel.updateProfile → initiated');
+
+    final result = await _repository.updateProfile(
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: phone,
+      address: address,
+    );
+
+    return result.fold(
+      (failure) {
+        appLogger.w('AuthViewmodel.updateProfile → error: ${failure.message}');
+        return Left(failure);
+      },
+      (user) {
+        final merged = _mergeUser(_currentUserProvider.user, user);
+        appLogger.i('AuthViewmodel.updateProfile → success id=${merged.id}');
+        _currentUserProvider.setUser(merged);
+        return Right(merged);
       },
     );
   }

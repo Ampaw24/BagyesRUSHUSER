@@ -27,7 +27,8 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
     int limit = 20,
   }) async {
     appLogger.d(
-        'RestaurantRepository.getRestaurantsPaged → category=${category ?? 'all'} page=$page');
+      'RestaurantRepository.getRestaurantsPaged → category=${category ?? 'all'} page=$page',
+    );
     try {
       final params = <String, dynamic>{'page': page, 'limit': limit};
       if (category != null && category.toLowerCase() != 'all') {
@@ -40,8 +41,9 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       );
 
       final (list, meta) = _extractPagedList(response);
-      final restaurants =
-          list.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+      final restaurants = list
+          .map((e) => Restaurant.fromJson(e as Map<String, dynamic>))
+          .toList();
 
       final currentPage =
           (meta['current_page'] ?? meta['page']) as num? ?? page;
@@ -49,8 +51,9 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       final total = meta['total'] as num? ?? restaurants.length;
 
       appLogger.i(
-          'RestaurantRepository.getRestaurantsPaged → ${restaurants.length} items '
-          '(page $currentPage/$lastPage, total $total)');
+        'RestaurantRepository.getRestaurantsPaged → ${restaurants.length} items '
+        '(page $currentPage/$lastPage, total $total)',
+      );
 
       return RestaurantPage(
         restaurants: restaurants,
@@ -59,10 +62,17 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
         total: total.toInt(),
       );
     } on DioException catch (e) {
-      appLogger.e('RestaurantRepository.getRestaurantsPaged → DioException', error: e);
+      appLogger.e(
+        'RestaurantRepository.getRestaurantsPaged → DioException',
+        error: e,
+      );
       rethrow;
     } catch (e, s) {
-      appLogger.e('RestaurantRepository.getRestaurantsPaged → error', error: e, stackTrace: s);
+      appLogger.e(
+        'RestaurantRepository.getRestaurantsPaged → error',
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }
@@ -73,22 +83,38 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
     try {
       final response = await _client.get(ApiEndpoints.vendorsFeatured);
       final (list, _) = _extractPagedList(response);
-      final restaurants =
-          list.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+      final restaurants = list
+          .map((e) => Restaurant.fromJson(e as Map<String, dynamic>))
+          .toList();
       appLogger.i(
-          'RestaurantRepository.getFeaturedRestaurants → ${restaurants.length} items');
+        'RestaurantRepository.getFeaturedRestaurants → ${restaurants.length} items',
+      );
       return restaurants;
     } on DioException catch (e) {
-      appLogger.e('RestaurantRepository.getFeaturedRestaurants → DioException', error: e);
+      appLogger.e(
+        'RestaurantRepository.getFeaturedRestaurants → DioException',
+        error: e,
+      );
       rethrow;
     } catch (e, s) {
-      appLogger.e('RestaurantRepository.getFeaturedRestaurants → error', error: e, stackTrace: s);
+      appLogger.e(
+        'RestaurantRepository.getFeaturedRestaurants → error',
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }
 
   @override
-  Future<List<Restaurant>> getNearbyRestaurants() async {
+  Future<List<Restaurant>> getNearbyRestaurants({
+    double? radius,
+    String? search,
+    int? businessTypeId,
+    String? category,
+    bool? isOpen,
+    int perPage = 20,
+  }) async {
     appLogger.d('RestaurantRepository.getNearbyRestaurants → initiated');
     try {
       final location = await LocationHelper.getCurrentLocation(
@@ -97,26 +123,48 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       final position = location.position;
       if (position == null) {
         appLogger.w(
-            'RestaurantRepository.getNearbyRestaurants → no device location, falling back to open vendors');
-        final page = await getRestaurantsPaged();
+          'RestaurantRepository.getNearbyRestaurants → no device location, falling back to open vendors',
+        );
+        final page = await getRestaurantsPaged(category: category);
         return page.restaurants.where((r) => r.isOpen).take(6).toList();
       }
 
+      final params = <String, dynamic>{
+        'lat': position.latitude,
+        'lng': position.longitude,
+        'per_page': perPage,
+        if (radius != null) 'radius': radius,
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (businessTypeId != null) 'business_type_id': businessTypeId,
+        if (category != null && category.toLowerCase() != 'all')
+          'category': category.toLowerCase().replaceAll(' ', '-'),
+        if (isOpen != null) 'is_open': isOpen,
+      };
+
       final response = await _client.get(
         ApiEndpoints.vendorsNearby,
-        queryParameters: {'lat': position.latitude, 'lng': position.longitude},
+        queryParameters: params,
       );
       final (list, _) = _extractPagedList(response);
-      final restaurants =
-          list.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+      final restaurants = list
+          .map((e) => Restaurant.fromJson(e as Map<String, dynamic>))
+          .toList();
       appLogger.i(
-          'RestaurantRepository.getNearbyRestaurants → ${restaurants.length} items');
+        'RestaurantRepository.getNearbyRestaurants → ${restaurants.length} items',
+      );
       return restaurants;
     } on DioException catch (e) {
-      appLogger.e('RestaurantRepository.getNearbyRestaurants → DioException', error: e);
+      appLogger.e(
+        'RestaurantRepository.getNearbyRestaurants → DioException',
+        error: e,
+      );
       rethrow;
     } catch (e, s) {
-      appLogger.e('RestaurantRepository.getNearbyRestaurants → error', error: e, stackTrace: s);
+      appLogger.e(
+        'RestaurantRepository.getNearbyRestaurants → error',
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }
@@ -128,13 +176,22 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       final response = await _client.get(ApiEndpoints.vendorById(id));
       final payload = _extractSingle(response);
       final restaurant = Restaurant.fromJson(payload);
-      appLogger.i('RestaurantRepository.getRestaurantById → loaded id=${restaurant.id}');
+      appLogger.i(
+        'RestaurantRepository.getRestaurantById → loaded id=${restaurant.id}',
+      );
       return restaurant;
     } on DioException catch (e) {
-      appLogger.e('RestaurantRepository.getRestaurantById → DioException', error: e);
+      appLogger.e(
+        'RestaurantRepository.getRestaurantById → DioException',
+        error: e,
+      );
       rethrow;
     } catch (e, s) {
-      appLogger.e('RestaurantRepository.getRestaurantById → error', error: e, stackTrace: s);
+      appLogger.e(
+        'RestaurantRepository.getRestaurantById → error',
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }
@@ -143,14 +200,17 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
   Future<Map<String, List<MenuItem>>> getMenu(String restaurantId) async {
     appLogger.d('RestaurantRepository.getMenu → restaurantId=$restaurantId');
     try {
-      final response =
-          await _client.get(ApiEndpoints.vendorMenuItems(restaurantId));
+      final response = await _client.get(
+        ApiEndpoints.vendorMenuItems(restaurantId),
+      );
       final rawItems = _extractMenuItems(response);
       final items = rawItems
-          .map((e) => MenuItem.fromJson(
-                e as Map<String, dynamic>,
-                restaurantId: restaurantId,
-              ))
+          .map(
+            (e) => MenuItem.fromJson(
+              e as Map<String, dynamic>,
+              restaurantId: restaurantId,
+            ),
+          )
           .toList();
 
       final grouped = <String, List<MenuItem>>{};
@@ -159,13 +219,18 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       }
 
       appLogger.i(
-          'RestaurantRepository.getMenu → ${items.length} items in ${grouped.keys.length} categories');
+        'RestaurantRepository.getMenu → ${items.length} items in ${grouped.keys.length} categories',
+      );
       return grouped;
     } on DioException catch (e) {
       appLogger.e('RestaurantRepository.getMenu → DioException', error: e);
       rethrow;
     } catch (e, s) {
-      appLogger.e('RestaurantRepository.getMenu → error', error: e, stackTrace: s);
+      appLogger.e(
+        'RestaurantRepository.getMenu → error',
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }
@@ -189,7 +254,11 @@ class RestaurantRepositoryImpl implements IRestaurantRepository {
       appLogger.e('RestaurantRepository.search → DioException', error: e);
       rethrow;
     } catch (e, s) {
-      appLogger.e('RestaurantRepository.search → error', error: e, stackTrace: s);
+      appLogger.e(
+        'RestaurantRepository.search → error',
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }

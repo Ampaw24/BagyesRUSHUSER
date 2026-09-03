@@ -5,14 +5,12 @@ import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart'
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
-import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
@@ -33,6 +31,32 @@ class _EditProfileState extends State<EditProfile> {
   bool _profileLoaded  = false;
   bool _uploadingAvatar = false;
   File? _pickedAvatar;
+
+  // Snapshot of the loaded values — compared against the live controllers
+  // to decide whether the Save button should be enabled at all.
+  String _initialName    = '';
+  String _initialPhone   = '';
+  String _initialEmail   = '';
+  String _initialAddress = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_handleFieldChanged);
+    _phoneController.addListener(_handleFieldChanged);
+    _emailController.addListener(_handleFieldChanged);
+    _addressController.addListener(_handleFieldChanged);
+  }
+
+  void _handleFieldChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _isDirty =>
+      _nameController.text.trim() != _initialName ||
+      _phoneController.text.trim() != _initialPhone ||
+      _emailController.text.trim() != _initialEmail ||
+      _addressController.text.trim() != _initialAddress;
 
   @override
   void didChangeDependencies() {
@@ -56,10 +80,19 @@ class _EditProfileState extends State<EditProfile> {
     _phoneController.text = raw.startsWith('+233') ? raw.substring(4) : raw;
     _emailController.text = user.email;
     _addressController.text = user.profile?.address ?? '';
+
+    _initialName    = _nameController.text;
+    _initialPhone   = _phoneController.text;
+    _initialEmail   = _emailController.text;
+    _initialAddress = _addressController.text;
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_handleFieldChanged);
+    _phoneController.removeListener(_handleFieldChanged);
+    _emailController.removeListener(_handleFieldChanged);
+    _addressController.removeListener(_handleFieldChanged);
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -82,9 +115,11 @@ class _EditProfileState extends State<EditProfile> {
 
     setState(() => _loading = true);
 
-    final authRepo = GetIt.instance<AuthRepository>();
-
-    final result = await authRepo.updateProfile(
+    // Routed through AuthViewmodel (not the repository directly) so the
+    // response is merged onto the cached user before CurrentUserProvider is
+    // updated — a text-only edit response that omits the avatar URL won't
+    // wipe out the photo the user just uploaded, and vice versa.
+    final result = await context.read<AuthViewmodel>().updateProfile(
       firstName: firstName,
       lastName:  lastName,
       email:     email,
@@ -101,10 +136,7 @@ class _EditProfileState extends State<EditProfile> {
         title: 'Update Failed',
         subtitle: failure.message,
       ),
-      (updatedUser) {
-        context.read<CurrentUserProvider>().setUser(updatedUser);
-        Navigator.pop(context);
-      },
+      (_) => Navigator.pop(context),
     );
   }
 
@@ -190,10 +222,15 @@ class _EditProfileState extends State<EditProfile> {
                         ),
                       )
                     : TextButton(
-                        onPressed: () => _saveProfile(context),
+                        onPressed:
+                            _isDirty ? () => _saveProfile(context) : null,
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor:
+                              Colors.white.withValues(alpha: 0.08),
+                          disabledForegroundColor:
+                              Colors.white.withValues(alpha: 0.4),
                           padding: EdgeInsets.symmetric(
                             horizontal: w * 0.045,
                             vertical: 8,
@@ -368,10 +405,16 @@ class _EditProfileState extends State<EditProfile> {
                   width: double.infinity,
                   height: (w * 0.14).clamp(48.0, 62.0),
                   child: ElevatedButton(
-                    onPressed: _loading ? null : () => _saveProfile(context),
+                    onPressed: (_loading || !_isDirty)
+                        ? null
+                        : () => _saveProfile(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.35),
+                      disabledForegroundColor:
+                          Colors.white.withValues(alpha: 0.7),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),

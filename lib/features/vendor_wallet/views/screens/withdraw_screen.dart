@@ -7,6 +7,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../src/payment/model/payment_method.dart';
 import '../../../../src/payment/viewmodel/payment_state.dart';
 import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
+import '../../../../src/payment/views/widgets/payout_provider_visuals.dart';
 import '../../models/withdrawal_model.dart';
 import '../../providers/wallet_providers.dart';
 import 'withdrawal_success_screen.dart';
@@ -241,20 +242,29 @@ class _MethodTileState extends State<_MethodTile>
           ),
           child: Row(
             children: [
-              // Type icon
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.phone_android_rounded,
-                  color: primary,
-                  size: 22,
-                ),
-              ),
+              // Provider brand avatar (falls back to a generic icon when no
+              // provider is embedded on the method).
+              widget.method.provider != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: PayoutProviderAvatar(
+                        provider: widget.method.provider!,
+                        size: 44,
+                      ),
+                    )
+                  : Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.phone_android_rounded,
+                        color: primary,
+                        size: 22,
+                      ),
+                    ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

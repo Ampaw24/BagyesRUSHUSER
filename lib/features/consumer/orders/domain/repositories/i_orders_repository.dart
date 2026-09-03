@@ -33,7 +33,12 @@ abstract interface class IOrdersRepository {
   Future<ConsumerOrder> cancelOrder(String orderId);
   Future<ConsumerOrder> reorder(String orderId);
   Future<ConsumerOrder> trackOrder(String orderId);
-  Future<Map<String, dynamic>> payOrder(String orderId, {required String paymentMethod});
+  Future<Map<String, dynamic>> payOrder(
+    String orderId, {
+    required String paymentMethod,
+    String? phone,
+    String? mobileMoneyProvider,
+  });
   Future<ConsumerOrder> verifyPayment(String orderId, {required String reference});
   Future<DeliveryQuote> getDeliveryQuote({
     required String vendorId,

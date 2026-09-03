@@ -144,8 +144,15 @@ class OrdersViewModel extends Notifier<OrdersState> {
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
+    String? phone,
+    String? mobileMoneyProvider,
   }) =>
-      _repo.payOrder(orderId, paymentMethod: paymentMethod);
+      _repo.payOrder(
+        orderId,
+        paymentMethod: paymentMethod,
+        phone: phone,
+        mobileMoneyProvider: mobileMoneyProvider,
+      );
 
   Future<void> verifyPayment(String orderId, {required String reference}) async {
     final updated = await _repo.verifyPayment(orderId, reference: reference);

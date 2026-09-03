@@ -118,58 +118,69 @@ class _KycVerificationViewState extends State<KycVerificationView>
           opacity: _fadeAnim,
           child: SlideTransition(
             position: _slideAnim,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: sw * 0.08),
-              child: Column(
-                children: [
-                  SizedBox(height: sh * 0.08),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: sw * 0.08),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          SizedBox(height: sh * 0.08),
 
-                  // ── Illustration badge ──
-                  _buildIllustration(sw),
-                  SizedBox(height: sh * 0.04),
+                          // ── Illustration badge ──
+                          _buildIllustration(sw),
+                          SizedBox(height: sh * 0.04),
 
-                  // ── Title ──
-                  Text(
-                    'Verify Your Phone',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Mukta',
-                      fontSize: (sw * 0.068).clamp(22, 32),
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.3,
+                          // ── Title ──
+                          Text(
+                            'Verify Your Phone',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Mukta',
+                              fontSize: (sw * 0.068).clamp(22, 32),
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          SizedBox(height: sh * 0.012),
+
+                          // ── Subtitle ──
+                          Text(
+                            'We\'ll send a verification code to your registered '
+                            'phone number to confirm your identity.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Mukta',
+                              fontSize: (sw * 0.038).clamp(13, 17),
+                              color: AppColors.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                          SizedBox(height: sh * 0.035),
+
+                          // ── Phone number chip ──
+                          if (phone.isNotEmpty) _buildPhoneChip(sw, phone),
+
+                          const Spacer(),
+
+                          // ── Verify button ──
+                          _buildVerifyButton(sw, sh),
+                          SizedBox(height: sh * 0.018),
+
+                          // ── Logout link ──
+                          _buildLogoutLink(sw),
+                          SizedBox(height: sh * 0.04),
+                        ],
+                      ),
                     ),
                   ),
-                  SizedBox(height: sh * 0.012),
-
-                  // ── Subtitle ──
-                  Text(
-                    'We\'ll send a verification code to your registered '
-                    'phone number to confirm your identity.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Mukta',
-                      fontSize: (sw * 0.038).clamp(13, 17),
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  SizedBox(height: sh * 0.035),
-
-                  // ── Phone number chip ──
-                  if (phone.isNotEmpty) _buildPhoneChip(sw, phone),
-
-                  const Spacer(),
-
-                  // ── Verify button ──
-                  _buildVerifyButton(sw, sh),
-                  SizedBox(height: sh * 0.018),
-
-                  // ── Logout link ──
-                  _buildLogoutLink(sw),
-                  SizedBox(height: sh * 0.04),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),

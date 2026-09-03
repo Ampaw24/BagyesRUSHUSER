@@ -6,8 +6,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/domain/entities/consumer_order.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
+import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
+import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
+import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
+import 'package:bagyesrushappusernew/src/payment/views/screens/payment_webview_screen.dart';
+
+/// Wraps a user-facing message so the catch-all in [_OrderTrackingViewState._payNow]
+/// can distinguish an expected, already-worded failure from an unexpected one.
+class _PayNowFailure implements Exception {
+  final String message;
+  const _PayNowFailure(this.message);
+}
 
 class OrderTrackingView extends ConsumerStatefulWidget {
   final String orderId;
@@ -68,27 +81,132 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView>
     }
   }
 
-  /// Initiates payment. Connection-level failures are already retried
-  /// transparently inside the repository; anything that gets here (a
-  /// timeout after the request reached the server, a 5xx, etc.) is
-  /// ambiguous enough that we surface it and let the user decide to retry,
-  /// rather than risk firing a second charge attempt automatically.
+  /// Maps a saved payout/payment-method's provider record to the gateway's
+  /// Matches free text (a provider's slug/name, or a saved method's label
+  /// like "MTN 0987") against the gateway's [MobileMoneyProvider] enum.
+  MobileMoneyProvider? _matchMobileMoneyProvider(String text) {
+    final needle = text.toLowerCase();
+    for (final p in MobileMoneyProvider.values) {
+      if (needle.contains(p.apiValue)) return p;
+    }
+    if (needle.contains('airtel') || needle.contains('tigo')) {
+      return MobileMoneyProvider.airtelTigo;
+    }
+    return null;
+  }
+
+  /// Resolves a saved payment method's mobile money network. The customer
+  /// payment-methods list doesn't always embed the full `payout_provider`
+  /// object (only `payout_provider_id`), so this tries, in order: the
+  /// embedded provider's slug/name, the method's own label (often something
+  /// like "MTN 0987"), then — only if neither matched — fetches the payout
+  /// provider catalog and looks the id up there.
+  Future<MobileMoneyProvider?> _resolveMobileMoneyProvider(PaymentMethod saved) async {
+    final provider = saved.provider;
+    if (provider != null) {
+      final match =
+          _matchMobileMoneyProvider('${provider.slug} ${provider.shortName} ${provider.name}');
+      if (match != null) return match;
+    }
+
+    final byLabel = _matchMobileMoneyProvider(saved.label ?? '');
+    if (byLabel != null) return byLabel;
+
+    if (saved.payoutProviderId == 0) return null;
+    final providers = await sl<PaymentRepository>().getPayoutProviders().then(
+          (result) => result.fold((_) => const <PayoutProviderModel>[], (list) => list),
+        );
+    for (final p in providers) {
+      if (p.id == saved.payoutProviderId) {
+        return _matchMobileMoneyProvider('${p.slug} ${p.shortName} ${p.name}');
+      }
+    }
+    return null;
+  }
+
+  /// Initiates payment for an order via the order-scoped endpoints
+  /// (`POST customer/orders/:id/pay` → `POST customer/orders/:id/verify-payment`),
+  /// using the customer's default saved mobile money method. Flow: fetch
+  /// saved methods → hit `/pay` with phone + provider → (if a hosted
+  /// checkout page comes back) show it in a WebView until the user is
+  /// redirected away from the gateway → verify the charge by reference →
+  /// refresh the order.
+  ///
+  /// Connection-level failures are already retried transparently inside the
+  /// repository; anything that gets here (validation error, a timeout after
+  /// the request reached the server, a 5xx, etc.) is ambiguous enough that
+  /// we surface it and let the user decide to retry, rather than risk firing
+  /// a second charge attempt automatically.
   Future<void> _payNow(String orderId, String paymentMethod) async {
     if (_isPaying) return;
     setState(() => _isPaying = true);
     try {
-      await ref
-          .read(ordersProvider.notifier)
-          .payOrder(orderId, paymentMethod: paymentMethod);
+      if (paymentMethod != 'mobile_money') {
+        throw const _PayNowFailure(
+          'This payment method isn\'t supported yet. Please contact support.',
+        );
+      }
+
+      final methods = await sl<PaymentRepository>().getCustomerPaymentMethods().then(
+            (result) => result.fold(
+              (failure) => throw _PayNowFailure(failure.message),
+              (methods) => methods,
+            ),
+          );
+      if (methods.isEmpty) {
+        throw const _PayNowFailure(
+          'No saved mobile money number. Add one under Payment Methods first.',
+        );
+      }
+      final PaymentMethod saved =
+          methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
+      final mmProvider = await _resolveMobileMoneyProvider(saved);
       if (!mounted) return;
-      // Refresh right away so the screen reflects the new payment status
-      // without waiting for the next 15s poll tick.
-      await ref.read(ordersProvider.notifier).trackOrder(orderId);
-    } catch (_) {
+      if (mmProvider == null) {
+        throw _PayNowFailure(
+          'Couldn\'t match "${saved.displayTitle}" to a supported mobile money network.',
+        );
+      }
+
+      final payResponse = await ref.read(ordersProvider.notifier).payOrder(
+            orderId,
+            paymentMethod: paymentMethod,
+            phone: saved.phoneNumber,
+            mobileMoneyProvider: mmProvider.apiValue,
+          );
+
       if (!mounted) return;
+
+      final paymentUrl =
+          (payResponse['payment_url'] ?? payResponse['paymentUrl'])?.toString();
+      if (paymentUrl != null && paymentUrl.isNotEmpty) {
+        final leftGateway = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => PaymentWebViewScreen(paymentUrl: paymentUrl),
+          ),
+        );
+        // User closed the checkout page before the gateway redirected
+        // anywhere — nothing to verify yet, so stop here without an error
+        // toast.
+        if (leftGateway != true) return;
+      }
+
+      if (!mounted) return;
+      final reference = (payResponse['reference'] ?? payResponse['payment_reference'])?.toString();
+      if (reference != null && reference.isNotEmpty) {
+        await ref.read(ordersProvider.notifier).verifyPayment(orderId, reference: reference);
+      } else {
+        // No reference to verify against — just refresh right away so the
+        // screen reflects whatever status the /pay call already produced,
+        // without waiting for the next 15s poll tick.
+        await ref.read(ordersProvider.notifier).trackOrder(orderId);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final message = e is _PayNowFailure ? e.message : 'Payment failed. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Payment failed. Please try again.'),
+          content: Text(message),
           action: SnackBarAction(
             label: 'Retry',
             onPressed: () => _payNow(orderId, paymentMethod),

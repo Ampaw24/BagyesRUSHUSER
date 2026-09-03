@@ -33,8 +33,23 @@ abstract interface class IRestaurantRepository {
   /// Featured / promoted restaurants for the home banner.
   Future<List<Restaurant>> getFeaturedRestaurants();
 
-  /// Restaurants within ~5 km of the user.
-  Future<List<Restaurant>> getNearbyRestaurants();
+  /// Restaurants near the user's current location.
+  ///
+  /// Mirrors `GET /vendors/nearby`'s query contract:
+  ///   - [radius] km, 0.1–100 (server default applies when omitted).
+  ///   - [search] free-text vendor search, max 255 chars.
+  ///   - [businessTypeId] must reference an existing `business_types.id`.
+  ///   - [category] vendor category slug/name.
+  ///   - [isOpen] filters to currently-open vendors only.
+  ///   - [perPage] page size, 1–100 (defaults to 20).
+  Future<List<Restaurant>> getNearbyRestaurants({
+    double? radius,
+    String? search,
+    int? businessTypeId,
+    String? category,
+    bool? isOpen,
+    int perPage = 20,
+  });
 
   /// Single restaurant detail.
   Future<Restaurant> getRestaurantById(String id);

@@ -50,6 +50,9 @@ class _PayoutProviderDropdownState extends State<PayoutProviderDropdown> {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final hasSelection = widget.selected != null;
+    final accent = hasSelection
+        ? payoutProviderVisual(widget.selected!).color
+        : AppColors.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,10 +73,10 @@ class _PayoutProviderDropdownState extends State<PayoutProviderDropdown> {
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.symmetric(horizontal: w * 0.032, vertical: w * 0.028),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(w * 0.03),
+              color: hasSelection ? accent.withValues(alpha: 0.05) : Colors.white,
+              borderRadius: BorderRadius.circular(w * 0.035),
               border: Border.all(
-                color: _open ? AppColors.primary : AppColors.border,
+                color: _open || hasSelection ? accent : AppColors.border,
                 width: _open ? 1.5 : 1,
               ),
             ),
@@ -173,14 +176,31 @@ class _PayoutProviderDropdownState extends State<PayoutProviderDropdown> {
                 final visual = payoutProviderVisual(provider);
                 return InkWell(
                   onTap: () => _select(provider),
+                  borderRadius: BorderRadius.circular(w * 0.03),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOut,
-                    padding: EdgeInsets.symmetric(horizontal: w * 0.035, vertical: w * 0.028),
-                    color: isSelected ? visual.color.withValues(alpha: 0.08) : Colors.transparent,
+                    margin: EdgeInsets.symmetric(horizontal: w * 0.015, vertical: w * 0.006),
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.025, vertical: w * 0.024),
+                    decoration: BoxDecoration(
+                      color: isSelected ? visual.color.withValues(alpha: 0.08) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(w * 0.03),
+                      border: isSelected
+                          ? Border.all(color: visual.color.withValues(alpha: 0.3))
+                          : null,
+                    ),
                     child: Row(
                       children: [
-                        PayoutProviderAvatar(provider: provider, size: w * 0.09),
+                        Container(
+                          width: w * 0.009,
+                          height: w * 0.075,
+                          decoration: BoxDecoration(
+                            color: isSelected ? visual.color : Colors.transparent,
+                            borderRadius: BorderRadius.circular(w * 0.01),
+                          ),
+                        ),
+                        SizedBox(width: w * 0.022),
+                        PayoutProviderAvatar(provider: provider, size: w * 0.1),
                         SizedBox(width: w * 0.03),
                         Expanded(
                           child: Text(

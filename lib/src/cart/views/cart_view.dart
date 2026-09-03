@@ -42,7 +42,9 @@ class _CartViewState extends State<CartView> {
   void _onCartChanged() {
     final message = _vm?.errorMessage;
     if (message == null || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
     _vm!.clearError();
   }
 
@@ -63,68 +65,76 @@ class _CartViewState extends State<CartView> {
             color: AppColors.scaffold,
             borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.06)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: w * 0.1,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: w * 0.1,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: w * 0.04),
-              Text(
-                'Note for ${item.name}',
-                style: TextStyle(
-                  fontSize: w * 0.045,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: w * 0.01),
-              Text(
-                'Allergies, special requests, or preparation notes',
-                style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
-              ),
-              SizedBox(height: w * 0.04),
-              TextField(
-                controller: controller,
-                maxLines: 3,
-                maxLength: 255,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: 'e.g. No onions, extra spicy, nut allergy...',
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                SizedBox(height: w * 0.04),
+                Text(
+                  'Note for ${item.name}',
+                  style: TextStyle(
+                    fontSize: w * 0.045,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-              ),
-              SizedBox(height: w * 0.04),
-              SizedBox(
-                width: double.infinity,
-                height: w * 0.12,
-                child: ElevatedButton(
-                  onPressed: () {
-                    vm.updateItemNotes(item.id, controller.text);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('Save Note'),
+                SizedBox(height: w * 0.01),
+                Text(
+                  'Allergies, special requests, or preparation notes',
+                  style: TextStyle(
+                    fontSize: w * 0.032,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: w * 0.04),
+                TextField(
+                  controller: controller,
+                  maxLines: 3,
+                  maxLength: 255,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. No onions, extra spicy, nut allergy...',
+                    filled: true,
+                    fillColor: AppColors.surfaceVariant,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(w * 0.03),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(w * 0.03),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: w * 0.04),
+                SizedBox(
+                  width: double.infinity,
+                  height: w * 0.12,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      vm.updateItemNotes(item.id, controller.text);
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('Save Note'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -139,7 +149,9 @@ class _CartViewState extends State<CartView> {
 
     if (state is CartLoading || state is CartInitial) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
@@ -153,12 +165,19 @@ class _CartViewState extends State<CartView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline_rounded, size: w * 0.14, color: AppColors.textSecondary),
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: w * 0.14,
+                  color: AppColors.textSecondary,
+                ),
                 SizedBox(height: w * 0.04),
                 Text(
                   state.message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: w * 0.035,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 SizedBox(height: w * 0.04),
                 ElevatedButton(
@@ -182,7 +201,11 @@ class _CartViewState extends State<CartView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.shopping_cart_outlined, size: w * 0.2, color: AppColors.textHint),
+              Icon(
+                Icons.shopping_cart_outlined,
+                size: w * 0.2,
+                color: AppColors.textHint,
+              ),
               SizedBox(height: w * 0.04),
               Text(
                 'Your cart is empty',
@@ -195,7 +218,10 @@ class _CartViewState extends State<CartView> {
               SizedBox(height: w * 0.015),
               Text(
                 'Add items from a restaurant to get started',
-                style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
+                style: TextStyle(
+                  fontSize: w * 0.033,
+                  color: AppColors.textSecondary,
+                ),
               ),
               SizedBox(height: w * 0.06),
               ElevatedButton(
@@ -224,7 +250,10 @@ class _CartViewState extends State<CartView> {
                 onConfirm: vm.clearCart,
               );
             },
-            child: const Text('Clear', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Clear',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -232,7 +261,12 @@ class _CartViewState extends State<CartView> {
         children: [
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.04),
+              padding: EdgeInsets.fromLTRB(
+                w * 0.05,
+                w * 0.03,
+                w * 0.05,
+                w * 0.04,
+              ),
               children: [
                 // ── Vendor info header ──
                 Container(
@@ -248,12 +282,23 @@ class _CartViewState extends State<CartView> {
                         child: SizedBox(
                           width: w * 0.14,
                           height: w * 0.14,
-                          child: Image.network(
-                            cart.vendorImageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              color: AppColors.shimmerBase,
-                              child: const Icon(Icons.restaurant, color: AppColors.textHint),
+                          child: GestureDetector(
+                            onTap: () {
+                              // Handle vendor image tap
+                              print(
+                                'Vendor image tapped: ${cart.vendorImageUrl}',
+                              );
+                            },
+                            child: Image.network(
+                              cart.vendorImageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                color: AppColors.shimmerBase,
+                                child: const Icon(
+                                  Icons.restaurant,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -272,7 +317,10 @@ class _CartViewState extends State<CartView> {
                           ),
                           Text(
                             '${cart.totalItems} item${cart.totalItems > 1 ? 's' : ''}',
-                            style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: w * 0.032,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -282,19 +330,21 @@ class _CartViewState extends State<CartView> {
                 SizedBox(height: w * 0.04),
 
                 // ── Cart items ──
-                ...cart.items.map((ci) => CartItemTile(
-                      cartItem: ci,
-                      onIncrease: () {
-                        HapticFeedback.lightImpact();
-                        vm.updateItemQuantity(ci.id, ci.quantity + 1);
-                      },
-                      onDecrease: () {
-                        HapticFeedback.lightImpact();
-                        vm.updateItemQuantity(ci.id, ci.quantity - 1);
-                      },
-                      onRemove: () => vm.removeItem(ci.id),
-                      onEditNote: () => _editNote(context, ci),
-                    )),
+                ...cart.items.map(
+                  (ci) => CartItemTile(
+                    cartItem: ci,
+                    onIncrease: () {
+                      HapticFeedback.lightImpact();
+                      vm.updateItemQuantity(ci.id, ci.quantity + 1);
+                    },
+                    onDecrease: () {
+                      HapticFeedback.lightImpact();
+                      vm.updateItemQuantity(ci.id, ci.quantity - 1);
+                    },
+                    onRemove: () => vm.removeItem(ci.id),
+                    onEditNote: () => _editNote(context, ci),
+                  ),
+                ),
 
                 SizedBox(height: w * 0.05),
 
@@ -308,7 +358,10 @@ class _CartViewState extends State<CartView> {
                   ),
                 ),
                 SizedBox(height: w * 0.03),
-                _SummaryRow(label: 'Subtotal', value: 'GHS ${cart.subtotal.toStringAsFixed(2)}'),
+                _SummaryRow(
+                  label: 'Subtotal',
+                  value: 'GHS ${cart.subtotal.toStringAsFixed(2)}',
+                ),
                 if (cart.deliveryFee != null)
                   _SummaryRow(
                     label: 'Delivery fee',
@@ -334,7 +387,12 @@ class _CartViewState extends State<CartView> {
 
           // ── Checkout button ──
           Container(
-            padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.06),
+            padding: EdgeInsets.fromLTRB(
+              w * 0.05,
+              w * 0.03,
+              w * 0.05,
+              w * 0.06,
+            ),
             decoration: const BoxDecoration(
               color: AppColors.scaffold,
               border: Border(top: BorderSide(color: AppColors.border)),
@@ -348,11 +406,16 @@ class _CartViewState extends State<CartView> {
                     },
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, w * 0.13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(w * 0.035)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(w * 0.035),
+                ),
               ),
               child: Text(
                 'Proceed to Checkout · GHS ${cart.total.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: w * 0.038, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontSize: w * 0.038,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -367,7 +430,11 @@ class _SummaryRow extends StatelessWidget {
   final String value;
   final bool isBold;
 
-  const _SummaryRow({required this.label, required this.value, this.isBold = false});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+  });
 
   @override
   Widget build(BuildContext context) {

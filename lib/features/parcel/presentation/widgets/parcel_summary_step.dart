@@ -7,7 +7,7 @@ import 'package:provider/provider.dart' as legacy;
 
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_payment_methods_provider.dart';
-import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/add_payment_method_screen.dart';
+import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';

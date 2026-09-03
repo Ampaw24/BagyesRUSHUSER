@@ -26,6 +26,9 @@ class ConsumerNotificationsScreen extends ConsumerStatefulWidget {
 class _ConsumerNotificationsScreenState
     extends ConsumerState<ConsumerNotificationsScreen>
     with TickerProviderStateMixin {
+  // In-app messaging is disabled for this release; will ship in a future update.
+  static const bool _kMessagingEnabled = false;
+
   int _tabIndex = 0;
   late final AnimationController _headerCtrl;
   late final Animation<double> _headerFade;
@@ -119,7 +122,8 @@ class _ConsumerNotificationsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final chatState = ref.watch(consumerChatProvider);
+    final chatState =
+        _kMessagingEnabled ? ref.watch(consumerChatProvider) : null;
     final w = MediaQuery.sizeOf(context).width;
     final unreadCount = _notifications.where((n) => !n.isRead).length;
 
@@ -139,25 +143,27 @@ class _ConsumerNotificationsScreenState
                 opacity: _headerFade,
                 child: _NotifHeader(
                   onBack: () => Navigator.of(context).pop(),
-                  onMarkAllRead:
-                      _tabIndex == 0 ? () => _vm?.markAllAsRead() : null,
+                  onMarkAllRead: (!_kMessagingEnabled || _tabIndex == 0)
+                      ? () => _vm?.markAllAsRead()
+                      : null,
                 ),
               ),
 
               SizedBox(height: w * 0.04),
 
-              // ── Tab switcher ─────────────────────────────────────────
-              AnimatedTabSwitcher(
-                selectedIndex: _tabIndex,
-                labels: const ['Notifications', 'Messages'],
-                badgeCounts: [
-                  unreadCount,
-                  chatState.totalUnread,
-                ],
-                onTabChanged: (i) => setState(() => _tabIndex = i),
-              ),
-
-              SizedBox(height: w * 0.02),
+              // Messaging tab switcher is hidden until in-app messaging ships.
+              if (_kMessagingEnabled) ...[
+                AnimatedTabSwitcher(
+                  selectedIndex: _tabIndex,
+                  labels: const ['Notifications', 'Messages'],
+                  badgeCounts: [
+                    unreadCount,
+                    chatState?.totalUnread ?? 0,
+                  ],
+                  onTabChanged: (i) => setState(() => _tabIndex = i),
+                ),
+                SizedBox(height: w * 0.02),
+              ],
 
               // ── Tab content ──────────────────────────────────────────
               Expanded(
@@ -176,7 +182,7 @@ class _ConsumerNotificationsScreenState
                       child: child,
                     ),
                   ),
-                  child: _tabIndex == 0
+                  child: (!_kMessagingEnabled || _tabIndex == 0)
                       ? _NotificationsTab(
                           key: const ValueKey('notif'),
                           isLoading: _isLoading,
@@ -186,7 +192,7 @@ class _ConsumerNotificationsScreenState
                         )
                       : _MessagesTab(
                           key: const ValueKey('msgs'),
-                          chatState: chatState,
+                          chatState: chatState!,
                           onConversationTap: (conv) {
                             ref
                                 .read(consumerChatProvider.notifier)

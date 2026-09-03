@@ -1,5 +1,4 @@
-import 'dart:async';
-
+import 'dart:async';    
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bagyesrushappusernew/features/consumer/restaurant/data/repositories/restaurant_repository_impl.dart';
@@ -21,8 +20,8 @@ final restaurantRepositoryProvider = Provider<IRestaurantRepository>(
 
 final selectedCategoryProvider =
     NotifierProvider<SelectedCategoryNotifier, String>(
-  SelectedCategoryNotifier.new,
-);
+      SelectedCategoryNotifier.new,
+    );
 
 class SelectedCategoryNotifier extends Notifier<String> {
   Timer? _debounce;
@@ -44,27 +43,23 @@ class SelectedCategoryNotifier extends Notifier<String> {
 final homeBannersProvider = FutureProvider<AdBannerModel>((ref) async {
   final repo = sl<HomeRepository>();
   final result = await repo.getHomePageBanners();
-  return result.fold(
-    (failure) => throw failure,
-    (banners) => banners,
-  );
+  return result.fold((failure) => throw failure, (banners) => banners);
 });
 
 // ─── Featured restaurants (promo banners) ────────────────────────────────
 
 final featuredRestaurantsProvider =
     FutureProvider.autoDispose<List<Restaurant>>((ref) {
-  return ref.watch(restaurantRepositoryProvider).getFeaturedRestaurants();
-});
+      return ref.watch(restaurantRepositoryProvider).getFeaturedRestaurants();
+    });
 
 // ─── All restaurants, filtered by selected category (legacy) ─────────────
 
-final restaurantsProvider =
-    FutureProvider.autoDispose<List<Restaurant>>((ref) {
+final restaurantsProvider = FutureProvider.autoDispose<List<Restaurant>>((ref) {
   final category = ref.watch(selectedCategoryProvider);
-  return ref.watch(restaurantRepositoryProvider).getRestaurants(
-        category: category,
-      );
+  return ref
+      .watch(restaurantRepositoryProvider)
+      .getRestaurants(category: category);
 });
 
 // ─── Paginated restaurant list state ─────────────────────────────────────
@@ -87,13 +82,12 @@ class VendorListState {
     bool? isLoadingMore,
     bool? hasMore,
     int? currentPage,
-  }) =>
-      VendorListState(
-        restaurants: restaurants ?? this.restaurants,
-        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-        hasMore: hasMore ?? this.hasMore,
-        currentPage: currentPage ?? this.currentPage,
-      );
+  }) => VendorListState(
+    restaurants: restaurants ?? this.restaurants,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    hasMore: hasMore ?? this.hasMore,
+    currentPage: currentPage ?? this.currentPage,
+  );
 }
 
 class VendorListNotifier
@@ -108,8 +102,10 @@ class VendorListNotifier
     required int page,
   }) async {
     final repo = ref.read(restaurantRepositoryProvider);
-    final result =
-        await repo.getRestaurantsPaged(category: category, page: page);
+    final result = await repo.getRestaurantsPaged(
+      category: category,
+      page: page,
+    );
     return VendorListState(
       restaurants: result.restaurants,
       hasMore: result.hasMore,
@@ -146,8 +142,8 @@ class VendorListNotifier
 
 final vendorListProvider = AsyncNotifierProvider.autoDispose
     .family<VendorListNotifier, VendorListState, String>(
-  VendorListNotifier.new,
-);
+      VendorListNotifier.new,
+    );
 
 // ─── Categories (from API) ────────────────────────────────────────────────
 
@@ -157,19 +153,22 @@ final categoriesProvider = FutureProvider<List<FoodCategory>>((ref) async {
   return result.fold(
     (_) => FoodCategory.all, // fallback to static list on error
     (categories) {
-      final apiChips = categories
-          .expand((c) => c.categories)
-          .where((e) => e.isActive)
-          .toList()
-        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      final apiChips =
+          categories
+              .expand((c) => c.categories)
+              .where((e) => e.isActive)
+              .toList()
+            ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
       return [
         const FoodCategory(label: 'All', emoji: '🍽️'),
-        ...apiChips.map((e) => FoodCategory(
-              label: e.name,
-              emoji: '',
-              imageUrl: e.imageUrl.isNotEmpty ? e.imageUrl : null,
-            )),
+        ...apiChips.map(
+          (e) => FoodCategory(
+            label: e.name,
+            emoji: '',
+            imageUrl: e.imageUrl.isNotEmpty ? e.imageUrl : null,
+          ),
+        ),
       ];
     },
   );
@@ -177,8 +176,9 @@ final categoriesProvider = FutureProvider<List<FoodCategory>>((ref) async {
 
 // ─── Nearby restaurants ───────────────────────────────────────────────────
 
-final nearbyRestaurantsProvider =
-    FutureProvider.autoDispose<List<Restaurant>>((ref) {
+final nearbyRestaurantsProvider = FutureProvider.autoDispose<List<Restaurant>>((
+  ref,
+) {
   return ref.watch(restaurantRepositoryProvider).getNearbyRestaurants();
 });
 
@@ -186,12 +186,12 @@ final nearbyRestaurantsProvider =
 
 final restaurantDetailProvider = FutureProvider.autoDispose
     .family<Restaurant, String>((ref, restaurantId) {
-  return ref
-      .watch(restaurantRepositoryProvider)
-      .getRestaurantById(restaurantId);
-});
+      return ref
+          .watch(restaurantRepositoryProvider)
+          .getRestaurantById(restaurantId);
+    });
 
 final restaurantMenuProvider = FutureProvider.autoDispose
     .family<Map<String, List<MenuItem>>, String>((ref, restaurantId) {
-  return ref.watch(restaurantRepositoryProvider).getMenu(restaurantId);
-});
+      return ref.watch(restaurantRepositoryProvider).getMenu(restaurantId);
+    });

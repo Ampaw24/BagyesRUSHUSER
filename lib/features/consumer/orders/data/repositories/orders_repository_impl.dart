@@ -69,8 +69,8 @@ class OrdersRepositoryImpl implements IOrdersRepository {
       // Best-effort: only sent when resolved via GPS/map-pick. Omitted
       // entirely (not sent as null) when the user hand-typed the address.
       if (deliveryLat != null && deliveryLng != null) ...{
-        'delivery_latitude': deliveryLat,
-        'delivery_longitude': deliveryLng,
+        'latitude': deliveryLat,
+        'longitude': deliveryLng,
       },
     };
     final response = await _client.post(
@@ -116,12 +116,18 @@ class OrdersRepositoryImpl implements IOrdersRepository {
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
+    String? phone,
+    String? mobileMoneyProvider,
   }) async {
     for (var attempt = 1; attempt <= _payOrderMaxAttempts; attempt++) {
       try {
         final response = await _client.post(
           ApiEndpoints.customerOrderPay(orderId),
-          data: {'payment_method': paymentMethod},
+          data: {
+            'payment_method': paymentMethod,
+            if (phone != null) 'phone': phone,
+            if (mobileMoneyProvider != null) 'mobile_money_provider': mobileMoneyProvider,
+          },
         );
         return _dataMap(response);
       } on DioException catch (e) {

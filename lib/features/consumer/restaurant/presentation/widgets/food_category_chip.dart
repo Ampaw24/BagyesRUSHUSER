@@ -45,6 +45,7 @@ class FoodCategoryChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        alignment: Alignment.center,
         padding: EdgeInsets.symmetric(
           horizontal: w * 0.035,
           vertical: w * 0.014,

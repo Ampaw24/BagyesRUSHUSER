@@ -168,8 +168,9 @@ class SelectedAddon {
   factory SelectedAddon.fromJson(Map<String, dynamic> json) => SelectedAddon(
     groupId: json['group_id'] as String? ?? '',
     groupName: json['group_name'] as String? ?? '',
-    optionId: json['option_id'] as String? ?? '',
-    optionName: json['option_name'] as String? ?? '',
+    optionId: json['option_id']?.toString() ?? json['id']?.toString() ?? '',
+    optionName:
+        json['option_name'] as String? ?? json['name'] as String? ?? '',
     additionalPrice: (json['additional_price'] as num? ?? 0).toDouble(),
     quantity: json['quantity'] as int? ?? 1,
   );

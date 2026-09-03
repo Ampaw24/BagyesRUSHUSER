@@ -1,18 +1,16 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/common/app/current_user_provider.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/widgets/custom_dialogs.dart';
 import '../../../../src/payment/model/payment_method.dart';
 import '../../../../src/payment/viewmodel/payment_state.dart';
 import '../../../../src/payment/viewmodel/payment_viewmodel.dart';
+import '../../../../src/payment/views/screens/add_payment_method_screen.dart';
+import '../../../../src/payment/views/widgets/manage_payment_method_sheet.dart';
+import '../../../../src/payment/views/widgets/payment_method_hero_card.dart';
 import '../../../../src/vendor/model/vendor_profile.dart';
-import '../widgets/payment_method_card.dart';
-import 'add_mobile_money_screen.dart';
 
 /// Main vendor payment methods management screen.
 class PaymentMethodsScreen extends StatelessWidget {
@@ -41,19 +39,6 @@ class _PaymentMethodsView extends StatefulWidget {
 class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
   String? _processingId;
 
-  Future<bool> _confirmDelete(BuildContext context, String title) async {
-    final completer = Completer<bool>();
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Remove Payment Method',
-      subtitle: 'Remove "$title"? This action cannot be undone.',
-      confirmText: 'Remove',
-      onConfirm: () => completer.complete(true),
-      onCancel: () => completer.complete(false),
-    );
-    return completer.future;
-  }
-
   void _showAddScreen(BuildContext context) {
     final vm = context.read<PaymentViewModel>();
     Navigator.of(context)
@@ -61,7 +46,7 @@ class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
       PageRouteBuilder(
         pageBuilder: (_, anim, _) => ChangeNotifierProvider<PaymentViewModel>.value(
           value: vm,
-          child: const AddMobileMoneyScreen(),
+          child: const AddPaymentMethodScreen(),
         ),
         transitionsBuilder: (_, anim, _, child) => SlideTransition(
           position: Tween<Offset>(
@@ -94,51 +79,13 @@ class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
     if (ok) vm.loadPaymentMethods();
   }
 
-  /// Bottom sheet with the real actions available for a method — "Set as
-  /// Default" (hidden for the method that already is) and "Remove".
   Future<void> _showManageSheet(BuildContext context, PaymentMethod method) async {
-    final w = MediaQuery.sizeOf(context).width;
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(w * 0.05)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: w * 0.03),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.05, vertical: w * 0.02),
-                child: Text(
-                  method.displayTitle,
-                  style: TextStyle(fontSize: w * 0.04, fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (!method.isDefault)
-                ListTile(
-                  leading: const Icon(Icons.star_outline_rounded),
-                  title: const Text('Set as Default'),
-                  onTap: () => Navigator.of(ctx).pop('default'),
-                ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                title: const Text('Remove', style: TextStyle(color: AppColors.error)),
-                onTap: () => Navigator.of(ctx).pop('delete'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
+    final action = await showManagePaymentMethodSheet(context, method);
     if (!context.mounted || action == null) return;
     if (action == 'default') {
       await _setDefault(method);
     } else if (action == 'delete') {
-      final confirmed = await _confirmDelete(context, method.displayTitle);
+      final confirmed = await confirmDeletePaymentMethod(context, method.displayTitle);
       if (confirmed) await _delete(method);
     }
   }
@@ -256,7 +203,7 @@ class _PaymentMethodsViewState extends State<_PaymentMethodsView> {
           ),
         ],
         SizedBox(height: w * 0.04),
-        _AddMethodTile(onTap: () => _showAddScreen(context), w: w),
+        AddPaymentMethodTile(onTap: () => _showAddScreen(context)),
         SizedBox(height: w * 0.06),
         Text(
           'Payouts arrive in 1–2 business days. You can change your default '
@@ -337,115 +284,6 @@ class _SectionLabel extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Add method tile ──────────────────────────────────────────────────────────
-
-class _AddMethodTile extends StatelessWidget {
-  const _AddMethodTile({required this.onTap, required this.w});
-  final VoidCallback onTap;
-  final double w;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(w * 0.04),
-      child: DottedBorderContainer(
-        w: w,
-        child: Padding(
-          padding: EdgeInsets.all(w * 0.035),
-          child: Row(
-            children: [
-              Container(
-                width: w * 0.1,
-                height: w * 0.1,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(w * 0.025),
-                ),
-                child: Icon(Icons.add_rounded, color: AppColors.primary, size: w * 0.055),
-              ),
-              SizedBox(width: w * 0.03),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Add a payment method',
-                      style: TextStyle(
-                        fontSize: w * 0.037,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'Mobile money account',
-                      style: TextStyle(fontSize: w * 0.031, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A dashed-outline container drawn with [CustomPaint] — no extra package
-/// needed for a simple rectangular dash border.
-class DottedBorderContainer extends StatelessWidget {
-  const DottedBorderContainer({super.key, required this.child, required this.w});
-  final Widget child;
-  final double w;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(radius: w * 0.04, color: AppColors.border),
-      child: child,
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.radius, required this.color});
-  final double radius;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-
-    const dashWidth = 6.0;
-    const gapWidth = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = distance + dashWidth;
-        canvas.drawPath(
-          metric.extractPath(distance, next.clamp(0, metric.length)),
-          paint,
-        );
-        distance = next + gapWidth;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────

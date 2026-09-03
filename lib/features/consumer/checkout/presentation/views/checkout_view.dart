@@ -15,7 +15,7 @@ import 'package:bagyesrushappusernew/features/consumer/checkout/domain/entities/
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/states/checkout_state.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_payment_methods_provider.dart';
 import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_viewmodel.dart';
-import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/add_payment_method_screen.dart';
+import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
@@ -137,7 +137,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 latitude: latLng.latitude,
                 longitude: latLng.longitude,
               );
-          Navigator.pop(context);
         },
       ),
     );

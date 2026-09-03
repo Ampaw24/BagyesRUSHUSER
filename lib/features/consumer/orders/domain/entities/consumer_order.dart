@@ -47,6 +47,7 @@ extension OrderStatusX on OrderStatus {
 OrderStatus _orderStatusFromString(String value) {
   switch (value) {
     case 'pending':
+    case 'pending_payment':
       return OrderStatus.pending;
     case 'accepted':
       return OrderStatus.accepted;
@@ -107,11 +108,11 @@ class OrderItem {
   double get lineTotal => (unitPrice + addonsUnitTotal) * quantity;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-        menuItemId: json['menu_item_id'] as String? ?? '',
+        menuItemId: json['menu_item_id']?.toString() ?? '',
         name: json['name'] as String? ?? '',
         quantity: (json['quantity'] as num?)?.toInt() ?? 1,
         unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0,
-        addons: (json['addons'] as List<dynamic>?)
+        addons: ((json['options'] ?? json['addons']) as List<dynamic>?)
                 ?.map((a) => SelectedAddon.fromJson(a as Map<String, dynamic>))
                 .toList() ??
             const [],
@@ -171,37 +172,60 @@ class ConsumerOrder {
 
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
 
-  factory ConsumerOrder.fromJson(Map<String, dynamic> json) => ConsumerOrder(
-        id: json['id'].toString(),
-        restaurantId: (json['vendor_id'] ?? json['restaurant_id'])?.toString() ?? '',
-        restaurantName:
-            json['vendor_name'] as String? ?? json['restaurant_name'] as String? ?? '',
-        restaurantImageUrl: json['vendor_image'] as String? ??
-            json['restaurant_image_url'] as String? ??
-            '',
-        items: (json['items'] as List<dynamic>?)
-                ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
-                .toList() ??
-            const [],
-        status: _orderStatusFromString(json['status'] as String? ?? ''),
-        subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
-        deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0,
-        serviceFee: (json['service_fee'] as num?)?.toDouble() ?? 0,
-        discount: (json['discount'] as num?)?.toDouble() ?? 0,
-        total: (json['total'] as num?)?.toDouble() ?? 0,
-        deliveryAddress: json['delivery_address'] as String? ?? '',
-        deliveryInstructions: json['delivery_instructions'] as String?,
-        placedAt: DateTime.tryParse(
-                json['created_at'] as String? ?? json['placed_at'] as String? ?? '') ??
-            DateTime.now(),
-        estimatedDelivery: json['estimated_delivery'] != null
-            ? DateTime.tryParse(json['estimated_delivery'] as String)
-            : null,
-        driverName: json['driver_name'] as String?,
-        driverPhone: json['driver_phone'] as String?,
-        paymentMethod: json['payment_method'] as String? ?? '',
-        paymentStatus: _paymentStatusFromString(json['payment_status'] as String?),
-      );
+  factory ConsumerOrder.fromJson(Map<String, dynamic> json) {
+    final vendor = json['vendor'] as Map<String, dynamic>?;
+    final delivery = json['delivery'] as Map<String, dynamic>?;
+    final payment = json['payment'] as Map<String, dynamic>?;
+    final totals = json['totals'] as Map<String, dynamic>?;
+    final rider = json['rider'] as Map<String, dynamic>?;
+
+    return ConsumerOrder(
+      id: json['id'].toString(),
+      restaurantId:
+          (vendor?['id'] ?? json['vendor_id'] ?? json['restaurant_id'])?.toString() ?? '',
+      restaurantName: vendor?['name'] as String? ??
+          json['vendor_name'] as String? ??
+          json['restaurant_name'] as String? ??
+          '',
+      restaurantImageUrl: vendor?['logo_url'] as String? ??
+          json['vendor_image'] as String? ??
+          json['restaurant_image_url'] as String? ??
+          '',
+      items: (json['items'] as List<dynamic>?)
+              ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      status: _orderStatusFromString(json['status'] as String? ?? ''),
+      subtotal: (totals?['subtotal'] as num?)?.toDouble() ??
+          (json['subtotal'] as num?)?.toDouble() ??
+          0,
+      deliveryFee: (totals?['delivery_fee'] as num?)?.toDouble() ??
+          (json['delivery_fee'] as num?)?.toDouble() ??
+          0,
+      serviceFee: (totals?['service_fee'] as num?)?.toDouble() ??
+          (json['service_fee'] as num?)?.toDouble() ??
+          0,
+      discount: (totals?['discount'] as num?)?.toDouble() ??
+          (json['discount'] as num?)?.toDouble() ??
+          0,
+      total: (totals?['total'] as num?)?.toDouble() ?? (json['total'] as num?)?.toDouble() ?? 0,
+      deliveryAddress:
+          delivery?['address'] as String? ?? json['delivery_address'] as String? ?? '',
+      deliveryInstructions:
+          delivery?['instructions'] as String? ?? json['delivery_instructions'] as String?,
+      placedAt: DateTime.tryParse(
+              json['created_at'] as String? ?? json['placed_at'] as String? ?? '') ??
+          DateTime.now(),
+      estimatedDelivery: json['estimated_delivery'] != null
+          ? DateTime.tryParse(json['estimated_delivery'] as String)
+          : null,
+      driverName: rider?['name'] as String? ?? json['driver_name'] as String?,
+      driverPhone: rider?['phone'] as String? ?? json['driver_phone'] as String?,
+      paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',
+      paymentStatus: _paymentStatusFromString(
+          payment?['status'] as String? ?? json['payment_status'] as String?),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

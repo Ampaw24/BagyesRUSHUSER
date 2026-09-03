@@ -61,10 +61,10 @@ class CartItemModel {
     );
   }
 
-  /// The backend may return addon selections under either `addon_options`
-  /// or `addons` — accept both rather than assuming one.
+  /// The backend may return addon selections under `addon_options`,
+  /// `addons`, or `options` — accept all rather than assuming one.
   static List<SelectedAddon> _parseAddons(DataMap json) {
-    final raw = json['addon_options'] ?? json['addons'];
+    final raw = json['addon_options'] ?? json['addons'] ?? json['options'];
     if (raw is! List) return const [];
     return raw
         .map((e) => SelectedAddon.fromJson(e as DataMap))

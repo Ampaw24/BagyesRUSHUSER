@@ -39,19 +39,23 @@ class CartModel {
 
   factory CartModel.fromJson(DataMap json) {
     final vendor = json['vendor'] as DataMap?;
+    final totals = json['totals'] as DataMap?;
     return CartModel(
       vendorId: (json['vendor_id'] ?? vendor?['id'])?.toString() ?? '',
       vendorName:
           vendor?['name'] as String? ?? json['vendor_name'] as String? ?? '',
-      vendorImageUrl: vendor?['image_url'] as String? ??
+      vendorImageUrl: vendor?['logo_url'] as String? ??
+          vendor?['image_url'] as String? ??
           json['vendor_image_url'] as String? ??
           '',
       items: (json['items'] as List<dynamic>? ?? [])
           .map((e) => CartItemModel.fromJson(e as DataMap))
           .toList(),
-      deliveryFee: (vendor?['delivery_fee'] as num?)?.toDouble() ??
+      deliveryFee: (totals?['delivery_fee'] as num?)?.toDouble() ??
+          (vendor?['delivery_fee'] as num?)?.toDouble() ??
           (json['delivery_fee'] as num?)?.toDouble(),
-      serviceFee: (vendor?['service_fee'] as num?)?.toDouble() ??
+      serviceFee: (totals?['service_fee'] as num?)?.toDouble() ??
+          (vendor?['service_fee'] as num?)?.toDouble() ??
           (json['service_fee'] as num?)?.toDouble(),
     );
   }
