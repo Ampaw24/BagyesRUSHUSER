@@ -171,12 +171,19 @@ class OrdersRepositoryImpl implements IOrdersRepository {
   Future<DeliveryQuote> getDeliveryQuote({
     required String vendorId,
     String? addressId,
+    double? latitude,
+    double? longitude,
+    String? deliveryAddress,
   }) async {
     final response = await _client.get(
       ApiEndpoints.customerDeliveryQuote,
       queryParameters: {
         'vendor_id': vendorId,
         if (addressId != null) 'address_id': addressId,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (deliveryAddress != null && deliveryAddress.isNotEmpty)
+          'delivery_address': deliveryAddress,
       },
     );
     return DeliveryQuote.fromJson(_dataMap(response));

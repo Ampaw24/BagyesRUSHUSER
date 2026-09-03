@@ -128,9 +128,14 @@ class CheckoutViewModel extends Notifier<CheckoutState> {
     );
 
     try {
-      final quote = await ref
-          .read(ordersRepositoryProvider)
-          .getDeliveryQuote(vendorId: vendorId);
+      final form = _currentForm;
+      final quote = await ref.read(ordersRepositoryProvider).getDeliveryQuote(
+            vendorId: vendorId,
+            latitude: form.deliveryLat,
+            longitude: form.deliveryLng,
+            deliveryAddress:
+                form.deliveryAddress.isEmpty ? null : form.deliveryAddress,
+          );
       state = CheckoutIdle(
         form: _currentForm.copyWith(
           isFetchingDeliveryQuote: false,

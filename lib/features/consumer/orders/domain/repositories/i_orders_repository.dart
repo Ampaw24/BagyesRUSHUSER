@@ -46,5 +46,8 @@ abstract interface class IOrdersRepository {
   Future<DeliveryQuote> getDeliveryQuote({
     required String vendorId,
     String? addressId,
+    double? latitude,
+    double? longitude,
+    String? deliveryAddress,
   });
 }

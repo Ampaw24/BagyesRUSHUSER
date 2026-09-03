@@ -31,6 +31,8 @@ import '../../src/vendor/viewmodel/settings_viewmodel.dart';
 import '../../src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
 import '../../src/payment/repositories/payment_repository.dart';
 import '../../src/payment/viewmodels/payment_viewmodel.dart';
+import '../../src/transaction/repositories/transaction_repository.dart';
+import '../../src/transaction/viewmodels/transaction_viewmodel.dart';
 import '../../features/vendors/repositories/vendor_repository.dart' as vendor_feature;
 import '../../features/vendors/viewmodels/vendor_viewmodel.dart';
 import '../../features/vendor_wallet/services/wallet_api_service.dart';
@@ -76,6 +78,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => PaymentRepository(client: sl()));
   sl.registerLazySingleton(() => StepValidator());
   sl.registerLazySingleton(() => PaymentGatewayRepository(client: sl()));
+  sl.registerLazySingleton(() => TransactionRepository(client: sl()));
 
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
@@ -85,6 +88,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CartViewModel(repository: sl()));
   sl.registerFactory(() => PaymentViewmodel(repository: sl()));
   sl.registerFactory(() => OrderViewModel(repository: sl()));
+  sl.registerFactory(() => TransactionViewmodel(repository: sl()));
   sl.registerFactory(() => ParcelViewModel(repository: sl()));
   sl.registerFactory(() => PayoutProvidersViewModel(repository: sl()));
   sl.registerFactoryParam<PaymentViewModel, bool, void>(

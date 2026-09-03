@@ -34,7 +34,6 @@ import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/scree
 import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/payment_methods_screen.dart'
     as consumer_payment_methods;
 import 'package:bagyesrushappusernew/features/vendor_wallet/views/screens/wallet_screen.dart';
-import 'package:bagyesrushappusernew/features/courier_wallet/views/screens/courier_wallet_screen.dart';
 
 // ── Consumer feature screens ──
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/views/restaurant_detail_view.dart';
@@ -42,6 +41,7 @@ import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/vie
 import 'package:bagyesrushappusernew/src/cart/views/cart_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/orders/presentation/views/order_tracking_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/search/presentation/views/consumer_search_view.dart';
+import 'package:bagyesrushappusernew/src/transaction/views/transaction_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/notifications/view/screens/consumer_notifications_screen.dart';
 
 import 'app_routes.dart';
@@ -243,7 +243,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) =>
           const consumer_payment_methods.PaymentMethodsScreen(),
     ),
-
     // ── Courier / delivery ──
     GoRoute(
       path: AppRoutes.sendPackages,
@@ -298,7 +297,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.wallet,
-      builder: (context, state) => const CourierWalletScreen(),
+      builder: (context, state) => const TransactionView(),
     ),
     GoRoute(
       path: AppRoutes.vendorWallet,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +44,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
   final _addressController = TextEditingController();
   final _instructionsController = TextEditingController();
   bool _isLocatingCurrentPosition = false;
-  bool _hasRequestedDeliveryQuote = false;
+  Timer? _quoteDebounceTimer;
 
   @override
   void initState() {
@@ -61,9 +63,32 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 
   @override
   void dispose() {
+    _quoteDebounceTimer?.cancel();
     _addressController.dispose();
     _instructionsController.dispose();
     super.dispose();
+  }
+
+  /// Requests a fresh delivery-fee quote once [address] looks complete
+  /// enough to price against (same length check as `hasValidAddress`).
+  /// Never called on checkout open — the address starts empty, and the
+  /// quote endpoint now needs a real location to compute a real fee.
+  void _requestQuoteFor(String address) {
+    _quoteDebounceTimer?.cancel();
+    if (address.trim().length < 5) return;
+    final cart = legacy.Provider.of<CartViewModel>(context, listen: false).cart;
+    if (cart == null) return;
+    ref.read(checkoutProvider.notifier).fetchDeliveryQuote(cart.vendorId);
+  }
+
+  /// Debounced variant for the hand-typed address field, so a quote isn't
+  /// requested on every keystroke.
+  void _onAddressTyped(String address) {
+    _quoteDebounceTimer?.cancel();
+    if (address.trim().length < 5) return;
+    _quoteDebounceTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) _requestQuoteFor(address);
+    });
   }
 
   Future<void> _useCurrentLocation() async {
@@ -85,6 +110,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 latitude: position.latitude,
                 longitude: position.longitude,
               );
+          _requestQuoteFor(result.address);
           break;
         case LocationStatus.serviceDisabled:
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -137,6 +163,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 latitude: latLng.latitude,
                 longitude: latLng.longitude,
               );
+          _requestQuoteFor(address);
         },
       ),
     );
@@ -226,14 +253,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       );
     }
 
-    if (!_hasRequestedDeliveryQuote) {
-      _hasRequestedDeliveryQuote = true;
-      final vendorId = cart.vendorId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(checkoutProvider.notifier).fetchDeliveryQuote(vendorId);
-      });
-    }
-
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(title: const Text('Checkout')),
@@ -254,8 +273,10 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                   controller: _addressController,
                   hasValidAddress: hasValidAddress,
                   isLocatingCurrentPosition: _isLocatingCurrentPosition,
-                  onChanged: (v) =>
-                      ref.read(checkoutProvider.notifier).updateAddress(v),
+                  onChanged: (v) {
+                    ref.read(checkoutProvider.notifier).updateAddress(v);
+                    _onAddressTyped(v);
+                  },
                   onUseCurrentLocation: _useCurrentLocation,
                   onPickOnMap: _openMapPicker,
                 ),

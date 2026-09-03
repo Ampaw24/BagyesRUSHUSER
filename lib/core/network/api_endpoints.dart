@@ -263,6 +263,10 @@ abstract final class ApiEndpoints {
   /// `GET /categories/:id`
   static String categoryById(String id) => '/categories/$id';
 
+  // ─── Customer Transactions ─────────────────────────────────────────────────
+  /// `GET /customer/transactions` — paginated invoice/transaction history.
+  static const String customerTransactions = '/customer/transactions';
+
   // ─── Notifications ─────────────────────────────────────────────────────────
   static const String notifications = '/notifications';
   static const String notificationsReadAll = '/notifications/read-all';
