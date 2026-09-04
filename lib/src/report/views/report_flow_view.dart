@@ -568,7 +568,10 @@ class _VendorTargetPickerState extends State<_VendorTargetPicker> {
         heading: 'Which restaurant?',
         targets: restaurants
             .map((r) => ReportableTarget(
-                  targetId: r.id,
+                  // The report endpoint's `target_id` wants the vendor's
+                  // numeric database id, not `r.id` (the ULID-style public
+                  // `vendor_id`) — same distinction `numericId` documents.
+                  targetId: r.numericId?.toString(),
                   name: r.name,
                   imageUrl: r.imageUrl,
                   subtitle: r.cuisineType.isNotEmpty ? r.cuisineType : r.address,

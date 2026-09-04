@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/core/router/app_router.dart' show appRouteObserver;
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/viewmodel/my_reports_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
@@ -28,7 +29,7 @@ class MyReportsView extends StatefulWidget {
   State<MyReportsView> createState() => _MyReportsViewState();
 }
 
-class _MyReportsViewState extends State<MyReportsView> {
+class _MyReportsViewState extends State<MyReportsView> with RouteAware {
   late final MyReportsViewModel _vm;
   _ReportFilter _filter = _ReportFilter.open;
 
@@ -40,7 +41,17 @@ class _MyReportsViewState extends State<MyReportsView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic>) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _vm.removeListener(_onChanged);
     _vm.dispose();
     super.dispose();
@@ -49,6 +60,13 @@ class _MyReportsViewState extends State<MyReportsView> {
   void _onChanged() {
     if (mounted) setState(() {});
   }
+
+  /// Fires when a route pushed on top of this one (the report wizard, a
+  /// report's detail screen) is popped and this screen is visible again —
+  /// e.g. a just-submitted report, or a status change, shows up immediately
+  /// instead of waiting for a manual pull-to-refresh.
+  @override
+  void didPopNext() => _vm.refresh();
 
   @override
   Widget build(BuildContext context) {

@@ -48,6 +48,13 @@ import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Lets a screen refresh itself via [RouteAware.didPopNext] when it becomes
+/// visible again after a route pushed on top of it is popped — e.g. My
+/// Reports refreshing the instant the report wizard closes, instead of
+/// requiring a manual pull-to-refresh.
+final RouteObserver<PageRoute<dynamic>> appRouteObserver =
+    RouteObserver<PageRoute<dynamic>>();
+
 /// Routes that do not require authentication.
 const _publicRoutes = {
   AppRoutes.splash,
@@ -87,6 +94,7 @@ const _kycExemptRoutes = {
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
+  observers: [appRouteObserver],
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: kDebugMode,
   // Re-evaluate the redirect whenever auth state changes so that background

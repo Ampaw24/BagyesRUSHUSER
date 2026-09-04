@@ -162,6 +162,8 @@ class ReportRepository {
       if (d is Map<String, dynamic>) {
         final inner = d['data'];
         if (inner is List) return inner;
+        final items = d['items'];
+        if (items is List) return items;
       }
     }
     return const [];
