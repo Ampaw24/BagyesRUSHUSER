@@ -33,7 +33,7 @@ import 'package:bagyesrushappusernew/src/vendor/view/vendor_payout_view.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
 import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/payment_methods_screen.dart'
     as consumer_payment_methods;
-import 'package:bagyesrushappusernew/features/vendor_wallet/views/screens/wallet_screen.dart';
+import 'package:bagyesrushappusernew/src/vendor-wallet/views/vendor_wallet_view.dart';
 
 // ── Consumer feature screens ──
 import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/views/restaurant_detail_view.dart';
@@ -301,7 +301,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.vendorWallet,
-      builder: (context, state) => const VendorWalletScreen(),
+      builder: (context, state) => const VendorWalletView(),
     ),
 
     // ── Other ──

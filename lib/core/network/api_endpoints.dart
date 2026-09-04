@@ -178,9 +178,19 @@ abstract final class ApiEndpoints {
   static const String payoutProviders = '/payout-providers';
 
   // ─── Vendor Wallet ─────────────────────────────────────────────────────────
-  static const String vendorWallet = '/vendors/wallet';
-  static const String vendorWalletTransactions = '/vendors/wallet/transactions';
-  static const String vendorWalletWithdraw = '/vendors/wallet/withdraw';
+  /// `GET /vendor/me/wallet` — vendor's wallet balance.
+  static const String vendorMeWallet = '/vendor/me/wallet';
+
+  /// `GET /vendor/me/wallet/transactions` — wallet transaction history.
+  static const String vendorMeWalletTransactions =
+      '/vendor/me/wallet/transactions';
+
+  /// `GET /vendor/me/withdrawals` | `POST /vendor/me/withdrawals`
+  static const String vendorMeWithdrawals = '/vendor/me/withdrawals';
+
+  /// `PATCH /vendor/me/withdrawals/:id/cancel`
+  static String vendorMeWithdrawalCancel(String id) =>
+      '$vendorMeWithdrawals/$id/cancel';
 
   // ─── Payments (Paystack) ───────────────────────────────────────────────────
   /// `POST /payments/initialize` — start a Paystack charge (mobile money or card).

@@ -21,19 +21,19 @@ class AppLogoCard extends StatelessWidget {
       height: size,
       padding: EdgeInsets.all(size * 0.12),
       decoration: BoxDecoration(
-        color: Colors.white,
+      
         borderRadius: BorderRadius.circular(size * 0.22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withValues(alpha: 0.05),
+        //     blurRadius: 24,
+        //     offset: const Offset(0, 10),
+        //   ),
+        // ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(size * 0.12),
-        child: Image.asset(AssetImages.bagyesLogo, fit: BoxFit.contain),
+        child: Image.asset(AssetImages.bagyesLogoRm, fit: BoxFit.contain),
       ),
     );
   }

@@ -33,11 +33,10 @@ import '../../src/payment/repositories/payment_repository.dart';
 import '../../src/payment/viewmodels/payment_viewmodel.dart';
 import '../../src/transaction/repositories/transaction_repository.dart';
 import '../../src/transaction/viewmodels/transaction_viewmodel.dart';
+import '../../src/vendor-wallet/repositories/vendor_wallet_repository.dart';
+import '../../src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
 import '../../features/vendors/repositories/vendor_repository.dart' as vendor_feature;
 import '../../features/vendors/viewmodels/vendor_viewmodel.dart';
-import '../../features/vendor_wallet/services/wallet_api_service.dart';
-import '../../features/vendor_wallet/repositories/wallet_repository.dart';
-import '../../features/vendor_wallet/repositories/wallet_repository_impl.dart';
 
 final sl = GetIt.instance;
 
@@ -61,11 +60,6 @@ Future<void> init() async {
     () => VendorDashboardRepositoryImpl(sl()),
   );
 
-  sl.registerLazySingleton(() => WalletApiService());
-  sl.registerLazySingleton<WalletRepository>(
-    () => WalletRepositoryImpl(sl()),
-  );
-
   sl.registerLazySingleton(
     () => vendor_feature.VendorRepository(client: sl()),
   );
@@ -79,6 +73,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => StepValidator());
   sl.registerLazySingleton(() => PaymentGatewayRepository(client: sl()));
   sl.registerLazySingleton(() => TransactionRepository(client: sl()));
+  sl.registerLazySingleton(() => VendorWalletRepository(client: sl()));
 
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
@@ -89,6 +84,7 @@ Future<void> init() async {
   sl.registerFactory(() => PaymentViewmodel(repository: sl()));
   sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => TransactionViewmodel(repository: sl()));
+  sl.registerFactory(() => VendorWalletViewmodel(repository: sl()));
   sl.registerFactory(() => ParcelViewModel(repository: sl()));
   sl.registerFactory(() => PayoutProvidersViewModel(repository: sl()));
   sl.registerFactoryParam<PaymentViewModel, bool, void>(

@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
-import '../../../../constant/app_theme.dart';
-import '../../models/withdrawal_model.dart';
-import '../../models/transaction_model.dart';
+import 'package:provider/provider.dart';
+import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import '../models/vendor_withdrawal_model.dart';
+import '../viewmodels/vendor_wallet_viewmodel.dart';
 
-/// Shown after a successful withdrawal request.
-class WithdrawalSuccessScreen extends StatefulWidget {
-  final WithdrawalModel withdrawal;
+/// Shown after a successful `POST /vendor/me/withdrawals` request. No
+/// fee/net breakdown — `VendorWithdrawalModel` carries only the requested
+/// amount, unlike the old dummy flow's fee-inclusive model.
+class VendorWithdrawalSuccessView extends StatefulWidget {
+  const VendorWithdrawalSuccessView({super.key, required this.withdrawal});
 
-  const WithdrawalSuccessScreen({super.key, required this.withdrawal});
+  final VendorWithdrawalModel withdrawal;
 
   @override
-  State<WithdrawalSuccessScreen> createState() =>
-      _WithdrawalSuccessScreenState();
+  State<VendorWithdrawalSuccessView> createState() =>
+      _VendorWithdrawalSuccessViewState();
 }
 
-class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
+class _VendorWithdrawalSuccessViewState
+    extends State<VendorWithdrawalSuccessView>
     with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _scaleAnim;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  late final AnimationController _ctrl;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
 
   @override
   void initState() {
@@ -28,9 +32,8 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     )..forward();
-
     _scaleAnim = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
-    _fadeAnim  = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.2),
       end: Offset.zero,
@@ -44,15 +47,29 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
   }
 
   String get _statusLabel => switch (widget.withdrawal.status) {
-        TransactionStatus.processing => 'Processing',
-        TransactionStatus.completed  => 'Completed',
-        TransactionStatus.failed     => 'Failed',
-        TransactionStatus.pending    => 'Pending',
-      };
+    VendorWithdrawalStatus.pending => 'Pending',
+    VendorWithdrawalStatus.processing => 'Processing',
+    VendorWithdrawalStatus.completed => 'Completed',
+    VendorWithdrawalStatus.failed => 'Failed',
+    VendorWithdrawalStatus.cancelled => 'Cancelled',
+  };
+
+  void _backToWallet() {
+    final vm = context.read<VendorWalletViewmodel>();
+    vm.fetchWallet();
+    vm.fetchTransactions();
+    vm.fetchWithdrawals();
+    Navigator.of(context)
+      ..pop() // success screen
+      ..pop(); // withdraw screen
+  }
+
+  String _formatDate(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final withdrawal = widget.withdrawal;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -62,47 +79,43 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
           child: Column(
             children: [
               const Spacer(),
-
-              // ── Success icon ─────────────────────────────────────────────
               ScaleTransition(
                 scale: _scaleAnim,
                 child: Container(
-                  width: 96,
-                  height: 96,
+                  width: w * 0.24,
+                  height: w * 0.24,
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_circle_rounded,
                     color: AppColors.success,
-                    size: 56,
+                    size: w * 0.14,
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
-
-              // ── Heading ─────────────────────────────────────────────────
+              SizedBox(height: w * 0.07),
               FadeTransition(
                 opacity: _fadeAnim,
                 child: SlideTransition(
                   position: _slideAnim,
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         'Withdrawal Requested!',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: w * 0.06,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: w * 0.025),
                       Text(
-                        'Your funds are on the way to\n${widget.withdrawal.paymentMethodLabel}.',
-                        style: const TextStyle(
-                          fontSize: 14,
+                        'Your funds are on the way to your saved payout method.',
+                        style: TextStyle(
+                          fontSize: w * 0.035,
                           color: AppColors.textSecondary,
                           height: 1.5,
                         ),
@@ -112,17 +125,14 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
                   ),
                 ),
               ),
-
-              const SizedBox(height: 36),
-
-              // ── Summary card ─────────────────────────────────────────────
+              SizedBox(height: w * 0.09),
               FadeTransition(
                 opacity: _fadeAnim,
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(w * 0.05),
                   decoration: BoxDecoration(
                     color: AppColors.card,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(w * 0.05),
                     border: Border.all(color: AppColors.border),
                     boxShadow: [
                       BoxShadow(
@@ -136,54 +146,33 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
                     children: [
                       _SummaryRow(
                         label: 'Amount',
-                        value:
-                            'GH₵ ${widget.withdrawal.amount.toStringAsFixed(2)}',
+                        value: withdrawal.amount.toStringAsFixed(2),
                       ),
-                      const SizedBox(height: 10),
-                      _SummaryRow(
-                        label: 'Processing Fee',
-                        value:
-                            '- GH₵ ${widget.withdrawal.fee.toStringAsFixed(2)}',
-                        valueColor: AppColors.error,
-                      ),
-                      const Divider(height: 24),
-                      _SummaryRow(
-                        label: 'You Receive',
-                        value:
-                            'GH₵ ${widget.withdrawal.netAmount.toStringAsFixed(2)}',
-                        bold: true,
-                        valueColor: AppColors.success,
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(height: 1),
-                      const SizedBox(height: 16),
+                      SizedBox(height: w * 0.025),
                       _SummaryRow(
                         label: 'Status',
                         value: _statusLabel,
                         valueColor: AppColors.warning,
                       ),
-                      if (widget.withdrawal.referenceCode != null) ...[
-                        const SizedBox(height: 10),
+                      if (withdrawal.reference != null) ...[
+                        SizedBox(height: w * 0.025),
                         _SummaryRow(
                           label: 'Reference',
-                          value: widget.withdrawal.referenceCode!,
+                          value: withdrawal.reference!,
                           valueColor: AppColors.textSecondary,
                           monospace: true,
                         ),
                       ],
-                      const SizedBox(height: 10),
+                      SizedBox(height: w * 0.025),
                       _SummaryRow(
-                        label: 'Estimated Arrival',
-                        value: '1–3 business hours',
+                        label: 'Requested',
+                        value: _formatDate(withdrawal.createdAt),
                       ),
                     ],
                   ),
                 ),
               ),
-
               const Spacer(),
-
-              // ── Done button ──────────────────────────────────────────────
               FadeTransition(
                 opacity: _fadeAnim,
                 child: Column(
@@ -191,16 +180,11 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Pop back to wallet screen
-                          Navigator.of(context)
-                            ..pop() // success screen
-                            ..pop(); // withdraw screen
-                        },
+                        onPressed: _backToWallet,
                         child: const Text('Back to Wallet'),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: w * 0.04),
                   ],
                 ),
               ),
@@ -213,37 +197,33 @@ class _WithdrawalSuccessScreenState extends State<WithdrawalSuccessScreen>
 }
 
 class _SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool bold;
-  final Color? valueColor;
-  final bool monospace;
-
   const _SummaryRow({
     required this.label,
     required this.value,
-    this.bold = false,
     this.valueColor,
     this.monospace = false,
   });
 
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool monospace;
+
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
         ),
         Text(
           value,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
+            fontSize: w * 0.033,
+            fontWeight: FontWeight.w600,
             color: valueColor ?? AppColors.textPrimary,
             fontFamily: monospace ? 'monospace' : null,
           ),

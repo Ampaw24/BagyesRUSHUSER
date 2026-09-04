@@ -6,6 +6,7 @@ import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart'
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/transaction/viewmodels/transaction_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
 
 final _sl = GetIt.instance;
 
@@ -22,6 +23,9 @@ class AppProviders {
         ),
         ChangeNotifierProvider<TransactionViewmodel>(
           create: (_) => _sl<TransactionViewmodel>(),
+        ),
+        ChangeNotifierProvider<VendorWalletViewmodel>(
+          create: (_) => _sl<VendorWalletViewmodel>(),
         ),
       ];
 }
