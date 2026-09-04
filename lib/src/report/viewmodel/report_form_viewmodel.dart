@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:bagyesrushappusernew/core/utils/image_compression_utils.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
 import 'package:bagyesrushappusernew/src/report/repository/report_repository.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 
@@ -16,7 +17,15 @@ enum ReportSubmitStatus { idle, submitting, success, error }
 
 class ReportFormState extends Equatable {
   final ReportRole role;
-  final List<ReportWizardStep> steps;
+
+  /// Whether [targetType] was supplied upfront (e.g. from an order card),
+  /// so the wizard skips the "what would you like to report?" step.
+  final bool targetTypeLocked;
+
+  /// Whether a specific target was supplied upfront, so the wizard skips
+  /// the target-picker step regardless of category.
+  final bool targetLocked;
+
   final int stepIndex;
 
   final ReportTargetType? targetType;
@@ -28,7 +37,10 @@ class ReportFormState extends Equatable {
 
   final String? reasonCode;
   final String? reasonLabel;
-  final bool reasonIsUrgent;
+
+  final ReportReason? reasonCategories;
+  final bool reasonsLoading;
+  final String? reasonsError;
 
   final String description;
   final List<File> photos;
@@ -39,7 +51,8 @@ class ReportFormState extends Equatable {
 
   const ReportFormState({
     required this.role,
-    required this.steps,
+    required this.targetTypeLocked,
+    required this.targetLocked,
     this.stepIndex = 0,
     this.targetType,
     this.orderId,
@@ -49,7 +62,9 @@ class ReportFormState extends Equatable {
     this.targetPhone,
     this.reasonCode,
     this.reasonLabel,
-    this.reasonIsUrgent = false,
+    this.reasonCategories,
+    this.reasonsLoading = false,
+    this.reasonsError,
     this.description = '',
     this.photos = const [],
     this.submitStatus = ReportSubmitStatus.idle,
@@ -69,12 +84,8 @@ class ReportFormState extends Equatable {
     final hasTarget = targetName != null && targetName.isNotEmpty;
     return ReportFormState(
       role: role,
-      steps: [
-        if (targetType == null) ReportWizardStep.targetType,
-        if (!hasTarget) ReportWizardStep.target,
-        ReportWizardStep.reason,
-        ReportWizardStep.details,
-      ],
+      targetTypeLocked: targetType != null,
+      targetLocked: hasTarget,
       targetType: targetType,
       orderId: orderId,
       targetId: targetId,
@@ -84,18 +95,39 @@ class ReportFormState extends Equatable {
     );
   }
 
+  /// The wizard steps for the current [targetType]. `target` only appears
+  /// when the chosen category actually needs a specific vendor/rider/
+  /// customer identified (see [ReportTargetType.requiresTarget]) — before a
+  /// category is picked it's included by default so the progress bar
+  /// doesn't jump once one is chosen.
+  List<ReportWizardStep> get steps => [
+        if (!targetTypeLocked) ReportWizardStep.targetType,
+        if (!targetLocked && (targetType?.requiresTarget ?? true))
+          ReportWizardStep.target,
+        ReportWizardStep.reason,
+        ReportWizardStep.details,
+      ];
+
   ReportWizardStep get currentStep => steps[stepIndex];
   bool get isFirstStep => stepIndex == 0;
   bool get isLastStep => stepIndex == steps.length - 1;
   double get progress => (stepIndex + 1) / steps.length;
 
   bool get hasTarget => targetName != null && targetName!.isNotEmpty;
+  bool get needsTarget => targetType?.requiresTarget ?? true;
   bool get hasReason => reasonCode != null;
   bool get canSubmit =>
       targetType != null &&
-      hasTarget &&
+      (!needsTarget || hasTarget) &&
       hasReason &&
       description.trim().length >= 10;
+
+  /// The reason options for the current [targetType], flattened from the
+  /// fetched [reasonCategories].
+  List<ReportReasonOption> get currentReasons =>
+      targetType == null || reasonCategories == null
+          ? const []
+          : reasonCategories!.forTargetType(targetType!);
 
   ReportFormState copyWith({
     int? stepIndex,
@@ -107,7 +139,9 @@ class ReportFormState extends Equatable {
     String? targetPhone,
     String? reasonCode,
     String? reasonLabel,
-    bool? reasonIsUrgent,
+    ReportReason? reasonCategories,
+    bool? reasonsLoading,
+    String? reasonsError,
     String? description,
     List<File>? photos,
     ReportSubmitStatus? submitStatus,
@@ -116,7 +150,8 @@ class ReportFormState extends Equatable {
   }) {
     return ReportFormState(
       role: role,
-      steps: steps,
+      targetTypeLocked: targetTypeLocked,
+      targetLocked: targetLocked,
       stepIndex: stepIndex ?? this.stepIndex,
       targetType: targetType ?? this.targetType,
       orderId: orderId ?? this.orderId,
@@ -126,7 +161,9 @@ class ReportFormState extends Equatable {
       targetPhone: targetPhone ?? this.targetPhone,
       reasonCode: reasonCode ?? this.reasonCode,
       reasonLabel: reasonLabel ?? this.reasonLabel,
-      reasonIsUrgent: reasonIsUrgent ?? this.reasonIsUrgent,
+      reasonCategories: reasonCategories ?? this.reasonCategories,
+      reasonsLoading: reasonsLoading ?? this.reasonsLoading,
+      reasonsError: reasonsError,
       description: description ?? this.description,
       photos: photos ?? this.photos,
       submitStatus: submitStatus ?? this.submitStatus,
@@ -138,7 +175,8 @@ class ReportFormState extends Equatable {
   @override
   List<Object?> get props => [
         role,
-        steps,
+        targetTypeLocked,
+        targetLocked,
         stepIndex,
         targetType,
         orderId,
@@ -148,7 +186,9 @@ class ReportFormState extends Equatable {
         targetPhone,
         reasonCode,
         reasonLabel,
-        reasonIsUrgent,
+        reasonCategories,
+        reasonsLoading,
+        reasonsError,
         description,
         photos,
         submitStatus,
@@ -174,9 +214,23 @@ class ReportFormViewModel extends ViewModel<ReportFormState> {
             targetImageUrl: args.targetImageUrl,
             targetPhone: args.targetPhone,
           ),
-        );
+        ) {
+    loadReasons();
+  }
 
   final ReportRepository _repository;
+
+  Future<void> loadReasons() async {
+    emit(state.copyWith(reasonsLoading: true, reasonsError: null));
+    try {
+      final categories = await _repository.getReportReasons();
+      emit(
+        state.copyWith(reasonCategories: categories, reasonsLoading: false),
+      );
+    } catch (e) {
+      emit(state.copyWith(reasonsLoading: false, reasonsError: e.toString()));
+    }
+  }
 
   void selectTargetType(ReportTargetType type) {
     emit(state.copyWith(targetType: type));
@@ -202,26 +256,25 @@ class ReportFormViewModel extends ViewModel<ReportFormState> {
     goNext();
   }
 
-  void selectReason({
-    required String code,
-    required String label,
-    bool isUrgent = false,
-  }) {
-    emit(
-      state.copyWith(
-        reasonCode: code,
-        reasonLabel: label,
-        reasonIsUrgent: isUrgent,
-      ),
-    );
+  void selectReason({required String code, required String label}) {
+    emit(state.copyWith(reasonCode: code, reasonLabel: label));
   }
 
   void updateDescription(String value) =>
       emit(state.copyWith(description: value));
 
+  /// The backend rejects report attachments over 5MB — tighter than
+  /// [ImageCompressionUtils.defaultMaxBytes], so it's passed explicitly here.
+  static const _maxAttachmentBytes = 5 * 1024 * 1024;
+
   Future<void> addPhotos(List<File> files) async {
     final compressed = await Future.wait(
-      files.map((f) => ImageCompressionUtils.compressIfNeeded(f)),
+      files.map(
+        (f) => ImageCompressionUtils.compressIfNeeded(
+          f,
+          maxBytes: _maxAttachmentBytes,
+        ),
+      ),
     );
     emit(state.copyWith(photos: [...state.photos, ...compressed]));
   }

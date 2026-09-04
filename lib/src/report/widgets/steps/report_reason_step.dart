@@ -1,41 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
-import 'package:bagyesrushappusernew/presentation/help_support/help_support_view.dart';
 
 /// Step 3 — "What went wrong?"
 class ReportReasonStep extends StatelessWidget {
-  final List<ReportReason> reasons;
+  final List<ReportReasonOption> reasons;
   final String? selectedCode;
-  final void Function(ReportReason reason) onSelect;
+  final bool isLoading;
+  final String? errorMessage;
+  final VoidCallback onRetry;
+  final void Function(ReportReasonOption reason) onSelect;
 
   const ReportReasonStep({
     super.key,
     required this.reasons,
     required this.selectedCode,
+    required this.isLoading,
+    required this.errorMessage,
+    required this.onRetry,
     required this.onSelect,
   });
-
-  bool get _showUrgentBanner =>
-      selectedCode != null &&
-      reasons.any((r) => r.code == selectedCode && r.isUrgent);
-
-  Future<void> _callSupport(BuildContext context) async {
-    final uri = Uri(
-      scheme: 'tel',
-      path: HelpSupportView.supportPhone.replaceAll(' ', ''),
-    );
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to start a call on this device.')),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,129 +44,144 @@ class ReportReasonStep extends StatelessWidget {
           style: TextStyle(fontSize: w * 0.034, color: AppColors.textSecondary),
         ),
         SizedBox(height: w * 0.05),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: reasons.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: w * 0.03,
-            crossAxisSpacing: w * 0.03,
-            childAspectRatio: 1.35,
-          ),
-          itemBuilder: (context, i) {
-            final reason = reasons[i];
-            final isSelected = reason.code == selectedCode;
-            return GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                onSelect(reason);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.all(w * 0.035),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.07)
-                      : AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(w * 0.035),
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                    width: isSelected ? 1.6 : 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (reason.isUrgent)
-                      HugeIcon(
-                        icon: HugeIcons.strokeRoundedAlertCircle,
-                        color: AppColors.error,
-                        size: w * 0.045,
-                      ),
-                    Text(
-                      reason.label,
-                      style: TextStyle(
-                        fontSize: w * 0.034,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textPrimary,
-                        height: 1.3,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        if (_showUrgentBanner) ...[
-          SizedBox(height: w * 0.05),
-          Container(
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(w * 0.035),
-              border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+        if (isLoading)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: w * 0.12),
+            child: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
             ),
+          )
+        else if (errorMessage != null)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: w * 0.1),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    HugeIcon(
-                      icon: HugeIcons.strokeRoundedShield01,
-                      color: AppColors.warning,
-                      size: w * 0.045,
-                    ),
-                    SizedBox(width: w * 0.025),
-                    Expanded(
-                      child: Text(
-                        'This will be reviewed urgently by our Trust & Safety team.',
-                        style: TextStyle(
-                          fontSize: w * 0.032,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.warning,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: w * 0.03),
-                GestureDetector(
-                  onTap: () => _callSupport(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      HugeIcon(
-                        icon: HugeIcons.strokeRoundedCall02,
-                        color: AppColors.warning,
-                        size: w * 0.04,
-                      ),
-                      SizedBox(width: w * 0.02),
-                      Text(
-                        'Call Support Now',
-                        style: TextStyle(
-                          fontSize: w * 0.033,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.warning,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ],
+                Text(
+                  "Couldn't load reasons",
+                  style: TextStyle(
+                    fontSize: w * 0.04,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
+                  textAlign: TextAlign.center,
                 ),
+                SizedBox(height: w * 0.02),
+                Text(
+                  errorMessage!,
+                  style: TextStyle(
+                    fontSize: w * 0.032,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: w * 0.04),
+                ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
               ],
             ),
+          )
+        else if (reasons.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: w * 0.12),
+            child: Center(
+              child: Text(
+                'No reasons available.',
+                style: TextStyle(
+                  fontSize: w * 0.036,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: reasons.length,
+            separatorBuilder: (_, _) => SizedBox(height: w * 0.03),
+            itemBuilder: (context, i) {
+              final reason = reasons[i];
+              final isSelected = reason.code == selectedCode;
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(w * 0.035),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onSelect(reason);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: w * 0.04,
+                      vertical: w * 0.035,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.07)
+                          : AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(w * 0.035),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
+                        width: isSelected ? 1.6 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        _ReasonSelector(isSelected: isSelected, w: w),
+                        SizedBox(width: w * 0.035),
+                        Expanded(
+                          child: Text(
+                            reason.label,
+                            style: TextStyle(
+                              fontSize: w * 0.036,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-        ],
       ],
+    );
+  }
+}
+
+/// Radio-style selection indicator for a reason list tile.
+class _ReasonSelector extends StatelessWidget {
+  final bool isSelected;
+  final double w;
+
+  const _ReasonSelector({required this.isSelected, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = w * 0.055;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isSelected ? AppColors.primary : Colors.transparent,
+        border: Border.all(
+          color: isSelected ? AppColors.primary : AppColors.border,
+          width: 1.6,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: isSelected
+          ? Icon(Icons.check, size: size * 0.62, color: Colors.white)
+          : null,
     );
   }
 }

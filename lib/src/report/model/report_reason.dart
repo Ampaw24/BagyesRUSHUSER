@@ -1,75 +1,125 @@
+import 'package:equatable/equatable.dart';
+
 import 'report.dart';
 
-/// A selectable reason category shown on the "What went wrong?" step.
-///
-/// Reasons are a fixed set of categories, not dynamic content, so they're
-/// kept as a static map rather than fetched from an endpoint.
-class ReportReason {
+class ReportReason extends Equatable {
+  const ReportReason({
+    required this.vendor,
+    required this.rider,
+    required this.customer,
+    required this.orderIssue,
+    required this.general,
+  });
+
+  final List<ReportReasonOption> vendor;
+  final List<ReportReasonOption> rider;
+  final List<ReportReasonOption> customer;
+  final List<ReportReasonOption> orderIssue;
+  final List<ReportReasonOption> general;
+
+  ReportReason copyWith({
+    List<ReportReasonOption>? vendor,
+    List<ReportReasonOption>? rider,
+    List<ReportReasonOption>? customer,
+    List<ReportReasonOption>? orderIssue,
+    List<ReportReasonOption>? general,
+  }) {
+    return ReportReason(
+      vendor: vendor ?? this.vendor,
+      rider: rider ?? this.rider,
+      customer: customer ?? this.customer,
+      orderIssue: orderIssue ?? this.orderIssue,
+      general: general ?? this.general,
+    );
+  }
+
+  factory ReportReason.fromJson(Map<String, dynamic> json) {
+    return ReportReason(
+      vendor: json["vendor"] == null
+          ? []
+          : List<ReportReasonOption>.from(
+              json["vendor"]!.map((x) => ReportReasonOption.fromJson(x)),
+            ),
+      rider: json["rider"] == null
+          ? []
+          : List<ReportReasonOption>.from(
+              json["rider"]!.map((x) => ReportReasonOption.fromJson(x)),
+            ),
+      customer: json["customer"] == null
+          ? []
+          : List<ReportReasonOption>.from(
+              json["customer"]!.map((x) => ReportReasonOption.fromJson(x)),
+            ),
+      orderIssue: json["order_issue"] == null
+          ? []
+          : List<ReportReasonOption>.from(
+              json["order_issue"]!.map((x) => ReportReasonOption.fromJson(x)),
+            ),
+      general: json["general"] == null
+          ? []
+          : List<ReportReasonOption>.from(
+              json["general"]!.map((x) => ReportReasonOption.fromJson(x)),
+            ),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    "vendor": vendor.map((x) => x.toJson()).toList(),
+    "rider": rider.map((x) => x.toJson()).toList(),
+    "customer": customer.map((x) => x.toJson()).toList(),
+    "order_issue": orderIssue.map((x) => x.toJson()).toList(),
+    "general": general.map((x) => x.toJson()).toList(),
+  };
+
+  /// Reason options for the "What went wrong?" step, grouped by who/what
+  /// is being reported.
+  List<ReportReasonOption> forTargetType(ReportTargetType type) =>
+      switch (type) {
+        ReportTargetType.vendor => vendor,
+        ReportTargetType.rider => rider,
+        ReportTargetType.customer => customer,
+        ReportTargetType.orderIssue => orderIssue,
+        ReportTargetType.general => general,
+      };
+
+  @override
+  String toString() {
+    return "$vendor, $rider, $customer, $orderIssue, $general, ";
+  }
+
+  @override
+  List<Object?> get props => [vendor, rider, customer, orderIssue, general];
+}
+
+/// A single selectable reason option (`{code, label}`) as returned by
+/// `GET /reports/reasons`, shared across every report category.
+class ReportReasonOption extends Equatable {
+  const ReportReasonOption({required this.code, required this.label});
+
   final String code;
   final String label;
 
-  /// Flags reasons that should surface the urgent/safety banner and the
-  /// "Call Support Now" shortcut on the reason step.
-  final bool isUrgent;
+  ReportReasonOption copyWith({String? code, String? label}) {
+    return ReportReasonOption(
+      code: code ?? this.code,
+      label: label ?? this.label,
+    );
+  }
 
-  const ReportReason({
-    required this.code,
-    required this.label,
-    this.isUrgent = false,
-  });
-}
+  factory ReportReasonOption.fromJson(Map<String, dynamic> json) {
+    return ReportReasonOption(
+      code: json["code"] ?? "",
+      label: json["label"] ?? "",
+    );
+  }
 
-/// `reason_code` values are constrained by the backend to a fixed list (see
-/// the `reason_code` field rule in `reportapis.md`); every code below is
-/// taken verbatim from that list and grouped here by which UI category best
-/// fits it.
-abstract final class ReportReasons {
-  static const Map<ReportTargetType, List<ReportReason>> byTargetType = {
-    ReportTargetType.vendor: [
-      ReportReason(code: 'food_quality', label: 'Poor food quality'),
-      ReportReason(code: 'wrong_items', label: 'Wrong items received'),
-      ReportReason(code: 'hygiene', label: 'Hygiene issue', isUrgent: true),
-      ReportReason(code: 'long_wait', label: 'Took too long to prepare'),
-      ReportReason(code: 'overcharged', label: 'Overcharged'),
-      ReportReason(code: 'rude_staff', label: 'Rude staff'),
-      ReportReason(code: 'other', label: 'Something else'),
-    ],
-    ReportTargetType.rider: [
-      ReportReason(
-        code: 'rider_unsafe',
-        label: 'Rider was rude or unsafe',
-        isUrgent: true,
-      ),
-      ReportReason(code: 'late_delivery', label: 'Took too long to deliver'),
-      ReportReason(code: 'never_arrived', label: 'Never delivered my order'),
-      ReportReason(code: 'damaged_items', label: 'Mishandled my order'),
-      ReportReason(code: 'wrong_address', label: 'Delivered to wrong address'),
-      ReportReason(code: 'other', label: 'Something else'),
-    ],
-    ReportTargetType.customer: [
-      ReportReason(code: 'abusive', label: 'Abusive behavior', isUrgent: true),
-      ReportReason(code: 'refused_delivery', label: 'Refused delivery'),
-      ReportReason(code: 'unreachable', label: 'Customer unreachable'),
-      ReportReason(code: 'fraud', label: 'Suspected fraud'),
-      ReportReason(code: 'other', label: 'Something else'),
-    ],
-    ReportTargetType.orderIssue: [
-      ReportReason(code: 'missing_items', label: 'Missing items'),
-      ReportReason(code: 'wrong_order', label: 'Wrong order'),
-      ReportReason(code: 'extra_charge', label: 'Extra charge'),
-      ReportReason(code: 'charged_incorrectly', label: 'Charged incorrectly'),
-      ReportReason(code: 'refund_not_received', label: 'Refund not received'),
-      ReportReason(code: 'other', label: 'Something else'),
-    ],
-    ReportTargetType.general: [
-      ReportReason(code: 'app_problem', label: 'App problem or bug'),
-      ReportReason(code: 'payment_problem', label: 'Payment problem'),
-      ReportReason(code: 'account_problem', label: 'Account problem'),
-      ReportReason(code: 'feedback', label: 'General feedback'),
-      ReportReason(code: 'other', label: 'Something else'),
-    ],
-  };
+  Map<String, dynamic> toJson() => {"code": code, "label": label};
 
-  static List<ReportReason> forTargetType(ReportTargetType type) =>
-      byTargetType[type] ?? const [];
+  @override
+  String toString() {
+    return "$code, $label, ";
+  }
+
+  @override
+  List<Object?> get props => [code, label];
 }

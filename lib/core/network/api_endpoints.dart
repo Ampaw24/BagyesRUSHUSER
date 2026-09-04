@@ -295,6 +295,9 @@ abstract final class ApiEndpoints {
   /// `GET /customer/reports/:id`
   static String customerReportById(String id) => '$customerReports/$id';
 
+  /// `GET /reports/reasons`
+  static const String customerReportReasons = '/reports/reasons';
+
   /// `GET /vendor/me/reports/:id`
   static String vendorReportById(String id) => '$vendorReports/$id';
 

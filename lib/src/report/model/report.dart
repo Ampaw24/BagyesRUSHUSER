@@ -42,6 +42,18 @@ enum ReportTargetType {
         return ReportTargetType.general;
     }
   }
+
+  /// Whether reporting this category requires identifying a specific
+  /// vendor/rider/customer. `orderIssue` and `general` reports are about
+  /// the order or the app as a whole, not a person, so the wizard skips
+  /// the target-picker step for them entirely.
+  bool get requiresTarget => switch (this) {
+        ReportTargetType.vendor ||
+        ReportTargetType.rider ||
+        ReportTargetType.customer =>
+          true,
+        ReportTargetType.orderIssue || ReportTargetType.general => false,
+      };
 }
 
 enum ReportStatus {

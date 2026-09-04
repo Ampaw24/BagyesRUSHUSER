@@ -207,7 +207,6 @@ class _ReportFlowViewState extends State<ReportFlowView> {
     final notifier = _vm;
 
     List<ReportableTarget> targets = const [];
-    bool riderAvailable = false;
     bool targetsLoading = false;
 
     if (widget.args.role == ReportRole.customer) {
@@ -217,9 +216,6 @@ class _ReportFlowViewState extends State<ReportFlowView> {
       final orders = ordersState is consumer_orders.OrdersLoaded
           ? ordersState.orders
           : const <ConsumerOrder>[];
-      riderAvailable = orders.any(
-        (o) => o.driverName != null && o.driverName!.isNotEmpty,
-      );
       if (state.targetType == ReportTargetType.rider) {
         targets = _consumerRiderTargets(orders);
       }
@@ -230,9 +226,6 @@ class _ReportFlowViewState extends State<ReportFlowView> {
       targetsLoading =
           vendorOrdersState.status == vendor_orders.OrdersStatus.loading;
       final orders = vendorOrdersState.orders;
-      riderAvailable = orders.any(
-        (o) => o.driverName != null && o.driverName!.isNotEmpty,
-      );
       if (state.targetType == ReportTargetType.customer) {
         targets = _vendorCustomerTargets(orders);
       } else if (state.targetType == ReportTargetType.rider) {
@@ -240,9 +233,7 @@ class _ReportFlowViewState extends State<ReportFlowView> {
       }
     }
 
-    final List<ReportReason> reasons = state.targetType != null
-        ? ReportReasons.forTargetType(state.targetType!)
-        : const [];
+    final List<ReportReasonOption> reasons = state.currentReasons;
 
     return PopScope(
       canPop: state.isFirstStep,
@@ -283,7 +274,10 @@ class _ReportFlowViewState extends State<ReportFlowView> {
                     child: switch (state.currentStep) {
                       ReportWizardStep.targetType => ReportTargetTypeStep(
                         role: state.role,
-                        riderAvailable: riderAvailable,
+                        reasonCategories: state.reasonCategories,
+                        reasonsLoading: state.reasonsLoading,
+                        reasonsError: state.reasonsError,
+                        onRetry: notifier.loadReasons,
                         onSelect: notifier.selectTargetType,
                       ),
                       ReportWizardStep.target =>
@@ -304,10 +298,12 @@ class _ReportFlowViewState extends State<ReportFlowView> {
                       ReportWizardStep.reason => ReportReasonStep(
                         reasons: reasons,
                         selectedCode: state.reasonCode,
+                        isLoading: state.reasonsLoading,
+                        errorMessage: state.reasonsError,
+                        onRetry: notifier.loadReasons,
                         onSelect: (r) => notifier.selectReason(
                           code: r.code,
                           label: r.label,
-                          isUrgent: r.isUrgent,
                         ),
                       ),
                       ReportWizardStep.details => ReportDetailsStep(

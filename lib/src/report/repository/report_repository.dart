@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
 import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
@@ -59,6 +59,23 @@ class ReportRepository {
     }
   }
 
+  Future<ReportReason> getReportReasons() async {
+    appLogger.d('ReportRepository.getReportReasons → ');
+    try {
+      final response = await _client.get(ApiEndpoints.customerReportReasons);
+      if (response.statusCode == 200) {
+        return ReportReason.fromJson(_dataMap(response));
+      }
+      throw Exception('Failed to load report reasons (${response.statusCode}).');
+    } on DioException catch (e) {
+      appLogger.e(
+        'ReportRepository.getReportReasons → DioException',
+        error: e,
+      );
+      throw Exception(_friendlyMessage(e));
+    }
+  }
+
   Future<Report> submitReport({
     required ReportRole role,
     required ReportTargetType targetType,
@@ -76,23 +93,24 @@ class ReportRepository {
       'reasonCode=$reasonCode, attachments=${attachments.length}',
     );
     try {
-      final attachmentUris = await Future.wait(attachments.map(_toDataUri));
+      final formData = FormData.fromMap({
+        'target_type': targetType.apiValue,
+        if (orderId != null && orderId.isNotEmpty) 'order_id': orderId,
+        if (targetId != null) 'target_id': int.tryParse(targetId) ?? targetId,
+        'target_name': targetName,
+        if (targetPhone != null && targetPhone.isNotEmpty)
+          'target_phone': targetPhone,
+        'reason_code': reasonCode,
+        if (reasonLabel.isNotEmpty) 'reason_label': reasonLabel,
+        'description': description,
+      });
+      for (final file in attachments) {
+        formData.files.add(
+          MapEntry('attachments[]', await MultipartFile.fromFile(file.path)),
+        );
+      }
 
-      final response = await _client.post(
-        _basePath(role),
-        data: {
-          'target_type': targetType.apiValue,
-          if (orderId != null && orderId.isNotEmpty) 'order_id': orderId,
-          if (targetId != null) 'target_id': int.tryParse(targetId) ?? targetId,
-          'target_name': targetName,
-          if (targetPhone != null && targetPhone.isNotEmpty)
-            'target_phone': targetPhone,
-          'reason_code': reasonCode,
-          if (reasonLabel.isNotEmpty) 'reason_label': reasonLabel,
-          'description': description,
-          if (attachmentUris.isNotEmpty) 'attachments': attachmentUris,
-        },
-      );
+      final response = await _client.post(_basePath(role), data: formData);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         appLogger.i('ReportRepository.submitReport → success');
@@ -106,17 +124,6 @@ class ReportRepository {
   }
 
   // ─── Private helpers ───────────────────────────────────────────────────────
-
-  /// Attachments travel as base64 data URIs inside the JSON body (per
-  /// `reportapis.md`, this endpoint is `Content-Type: application/json`,
-  /// not multipart) — same convention as `vendorDashboardRepositoryImpl`'s
-  /// image uploads.
-  Future<String> _toDataUri(File file) async {
-    final bytes = await file.readAsBytes();
-    final ext = file.path.split('.').last.toLowerCase();
-    final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
-    return 'data:$mime;base64,${base64Encode(bytes)}';
-  }
 
   String _friendlyMessage(DioException e) {
     final data = e.response?.data;
