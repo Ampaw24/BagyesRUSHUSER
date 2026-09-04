@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -8,9 +7,9 @@ import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/app_navigator.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
-import '../../../features/consumer/restaurant/presentation/widgets/food_category_chip.dart';
-import '../../../features/consumer/restaurant/presentation/widgets/restaurant_card.dart';
+import '../../../src/home/viewmodel/home_discovery_viewmodel.dart';
+import '../../../src/restaurant/widgets/food_category_chip.dart';
+import '../../../src/restaurant/widgets/restaurant_card.dart';
 import '../../../src/notification/viewmodel/notification_viewmodel.dart';
 import 'promo_banner_section.dart';
 import 'popular_restaurants_row.dart';
@@ -18,15 +17,15 @@ import 'shimmer_card.dart';
 import '../../../core/utils/location_helper.dart';
 import '../../../core/services/places_service.dart';
 
-class HomeDiscoveryTab extends ConsumerStatefulWidget {
+class HomeDiscoveryTab extends StatefulWidget {
   final VoidCallback? onDrawerTap;
   const HomeDiscoveryTab({super.key, this.onDrawerTap});
 
   @override
-  ConsumerState<HomeDiscoveryTab> createState() => _HomeDiscoveryTabState();
+  State<HomeDiscoveryTab> createState() => _HomeDiscoveryTabState();
 }
 
-class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
+class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
   String? _currentLocation;
   final PageController _bannerController = PageController();
   final ScrollController _scrollController = ScrollController();
@@ -52,15 +51,14 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     final pos = _scrollController.position;
     // Trigger load-more when 200px from the bottom
     if (pos.pixels >= pos.maxScrollExtent - 200) {
-      final category = ref.read(selectedCategoryProvider);
-      ref.read(vendorListProvider(category).notifier).loadMore();
+      context.read<HomeDiscoveryViewModel>().loadMoreVendors();
     }
   }
 
   void _autoscrollBanner() {
     if (!mounted || !_bannerController.hasClients) return;
-    final banners = ref.read(homeBannersProvider);
-    final count = banners.valueOrNull?.banners.length ?? 0;
+    final banners = context.read<HomeDiscoveryViewModel>().state.banners;
+    final count = banners?.banners.length ?? 0;
     if (count < 2) return;
     final next = (_bannerIndex + 1) % count;
     _bannerController.animateToPage(
@@ -137,8 +135,8 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     final w = MediaQuery.sizeOf(context).width;
     final h = MediaQuery.sizeOf(context).height;
     final hPad = w * 0.05;
-    final selectedCategory = ref.watch(selectedCategoryProvider);
-    final listAsync = ref.watch(vendorListProvider(selectedCategory));
+    final homeState = context.watch<HomeDiscoveryViewModel>().state;
+    final selectedCategory = homeState.selectedCategory;
     final user = context.watch<CurrentUserProvider>().user;
     final hasUnreadNotifications =
         context.watch<NotificationViewmodel>().unreadCount > 0;
@@ -210,7 +208,7 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                             
+
                             ],
                           ),
                         ],
@@ -340,26 +338,27 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
         SliverToBoxAdapter(
           child: SizedBox(
             height: w * 0.088,
-            child: ref.watch(categoriesProvider).when(
-                  loading: () => _categoryShimmer(w),
-                  error: (_, _) => _staticCategories(w, selectedCategory),
-                  data: (categories) => ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                    itemCount: categories.length,
-                    separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
-                    itemBuilder: (_, i) {
-                      final cat = categories[i];
-                      return FoodCategoryChip(
-                        category: cat,
-                        isSelected: selectedCategory == cat.label,
-                        onTap: () => ref
-                            .read(selectedCategoryProvider.notifier)
-                            .updateCategory(cat.label),
-                      );
-                    },
-                  ),
+            child: switch (homeState.categoriesStatus) {
+              CategoriesStatus.loading => _categoryShimmer(w),
+              CategoriesStatus.error =>
+                _staticCategories(w, selectedCategory),
+              CategoriesStatus.loaded => ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                  itemCount: homeState.categories.length,
+                  separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+                  itemBuilder: (_, i) {
+                    final cat = homeState.categories[i];
+                    return FoodCategoryChip(
+                      category: cat,
+                      isSelected: selectedCategory == cat.label,
+                      onTap: () => context
+                          .read<HomeDiscoveryViewModel>()
+                          .updateCategory(cat.label),
+                    );
+                  },
                 ),
+            },
           ),
         ),
 
@@ -419,11 +418,11 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
         SliverToBoxAdapter(child: SizedBox(height: w * 0.03)),
 
         // ── Restaurant list (paginated) ──
-        ..._buildRestaurantSliver(context, listAsync, w),
+        ..._buildRestaurantSliver(context, homeState, w),
 
         // ── Load-more indicator ──
         SliverToBoxAdapter(
-          child: listAsync.valueOrNull?.isLoadingMore == true
+          child: homeState.isLoadingMore
               ? Padding(
                   padding: EdgeInsets.symmetric(vertical: w * 0.06),
                   child: const Center(
@@ -441,11 +440,12 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
 
   List<Widget> _buildRestaurantSliver(
     BuildContext context,
-    AsyncValue<VendorListState> listAsync,
+    HomeDiscoveryState homeState,
     double w,
   ) {
     // Loading first page
-    if (listAsync.isLoading && listAsync.valueOrNull == null) {
+    if (homeState.vendorListStatus == VendorListStatus.loading &&
+        homeState.restaurants.isEmpty) {
       return [
         SliverToBoxAdapter(
           child: Column(
@@ -462,22 +462,20 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
     }
 
     // Error (no cached data)
-    if (listAsync.hasError && listAsync.valueOrNull == null) {
+    if (homeState.vendorListStatus == VendorListStatus.error &&
+        homeState.restaurants.isEmpty) {
       return [
         SliverToBoxAdapter(
           child: _ErrorState(
             w: w,
-            onRetry: () {
-              final category = ref.read(selectedCategoryProvider);
-              ref.invalidate(vendorListProvider(category));
-            },
+            onRetry: () =>
+                context.read<HomeDiscoveryViewModel>().retryVendorList(),
           ),
         ),
       ];
     }
 
-    final state = listAsync.valueOrNull;
-    final restaurants = state?.restaurants ?? [];
+    final restaurants = homeState.restaurants;
 
     // Empty state
     if (restaurants.isEmpty) {
@@ -526,8 +524,8 @@ class _HomeDiscoveryTabState extends ConsumerState<HomeDiscoveryTab> {
           return FoodCategoryChip(
             category: cat,
             isSelected: selectedCategory == cat.label,
-            onTap: () => ref
-                .read(selectedCategoryProvider.notifier)
+            onTap: () => context
+                .read<HomeDiscoveryViewModel>()
                 .updateCategory(cat.label),
           );
         },

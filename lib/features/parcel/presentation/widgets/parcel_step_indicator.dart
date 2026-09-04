@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import '../viewmodels/send_parcel_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 class ParcelStepIndicator extends StatelessWidget {
   final ParcelStep currentStep;

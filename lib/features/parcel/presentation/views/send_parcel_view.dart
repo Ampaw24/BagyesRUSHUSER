@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../constant/app_theme.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/router/app_navigator.dart';
-import '../viewmodels/send_parcel_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 import '../widgets/available_riders_step.dart';
 import '../widgets/delivery_stops_step.dart';
 import '../widgets/location_picker_step.dart';
@@ -14,72 +15,108 @@ import '../widgets/parcel_bottom_bar.dart';
 import '../widgets/parcel_step_indicator.dart';
 import '../widgets/parcel_summary_step.dart';
 
-class SendParcelView extends ConsumerWidget {
+class SendParcelView extends StatefulWidget {
   const SendParcelView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(sendParcelProvider);
-    final notifier = ref.read(sendParcelProvider.notifier);
+  State<SendParcelView> createState() => _SendParcelViewState();
+}
+
+class _SendParcelViewState extends State<SendParcelView> {
+  /// One fresh instance per visit — mirrors the original
+  /// `StateNotifierProvider.autoDispose` (a new blank wizard every time this
+  /// screen is entered, not shared/persisted across visits). Owned and
+  /// disposed directly by this State, then exposed to the subtree (e.g.
+  /// [ParcelSummaryStep]) via `ChangeNotifierProvider.value`.
+  late final SendParcelViewModel _vm;
+  SendParcelState _previousState = const SendParcelState();
+
+  @override
+  void initState() {
+    super.initState();
+    _vm = sl<SendParcelViewModel>();
+    _previousState = _vm.state;
+    _vm.addListener(_onStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _vm.removeListener(_onStateChanged);
+    _vm.dispose();
+    super.dispose();
+  }
+
+  /// React to a successful backend submission or a submission failure.
+  void _onStateChanged() {
+    if (!mounted) return;
+    final previous = _previousState;
+    final next = _vm.state;
+    _previousState = next;
+
+    if (next.createdParcel != null &&
+        next.createdParcel != previous.createdParcel) {
+      AppNavigator.toOrderTracking(context, next.createdParcel!.id);
+    } else if (next.submitError != null &&
+        next.submitError != previous.submitError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(next.submitError!)),
+      );
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = _vm.state;
     final isSummary = state.currentStep == ParcelStep.summary;
 
-    // React to a successful backend submission or a submission failure.
-    ref.listen<SendParcelState>(sendParcelProvider, (previous, next) {
-      if (next.createdParcel != null &&
-          next.createdParcel != previous?.createdParcel) {
-        AppNavigator.toOrderTracking(context, next.createdParcel!.id);
-      } else if (next.submitError != null &&
-          next.submitError != previous?.submitError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.submitError!)),
-        );
-      }
-    });
+    return ChangeNotifierProvider<SendParcelViewModel>.value(
+      value: _vm,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
+        ),
+        child: Scaffold(
+          backgroundColor: AppColors.scaffold,
+          appBar: _buildAppBar(context, state, _vm),
+          body: Column(
+            children: [
+              // Step indicator is hidden on summary (map takes over)
+              if (!isSummary)
+                ParcelStepIndicator(currentStep: state.currentStep),
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
-      child: Scaffold(
-        backgroundColor: AppColors.scaffold,
-        appBar: _buildAppBar(context, state, notifier),
-        body: Column(
-          children: [
-            // Step indicator is hidden on summary (map takes over)
-            if (!isSummary)
-              ParcelStepIndicator(currentStep: state.currentStep),
-
-            // ── Step body ──────────────────────────────────────────────────
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 320),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.08, 0),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: FadeTransition(opacity: animation, child: child),
-                  );
-                },
-                child: KeyedSubtree(
-                  key: ValueKey(state.currentStep),
-                  child: _buildStep(context, state, notifier),
+              // ── Step body ──────────────────────────────────────────────────
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 320),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.08, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: FadeTransition(opacity: animation, child: child),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(state.currentStep),
+                    child: _buildStep(context, state, _vm),
+                  ),
                 ),
               ),
-            ),
 
-            // ── Bottom action bar ──────────────────────────────────────────
-            ParcelBottomBar(
-              currentStep: state.currentStep,
-              canProceed: state.canProceed,
-              isLoading: state.isSubmitting,
-              onBack: notifier.goBack,
-              onContinue: () => _handleContinue(context, state, notifier),
-            ),
-          ],
+              // ── Bottom action bar ──────────────────────────────────────────
+              ParcelBottomBar(
+                currentStep: state.currentStep,
+                canProceed: state.canProceed,
+                isLoading: state.isSubmitting,
+                onBack: _vm.goBack,
+                onContinue: () => _handleContinue(context, state, _vm),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -90,7 +127,7 @@ class SendParcelView extends ConsumerWidget {
   PreferredSizeWidget _buildAppBar(
     BuildContext context,
     SendParcelState state,
-    SendParcelNotifier notifier,
+    SendParcelViewModel vm,
   ) {
     final w = MediaQuery.sizeOf(context).width;
 
@@ -103,7 +140,7 @@ class SendParcelView extends ConsumerWidget {
           if (state.currentStep == ParcelStep.packageType) {
             Navigator.pop(context);
           } else {
-            notifier.goBack();
+            vm.goBack();
           }
         },
         child: Padding(
@@ -140,27 +177,27 @@ class SendParcelView extends ConsumerWidget {
   Widget _buildStep(
     BuildContext context,
     SendParcelState state,
-    SendParcelNotifier notifier,
+    SendParcelViewModel vm,
   ) {
     switch (state.currentStep) {
       case ParcelStep.packageType:
         return PackageTypeStep(
           selectedType: state.packageType,
-          onTypeSelected: notifier.selectPackageType,
+          onTypeSelected: vm.selectPackageType,
         );
 
       case ParcelStep.packageDetails:
         return PackageDetailsStep(
           images: state.packageImages,
           weightText: state.weightText,
-          onImagesAdded: notifier.addPackageImages,
-          onImageRemoved: notifier.removePackageImage,
-          onWeightChanged: notifier.setWeight,
-          maxImages: SendParcelNotifier.maxImages,
+          onImagesAdded: vm.addPackageImages,
+          onImageRemoved: vm.removePackageImage,
+          onWeightChanged: vm.setWeight,
+          maxImages: SendParcelViewModel.maxImages,
           fragile: state.fragile,
-          onFragileChanged: notifier.setFragile,
+          onFragileChanged: vm.setFragile,
           selectedSize: state.packageSize,
-          onSizeChanged: notifier.setPackageSize,
+          onSizeChanged: vm.setPackageSize,
         );
 
       case ParcelStep.pickupLocation:
@@ -169,16 +206,16 @@ class SendParcelView extends ConsumerWidget {
           subtitle: 'Where should the rider collect your package?',
           selectedLatLng: state.pickupLatLng,
           selectedAddress: state.pickupAddress,
-          onLocationSelected: notifier.setPickupLocation,
+          onLocationSelected: vm.setPickupLocation,
         );
 
       case ParcelStep.deliveryLocation:
         return DeliveryStopsStep(
           stops: state.deliveryStops,
           packageImages: state.packageImages,
-          onStopUpdated: notifier.updateDeliveryStop,
-          onAddStop: notifier.addDeliveryStop,
-          onStopRemoved: notifier.removeDeliveryStop,
+          onStopUpdated: vm.updateDeliveryStop,
+          onAddStop: vm.addDeliveryStop,
+          onStopRemoved: vm.removeDeliveryStop,
           onStopDetailsChanged: (
             id, {
             required itemDescription,
@@ -188,7 +225,7 @@ class SendParcelView extends ConsumerWidget {
             required specialInstructions,
             required selectedImageIndices,
           }) =>
-              notifier.updateDeliveryStopDetails(
+              vm.updateDeliveryStopDetails(
             id,
             itemDescription: itemDescription,
             quantity: quantity,
@@ -197,7 +234,7 @@ class SendParcelView extends ConsumerWidget {
             specialInstructions: specialInstructions,
             selectedImageIndices: selectedImageIndices,
           ),
-          maxStops: SendParcelNotifier.maxStops,
+          maxStops: SendParcelViewModel.maxStops,
         );
 
       case ParcelStep.availableRiders:
@@ -206,7 +243,7 @@ class SendParcelView extends ConsumerWidget {
           selectedRiderId: state.selectedRiderId,
           distanceKm: state.distanceKm,
           extraStopSurchargeGhs: state.extraStopSurchargeGhs,
-          onRiderSelected: notifier.selectRider,
+          onRiderSelected: vm.selectRider,
         );
 
       case ParcelStep.summary:
@@ -230,13 +267,13 @@ class SendParcelView extends ConsumerWidget {
   void _handleContinue(
     BuildContext context,
     SendParcelState state,
-    SendParcelNotifier notifier,
+    SendParcelViewModel vm,
   ) {
     if (state.currentStep == ParcelStep.summary) {
-      notifier.submitParcel();
+      vm.submitParcel();
       return;
     }
-    notifier.advance();
+    vm.advance();
   }
 
   // ── Step title ────────────────────────────────────────────────────────────

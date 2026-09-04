@@ -12,7 +12,7 @@ import '../../../core/utils/json_utils.dart';
 import '../../../core/utils/network_utils.dart';
 import '../../../core/utils/network_utility.dart';
 import '../../../core/utils/typedefs.dart';
-import '../../../features/consumer/restaurant/domain/entities/addon.dart';
+import '../../../src/restaurant/models/addon.dart';
 import '../model/earnings_data.dart';
 import '../model/menu_item.dart';
 import '../model/vendor_dashboard_stats.dart';

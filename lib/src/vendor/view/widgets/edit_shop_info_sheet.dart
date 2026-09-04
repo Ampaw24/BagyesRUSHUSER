@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../../../../constant/app_theme.dart';
-import '../../../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
+import '../../../../../src/home/viewmodel/home_discovery_viewmodel.dart';
 import '../../model/vendor_profile.dart';
 
-class EditShopInfoSheet extends ConsumerStatefulWidget {
+class EditShopInfoSheet extends StatefulWidget {
   final VendorProfile profile;
   final ValueChanged<VendorProfile> onSave;
 
@@ -24,17 +24,15 @@ class EditShopInfoSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => ProviderScope(
-        child: EditShopInfoSheet(profile: profile, onSave: onSave),
-      ),
+      builder: (_) => EditShopInfoSheet(profile: profile, onSave: onSave),
     );
   }
 
   @override
-  ConsumerState<EditShopInfoSheet> createState() => _EditShopInfoSheetState();
+  State<EditShopInfoSheet> createState() => _EditShopInfoSheetState();
 }
 
-class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
+class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
@@ -121,7 +119,7 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final homeState = context.watch<HomeDiscoveryViewModel>().state;
 
     return Container(
       constraints: BoxConstraints(
@@ -292,23 +290,25 @@ class _EditShopInfoSheetState extends ConsumerState<EditShopInfoSheet> {
                     // ── Cuisine Types ──
                     _SectionHeader(label: 'Cuisine Types', w: w),
                     SizedBox(height: w * 0.025),
-                    categoriesAsync.when(
-                      loading: () => _CuisineSkeletonRow(w: w),
-                      error: (e, s) => _buildCuisineChips(
-                        w: w,
-                        cuisines: _fallbackCuisines,
-                      ),
-                      data: (categories) {
-                        final cuisines = categories
-                            .where((c) => c.label != 'All')
-                            .map((c) => c.label)
-                            .toList();
-                        return _buildCuisineChips(
+                    switch (homeState.categoriesStatus) {
+                      CategoriesStatus.loading => _CuisineSkeletonRow(w: w),
+                      CategoriesStatus.error => _buildCuisineChips(
                           w: w,
-                          cuisines: cuisines.isEmpty ? _fallbackCuisines : cuisines,
-                        );
-                      },
-                    ),
+                          cuisines: _fallbackCuisines,
+                        ),
+                      CategoriesStatus.loaded => _buildCuisineChips(
+                          w: w,
+                          cuisines: () {
+                            final cuisines = homeState.categories
+                                .where((c) => c.label != 'All')
+                                .map((c) => c.label)
+                                .toList();
+                            return cuisines.isEmpty
+                                ? _fallbackCuisines
+                                : cuisines;
+                          }(),
+                        ),
+                    },
                     SizedBox(height: w * 0.05),
 
                     // ── Save button ──

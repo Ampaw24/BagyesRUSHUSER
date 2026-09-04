@@ -14,11 +14,11 @@ import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
 import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
 import 'package:bagyesrushappusernew/presentation/invite_friend/invite_friend.dart';
 import 'package:bagyesrushappusernew/presentation/help_support/help_support_view.dart';
-import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
-import 'package:bagyesrushappusernew/features/report/presentation/report_flow_args.dart';
-import 'package:bagyesrushappusernew/features/report/presentation/views/my_reports_view.dart';
-import 'package:bagyesrushappusernew/features/report/presentation/views/report_detail_view.dart';
-import 'package:bagyesrushappusernew/features/report/presentation/views/report_flow_view.dart';
+import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
+import 'package:bagyesrushappusernew/src/report/views/my_reports_view.dart';
+import 'package:bagyesrushappusernew/src/report/views/report_detail_view.dart';
+import 'package:bagyesrushappusernew/src/report/views/report_flow_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/login_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/signup_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/otp_view.dart';
@@ -36,11 +36,11 @@ import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/scr
 import 'package:bagyesrushappusernew/src/vendor-wallet/views/vendor_wallet_view.dart';
 
 // ── Consumer feature screens ──
-import 'package:bagyesrushappusernew/features/consumer/restaurant/presentation/views/restaurant_detail_view.dart';
-import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/views/checkout_view.dart';
+import 'package:bagyesrushappusernew/src/restaurant/views/restaurant_detail_view.dart';
+import 'package:bagyesrushappusernew/src/checkout/views/checkout_view.dart';
 import 'package:bagyesrushappusernew/src/cart/views/cart_view.dart';
-import 'package:bagyesrushappusernew/features/consumer/orders/presentation/views/order_tracking_view.dart';
-import 'package:bagyesrushappusernew/features/consumer/search/presentation/views/consumer_search_view.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/views/order_tracking_view.dart';
+import 'package:bagyesrushappusernew/src/search/views/consumer_search_view.dart';
 import 'package:bagyesrushappusernew/src/transaction/views/transaction_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/notifications/view/screens/consumer_notifications_screen.dart';
 

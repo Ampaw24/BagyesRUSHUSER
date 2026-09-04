@@ -1,36 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../constant/app_theme.dart';
 import '../../../../../notification/model/notification.model.dart';
 import '../../../../../notification/viewmodel/notification_state.dart';
 import '../../../../../notification/viewmodel/notification_viewmodel.dart';
-import '../../providers/chat_provider.dart';
-import '../widgets/animated_tab_switcher.dart';
 import '../widgets/notification_tile.dart';
-import '../widgets/conversation_tile.dart';
-import 'vendor_chat_screen.dart';
 import 'vendor_notification_details_screen.dart';
 
 /// Vendor Notifications Screen.
-/// Hosts Notifications and Messages tabs with animated switching.
-class VendorNotificationsScreen extends ConsumerStatefulWidget {
+class VendorNotificationsScreen extends StatefulWidget {
   const VendorNotificationsScreen({super.key});
 
   @override
-  ConsumerState<VendorNotificationsScreen> createState() =>
+  State<VendorNotificationsScreen> createState() =>
       _VendorNotificationsScreenState();
 }
 
 class _VendorNotificationsScreenState
-    extends ConsumerState<VendorNotificationsScreen>
+    extends State<VendorNotificationsScreen>
     with TickerProviderStateMixin {
-  // In-app messaging is disabled for this release; will ship in a future update.
-  static const bool _kMessagingEnabled = false;
-
-  int _tabIndex = 0;
   late final AnimationController _headerCtrl;
   late final Animation<double> _headerFade;
 
@@ -126,9 +116,7 @@ class _VendorNotificationsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final chatState = _kMessagingEnabled ? ref.watch(chatProvider) : null;
     final w = MediaQuery.sizeOf(context).width;
-    final unreadCount = _notifications.where((n) => !n.isRead).length;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -146,67 +134,19 @@ class _VendorNotificationsScreenState
                 opacity: _headerFade,
                 child: _NotifHeader(
                   onBack: () => Navigator.of(context).pop(),
-                  onMarkAllRead: (!_kMessagingEnabled || _tabIndex == 0)
-                      ? () => _vm?.markAllAsRead()
-                      : null,
+                  onMarkAllRead: () => _vm?.markAllAsRead(),
                 ),
               ),
 
               SizedBox(height: w * 0.04),
 
-              // Messaging tab switcher is hidden until in-app messaging ships.
-              if (_kMessagingEnabled) ...[
-                AnimatedTabSwitcher(
-                  selectedIndex: _tabIndex,
-                  labels: const ['Notifications', 'Messages'],
-                  badgeCounts: [
-                    unreadCount,
-                    chatState?.totalUnread ?? 0,
-                  ],
-                  onTabChanged: (i) => setState(() => _tabIndex = i),
-                ),
-                SizedBox(height: w * 0.02),
-              ],
-
-              // ── Tab content ──────────────────────────────────────────
+              // ── Notifications ────────────────────────────────────────
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.04, 0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOut,
-                      )),
-                      child: child,
-                    ),
-                  ),
-                  child: (!_kMessagingEnabled || _tabIndex == 0)
-                      ? _NotificationsTab(
-                          key: const ValueKey('notif'),
-                          isLoading: _isLoading,
-                          notifications: _notifications,
-                          onTap: _openNotification,
-                          onDelete: _deleteNotification,
-                        )
-                      : _MessagesTab(
-                          key: const ValueKey('msgs'),
-                          chatState: chatState!,
-                          onConversationTap: (conv) {
-                            ref
-                                .read(chatProvider.notifier)
-                                .markConversationRead(conv.id);
-                            Navigator.of(context).push(
-                              _slideRoute(
-                                VendorChatScreen(conversationId: conv.id),
-                              ),
-                            );
-                          },
-                        ),
+                child: _NotificationsTab(
+                  isLoading: _isLoading,
+                  notifications: _notifications,
+                  onTap: _openNotification,
+                  onDelete: _deleteNotification,
                 ),
               ),
             ],
@@ -343,53 +283,6 @@ class _NotificationsTab extends StatelessWidget {
   }
 }
 
-// ─── Messages tab ────────────────────────────────────────────────────────────
-
-class _MessagesTab extends StatelessWidget {
-  final ChatState chatState;
-  final ValueChanged<dynamic> onConversationTap;
-
-  const _MessagesTab({
-    super.key,
-    required this.chatState,
-    required this.onConversationTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-
-    if (chatState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (chatState.conversations.isEmpty) {
-      return _EmptyState(
-        icon: HugeIcons.strokeRoundedMessage01,
-        message: 'No messages yet',
-        subtitle: 'Conversations with customers will appear here',
-      );
-    }
-
-    return ListView.separated(
-      padding: EdgeInsets.only(bottom: w * 0.06),
-      itemCount: chatState.conversations.length,
-      separatorBuilder: (_, _) => Divider(
-        height: 1,
-        thickness: 0.5,
-        indent: w * 0.18,
-        endIndent: 0,
-        color: AppColors.divider,
-      ),
-      itemBuilder: (_, i) {
-        final conv = chatState.conversations[i];
-        return ConversationTile(
-          conversation: conv,
-          onTap: () => onConversationTap(conv),
-        );
-      },
-    );
-  }
-}
 
 // ─── Empty state ─────────────────────────────────────────────────────────────
 

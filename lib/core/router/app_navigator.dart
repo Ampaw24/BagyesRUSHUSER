@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/restaurant.dart';
-import 'package:bagyesrushappusernew/features/report/domain/entities/report.dart';
-import 'package:bagyesrushappusernew/features/report/presentation/report_flow_args.dart';
+import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
+import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 
 import 'app_routes.dart';
 

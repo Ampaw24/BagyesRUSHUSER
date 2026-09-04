@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
+import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 
 class MenuItem extends Equatable {
   final String id;

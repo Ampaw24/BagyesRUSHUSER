@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failure.dart';
-import '../../../features/consumer/restaurant/domain/entities/addon.dart';
+import '../../../src/restaurant/models/addon.dart';
 import '../model/vendor_dashboard_stats.dart';
 import '../model/vendor_order.dart';
 import '../model/vendor_order_stats.dart';

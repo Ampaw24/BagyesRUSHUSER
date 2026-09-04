@@ -3,7 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/features/consumer/restaurant/domain/entities/addon.dart';
+import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/repositories/cart_repository.dart';

@@ -1,24 +1,23 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:provider/provider.dart' as legacy;
+import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/features/consumer/checkout/presentation/viewmodels/checkout_payment_methods_provider.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_state.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
 
 import '../../../../constant/app_theme.dart';
-import '../../data/models/delivery_stop.dart';
-import '../../data/models/rider_model.dart';
-import '../viewmodels/send_parcel_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
+import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
-class ParcelSummaryStep extends ConsumerWidget {
+class ParcelSummaryStep extends StatefulWidget {
   final String packageType;
   final String weightText;
   final String pickupAddress;
@@ -44,18 +43,56 @@ class ParcelSummaryStep extends ConsumerWidget {
     required this.packageImages,
   });
 
+  @override
+  State<ParcelSummaryStep> createState() => _ParcelSummaryStepState();
+}
+
+class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
+  late final PaymentViewModel _paymentVm;
+
+  @override
+  void initState() {
+    super.initState();
+    _paymentVm = sl<PaymentViewModel>(param1: false);
+    _paymentVm.addListener(_onPaymentStateChanged);
+    _paymentVm.loadPaymentMethods();
+  }
+
+  @override
+  void dispose() {
+    _paymentVm.removeListener(_onPaymentStateChanged);
+    _paymentVm.dispose();
+    super.dispose();
+  }
+
+  /// Auto-selects the customer's default (or first) saved payment method
+  /// once the list loads, so they aren't forced to tap it explicitly.
+  void _onPaymentStateChanged() {
+    if (!mounted) return;
+    final state = _paymentVm.state;
+    if (state is PaymentMethodsLoaded && state.methods.isNotEmpty) {
+      final sendVm = context.read<SendParcelViewModel>();
+      if (sendVm.state.selectedPaymentMethod == null) {
+        final defaultMethod = state.methods
+            .firstWhere((m) => m.isDefault, orElse: () => state.methods.first);
+        sendVm.selectPaymentMethod(defaultMethod);
+      }
+    }
+    setState(() {});
+  }
+
   /// Pushes the shared "Add Payment Method" screen (Profile → Payment
   /// Methods / Checkout use the same one), then selects the newly-created
   /// method and refreshes the saved-methods list.
-  Future<void> _addPaymentMethod(BuildContext context, WidgetRef ref) async {
+  Future<void> _addPaymentMethod(BuildContext context) async {
     final result = await Navigator.of(context).push<PaymentMethod>(
       MaterialPageRoute(
-        builder: (_) => legacy.MultiProvider(
+        builder: (_) => MultiProvider(
           providers: [
-            legacy.ChangeNotifierProvider<PaymentViewModel>(
+            ChangeNotifierProvider<PaymentViewModel>(
               create: (_) => sl<PaymentViewModel>(param1: false),
             ),
-            legacy.ChangeNotifierProvider<PayoutProvidersViewModel>(
+            ChangeNotifierProvider<PayoutProvidersViewModel>(
               create: (_) => sl<PayoutProvidersViewModel>(),
             ),
           ],
@@ -64,27 +101,17 @@ class ParcelSummaryStep extends ConsumerWidget {
       ),
     );
     if (result == null) return;
-    ref.invalidate(checkoutPaymentMethodsProvider);
-    ref.read(sendParcelProvider.notifier).selectPaymentMethod(result);
+    _paymentVm.loadPaymentMethods();
+    if (!mounted) return;
+    context.read<SendParcelViewModel>().selectPaymentMethod(result);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final hasExtraStops = deliveryStops.length > 1;
-    final sendState = ref.watch(sendParcelProvider);
-
-    // Auto-select the customer's default (or first) saved payment method
-    // once the list loads, so they aren't forced to tap it explicitly.
-    ref.listen<AsyncValue<List<PaymentMethod>>>(checkoutPaymentMethodsProvider,
-        (_, next) {
-      final methods = next.valueOrNull;
-      if (methods == null || methods.isEmpty) return;
-      if (ref.read(sendParcelProvider).selectedPaymentMethod != null) return;
-      final defaultMethod =
-          methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
-      ref.read(sendParcelProvider.notifier).selectPaymentMethod(defaultMethod);
-    });
+    final hasExtraStops = widget.deliveryStops.length > 1;
+    final sendVm = context.watch<SendParcelViewModel>();
+    final sendState = sendVm.state;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
@@ -115,20 +142,20 @@ class ParcelSummaryStep extends ConsumerWidget {
             children: [
               _InfoChip(
                 icon: HugeIcons.strokeRoundedDeliveryBox01,
-                label: packageType == 'document' ? 'Document' : 'Parcel',
+                label: widget.packageType == 'document' ? 'Document' : 'Parcel',
                 w: w,
               ),
               _InfoChip(
                 icon: HugeIcons.strokeRoundedInformationCircle,
-                label: '$weightText kg',
+                label: '${widget.weightText} kg',
                 w: w,
               ),
               _InfoChip(
                 icon: HugeIcons.strokeRoundedMapsLocation01,
-                label: '${distanceKm.toStringAsFixed(1)} km',
+                label: '${widget.distanceKm.toStringAsFixed(1)} km',
                 w: w,
               ),
-              if (fragile)
+              if (widget.fragile)
                 _InfoChip(
                   icon: HugeIcons.strokeRoundedAlert01,
                   label: 'Fragile',
@@ -139,11 +166,11 @@ class ParcelSummaryStep extends ConsumerWidget {
           ),
 
           // ── Rider summary ────────────────────────────────────────────────
-          if (selectedRider != null) ...[
+          if (widget.selectedRider != null) ...[
             SizedBox(height: w * 0.04),
             _Divider(),
             SizedBox(height: w * 0.04),
-            _RiderSummaryRow(rider: selectedRider!, w: w),
+            _RiderSummaryRow(rider: widget.selectedRider!, w: w),
           ],
 
           SizedBox(height: w * 0.04),
@@ -154,23 +181,23 @@ class ParcelSummaryStep extends ConsumerWidget {
           _CostRow(
             label: 'Base fee',
             value:
-                'GHS ${selectedRider?.baseFeeGhs.toStringAsFixed(2) ?? '0.00'}',
+                'GHS ${widget.selectedRider?.baseFeeGhs.toStringAsFixed(2) ?? '0.00'}',
             w: w,
           ),
           SizedBox(height: w * 0.02),
           _CostRow(
             label:
-                'Distance (${distanceKm.toStringAsFixed(1)} km × GHS ${selectedRider?.perKmFeeGhs.toStringAsFixed(2) ?? '0'})',
+                'Distance (${widget.distanceKm.toStringAsFixed(1)} km × GHS ${widget.selectedRider?.perKmFeeGhs.toStringAsFixed(2) ?? '0'})',
             value:
-                'GHS ${((selectedRider?.perKmFeeGhs ?? 0) * distanceKm).toStringAsFixed(2)}',
+                'GHS ${((widget.selectedRider?.perKmFeeGhs ?? 0) * widget.distanceKm).toStringAsFixed(2)}',
             w: w,
           ),
           if (hasExtraStops) ...[
             SizedBox(height: w * 0.02),
             _CostRow(
               label:
-                  'Extra stops (${deliveryStops.length - 1} × GHS 2.00)',
-              value: 'GHS ${extraStopSurchargeGhs.toStringAsFixed(2)}',
+                  'Extra stops (${widget.deliveryStops.length - 1} × GHS 2.00)',
+              value: 'GHS ${widget.extraStopSurchargeGhs.toStringAsFixed(2)}',
               w: w,
               accent: true,
             ),
@@ -191,7 +218,7 @@ class ParcelSummaryStep extends ConsumerWidget {
             quoteError: sendState.quoteError,
             quotedPrice: sendState.quotedPrice,
             quoteCurrency: sendState.quoteCurrency,
-            onRetry: () => ref.read(sendParcelProvider.notifier).fetchQuote(),
+            onRetry: () => sendVm.fetchQuote(),
             w: w,
           ),
 
@@ -210,10 +237,11 @@ class ParcelSummaryStep extends ConsumerWidget {
           ),
           SizedBox(height: w * 0.03),
           _PaymentMethodSection(
+            state: _paymentVm.state,
             selectedMethod: sendState.selectedPaymentMethod,
             onSelect: (m) =>
-                ref.read(sendParcelProvider.notifier).selectPaymentMethod(m),
-            onAddNew: () => _addPaymentMethod(context, ref),
+                context.read<SendParcelViewModel>().selectPaymentMethod(m),
+            onAddNew: () => _addPaymentMethod(context),
             w: w,
           ),
 
@@ -242,13 +270,13 @@ class ParcelSummaryStep extends ConsumerWidget {
         icon: HugeIcons.strokeRoundedLocation01,
         iconColor: AppColors.success,
         label: 'Pickup',
-        address: pickupAddress,
+        address: widget.pickupAddress,
         w: w,
       ),
     );
 
-    for (int i = 0; i < deliveryStops.length; i++) {
-      final isFinal = i == deliveryStops.length - 1;
+    for (int i = 0; i < widget.deliveryStops.length; i++) {
+      final isFinal = i == widget.deliveryStops.length - 1;
 
       nodes.add(_RouteLine(w: w));
       nodes.add(
@@ -257,18 +285,18 @@ class ParcelSummaryStep extends ConsumerWidget {
               ? HugeIcons.strokeRoundedMapsLocation01
               : HugeIcons.strokeRoundedLocation01,
           iconColor: isFinal ? AppColors.primary : AppColors.textSecondary,
-          label: deliveryStops.length == 1
+          label: widget.deliveryStops.length == 1
               ? 'Delivery'
               : 'Stop ${i + 1}${isFinal ? ' (Final)' : ''}',
-          address: deliveryStops[i].address,
+          address: widget.deliveryStops[i].address,
           w: w,
         ),
       );
       // Show optional item details beneath the address row if filled in.
-      if (deliveryStops[i].hasDetails) {
+      if (widget.deliveryStops[i].hasDetails) {
         nodes.add(_StopDetailChips(
-          stop: deliveryStops[i],
-          packageImages: packageImages,
+          stop: widget.deliveryStops[i],
+          packageImages: widget.packageImages,
           w: w,
         ));
       }
@@ -829,13 +857,15 @@ class _QuoteTotalBox extends StatelessWidget {
 
 // ── Payment method section ────────────────────────────────────────────────
 
-class _PaymentMethodSection extends ConsumerWidget {
+class _PaymentMethodSection extends StatelessWidget {
+  final PaymentState state;
   final PaymentMethod? selectedMethod;
   final ValueChanged<PaymentMethod> onSelect;
   final VoidCallback onAddNew;
   final double w;
 
   const _PaymentMethodSection({
+    required this.state,
     required this.selectedMethod,
     required this.onSelect,
     required this.onAddNew,
@@ -843,34 +873,36 @@ class _PaymentMethodSection extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final methodsAsync = ref.watch(checkoutPaymentMethodsProvider);
-
-    return methodsAsync.when(
-      loading: () => Padding(
+  Widget build(BuildContext context) {
+    if (state is PaymentInitial || state is PaymentLoading) {
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: w * 0.04),
         child: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, _) => Text(
+      );
+    }
+    if (state is PaymentError) {
+      return Text(
         'Failed to load payment methods.',
         style: TextStyle(fontSize: w * 0.034, color: AppColors.error),
-      ),
-      data: (methods) {
-        return Column(
-          children: [
-            for (final method in methods) ...[
-              _PaymentMethodTile(
-                method: method,
-                isSelected: selectedMethod?.id == method.id,
-                onTap: () => onSelect(method),
-                w: w,
-              ),
-              SizedBox(height: w * 0.025),
-            ],
-            _AddPaymentMethodTile(onTap: onAddNew, w: w),
-          ],
-        );
-      },
+      );
+    }
+
+    final methods =
+        state is PaymentMethodsLoaded ? (state as PaymentMethodsLoaded).methods : const <PaymentMethod>[];
+
+    return Column(
+      children: [
+        for (final method in methods) ...[
+          _PaymentMethodTile(
+            method: method,
+            isSelected: selectedMethod?.id == method.id,
+            onTap: () => onSelect(method),
+            w: w,
+          ),
+          SizedBox(height: w * 0.025),
+        ],
+        _AddPaymentMethodTile(onTap: onAddNew, w: w),
+      ],
     );
   }
 }

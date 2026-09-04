@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -13,21 +12,21 @@ import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../states/app.state.dart';
 import '../../services/auth.service.dart';
 import '../../core/widgets/custom_dialogs.dart';
-import '../../features/report/domain/entities/report.dart';
+import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
-import '../../features/consumer/orders/presentation/views/consumer_orders_view.dart';
-import '../../features/consumer/profile/presentation/views/consumer_profile_view.dart';
+import '../../src/consumer_orders/views/consumer_orders_view.dart';
+import '../profile/profile.dart';
 import 'widgets/home_discovery_tab.dart';
 import 'widgets/customer_drawer.dart';
 
-class Home extends ConsumerStatefulWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
 
   @override
-  ConsumerState<Home> createState() => _HomeState();
+  State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends ConsumerState<Home> {
+class _HomeState extends State<Home> {
   int _navIndex = 0;
   bool _drawerOpen = false;
 
@@ -130,7 +129,7 @@ class _HomeState extends ConsumerState<Home> {
                 children: [
                   HomeDiscoveryTab(onDrawerTap: _openDrawer),
                   const ConsumerOrdersView(),
-                  const ConsumerProfileView(),
+                  const Profile(),
                 ],
               ),
             ),

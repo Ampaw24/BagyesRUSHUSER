@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import '../../data/models/rider_model.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
 
 class RiderCard extends StatelessWidget {
   final RiderModel rider;

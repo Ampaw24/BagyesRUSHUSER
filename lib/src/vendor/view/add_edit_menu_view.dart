@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
-import '../../../features/consumer/restaurant/domain/entities/addon.dart';
+import '../../../src/restaurant/models/addon.dart';
 import '../../home/models/category_element.model.dart';
 import '../model/menu_item.dart';
 import '../../orders/viewmodels/orders_viewmodel.dart';

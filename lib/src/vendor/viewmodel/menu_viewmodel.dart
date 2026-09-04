@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
-import '../../../features/consumer/restaurant/domain/entities/addon.dart';
+import '../../../src/restaurant/models/addon.dart';
 import '../model/menu_item.dart';
 import '../repository/vendor_dashboard_repository.dart';
 

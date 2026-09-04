@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../features/consumer/restaurant/presentation/viewmodels/restaurant_viewmodel.dart';
+import '../../../src/home/viewmodel/home_discovery_viewmodel.dart';
 
 class BannerItem {
   final String? imagePath;
@@ -21,7 +21,7 @@ class BannerItem {
   });
 }
 
-class PromoBannerSection extends ConsumerWidget {
+class PromoBannerSection extends StatelessWidget {
   final PageController controller;
   final int currentIndex;
   final ValueChanged<int> onPageChanged;
@@ -34,22 +34,25 @@ class PromoBannerSection extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final bannersAsync = ref.watch(homeBannersProvider);
+    final state = context.watch<HomeDiscoveryViewModel>().state;
 
-    return bannersAsync.when(
-      loading: () => Container(
-        margin: EdgeInsets.symmetric(horizontal: w * 0.05),
-        height: w * 0.45,
-        decoration: BoxDecoration(
-          color: AppColors.shimmerBase,
-          borderRadius: BorderRadius.circular(w * 0.045),
-        ),
-      ),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (adModel) {
-        final homeBanners = adModel.banners
+    switch (state.bannersStatus) {
+      case BannersStatus.loading:
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: w * 0.05),
+          height: w * 0.45,
+          decoration: BoxDecoration(
+            color: AppColors.shimmerBase,
+            borderRadius: BorderRadius.circular(w * 0.045),
+          ),
+        );
+      case BannersStatus.error:
+        return const SizedBox.shrink();
+      case BannersStatus.loaded:
+        final adModel = state.banners;
+        final homeBanners = (adModel?.banners ?? const [])
             .where((b) => b.placement == 'home')
             .toList()
           ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
@@ -206,7 +209,6 @@ class PromoBannerSection extends ConsumerWidget {
             ),
           ],
         );
-      },
-    );
+    }
   }
 }

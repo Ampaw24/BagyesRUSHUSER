@@ -9,7 +9,7 @@ import 'package:bagyesrushappusernew/src/home/models/category.dart';
 
 /// Only [getHomePageBanners] and [getCategories] are live — this repository
 /// used to also cover vendors/menu-items/orders, but those are all now
-/// served by `features/consumer/restaurant` and `features/consumer/orders`.
+/// served by `src/restaurant` and `src/consumer_orders`.
 class HomeRepository {
   const HomeRepository({required Dio client}) : _client = client;
 

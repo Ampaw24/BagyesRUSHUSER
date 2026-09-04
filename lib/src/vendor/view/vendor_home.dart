@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../features/report/domain/entities/report.dart';
+import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -11,7 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../model/vendor_profile.dart';
-import '../providers/dashboard_provider.dart' show dashboardProvider;
+import '../viewmodel/dashboard_viewmodel.dart';
 import 'widgets/vendor_header.dart';
 import 'widgets/store_toggle_card.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -257,7 +256,7 @@ class _VendorHomeState extends State<VendorHome> {
 
 // ─── Dashboard tab (index 0) ────────────────────────────────────────────
 
-class _DashboardTab extends ConsumerStatefulWidget {
+class _DashboardTab extends StatefulWidget {
   final VendorProfile? vendorProfile;
   final String initials;
   final VoidCallback? onDrawerTap;
@@ -272,12 +271,18 @@ class _DashboardTab extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_DashboardTab> createState() => _DashboardTabState();
+  State<_DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends ConsumerState<_DashboardTab> {
+class _DashboardTabState extends State<_DashboardTab> {
   String? _currentLocation;
   bool _isTogglingStore = false;
+
+  // Saved reference so dispose() doesn't call context.read on an unmounted
+  // widget, and so we can compare against the previous state to show the
+  // error toast only once per new error (mirrors login_view.dart's pattern).
+  DashboardViewModel? _dashboardVm;
+  DashboardState _previousDashboardState = const DashboardState();
 
   @override
   void initState() {
@@ -285,17 +290,41 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     _fetchLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final notifier = ref.read(dashboardProvider.notifier);
+      final vm = context.read<DashboardViewModel>();
+      _dashboardVm = vm;
+      _previousDashboardState = vm.state;
+      vm.addListener(_onDashboardStateChanged);
       if (widget.vendorProfile != null) {
         // `isOpenNow` is the server-computed status (manual toggle AND
         // within operating hours) — the same field customers' restaurant
         // cards key off of. Seeding from `isOpen` (the raw manual toggle
         // alone) could show "Store Open" on the vendor's own dashboard
         // while customers see the store as closed.
-        notifier.seedStoreOpen(widget.vendorProfile!.isOpenNow);
+        vm.seedStoreOpen(widget.vendorProfile!.isOpenNow);
       }
-      notifier.loadDashboard();
+      vm.loadDashboard();
     });
+  }
+
+  @override
+  void dispose() {
+    _dashboardVm?.removeListener(_onDashboardStateChanged);
+    super.dispose();
+  }
+
+  void _onDashboardStateChanged() {
+    if (!mounted) return;
+    final next = _dashboardVm!.state;
+    if (next.errorMessage != null &&
+        next.errorMessage != _previousDashboardState.errorMessage) {
+      AppToast.show(
+        context,
+        isSuccess: false,
+        title: 'Something Went Wrong',
+        subtitle: next.errorMessage!,
+      );
+    }
+    _previousDashboardState = next;
   }
 
   Future<void> _fetchLocation() async {
@@ -327,8 +356,8 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       ),
       onConfirm: () {
         final minutes = int.tryParse(controller.text.trim());
-        ref
-            .read(dashboardProvider.notifier)
+        context
+            .read<DashboardViewModel>()
             .acceptOrder(orderId, estimatedPrepMinutes: minutes);
       },
     );
@@ -341,7 +370,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       confirmLabel: 'Reject Order',
     );
     if (reason == null || !mounted) return;
-    ref.read(dashboardProvider.notifier).rejectOrder(orderId, reason: reason);
+    context.read<DashboardViewModel>().rejectOrder(orderId, reason: reason);
   }
 
   Future<void> _handleCancelOrder(String orderId) async {
@@ -351,7 +380,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       confirmLabel: 'Cancel Order',
     );
     if (reason == null || !mounted) return;
-    ref.read(dashboardProvider.notifier).cancelOrder(orderId, reason: reason);
+    context.read<DashboardViewModel>().cancelOrder(orderId, reason: reason);
   }
 
   /// Parses an "HH:mm" (24-hour) time string into minutes since midnight,
@@ -411,7 +440,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
 
     // Closing the store needs no pre-checks
     if (!wantsOpen) {
-      await ref.read(dashboardProvider.notifier).toggleStore(false);
+      await context.read<DashboardViewModel>().toggleStore(false);
       return;
     }
 
@@ -506,7 +535,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       }
 
       // 3. All checks passed — open the store
-      await ref.read(dashboardProvider.notifier).toggleStore(true);
+      await context.read<DashboardViewModel>().toggleStore(true);
 
       if (mounted) {
         AppToast.show(
@@ -540,18 +569,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(dashboardProvider, (previous, next) {
-      if (next.errorMessage != null &&
-          next.errorMessage != previous?.errorMessage) {
-        AppToast.show(
-          context,
-          isSuccess: false,
-          title: 'Something Went Wrong',
-          subtitle: next.errorMessage!,
-        );
-      }
-    });
-    final state = ref.watch(dashboardProvider);
+    final state = context.watch<DashboardViewModel>().state;
     final w = MediaQuery.sizeOf(context).width;
     final h = w * 0.05;
     final profile = widget.vendorProfile;
@@ -802,7 +820,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 final order = state.activeOrders[index];
-                final notifier = ref.read(dashboardProvider.notifier);
+                final notifier = context.read<DashboardViewModel>();
                 return Padding(
                   padding: EdgeInsets.only(bottom: w * 0.035),
                   child: OrderCard(

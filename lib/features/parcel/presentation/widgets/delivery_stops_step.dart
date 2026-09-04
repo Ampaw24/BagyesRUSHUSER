@@ -7,8 +7,8 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
 import '../../../../core/widgets/map_location_picker_sheet.dart';
-import '../../data/models/delivery_stop.dart';
-import '../viewmodels/send_parcel_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
+import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point

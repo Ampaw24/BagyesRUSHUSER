@@ -2,7 +2,10 @@ import 'package:bagyesrushappusernew/constant/constant.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/core/router/router.dart';
+import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -37,8 +40,15 @@ class Profile extends StatelessWidget {
         context: context,
         title: "Logout?",
         subtitle: "You sure want to logout?",
-        onConfirm: () {
-          AppNavigator.toWalkthrough(context);
+        onConfirm: () async {
+          await context.read<AuthViewmodel>().logout();
+          if (!context.mounted) return;
+
+          final appState = context.read<AppState>();
+          appState.setUser(IUser());
+          appState.setPayload(ISignup());
+
+          context.go(AppRoutes.login);
         },
         confirmText: 'Log out',
         cancelText: 'Cancel',

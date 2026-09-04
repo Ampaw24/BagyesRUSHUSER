@@ -2,10 +2,16 @@ import 'package:bagyesrushappusernew/core/di/service_locator.dart' show sl;
 import 'package:bagyesrushappusernew/core/providers/app_providers.dart'
     as core_providers;
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart'
+    as consumer_orders;
+import 'package:bagyesrushappusernew/src/home/viewmodel/home_discovery_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/search/viewmodels/search_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/notification/viewmodel/notification_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/parcel_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/vendor/viewmodel/dashboard_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/earnings_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/menu_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/orders_viewmodel.dart';
@@ -28,7 +34,12 @@ class ScwProviders {
           create: (_) => sl<VendorRegistrationViewModel>(),
         ),
         ChangeNotifierProvider(create: (_) => sl<OrdersViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<DashboardViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<CartViewModel>()),
+        ChangeNotifierProvider(
+          create: (_) => sl<consumer_orders.OrdersViewModel>(),
+        ),
+        ChangeNotifierProvider(create: (_) => sl<HomeDiscoveryViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<MenuViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<EarningsViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<SettingsViewModel>()),
@@ -36,5 +47,7 @@ class ScwProviders {
         ChangeNotifierProvider(create: (_) => sl<NotificationViewmodel>()),
         ChangeNotifierProvider(create: (_) => sl<ParcelViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<PayoutProvidersViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<CheckoutViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<SearchViewModel>()),
       ];
 }
