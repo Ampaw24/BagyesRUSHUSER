@@ -1,8 +1,6 @@
 import 'dart:io';
-
 import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
 import 'package:dio/dio.dart';
-
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
@@ -59,6 +57,7 @@ class ReportRepository {
     }
   }
 
+
   Future<ReportReason> getReportReasons() async {
     appLogger.d('ReportRepository.getReportReasons → ');
     try {
@@ -75,6 +74,8 @@ class ReportRepository {
       throw Exception(_friendlyMessage(e));
     }
   }
+
+
 
   Future<Report> submitReport({
     required ReportRole role,
