@@ -1,28 +1,48 @@
-import 'package:bagyesrushappusernew/constant/constant.dart';
+import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/core/router/router.dart';
+import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/vendor/view/widgets/floating_nav_bar.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-
-import '../../src/notification/viewmodel/notification_viewmodel.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key});
 
+  String _initialsOf(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    return parts.take(2).map((p) => p[0]).join().toUpperCase();
+  }
+
+  void _confirmLogout(BuildContext context) {
+    CustomDialog.showConfirmation(
+      context: context,
+      title: "Logout?",
+      subtitle:
+          "You sure want to logout?\nYou will be returned to the login screen.",
+      onConfirm: () async {
+        await context.read<AuthViewmodel>().logout();
+        if (!context.mounted) return;
+        final appState = context.read<AppState>();
+        appState.setUser(IUser());
+        appState.setPayload(ISignup());
+        context.go(AppRoutes.login);
+      },
+      confirmText: 'Log out',
+      cancelText: 'Cancel',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    // Reference unit scales every spacing/size below relative to screen
-    // width (10.0 at a 375-wide phone, the size this layout was designed
-    // against) instead of hardcoding pixel values — clamped so spacing
-    // doesn't balloon on tablets or shrink too far on small phones.
-    final unit = (width / 37.5).clamp(8.0, 14.0);
+    final w = MediaQuery.sizeOf(context).width;
 
     // Watch (not read) so the avatar/name refresh immediately when
     // EditProfile's save or avatar upload updates CurrentUserProvider —
@@ -34,210 +54,105 @@ class Profile extends StatelessWidget {
         .where((part) => part != null && part.isNotEmpty)
         .join(' ');
     final avatarUrl = profile?.profilePictureUrl;
-
-    logoutDialogue() {
-      CustomDialog.showConfirmation(
-        context: context,
-        title: "Logout?",
-        subtitle: "You sure want to logout?",
-        onConfirm: () async {
-          await context.read<AuthViewmodel>().logout();
-          if (!context.mounted) return;
-
-          final appState = context.read<AppState>();
-          appState.setUser(IUser());
-          appState.setPayload(ISignup());
-
-          context.go(AppRoutes.login);
-        },
-        confirmText: 'Log out',
-        cancelText: 'Cancel',
-      );
-    }
+    final email = user?.email ?? '';
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: scaffoldBgColor,
-        elevation: 0.0,
-        title: Text(
-          'Profile',
-          style: blackExtraLargeTextStyle.copyWith(
-            fontSize: (unit * 2.2).clamp(18.0, 26.0),
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.scaffold,
       body: ListView(
-        children: <Widget>[
-          InkWell(
-            onTap: () {
-              AppNavigator.toEditProfile(context);
-            },
-            child: Container(
-              width: width,
-              padding: EdgeInsets.all(unit),
-              color: whiteColor,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Container(
-                        width: unit * 7,
-                        height: unit * 7,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(unit * 0.5),
-                          image: DecorationImage(
-                            image: (avatarUrl != null && avatarUrl.isNotEmpty)
-                                ? NetworkImage(avatarUrl)
-                                : const AssetImage('assets/user.jpg')
-                                    as ImageProvider,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: unit),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          if (fullName.isNotEmpty) ...[
-                            Text(
-                              fullName,
-                              style: blackHeadingTextStyle.copyWith(
-                                fontSize: (unit * 1.7).clamp(14.0, 19.0),
-                              ),
-                            ),
-                            SizedBox(height: unit),
-                          ],
-                          Text(
-                            user?.phone ?? '',
-                            style: greySmallTextStyle.copyWith(
-                              fontSize: (unit * 1.5).clamp(12.0, 17.0),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: unit * 1.6,
-                    color: Colors.grey.withValues(alpha: 0.6),
-                  ),
-                ],
-              ),
+        padding: EdgeInsets.zero,
+        children: [
+          _Header(
+            w: w,
+            fullName: fullName.isNotEmpty ? fullName : (user?.phone ?? ''),
+            email: email,
+            avatarUrl: avatarUrl,
+            initials: _initialsOf(
+              fullName.isNotEmpty ? fullName : (user?.phone ?? '?'),
             ),
+            onEdit: () => context.push(AppRoutes.editProfile),
           ),
-          Container(
-            margin: EdgeInsets.all(unit),
-            padding: EdgeInsets.all(unit),
-            decoration: BoxDecoration(
-              color: whiteColor,
-              borderRadius: BorderRadius.circular(unit * 0.5),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  blurRadius: unit * 0.15,
-                  spreadRadius: unit * 0.15,
-                  color: Colors.grey[200]!,
-                ),
-              ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              w * 0.05,
+              w * 0.06,
+              w * 0.05,
+              // This bar floats above the tab in a Stack rather than sitting
+              // in Scaffold.bottomNavigationBar, so nothing reserves space
+              // for it automatically — without this, the last card would
+              // scroll to rest behind it instead of clear above it.
+              FloatingNavBar.reservedHeight(context) + w * 0.04,
             ),
             child: Column(
-              children: <Widget>[
-                InkWell(
-                  onTap: () {
-                    context.push(AppRoutes.notifications);
-                  },
-                  child: getTile(
-                    Icon(
-                      Icons.notifications,
-                      color: Colors.grey.withValues(alpha: 0.6),
+              children: [
+                _SectionCard(
+                  label: 'Account',
+                  w: w,
+                  tiles: [
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedUser,
+                      label: 'Personal Information',
+                      onTap: () => context.push(AppRoutes.editProfile),
+                      w: w,
                     ),
-                    'Notifications',
-                    unit,
-                    badgeCount:
-                        context.watch<NotificationViewmodel>().unreadCount,
-                  ),
-                ),
-                InkWell(
-                  onTap: () {},
-                  child: getTile(
-                    Icon(
-                      Icons.language,
-                      color: Colors.grey.withValues(alpha: 0.6),
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedCreditCard,
+                      label: 'Payment Methods',
+                      onTap: () =>
+                          context.push(AppRoutes.customerPaymentMethods),
+                      w: w,
                     ),
-                    'Language',
-                    unit,
-                  ),
+                  ],
                 ),
-                InkWell(
-                  onTap: () {},
-                  child: getTile(
-                    Icon(
-                      Icons.settings,
-                      color: Colors.grey.withValues(alpha: 0.6),
+                SizedBox(height: w * 0.05),
+                _SectionCard(
+                  label: 'Orders & Wallet',
+                  w: w,
+                  tiles: [
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedReceiptDollar,
+                      label: 'Order History',
+                      onTap: () {},
+                      w: w,
                     ),
-                    'Settings',
-                    unit,
-                  ),
-                ),
-                InkWell(
-                  onTap: () {
-                    AppNavigator.toInviteFriend(context);
-                  },
-                  child: getTile(
-                    Icon(
-                      Icons.group_add,
-                      color: Colors.grey.withValues(alpha: 0.6),
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedTransactionHistory,
+                      label: 'Transactions',
+                      onTap: () => context.push(AppRoutes.wallet),
+                      w: w,
                     ),
-                    'Invite Friends',
-                    unit,
-                  ),
+                  ],
                 ),
-                InkWell(
-                  onTap: () {},
-                  child: getTile(
-                    Icon(
-                      Icons.headset_mic,
-                      color: Colors.grey.withValues(alpha: 0.6),
+                SizedBox(height: w * 0.05),
+                _SectionCard(
+                  label: 'Support',
+                  w: w,
+                  tiles: [
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedHelpCircle,
+                      label: 'Help & Support',
+                      onTap: () => context.push(AppRoutes.helpSupport),
+                      w: w,
                     ),
-                    'Support',
-                    unit,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            margin: EdgeInsets.all(unit),
-            padding: EdgeInsets.all(unit),
-            decoration: BoxDecoration(
-              color: whiteColor,
-              borderRadius: BorderRadius.circular(unit * 0.5),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  blurRadius: unit * 0.15,
-                  spreadRadius: unit * 0.15,
-                  color: Colors.grey[200]!,
-                ),
-              ],
-            ),
-            child: Column(
-              children: <Widget>[
-                InkWell(
-                  onTap: logoutDialogue,
-                  child: getTile(
-                    Icon(
-                      Icons.exit_to_app,
-                      color: Colors.grey.withValues(alpha: 0.6),
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedPolicy,
+                      label: 'Privacy Policy',
+                      onTap: () {},
+                      w: w,
                     ),
-                    'Logout',
-                    unit,
-                  ),
+                  ],
+                ),
+                SizedBox(height: w * 0.05),
+                _SectionCard(
+                  w: w,
+                  tiles: [
+                    _ProfileTile(
+                      icon: HugeIcons.strokeRoundedDoor01,
+                      label: 'Log Out',
+                      color: AppColors.error,
+                      onTap: () => _confirmLogout(context),
+                      w: w,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -246,63 +161,254 @@ class Profile extends StatelessWidget {
       ),
     );
   }
+}
 
-  Row getTile(Icon icon, String title, double unit, {int badgeCount = 0}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Container(
-              height: unit * 4,
-              width: unit * 4,
-              alignment: Alignment.center,
-              child: icon,
-            ),
-            SizedBox(width: unit),
-            Text(
-              title,
-              style: inputTextStyle.copyWith(
-                fontSize: (unit * 1.6).clamp(13.0, 18.0),
+// ─── Header ─────────────────────────────────────────────────────────────────
+
+class _Header extends StatelessWidget {
+  final double w;
+  final String fullName;
+  final String email;
+  final String? avatarUrl;
+  final String initials;
+  final VoidCallback onEdit;
+
+  const _Header({
+    required this.w,
+    required this.fullName,
+    required this.email,
+    required this.avatarUrl,
+    required this.initials,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, w * 0.06),
+      color: AppColors.scaffold,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Profile',
+                style: TextStyle(
+                  fontSize: w * 0.06,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (badgeCount > 0) ...[
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: unit * 0.7,
-                  vertical: unit * 0.2,
-                ),
-                decoration: BoxDecoration(
-                  color: primaryColor,
-                  borderRadius: BorderRadius.circular(unit * 2),
-                ),
-                child: Text(
-                  '$badgeCount',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: (unit * 1.1).clamp(9.0, 13.0),
-                    fontWeight: FontWeight.w700,
+              GestureDetector(
+                onTap: onEdit,
+                child: Container(
+                  padding: EdgeInsets.all(w * 0.024),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    shape: BoxShape.circle,
+                  ),
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedPencilEdit02,
+                    color: AppColors.textPrimary,
+                    size: w * 0.045,
                   ),
                 ),
               ),
-              SizedBox(width: unit),
             ],
-            Icon(
-              Icons.arrow_forward_ios,
-              size: unit * 1.6,
-              color: Colors.grey.withValues(alpha: 0.6),
+          ),
+          SizedBox(height: w * 0.05),
+          GestureDetector(
+            onTap: onEdit,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: w * 0.14,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage:
+                      avatarUrl != null && avatarUrl!.isNotEmpty
+                          ? NetworkImage(avatarUrl!)
+                          : null,
+                  child: avatarUrl == null || avatarUrl!.isEmpty
+                      ? Text(
+                          initials,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: w * 0.09,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(w * 0.02),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.4),
+                    ),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCamera01,
+                      color: Colors.white,
+                      size: w * 0.04,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: w * 0.035),
+          Text(
+            fullName,
+            style: TextStyle(
+              fontSize: w * 0.05,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          if (email.isNotEmpty) ...[
+            SizedBox(height: w * 0.006),
+            Text(
+              email,
+              style: TextStyle(
+                fontSize: w * 0.033,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Section card ───────────────────────────────────────────────────────────
+
+class _SectionCard extends StatelessWidget {
+  final String? label;
+  final double w;
+  final List<Widget> tiles;
+
+  const _SectionCard({this.label, required this.w, required this.tiles});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label != null) ...[
+          Padding(
+            padding: EdgeInsets.only(bottom: w * 0.025, left: w * 0.01),
+            child: Text(
+              label!,
+              style: TextStyle(
+                fontSize: w * 0.032,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textHint,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: w * 0.03),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(w * 0.045),
+            border: Border.all(color: AppColors.border, width: 0.7),
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < tiles.length; i++) ...[
+                tiles[i],
+                if (i != tiles.length - 1)
+                  const Divider(height: 1, color: AppColors.divider),
+              ],
+            ],
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfileTile extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String label;
+  final VoidCallback onTap;
+  final double w;
+  final Color? color;
+
+  const _ProfileTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.w,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textPrimary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(w * 0.03),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: w * 0.03),
+          child: Row(
+            children: [
+              Container(
+                width: w * 0.1,
+                height: w * 0.1,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: (color ?? AppColors.primary).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(w * 0.026),
+                ),
+                child: HugeIcon(
+                  icon: icon,
+                  color: color ?? AppColors.primary,
+                  size: w * 0.05,
+                ),
+              ),
+              SizedBox(width: w * 0.035),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: w * 0.037,
+                    fontWeight: FontWeight.w600,
+                    color: c,
+                  ),
+                ),
+              ),
+              if (color == null)
+                Container(
+                  width: w * 0.07,
+                  height: w * 0.07,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textSecondary,
+                    size: w * 0.05,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
