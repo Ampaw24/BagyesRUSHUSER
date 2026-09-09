@@ -8,6 +8,8 @@ import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
+import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
+import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,28 +24,25 @@ class EditProfile extends StatefulWidget {
 }
 
 class _EditProfileState extends State<EditProfile> {
-  final _nameController    = TextEditingController();
-  final _phoneController   = TextEditingController();
-  final _emailController   = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _addressController = TextEditingController();
 
-  bool _loading        = false;
-  bool _profileLoaded  = false;
+  bool _loading = false;
+  bool _profileLoaded = false;
   bool _uploadingAvatar = false;
   File? _pickedAvatar;
 
   // Snapshot of the loaded values — compared against the live controllers
   // to decide whether the Save button should be enabled at all.
-  String _initialName    = '';
-  String _initialPhone   = '';
-  String _initialEmail   = '';
+  String _initialName = '';
+  String _initialEmail = '';
   String _initialAddress = '';
 
   @override
   void initState() {
     super.initState();
     _nameController.addListener(_handleFieldChanged);
-    _phoneController.addListener(_handleFieldChanged);
     _emailController.addListener(_handleFieldChanged);
     _addressController.addListener(_handleFieldChanged);
   }
@@ -54,7 +53,6 @@ class _EditProfileState extends State<EditProfile> {
 
   bool get _isDirty =>
       _nameController.text.trim() != _initialName ||
-      _phoneController.text.trim() != _initialPhone ||
       _emailController.text.trim() != _initialEmail ||
       _addressController.text.trim() != _initialAddress;
 
@@ -73,28 +71,22 @@ class _EditProfileState extends State<EditProfile> {
     _profileLoaded = true;
 
     final first = user.profile?.firstName ?? '';
-    final last  = user.profile?.lastName  ?? '';
-    _nameController.text  = '$first $last'.trim();
-    // Phone is stored as +233XXXXXXXXX — show only the 9-digit part
-    final raw = user.phone;
-    _phoneController.text = raw.startsWith('+233') ? raw.substring(4) : raw;
+    final last = user.profile?.lastName ?? '';
+    _nameController.text = '$first $last'.trim();
     _emailController.text = user.email;
     _addressController.text = user.profile?.address ?? '';
 
-    _initialName    = _nameController.text;
-    _initialPhone   = _phoneController.text;
-    _initialEmail   = _emailController.text;
+    _initialName = _nameController.text;
+    _initialEmail = _emailController.text;
     _initialAddress = _addressController.text;
   }
 
   @override
   void dispose() {
     _nameController.removeListener(_handleFieldChanged);
-    _phoneController.removeListener(_handleFieldChanged);
     _emailController.removeListener(_handleFieldChanged);
     _addressController.removeListener(_handleFieldChanged);
     _nameController.dispose();
-    _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -105,26 +97,22 @@ class _EditProfileState extends State<EditProfile> {
     if (currentUser == null) return;
 
     final fullName = _nameController.text.trim();
-    final email    = _emailController.text.trim();
-    final phone    = _phoneController.text.trim();
-    final address  = _addressController.text.trim();
+    final email = _emailController.text.trim();
+    final address = _addressController.text.trim();
 
-    final parts     = fullName.split(' ');
+    final parts = fullName.split(' ');
     final firstName = parts.first;
-    final lastName  = parts.length > 1 ? parts.skip(1).join(' ') : '';
+    final lastName = parts.length > 1 ? parts.skip(1).join(' ') : '';
 
     setState(() => _loading = true);
 
-    // Routed through AuthViewmodel (not the repository directly) so the
-    // response is merged onto the cached user before CurrentUserProvider is
-    // updated — a text-only edit response that omits the avatar URL won't
-    // wipe out the photo the user just uploaded, and vice versa.
+    // Phone is kept unchanged during basic detail updates
     final result = await context.read<AuthViewmodel>().updateProfile(
       firstName: firstName,
-      lastName:  lastName,
-      email:     email,
-      phone:     phone.isNotEmpty ? '+233$phone' : currentUser.phone,
-      address:   address,
+      lastName: lastName,
+      email: email,
+      phone: currentUser.phone,
+      address: address,
     );
 
     if (!mounted) return;
@@ -222,15 +210,18 @@ class _EditProfileState extends State<EditProfile> {
                         ),
                       )
                     : TextButton(
-                        onPressed:
-                            _isDirty ? () => _saveProfile(context) : null,
+                        onPressed: _isDirty
+                            ? () => _saveProfile(context)
+                            : null,
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                              Colors.white.withValues(alpha: 0.08),
-                          disabledForegroundColor:
-                              Colors.white.withValues(alpha: 0.4),
+                          disabledBackgroundColor: Colors.white.withValues(
+                            alpha: 0.08,
+                          ),
+                          disabledForegroundColor: Colors.white.withValues(
+                            alpha: 0.4,
+                          ),
                           padding: EdgeInsets.symmetric(
                             horizontal: w * 0.045,
                             vertical: 8,
@@ -286,7 +277,7 @@ class _EditProfileState extends State<EditProfile> {
                     focusNode: focusNode,
                     style: TextStyle(
                       fontSize: (w * 0.04).clamp(14.0, 17.0),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                     decoration: _inputDec('e.g. John Doe'),
@@ -312,29 +303,41 @@ class _EditProfileState extends State<EditProfile> {
                   ),
                 ),
                 SizedBox(height: w * 0.03),
-                _FieldCard(
-                  icon: HugeIcons.strokeRoundedSmartPhone01,
-                  iconColor: AppColors.success,
-                  label: 'Phone',
-                  builder: (focusNode) => TextFormField(
-                    controller: _phoneController,
-                    focusNode: focusNode,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 9,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      _NoLeadingZeroFormatter(),
-                    ],
-                    style: TextStyle(
-                      fontSize: (w * 0.04).clamp(14.0, 17.0),
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                    decoration: _inputDec('e.g. 241234567').copyWith(
-                      counterText: '',
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
+                _ReadOnlyPhoneCard(
+                  phone: context.watch<CurrentUserProvider>().user?.phone ?? '',
+                  onEditRequested: () {
+                    final currentUser = context.read<CurrentUserProvider>().user;
+                    if (currentUser == null) return;
+                    PhoneChangeFlowSheet.show(
+                      context,
+                      oldPhone: currentUser.phone,
+                      onPhoneUpdated: (newPhone) async {
+                        final fullName = _nameController.text.trim();
+                        final email = _emailController.text.trim();
+                        final address = _addressController.text.trim();
+                        final parts = fullName.split(' ');
+                        final firstName = parts.first;
+                        final lastName =
+                            parts.length > 1 ? parts.skip(1).join(' ') : '';
+
+                        final formattedPhone =
+                            PhoneUtils.formatToInternational(newPhone);
+                        final result =
+                            await context.read<AuthViewmodel>().updateProfile(
+                                  firstName: firstName,
+                                  lastName: lastName,
+                                  email: email,
+                                  phone: formattedPhone,
+                                  address: address,
+                                );
+
+                        result.fold(
+                          (failure) => throw Exception(failure.message),
+                          (_) {},
+                        );
+                      },
+                    );
+                  },
                 ),
                 SizedBox(height: w * 0.03),
                 _FieldCard(
@@ -411,10 +414,12 @@ class _EditProfileState extends State<EditProfile> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          AppColors.primary.withValues(alpha: 0.35),
-                      disabledForegroundColor:
-                          Colors.white.withValues(alpha: 0.7),
+                      disabledBackgroundColor: AppColors.primary.withValues(
+                        alpha: 0.35,
+                      ),
+                      disabledForegroundColor: Colors.white.withValues(
+                        alpha: 0.7,
+                      ),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -493,7 +498,8 @@ class _EditProfileState extends State<EditProfile> {
         CustomDialog.showInfo(
           context: context,
           title: 'Coming Soon',
-          subtitle: 'Account deletion isn\'t available yet. Please contact '
+          subtitle:
+              'Account deletion isn\'t available yet. Please contact '
               'support if you need your account removed.',
         );
       },
@@ -570,9 +576,9 @@ class _EditProfileState extends State<EditProfile> {
 
   void _copyReferralCode(BuildContext context) {
     Clipboard.setData(ClipboardData(text: _referralCode(context)));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Referral code copied')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
   }
 }
 
@@ -647,9 +653,10 @@ class _EditProfileHero extends StatelessWidget {
                           backgroundImage: localAvatar != null
                               ? FileImage(localAvatar!)
                               : (avatarUrl != null && avatarUrl!.isNotEmpty
-                                  ? NetworkImage(avatarUrl!) as ImageProvider
-                                  : null),
-                          child: localAvatar == null &&
+                                    ? NetworkImage(avatarUrl!) as ImageProvider
+                                    : null),
+                          child:
+                              localAvatar == null &&
                                   (avatarUrl == null || avatarUrl!.isEmpty)
                               ? HugeIcon(
                                   icon: HugeIcons.strokeRoundedUser,
@@ -909,8 +916,10 @@ class _ActionRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding:
-              EdgeInsets.symmetric(horizontal: w * 0.045, vertical: w * 0.038),
+          padding: EdgeInsets.symmetric(
+            horizontal: w * 0.045,
+            vertical: w * 0.038,
+          ),
           child: Row(
             children: [
               Container(
@@ -921,7 +930,11 @@ class _ActionRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: HugeIcon(icon: icon, color: iconColor, size: w * 0.036),
+                  child: HugeIcon(
+                    icon: icon,
+                    color: iconColor,
+                    size: w * 0.036,
+                  ),
                 ),
               ),
               SizedBox(width: w * 0.04),
@@ -1115,13 +1128,101 @@ class _BottomSheetOption extends StatelessWidget {
   }
 }
 
-class _NoLeadingZeroFormatter extends TextInputFormatter {
+class _ReadOnlyPhoneCard extends StatelessWidget {
+  final String phone;
+  final VoidCallback onEditRequested;
+
+  const _ReadOnlyPhoneCard({
+    required this.phone,
+    required this.onEditRequested,
+  });
+
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    if (newValue.text.startsWith('0')) return oldValue;
-    return newValue;
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.032),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: w * 0.1,
+            height: w * 0.1,
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedSmartPhone01,
+                color: AppColors.success,
+                size: w * 0.036,
+              ),
+            ),
+          ),
+          SizedBox(width: w * 0.035),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PHONE NUMBER',
+                  style: TextStyle(
+                    fontSize: (w * 0.027).clamp(10.0, 12.0),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textHint,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                SizedBox(height: w * 0.006),
+                Text(
+                  phone.isNotEmpty ? phone : 'Not set',
+                  style: TextStyle(
+                    fontSize: (w * 0.04).clamp(14.0, 17.0),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onEditRequested,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.03,
+                vertical: w * 0.015,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Change',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: (w * 0.034).clamp(12.0, 15.0),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
+

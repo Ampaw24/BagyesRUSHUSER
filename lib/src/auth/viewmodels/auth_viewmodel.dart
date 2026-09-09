@@ -12,6 +12,7 @@ import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart'
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
 /// Merges a user response from a *scoped* update endpoint (avatar-only,
 /// profile-only) onto the previously cached user, so a field that endpoint
@@ -32,6 +33,7 @@ User _mergeUser(User? previous, User fresh) {
   final previousProfile = previous.profile;
 
   dynamic mergedProfile = freshProfile ?? previousProfile;
+
   if (freshProfile is CustomerProfile && previousProfile is CustomerProfile) {
     final hasReferralInfo = freshProfile.referralCode.isNotEmpty;
     mergedProfile = CustomerProfile(
@@ -48,18 +50,47 @@ User _mergeUser(User? previous, User fresh) {
       address: freshProfile.address.isNotEmpty
           ? freshProfile.address
           : previousProfile.address,
-      profilePictureUrl: (freshProfile.profilePictureUrl?.isNotEmpty ?? false)
+      profilePictureUrl: (freshProfile.profilePictureUrl != null &&
+              freshProfile.profilePictureUrl!.isNotEmpty)
           ? freshProfile.profilePictureUrl
           : previousProfile.profilePictureUrl,
       referralCode: hasReferralInfo
           ? freshProfile.referralCode
           : previousProfile.referralCode,
-      referralCount: hasReferralInfo
+      referralCount: freshProfile.referralCount > 0
           ? freshProfile.referralCount
           : previousProfile.referralCount,
       createdAt: freshProfile.createdAt ?? previousProfile.createdAt,
       updatedAt: freshProfile.updatedAt ?? previousProfile.updatedAt,
-      v: freshProfile.v,
+      v: freshProfile.v != 0 ? freshProfile.v : previousProfile.v,
+    );
+  } else if (freshProfile is VendorProfile && previousProfile is VendorProfile) {
+    mergedProfile = previousProfile.copyWith(
+      id: freshProfile.id.isNotEmpty ? freshProfile.id : previousProfile.id,
+      businessName: freshProfile.businessName.isNotEmpty
+          ? freshProfile.businessName
+          : previousProfile.businessName,
+      description: freshProfile.description.isNotEmpty
+          ? freshProfile.description
+          : previousProfile.description,
+      ownerName: freshProfile.ownerName.isNotEmpty
+          ? freshProfile.ownerName
+          : previousProfile.ownerName,
+      phone: freshProfile.phone.isNotEmpty
+          ? freshProfile.phone
+          : previousProfile.phone,
+      email: freshProfile.email.isNotEmpty
+          ? freshProfile.email
+          : previousProfile.email,
+      address: freshProfile.address.isNotEmpty
+          ? freshProfile.address
+          : previousProfile.address,
+      city: freshProfile.city.isNotEmpty
+          ? freshProfile.city
+          : previousProfile.city,
+      logoUrl: freshProfile.logoUrl ?? previousProfile.logoUrl,
+      bannerUrl: freshProfile.bannerUrl ?? previousProfile.bannerUrl,
+      imageUrl: freshProfile.imageUrl ?? previousProfile.imageUrl,
     );
   }
 
@@ -69,7 +100,7 @@ User _mergeUser(User? previous, User fresh) {
     phone: fresh.phone.isNotEmpty ? fresh.phone : previous.phone,
     role: fresh.role.isNotEmpty ? fresh.role : previous.role,
     status: fresh.status.isNotEmpty ? fresh.status : previous.status,
-    phoneVerified: fresh.phoneVerified,
+    phoneVerified: fresh.phoneVerified || previous.phoneVerified,
     profile: mergedProfile,
   );
 }
@@ -368,6 +399,15 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
     // Fetch profile in background — failures are non-fatal
     _fetchProfileInBackground(userId);
+  }
+
+  /// Public method to fetch/refresh current user details from the backend and update [CurrentUserProvider].
+  Future<void> fetchUserProfile() async {
+    final user = _currentUserProvider.user;
+    final userId = user?.id ?? Cache.instance.userId;
+    if (userId != null && userId.isNotEmpty) {
+      await _fetchProfileInBackground(userId);
+    }
   }
 
   /// Fetches user profile without changing auth state on failure.

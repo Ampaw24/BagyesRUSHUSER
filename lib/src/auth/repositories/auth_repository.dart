@@ -674,8 +674,7 @@ class AuthRepository {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
-        final userJson = payload['user'] as DataMap? ?? payload;
-        final user = User.fromJson(userJson);
+        final user = User.fromJson(payload);
         appLogger.i('AuthRepository.updateProfile → success id=${user.id}');
         return Right(user);
       }
@@ -715,8 +714,7 @@ class AuthRepository {
         final payload =
             (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
-        final userJson = payload['user'] as DataMap? ?? payload;
-        final user = User.fromJson(userJson);
+        final user = User.fromJson(payload);
         appLogger.i('AuthRepository.uploadAvatar → success id=${user.id}');
         return Right(user);
       }

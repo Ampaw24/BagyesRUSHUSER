@@ -11,12 +11,10 @@ class CurrentUserProvider extends ChangeNotifier {
   bool get isAuthenticated => _user != null;
 
   void setUser(User user) {
-    if (_user != user) {
-      _user = user;
-      isLoggedInNotifier.value = true;
-      appLogger.i('CurrentUserProvider: user set → id=${user.id} role=${user.role} phoneVerified=${user.phoneVerified}');
-      notifyListeners();
-    }
+    _user = user;
+    isLoggedInNotifier.value = true;
+    appLogger.i('CurrentUserProvider: user set → id=${user.id} role=${user.role} phoneVerified=${user.phoneVerified}');
+    notifyListeners();
   }
 
   void clearUser() {

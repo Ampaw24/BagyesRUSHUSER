@@ -12,8 +12,33 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-class Profile extends StatelessWidget {
+class Profile extends StatefulWidget {
   const Profile({super.key});
+
+  @override
+  State<Profile> createState() => _ProfileState();
+}
+
+class _ProfileState extends State<Profile> {
+  int _refreshTimestamp = DateTime.now().millisecondsSinceEpoch;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshProfile();
+    });
+  }
+
+  Future<void> _refreshProfile() async {
+    if (!mounted) return;
+    await context.read<AuthViewmodel>().fetchUserProfile();
+    if (mounted) {
+      setState(() {
+        _refreshTimestamp = DateTime.now().millisecondsSinceEpoch;
+      });
+    }
+  }
 
   String _initialsOf(String fullName) {
     final parts = fullName.trim().split(RegExp(r'\s+'));
@@ -40,6 +65,13 @@ class Profile extends StatelessWidget {
     );
   }
 
+  Future<void> _navigateToEditProfile() async {
+    await context.push(AppRoutes.editProfile);
+    if (mounted) {
+      _refreshProfile();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -53,111 +85,119 @@ class Profile extends StatelessWidget {
     final fullName = [profile?.firstName, profile?.lastName]
         .where((part) => part != null && part.isNotEmpty)
         .join(' ');
-    final avatarUrl = profile?.profilePictureUrl;
+
+    final rawAvatarUrl = profile?.profilePictureUrl;
+    final avatarUrl = (rawAvatarUrl != null && rawAvatarUrl.isNotEmpty)
+        ? (rawAvatarUrl.contains('?')
+            ? '$rawAvatarUrl&t=$_refreshTimestamp'
+            : '$rawAvatarUrl?t=$_refreshTimestamp')
+        : null;
+
     final email = user?.email ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          _Header(
-            w: w,
-            fullName: fullName.isNotEmpty ? fullName : (user?.phone ?? ''),
-            email: email,
-            avatarUrl: avatarUrl,
-            initials: _initialsOf(
-              fullName.isNotEmpty ? fullName : (user?.phone ?? '?'),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _refreshProfile,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            _Header(
+              w: w,
+              fullName: fullName.isNotEmpty ? fullName : (user?.phone ?? ''),
+              email: email,
+              avatarUrl: avatarUrl,
+              initials: _initialsOf(
+                fullName.isNotEmpty ? fullName : (user?.phone ?? '?'),
+              ),
+              onEdit: _navigateToEditProfile,
             ),
-            onEdit: () => context.push(AppRoutes.editProfile),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              w * 0.05,
-              w * 0.06,
-              w * 0.05,
-              // This bar floats above the tab in a Stack rather than sitting
-              // in Scaffold.bottomNavigationBar, so nothing reserves space
-              // for it automatically — without this, the last card would
-              // scroll to rest behind it instead of clear above it.
-              FloatingNavBar.reservedHeight(context) + w * 0.04,
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                w * 0.05,
+                w * 0.06,
+                w * 0.05,
+                FloatingNavBar.reservedHeight(context) + w * 0.04,
+              ),
+              child: Column(
+                children: [
+                  _SectionCard(
+                    label: 'Account',
+                    w: w,
+                    tiles: [
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedUser,
+                        label: 'Personal Information',
+                        onTap: _navigateToEditProfile,
+                        w: w,
+                      ),
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedCreditCard,
+                        label: 'Payment Methods',
+                        onTap: () =>
+                            context.push(AppRoutes.customerPaymentMethods),
+                        w: w,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: w * 0.05),
+                  _SectionCard(
+                    label: 'Orders & Wallet',
+                    w: w,
+                    tiles: [
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedReceiptDollar,
+                        label: 'Order History',
+                        onTap: () {},
+                        w: w,
+                      ),
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedTransactionHistory,
+                        label: 'Transactions',
+                        onTap: () => context.push(AppRoutes.wallet),
+                        w: w,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: w * 0.05),
+                  _SectionCard(
+                    label: 'Support',
+                    w: w,
+                    tiles: [
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedHelpCircle,
+                        label: 'Help & Support',
+                        onTap: () => context.push(AppRoutes.helpSupport),
+                        w: w,
+                      ),
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedPolicy,
+                        label: 'Privacy Policy',
+                        onTap: () {},
+                        w: w,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: w * 0.05),
+                  _SectionCard(
+                    w: w,
+                    tiles: [
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedDoor01,
+                        label: 'Log Out',
+                        color: AppColors.error,
+                        onTap: () => _confirmLogout(context),
+                        w: w,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                _SectionCard(
-                  label: 'Account',
-                  w: w,
-                  tiles: [
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedUser,
-                      label: 'Personal Information',
-                      onTap: () => context.push(AppRoutes.editProfile),
-                      w: w,
-                    ),
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedCreditCard,
-                      label: 'Payment Methods',
-                      onTap: () =>
-                          context.push(AppRoutes.customerPaymentMethods),
-                      w: w,
-                    ),
-                  ],
-                ),
-                SizedBox(height: w * 0.05),
-                _SectionCard(
-                  label: 'Orders & Wallet',
-                  w: w,
-                  tiles: [
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedReceiptDollar,
-                      label: 'Order History',
-                      onTap: () {},
-                      w: w,
-                    ),
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedTransactionHistory,
-                      label: 'Transactions',
-                      onTap: () => context.push(AppRoutes.wallet),
-                      w: w,
-                    ),
-                  ],
-                ),
-                SizedBox(height: w * 0.05),
-                _SectionCard(
-                  label: 'Support',
-                  w: w,
-                  tiles: [
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedHelpCircle,
-                      label: 'Help & Support',
-                      onTap: () => context.push(AppRoutes.helpSupport),
-                      w: w,
-                    ),
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedPolicy,
-                      label: 'Privacy Policy',
-                      onTap: () {},
-                      w: w,
-                    ),
-                  ],
-                ),
-                SizedBox(height: w * 0.05),
-                _SectionCard(
-                  w: w,
-                  tiles: [
-                    _ProfileTile(
-                      icon: HugeIcons.strokeRoundedDoor01,
-                      label: 'Log Out',
-                      color: AppColors.error,
-                      onTap: () => _confirmLogout(context),
-                      w: w,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -224,6 +264,7 @@ class _Header extends StatelessWidget {
             child: Stack(
               children: [
                 CircleAvatar(
+                  key: ValueKey(avatarUrl),
                   radius: w * 0.14,
                   backgroundColor: AppColors.primary,
                   backgroundImage:

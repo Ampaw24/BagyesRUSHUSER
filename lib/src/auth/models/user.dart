@@ -42,26 +42,58 @@ class User extends Equatable {
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
-    final role = JsonUtils.asString(json["role"]);
-    final profileJson = json["profile"];
-    final email = JsonUtils.asString(json["email"]);
-    final phone = JsonUtils.asString(json["phone"]);
+    // 1. Resolve user data map (if nested inside 'user' key)
+    final userMap =
+        (json.containsKey('user') && json['user'] is Map<String, dynamic>)
+            ? json['user'] as Map<String, dynamic>
+            : json;
+
+    final role = JsonUtils.asString(userMap['role'] ?? json['role']);
+    final email = JsonUtils.asString(userMap['email'] ?? json['email']);
+    final phone = JsonUtils.asString(userMap['phone'] ?? json['phone']);
+    final id = JsonUtils.asString(
+      userMap['_id'] ??
+          userMap['id'] ??
+          userMap['user_id'] ??
+          json['_id'] ??
+          json['id'],
+    );
+    final status = JsonUtils.asString(userMap['status'] ?? json['status']);
+    final phoneVerified = JsonUtils.asBool(
+      userMap['phone_verified'] ?? json['phone_verified'],
+    );
+
+    // 2. Resolve profile data map (if nested inside 'profile' key anywhere)
+    final rawProfile = json['profile'] ?? userMap['profile'];
+
+    dynamic parsedProfile;
+    if (rawProfile != null && rawProfile is Map<String, dynamic>) {
+      parsedProfile = (role == 'vendor')
+          ? VendorProfile.fromJson(rawProfile).copyWith(
+              email: email.isNotEmpty ? email : null,
+              phone: phone.isNotEmpty ? phone : null,
+            )
+          : CustomerProfile.fromJson(rawProfile);
+    } else if (json.containsKey('first_name') ||
+        json.containsKey('profile_picture_url') ||
+        json.containsKey('business_name')) {
+      // The json map itself IS a profile document!
+      parsedProfile = (role == 'vendor' || json.containsKey('business_name'))
+          ? VendorProfile.fromJson(json).copyWith(
+              email: email.isNotEmpty ? email : null,
+              phone: phone.isNotEmpty ? phone : null,
+            )
+          : CustomerProfile.fromJson(json);
+    }
 
     return User(
-      id: JsonUtils.asString(json["id"]),
+      id: id,
       email: email,
       phone: phone,
       role: role,
-      status: JsonUtils.asString(json["status"]),
-      phoneVerified: JsonUtils.asBool(json["phone_verified"]),
-      profile: profileJson == null
-          ? null
-          : (role == 'vendor'
-              ? VendorProfile.fromJson(profileJson).copyWith(
-                  email: email,
-                  phone: phone,
-                )
-              : CustomerProfile.fromJson(profileJson)),
+      status: status,
+      phoneVerified: phoneVerified,
+      profile: parsedProfile,
     );
   }
 

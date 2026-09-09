@@ -85,7 +85,8 @@ class _HomeState extends State<Home> {
     CustomDialog.showConfirmation(
       context: context,
       title: 'Delete Account',
-      subtitle: 'This action is permanent and cannot be undone. '
+      subtitle:
+          'This action is permanent and cannot be undone. '
           'All your order history and personal data will be permanently deleted.',
       confirmText: 'Delete',
       cancelText: 'Cancel',

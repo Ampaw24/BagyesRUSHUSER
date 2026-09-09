@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/constant/constant.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -168,7 +169,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'FAST · RELIABLE · QUALITY',
+                          Config.SPLASH_TEXT,
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           style: TextStyle(

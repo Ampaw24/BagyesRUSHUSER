@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../../../constant/app_theme.dart';
+import '../../../../../core/common/app/current_user_provider.dart';
+import '../../../../../core/di/service_locator.dart';
+import '../../../../../core/utils/phone_utils.dart';
 import '../../../../../src/home/viewmodel/home_discovery_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
 import '../../model/vendor_profile.dart';
+import '../../repository/vendor_dashboard_repository.dart';
 
 class EditShopInfoSheet extends StatefulWidget {
   final VendorProfile profile;
@@ -37,7 +42,6 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _ownerCtrl;
-  late final TextEditingController _phoneCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _cityCtrl;
@@ -47,6 +51,7 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
   late final TextEditingController _tiktokCtrl;
   late final TextEditingController _websiteCtrl;
   late List<String> _selectedCuisines;
+  late String _currentPhone;
 
   @override
   void initState() {
@@ -55,7 +60,6 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
     _nameCtrl = TextEditingController(text: p.businessName);
     _descCtrl = TextEditingController(text: p.description);
     _ownerCtrl = TextEditingController(text: p.ownerName);
-    _phoneCtrl = TextEditingController(text: p.phone);
     _emailCtrl = TextEditingController(text: p.email);
     _addressCtrl = TextEditingController(text: p.address);
     _cityCtrl = TextEditingController(text: p.city);
@@ -65,6 +69,7 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
     _tiktokCtrl = TextEditingController(text: p.tiktokUrl ?? '');
     _websiteCtrl = TextEditingController(text: p.websiteUrl ?? '');
     _selectedCuisines = List<String>.from(p.cuisineTypes);
+    _currentPhone = p.phone;
   }
 
   @override
@@ -72,7 +77,6 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _ownerCtrl.dispose();
-    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _addressCtrl.dispose();
     _cityCtrl.dispose();
@@ -89,9 +93,10 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
 
     final updated = widget.profile.copyWith(
       businessName: _nameCtrl.text.trim(),
-      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      description:
+          _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
       ownerName: _ownerCtrl.text.trim(),
-      phone: _phoneCtrl.text.trim(),
+      phone: _currentPhone,
       email: _emailCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
       city: _cityCtrl.text.trim(),
@@ -232,16 +237,7 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     SizedBox(height: w * 0.035),
-                    _buildField(
-                      controller: _phoneCtrl,
-                      label: 'Phone *',
-                      hint: '+233 XX XXX XXXX',
-                      icon: HugeIcons.strokeRoundedCall,
-                      w: w,
-                      keyboardType: TextInputType.phone,
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    ),
+                    _buildVendorPhoneRow(w),
                     SizedBox(height: w * 0.035),
                     _buildField(
                       controller: _emailCtrl,
@@ -376,6 +372,106 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildVendorPhoneRow(double w) {
+    final userPhone = context.watch<CurrentUserProvider>().user?.phone ?? '';
+    final effectivePhone = _currentPhone.isNotEmpty ? _currentPhone : userPhone;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Phone Number *',
+          style: TextStyle(
+            fontSize: w * 0.032,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: w * 0.015),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: w * 0.035,
+            vertical: w * 0.025,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedCall,
+                color: AppColors.textHint,
+                size: w * 0.045,
+              ),
+              SizedBox(width: w * 0.03),
+              Expanded(
+                child: Text(
+                  effectivePhone.isNotEmpty ? effectivePhone : 'Not set',
+                  style: TextStyle(
+                    fontSize: w * 0.036,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  final oldPhone = effectivePhone;
+                  PhoneChangeFlowSheet.show(
+                    context,
+                    oldPhone: oldPhone,
+                    onPhoneUpdated: (newPhone) async {
+                      final formattedNew =
+                          PhoneUtils.formatToInternational(newPhone);
+                      final result = await sl<VendorDashboardRepository>()
+                          .updateVendorProfile({'phone': formattedNew});
+
+                      result.fold(
+                        (failure) => throw Exception(failure.message),
+                        (updatedProfile) {
+                          if (mounted) {
+                            setState(() {
+                              _currentPhone = updatedProfile.phone.isNotEmpty
+                                  ? updatedProfile.phone
+                                  : formattedNew;
+                            });
+                            widget.onSave(widget.profile.copyWith(
+                              phone: _currentPhone,
+                            ));
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: w * 0.03,
+                    vertical: w * 0.015,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Change',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: w * 0.032,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

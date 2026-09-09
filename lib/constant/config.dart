@@ -26,6 +26,7 @@ class Config {
       dotenv.env['G_CLIENTID_IOS'] ?? '';
 
   static const String defaultCountryCode = '+233';
+  static final String SPLASH_TEXT = dotenv.env['SPLASH_TEXT'] ?? '';
 
   // Central Accra — map-center fallback when no device location or search
   // bias is available yet.
