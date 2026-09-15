@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
+import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
+import 'package:bagyesrushappusernew/src/chat/view/chat_thread_sheet.dart';
 
 import 'app_routes.dart';
 
@@ -114,4 +116,35 @@ abstract final class AppNavigator {
     required ReportRole role,
   }) =>
       context.push(AppRoutes.reportDetail(id), extra: role);
+
+  // ── Chat ──
+  /// The "active orders" inbox — a normal full-screen page.
+  static void toChatList(BuildContext context) =>
+      context.push(AppRoutes.chatList);
+
+  /// Opens a conversation as a draggable bottom sheet over whatever screen
+  /// is already showing (order tracking's live map, the inbox list, …)
+  /// rather than navigating to a new page — see [ChatThreadSheet].
+  ///
+  /// Provide either [conversationId] (tapping an inbox row) or [orderId] (an
+  /// order-tracking screen's "Chat" button) — the thread resolves whichever
+  /// one it's given. [peerName] is an optional best-effort title shown while
+  /// the real conversation is still loading; [peerPhone], when known
+  /// locally, adds a native-dialer "Call" button to the sheet header.
+  static void showChatThread(
+    BuildContext context, {
+    String? conversationId,
+    String? orderId,
+    String? peerName,
+    String? peerPhone,
+  }) =>
+      ChatThreadSheet.show(
+        context,
+        args: ChatThreadArgs(
+          conversationId: conversationId,
+          orderId: orderId,
+          peerName: peerName,
+          peerPhone: peerPhone,
+        ),
+      );
 }

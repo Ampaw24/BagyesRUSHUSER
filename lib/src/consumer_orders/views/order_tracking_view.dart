@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/core/utils/phone_launcher.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/cancel_order_reason_sheet.dart';
@@ -298,6 +298,24 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
         leading: const _BackButton(),
         leadingWidth: w * 0.16,
         title: Text('Order #${order.id.split('-').last}'),
+        actions: [
+          if ((order.driverPhone ?? '').trim().isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.call_outlined),
+              tooltip: 'Call',
+              onPressed: () => launchPhoneCall(context, order.driverPhone!),
+            ),
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Chat',
+            onPressed: () => AppNavigator.showChatThread(
+              context,
+              orderId: order.id,
+              peerName: order.driverName,
+              peerPhone: order.driverPhone,
+            ),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
@@ -833,18 +851,8 @@ class _DriverCard extends StatelessWidget {
 
   bool get _canCall => (order.driverPhone ?? '').trim().isNotEmpty;
 
-  Future<void> _callDriver(BuildContext context) async {
-    final uri = Uri(
-      scheme: 'tel',
-      path: order.driverPhone!.replaceAll(' ', ''),
-    );
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to start a call on this device.')),
-      );
-    }
-  }
+  Future<void> _callDriver(BuildContext context) =>
+      launchPhoneCall(context, order.driverPhone!);
 
   @override
   Widget build(BuildContext context) {

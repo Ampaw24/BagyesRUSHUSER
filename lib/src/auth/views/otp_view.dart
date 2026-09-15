@@ -11,6 +11,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../models/otp_purpose.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
@@ -771,7 +772,13 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
     // only for the forgot-password redirect below.)
     _input.clearAll();
 
-    context.read<AuthViewmodel>().verifyOtp(phone: phone, otp: otp);
+    context.read<AuthViewmodel>().verifyOtp(
+      phone: phone,
+      otp: otp,
+      purpose: widget.isForgotPassword
+          ? OtpPurpose.accountRecovery
+          : OtpPurpose.signup,
+    );
   }
 
   void _resendOtp() {
@@ -782,7 +789,7 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
     if (widget.isForgotPassword) {
       vm.sendForgotPasswordOtp(_phone);
     } else {
-      vm.sendOtp(_phone);
+      vm.sendOtp(_phone, OtpPurpose.signup);
     }
   }
 

@@ -53,6 +53,10 @@ import '../../src/report/viewmodel/report_detail_viewmodel.dart';
 import '../../src/report/viewmodel/report_form_viewmodel.dart';
 import '../../src/report/viewmodel/report_vendors_viewmodel.dart';
 import '../../src/report/views/report_flow_args.dart';
+import '../../src/chat/repository/chat_repository.dart';
+import '../../src/chat/viewmodel/chat_list_viewmodel.dart';
+import '../../src/chat/viewmodel/chat_thread_viewmodel.dart';
+import '../../src/chat/view/chat_thread_args.dart';
 
 final sl = GetIt.instance;
 
@@ -93,6 +97,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => TransactionRepository(client: sl()));
   sl.registerLazySingleton(() => VendorWalletRepository(client: sl()));
   sl.registerLazySingleton(() => ReportRepository(client: sl()));
+  sl.registerLazySingleton(() => ChatRepository(client: sl()));
 
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
@@ -166,4 +171,14 @@ Future<void> init() async {
   );
   // Factory — owned by the report flow's vendor-target-picker step only.
   sl.registerFactory(() => ReportVendorsViewModel(sl()));
+
+  // Factory — one fresh instance per ChatListView visit, matching
+  // MyReportsViewModel's rationale (a message sent elsewhere then popped
+  // back to shows up without a manual refresh).
+  sl.registerFactory(() => ChatListViewModel(repository: sl()));
+  // Factory + param — one fresh instance per ChatThreadView push, matching
+  // ReportDetailViewModel's rationale.
+  sl.registerFactoryParam<ChatThreadViewModel, ChatThreadArgs, void>(
+    (args, _) => ChatThreadViewModel(repository: sl(), args: args),
+  );
 }

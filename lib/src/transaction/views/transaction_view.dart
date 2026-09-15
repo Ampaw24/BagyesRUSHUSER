@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_state.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.dart';
 import '../viewmodels/transaction_state.dart';
 import '../viewmodels/transaction_viewmodel.dart';
 import 'widgets/transaction_tile.dart';
+import 'widgets/wallet_balance_card.dart';
+import 'widgets/withdraw_sheet.dart';
 
 class TransactionView extends StatefulWidget {
   const TransactionView({super.key});
@@ -23,6 +27,7 @@ class _TransactionViewState extends State<TransactionView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _vm = context.read<TransactionViewmodel>();
       _vm!.fetchTransactions();
+      context.read<PaymentViewmodel>().getWallet();
     });
   }
 
@@ -48,58 +53,84 @@ class _TransactionViewState extends State<TransactionView> {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(title: const Text('Transactions')),
-      body: Consumer<TransactionViewmodel>(
-        builder: (context, vm, _) {
-          final state = vm.state;
+      body: Column(
+        children: [
+          Consumer<PaymentViewmodel>(
+            builder: (context, paymentVm, _) {
+              final state = paymentVm.state;
+              return WalletBalanceCard(
+                wallet: paymentVm.wallet,
+                isLoading: state is PaymentLoading,
+                errorMessage: state is PaymentError ? state.message : null,
+                onRetry: () => paymentVm.getWallet(),
+                onWithdraw: () async {
+                  final wallet = paymentVm.wallet;
+                  if (wallet == null) return;
+                  final withdrew = await WithdrawSheet.show(context, wallet: wallet);
+                  if (withdrew == true && context.mounted) {
+                    paymentVm.getWallet();
+                    _vm?.fetchTransactions();
+                  }
+                },
+              );
+            },
+          ),
+          Expanded(
+            child: Consumer<TransactionViewmodel>(
+              builder: (context, vm, _) {
+                final state = vm.state;
 
-          if (state is TransactionLoading || state is TransactionInitial) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
+                if (state is TransactionLoading || state is TransactionInitial) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  );
+                }
 
-          if (state is TransactionError) {
-            return _ErrorState(
-              message: state.message,
-              onRetry: () => vm.fetchTransactions(),
-            );
-          }
+                if (state is TransactionError) {
+                  return _ErrorState(
+                    message: state.message,
+                    onRetry: () => vm.fetchTransactions(),
+                  );
+                }
 
-          final loaded = state as TransactionsLoaded;
+                final loaded = state as TransactionsLoaded;
 
-          return RefreshIndicator(
-            color: AppColors.primary,
-            onRefresh: () => vm.fetchTransactions(),
-            child: loaded.transactions.isEmpty
-                ? _EmptyState(scrollController: _scrollController)
-                : ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(
-                      w * 0.05,
-                      w * 0.04,
-                      w * 0.05,
-                      w * 0.05,
-                    ),
-                    itemCount:
-                        loaded.transactions.length + (loaded.isLoadingMore ? 1 : 0),
-                    itemBuilder: (ctx, i) {
-                      if (i >= loaded.transactions.length) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: w * 0.06),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                              strokeWidth: 2.5,
-                            ),
+                return RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () => vm.fetchTransactions(),
+                  child: loaded.transactions.isEmpty
+                      ? _EmptyState(scrollController: _scrollController)
+                      : ListView.builder(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(
+                            w * 0.05,
+                            w * 0.02,
+                            w * 0.05,
+                            w * 0.05,
                           ),
-                        );
-                      }
-                      return TransactionTile(transaction: loaded.transactions[i]);
-                    },
-                  ),
-          );
-        },
+                          itemCount: loaded.transactions.length +
+                              (loaded.isLoadingMore ? 1 : 0),
+                          itemBuilder: (ctx, i) {
+                            if (i >= loaded.transactions.length) {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: w * 0.06),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                    strokeWidth: 2.5,
+                                  ),
+                                ),
+                              );
+                            }
+                            return TransactionTile(transaction: loaded.transactions[i]);
+                          },
+                        ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

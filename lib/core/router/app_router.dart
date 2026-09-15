@@ -43,6 +43,7 @@ import 'package:bagyesrushappusernew/src/consumer_orders/views/order_tracking_vi
 import 'package:bagyesrushappusernew/src/search/views/consumer_search_view.dart';
 import 'package:bagyesrushappusernew/src/transaction/views/transaction_view.dart';
 import 'package:bagyesrushappusernew/features/consumer/notifications/view/screens/consumer_notifications_screen.dart';
+import 'package:bagyesrushappusernew/src/chat/view/chat_list_view.dart';
 
 import 'app_routes.dart';
 
@@ -353,6 +354,14 @@ final GoRouter appRouter = GoRouter(
           role: role,
         );
       },
+    ),
+
+    // ── Chat ──
+    // The thread itself is presented as a bottom sheet (see
+    // AppNavigator.showChatThread / ChatThreadSheet), not a page route.
+    GoRoute(
+      path: AppRoutes.chatList,
+      builder: (context, state) => const ChatListView(),
     ),
   ],
 );

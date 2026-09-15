@@ -8,6 +8,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/widgets/custom_dialogs.dart';
+import '../models/otp_purpose.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
@@ -100,7 +101,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
       );
       return;
     }
-    context.read<AuthViewmodel>().sendOtp(phone);
+    context.read<AuthViewmodel>().sendOtp(phone, OtpPurpose.signup);
   }
 
   @override

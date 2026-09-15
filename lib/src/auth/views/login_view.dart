@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:go_router/go_router.dart';
 
+import '../models/otp_purpose.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
 import '../../../core/common/app/current_user_provider.dart';
@@ -84,7 +85,10 @@ class _LoginViewState extends State<LoginView>
         onConfirm: isPhoneUnverified
             ? () {
                 final phone = _phoneController.text.trim();
-                context.read<AuthViewmodel>().sendOtp('+233$phone');
+                context.read<AuthViewmodel>().sendOtp(
+                  '+233$phone',
+                  OtpPurpose.signup,
+                );
                 context.push(AppRoutes.otp);
               }
             : null,

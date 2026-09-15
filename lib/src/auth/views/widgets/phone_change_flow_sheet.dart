@@ -7,6 +7,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/utils/phone_utils.dart';
 import '../../../../core/widgets/custom_dialogs.dart';
+import '../../models/otp_purpose.dart';
 import '../../repositories/auth_repository.dart';
 
 enum PhoneChangeStep {
@@ -101,7 +102,10 @@ class _PhoneChangeFlowSheetState extends State<PhoneChangeFlowSheet> {
 
     final normalizedOld = PhoneUtils.formatToInternational(widget.oldPhone);
     final repo = GetIt.instance<AuthRepository>();
-    final result = await repo.sendOtp(phone: normalizedOld);
+    final result = await repo.sendOtp(
+      phone: normalizedOld,
+      purpose: OtpPurpose.phoneChange,
+    );
 
     if (!mounted) return;
     setState(() => _loading = false);
@@ -133,7 +137,11 @@ class _PhoneChangeFlowSheetState extends State<PhoneChangeFlowSheet> {
 
     final normalizedOld = PhoneUtils.formatToInternational(widget.oldPhone);
     final repo = GetIt.instance<AuthRepository>();
-    final result = await repo.verifyOtp(phone: normalizedOld, otp: code);
+    final result = await repo.verifyOtp(
+      phone: normalizedOld,
+      otp: code,
+      purpose: OtpPurpose.phoneChange,
+    );
 
     if (!mounted) return;
     setState(() => _loading = false);

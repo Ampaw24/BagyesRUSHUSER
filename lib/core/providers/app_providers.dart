@@ -5,6 +5,7 @@ import 'package:provider/single_child_widget.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/transaction/viewmodels/transaction_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
 
@@ -26,6 +27,9 @@ class AppProviders {
         ),
         ChangeNotifierProvider<VendorWalletViewmodel>(
           create: (_) => _sl<VendorWalletViewmodel>(),
+        ),
+        ChangeNotifierProvider<PaymentViewmodel>(
+          create: (_) => _sl<PaymentViewmodel>(),
         ),
       ];
 }

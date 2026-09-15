@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/constant.dart';
 import '../../../core/common/app/current_user_provider.dart';
+import '../models/otp_purpose.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
 import '../../../core/router/router.dart';
@@ -90,7 +91,7 @@ class _SignupViewState extends State<SignupView>
       final phone = context.read<CurrentUserProvider>().user?.phone ?? '';
       // Automatically send OTP after successful signup — navigate only once
       // we know whether the send succeeded or failed.
-      vm.sendOtp(phone);
+      vm.sendOtp(phone, OtpPurpose.signup);
     } else if (state is OTPSent && _registrationComplete) {
       // sendOtp succeeded → navigate to OTP entry screen so user can verify.
       _registrationComplete = false;

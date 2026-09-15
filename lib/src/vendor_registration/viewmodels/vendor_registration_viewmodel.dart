@@ -1,5 +1,6 @@
 import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
@@ -77,7 +78,10 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         );
         notifyListeners();
         _authViewmodel.resetState();
-        _authViewmodel.sendOtp('${Config.defaultCountryCode}${_state.businessDetails.phone}');
+        _authViewmodel.sendOtp(
+          '${Config.defaultCountryCode}${_state.businessDetails.phone}',
+          OtpPurpose.signup,
+        );
         return;
       }
       _authViewmodel.resetState();
@@ -116,7 +120,10 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         notifyListeners();
         _authViewmodel.resetState();
         // Kick off OTP send — result handled by next _onAuthStateChanged cycle.
-        _authViewmodel.sendOtp('${Config.defaultCountryCode}${_state.businessDetails.phone}');
+        _authViewmodel.sendOtp(
+          '${Config.defaultCountryCode}${_state.businessDetails.phone}',
+          OtpPurpose.signup,
+        );
       } else {
         _state = _state.copyWith(
           status: VendorRegistrationStatus.error,
@@ -323,7 +330,7 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     _state = _state.copyWith(status: VendorRegistrationStatus.loading);
     notifyListeners();
     final fullPhone = '${Config.defaultCountryCode}${_state.businessDetails.phone}';
-    await _authViewmodel.sendOtp(fullPhone);
+    await _authViewmodel.sendOtp(fullPhone, OtpPurpose.signup);
     // Result (OTPSent / AuthError) handled by _onAuthStateChanged
   }
 
@@ -334,6 +341,7 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     await _authViewmodel.verifyOtp(
       phone: fullPhone,
       otp: otp,
+      purpose: OtpPurpose.signup,
     );
     // Result (OTPVerified / AuthError) handled by _onAuthStateChanged
   }

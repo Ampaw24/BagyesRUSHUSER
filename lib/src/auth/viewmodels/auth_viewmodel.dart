@@ -11,6 +11,7 @@ import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
@@ -271,12 +272,12 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
   
-  Future<void> sendOtp(String phone) async {
+  Future<void> sendOtp(String phone, OtpPurpose purpose) async {
     _pendingPhone = phone.trim();
-    appLogger.d('AuthViewmodel.sendOtp → initiated');
+    appLogger.d('AuthViewmodel.sendOtp → purpose=${purpose.value}');
     emit(const RequestingOTP());
 
-    final result = await _repository.sendOtp(phone: phone.trim());
+    final result = await _repository.sendOtp(phone: phone.trim(), purpose: purpose);
 
     result.fold(
       (failure) {
@@ -321,11 +322,16 @@ class AuthViewmodel extends ViewModel<AuthState> {
   Future<void> verifyOtp({
     required String phone,
     required String otp,
+    required OtpPurpose purpose,
   }) async {
-    appLogger.d('AuthViewmodel.verifyOtp → initiated');
+    appLogger.d('AuthViewmodel.verifyOtp → purpose=${purpose.value}');
     emit(const AuthLoading());
 
-    final result = await _repository.verifyOtp(phone: phone, otp: otp);
+    final result = await _repository.verifyOtp(
+      phone: phone,
+      otp: otp,
+      purpose: purpose,
+    );
 
     result.fold(
       (failure) {

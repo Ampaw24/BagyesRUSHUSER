@@ -7,6 +7,7 @@ import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
@@ -317,12 +318,15 @@ class AuthRepository {
     }
   }
 
-  ResultFuture sendOtp({required String phone}) async {
-    appLogger.d('AuthRepository.sendOtp → initiated');
+  ResultFuture sendOtp({
+    required String phone,
+    required OtpPurpose purpose,
+  }) async {
+    appLogger.d('AuthRepository.sendOtp → purpose=${purpose.value}');
     try {
       final response = await _client.post(
         ApiEndpoints.otpSend,
-        data: {'phone': phone},
+        data: {'phone': phone, 'purpose': purpose.value},
       );
 
       appLogger.d(
@@ -406,12 +410,13 @@ class AuthRepository {
   ResultFuture<void> verifyOtp({
     required String phone,
     required String otp,
+    required OtpPurpose purpose,
   }) async {
-    appLogger.d('AuthRepository.verifyOtp → initiated');
+    appLogger.d('AuthRepository.verifyOtp → purpose=${purpose.value}');
     try {
       final response = await _client.post(
         ApiEndpoints.otpVerify,
-        data: {'phone': phone, 'code': otp},
+        data: {'phone': phone, 'code': otp, 'purpose': purpose.value},
       );
 
       appLogger.d(

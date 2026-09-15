@@ -69,4 +69,9 @@ abstract final class AppRoutes {
   static const String reportFlow = '/report';
   static const String myReports = '/report/history';
   static String reportDetail(String id) => '/report/history/$id';
+
+  // ── Chat ──
+  // The thread is a bottom sheet (see AppNavigator.showChatThread), not a
+  // page — only the inbox needs a route.
+  static const String chatList = '/chat';
 }

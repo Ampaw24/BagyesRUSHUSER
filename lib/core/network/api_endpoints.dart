@@ -18,8 +18,8 @@ abstract final class ApiEndpoints {
   static const String refreshToken = '/auth/refresh-token';
 
   /// Shared phone-verification pair — used by both customer and vendor OTP flows.
-  static const String phoneSendCode = '/phone/send-code';
-  static const String phoneVerify = '/phone/verify';
+  static const String phoneSendCode = '/otp/send-code';
+  static const String phoneVerify = '/otp/verify';
   static const String otpSend = phoneSendCode;
   static const String otpVerify = phoneVerify;
 
@@ -316,4 +316,29 @@ abstract final class ApiEndpoints {
   /// `PATCH /customer/parcels/:id/cancel`
   static String customerParcelCancel(String id) =>
       '$customerParcels/$id/cancel';
+
+  // ─── Chat ──────────────────────────────────────────────────────────────────
+  /// `GET /conversations` — the one shared, role-agnostic folder: customer,
+  /// vendor and rider apps all call these same paths, the server resolves
+  /// who's asking from the bearer token. Never build a role-prefixed variant.
+  static const String conversations = '/conversations';
+
+  /// `GET /conversations/:id`
+  static String conversationById(String id) => '$conversations/$id';
+
+  /// `GET /conversations/:id/messages?per_page=&cursor=` (cursor pagination,
+  /// no `page`/`total`) | `POST /conversations/:id/messages`
+  static String conversationMessages(String id) =>
+      '$conversations/$id/messages';
+
+  /// `POST /conversations/:id/read` — no body.
+  static String conversationRead(String id) => '$conversations/$id/read';
+
+  /// `POST /conversations/:id/typing` — no body, fire-and-forget.
+  static String conversationTyping(String id) => '$conversations/$id/typing';
+
+  /// `GET /orders/:id/conversation` — `id` is the **order** id, not a
+  /// conversation id. Returns the same payload shape as [conversationById].
+  static String orderConversation(String orderId) =>
+      '/orders/$orderId/conversation';
 }
