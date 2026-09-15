@@ -1,15 +1,25 @@
+import 'dart:async';
+
+import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
+import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
 class OrdersViewModel extends ViewModel<OrdersState> {
-  OrdersViewModel(this._repository) : super(const OrdersLoading()) {
+  OrdersViewModel(this._repository, this._realtimeService) : super(const OrdersLoading()) {
     _loadOrders();
+    _orderStatusSub = _realtimeService.orderStatusEvents.listen(applyOrderStatusEvent);
+    _riderLocationSub = _realtimeService.riderLocationEvents.listen(_applyRiderLocationEvent);
   }
 
   final ConsumerOrdersRepository _repository;
+  final RealtimeService _realtimeService;
+  StreamSubscription<OrderStatusEvent>? _orderStatusSub;
+  StreamSubscription<RiderLocationEvent>? _riderLocationSub;
 
   Future<void> _loadOrders() async {
     try {
@@ -167,5 +177,42 @@ class OrdersViewModel extends ViewModel<OrdersState> {
       if (o.id == orderId) return o;
     }
     return null;
+  }
+
+  /// Applies a realtime `order.status` event onto the cached order, if any
+  /// — a no-op if this order isn't cached yet (e.g. no screen has fetched
+  /// it this session). Reuses the same status-string parser the REST path
+  /// uses, so socket-driven and REST-driven status stay consistent.
+  void applyOrderStatusEvent(OrderStatusEvent event) {
+    final current = orderById(event.orderId);
+    if (current == null) return;
+    _replaceOrder(current.copyWith(
+      status: orderStatusFromString(event.status),
+      estimatedDelivery: event.estimatedDeliveryAt,
+    ));
+  }
+
+  /// Applies a realtime `rider.location` event for [orderId] onto the
+  /// cached order, if any.
+  void applyRiderLocation(String orderId, RiderLocationEvent event) {
+    final current = orderById(orderId);
+    if (current == null) return;
+    _replaceOrder(current.copyWith(riderLocation: RiderLocation.fromEvent(event)));
+  }
+
+  /// `riderLocationEvents` is a single stream shared by both the
+  /// `private-order.{id}` and `private-admin.riders` feeds — [sourceOrderId]
+  /// is null for the latter, which isn't order-scoped and is dropped here.
+  void _applyRiderLocationEvent(RiderLocationEvent event) {
+    final orderId = event.sourceOrderId;
+    if (orderId == null) return;
+    applyRiderLocation(orderId, event);
+  }
+
+  @override
+  void dispose() {
+    _orderStatusSub?.cancel();
+    _riderLocationSub?.cancel();
+    super.dispose();
   }
 }

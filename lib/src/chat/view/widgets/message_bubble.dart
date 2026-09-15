@@ -17,9 +17,18 @@ String _formatTime(DateTime dt) {
 /// left-aligned/neutral otherwise. Own messages carry a small delivery
 /// indicator (sending/sent/failed) instead of a sender label.
 class MessageBubble extends StatelessWidget {
-  const MessageBubble({super.key, required this.message, this.onRetry});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.isRead = false,
+    this.onRetry,
+  });
 
   final ChatMessage message;
+
+  /// True once the peer's `conversation.read` timestamp is at/after this
+  /// (own) message's `createdAt` — swaps the sent tick for a read tick.
+  final bool isRead;
   final VoidCallback? onRetry;
 
   @override
@@ -72,7 +81,7 @@ class MessageBubble extends StatelessWidget {
               ),
               if (isMine) ...[
                 SizedBox(width: w * 0.012),
-                _DeliveryIcon(status: message.deliveryStatus, w: w),
+                _DeliveryIcon(status: message.deliveryStatus, isRead: isRead, w: w),
               ],
             ],
           ),
@@ -93,9 +102,10 @@ class MessageBubble extends StatelessWidget {
 }
 
 class _DeliveryIcon extends StatelessWidget {
-  const _DeliveryIcon({required this.status, required this.w});
+  const _DeliveryIcon({required this.status, required this.isRead, required this.w});
 
   final MessageDeliveryStatus status;
+  final bool isRead;
   final double w;
 
   @override
@@ -112,9 +122,11 @@ class _DeliveryIcon extends StatelessWidget {
         );
       case MessageDeliveryStatus.sent:
         return HugeIcon(
-          icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+          icon: isRead
+              ? HugeIcons.strokeRoundedTickDouble01
+              : HugeIcons.strokeRoundedCheckmarkCircle01,
           size: w * 0.032,
-          color: Colors.white.withValues(alpha: 0.85),
+          color: Colors.white.withValues(alpha: isRead ? 1 : 0.85),
         );
       case MessageDeliveryStatus.failed:
         return HugeIcon(

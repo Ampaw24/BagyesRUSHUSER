@@ -1,6 +1,7 @@
 /// Consumer-side order domain entity.
 library;
 
+import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 
 enum OrderStatus {
@@ -44,7 +45,11 @@ extension OrderStatusX on OrderStatus {
 /// [OrderStatus.pending] for unrecognized values rather than throwing —
 /// verify these against a real `GET customer/orders` response and adjust
 /// if the backend uses different string values.
-OrderStatus _orderStatusFromString(String value) {
+///
+/// Public (not file-private) so `OrdersViewModel` can reuse the exact same
+/// parser for the `order.status` realtime event's status string, keeping
+/// REST-driven and socket-driven status parsing consistent.
+OrderStatus orderStatusFromString(String value) {
   switch (value) {
     case 'pending':
     case 'pending_payment':
@@ -152,6 +157,10 @@ class ConsumerOrder {
   final PaymentStatus paymentStatus;
   final int? estimatedPrepMinutes;
 
+  /// Live rider position — only ever set from a realtime `rider.location`
+  /// event, never from `fromJson`; not part of any REST payload.
+  final RiderLocation? riderLocation;
+
   const ConsumerOrder({
     required this.id,
     required this.restaurantId,
@@ -173,6 +182,7 @@ class ConsumerOrder {
     this.estimatedPrepMinutes,
     this.driverName,
     this.driverPhone,
+    this.riderLocation,
   });
 
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
@@ -180,7 +190,9 @@ class ConsumerOrder {
   /// Applies the lightweight fields returned by the tracking endpoint
   /// (`GET customer/orders/:id/track`) on top of a fully-loaded order,
   /// preserving items/totals/address that the track response doesn't
-  /// include.
+  /// include. Also used to merge in a realtime `order.status`/`rider.location`
+  /// event — never passes `riderLocation:` itself, so a REST-driven refresh
+  /// never wipes out a rider position a socket event just set.
   ConsumerOrder copyWith({
     String? id,
     OrderStatus? status,
@@ -189,6 +201,7 @@ class ConsumerOrder {
     DateTime? estimatedDelivery,
     String? driverName,
     String? driverPhone,
+    RiderLocation? riderLocation,
   }) {
     return ConsumerOrder(
       id: id ?? this.id,
@@ -211,6 +224,7 @@ class ConsumerOrder {
       estimatedPrepMinutes: estimatedPrepMinutes ?? this.estimatedPrepMinutes,
       driverName: driverName ?? this.driverName,
       driverPhone: driverPhone ?? this.driverPhone,
+      riderLocation: riderLocation ?? this.riderLocation,
     );
   }
 
@@ -237,7 +251,7 @@ class ConsumerOrder {
               ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      status: _orderStatusFromString(json['status'] as String? ?? ''),
+      status: orderStatusFromString(json['status'] as String? ?? ''),
       subtotal: (totals?['subtotal'] as num?)?.toDouble() ??
           (json['subtotal'] as num?)?.toDouble() ??
           0,

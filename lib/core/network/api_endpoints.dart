@@ -192,6 +192,11 @@ abstract final class ApiEndpoints {
   static String vendorMeWithdrawalCancel(String id) =>
       '$vendorMeWithdrawals/$id/cancel';
 
+  // ─── Customer Wallet ───────────────────────────────────────────────────────
+  /// `GET /customer/wallet` — customer's wallet balance, withdrawable amount,
+  /// and payout eligibility flags. Restricted to role: customer.
+  static const String customerWallet = '/customer/wallet';
+
   // ─── Payments (Paystack) ───────────────────────────────────────────────────
   /// `POST /payments/initialize` — start a Paystack charge (mobile money or card).
   static const String paymentsInitialize = '/payments/initialize';
@@ -341,4 +346,9 @@ abstract final class ApiEndpoints {
   /// conversation id. Returns the same payload shape as [conversationById].
   static String orderConversation(String orderId) =>
       '/orders/$orderId/conversation';
+
+  // ─── Realtime ──────────────────────────────────────────────────────────────
+  /// `GET /realtime/config` — bearer-authed. Fetched once per session by
+  /// RealtimeService; host/port/key are never hardcoded/env-based.
+  static const String realtimeConfig = '/realtime/config';
 }

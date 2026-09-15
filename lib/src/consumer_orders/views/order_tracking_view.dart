@@ -3,13 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/core/enums/map_style_type.dart';
 import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/core/services/map_style_service.dart';
+import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
+import 'package:bagyesrushappusernew/core/utils/lat_lng_tween.dart';
 import 'package:bagyesrushappusernew/core/utils/phone_launcher.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/cancel_order_reason_sheet.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
@@ -36,54 +42,63 @@ class OrderTrackingView extends StatefulWidget {
 
 class _OrderTrackingViewState extends State<OrderTrackingView>
     with WidgetsBindingObserver {
-  static const _pollInterval = Duration(seconds: 15);
-  Timer? _pollTimer;
   bool _isPaying = false;
   bool _isCancelling = false;
+  StreamSubscription<RealtimeChannelError>? _channelErrorSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _startPolling();
+    // One-shot REST fetch — covers a deep-linked cold start (e.g. from a
+    // push notification) where this order isn't cached yet; realtime events
+    // for an uncached order are dropped by OrdersViewModel, so this must
+    // run regardless of the socket subscription below.
+    _refresh();
+    sl<RealtimeService>().subscribeToOrder(widget.orderId);
+    _channelErrorSub = sl<RealtimeService>().channelErrors.listen(_onChannelError);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _pollTimer?.cancel();
+    sl<RealtimeService>().unsubscribeFromOrder(widget.orderId);
+    _channelErrorSub?.cancel();
     super.dispose();
+  }
+
+  /// A 403 here means this account has no stake in this order's channel
+  /// (wrong id, or genuinely not a participant) — shown distinctly from a
+  /// generic connection failure. A session-expiry error needs no separate
+  /// handling: the rest of the app's existing token-refresh/login-redirect
+  /// flow already reacts to a cleared session.
+  void _onChannelError(RealtimeChannelError error) {
+    if (!mounted) return;
+    if (error.channelName != sl<RealtimeService>().orderChannelName(widget.orderId)) return;
+    if (error.type != RealtimeChannelErrorType.forbidden) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Live tracking isn't available for this order.")),
+    );
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _startPolling();
+      sl<RealtimeService>().subscribeToOrder(widget.orderId);
+      _refresh(); // catch up on anything missed while backgrounded
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      _pollTimer?.cancel();
+      sl<RealtimeService>().unsubscribeFromOrder(widget.orderId);
     }
   }
 
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _poll();
-    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
-  }
-
-  Future<void> _poll() async {
+  Future<void> _refresh() async {
     if (!mounted) return;
-    final vm = context.read<OrdersViewModel>();
-    final current = vm.orderById(widget.orderId);
-    if (current != null && !current.status.isActive) {
-      _pollTimer?.cancel();
-      return;
-    }
     try {
-      await vm.trackOrder(widget.orderId);
+      await context.read<OrdersViewModel>().trackOrder(widget.orderId);
     } catch (_) {
-      // Transient blip on a background poll — keep the last-known-good
-      // state and retry next tick, don't surface a SnackBar every 15s.
+      // Keep the last-known-good state — realtime updates (or the next
+      // manual pull-to-refresh) will catch up.
     }
   }
 
@@ -347,6 +362,17 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
               SizedBox(height: w * 0.05),
             ],
 
+            // ── Live rider location (once en route) ──
+            if (order.riderLocation != null && _isEnRoute(order.status)) ...[
+              const _SectionHeader(
+                icon: Icons.map_rounded,
+                label: 'Live Location',
+              ),
+              SizedBox(height: w * 0.025),
+              _RiderMapSection(riderLocation: order.riderLocation!),
+              SizedBox(height: w * 0.05),
+            ],
+
             // ── Delivery address ──
             const _SectionHeader(
               icon: Icons.location_on_rounded,
@@ -525,6 +551,11 @@ BoxDecoration _cardDecoration(double w) => BoxDecoration(
     ),
   ],
 );
+
+/// Whether a rider is plausibly out on the road for this order — the only
+/// phase the live-location map section is worth showing for.
+bool _isEnRoute(OrderStatus status) =>
+    status == OrderStatus.pickedUp || status == OrderStatus.onTheWay;
 
 class _BackButton extends StatelessWidget {
   const _BackButton();
@@ -920,6 +951,125 @@ class _DriverCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Live rider position on a map, animating the marker between fixes
+/// (rather than snapping) and rotating it using [RiderLocation.heading].
+/// Gaps between updates can be a few seconds — a fix is only sent once the
+/// rider has actually moved.
+class _RiderMapSection extends StatefulWidget {
+  const _RiderMapSection({required this.riderLocation});
+
+  final RiderLocation riderLocation;
+
+  @override
+  State<_RiderMapSection> createState() => _RiderMapSectionState();
+}
+
+class _RiderMapSectionState extends State<_RiderMapSection>
+    with SingleTickerProviderStateMixin {
+  static const _moveDuration = Duration(milliseconds: 1500);
+
+  final Completer<GoogleMapController> _controller = Completer();
+  BitmapDescriptor? _markerIcon;
+  String? _mapStyle;
+
+  late AnimationController _animationController;
+  late LatLng _displayedPosition;
+  late double _displayedRotation;
+  LatLngTween? _positionTween;
+  Tween<double>? _rotationTween;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayedPosition = LatLng(widget.riderLocation.latitude, widget.riderLocation.longitude);
+    _displayedRotation = widget.riderLocation.heading ?? 0;
+    _animationController = AnimationController(vsync: this, duration: _moveDuration)
+      ..addListener(_onAnimationTick);
+    BitmapDescriptor.asset(
+      const ImageConfiguration(devicePixelRatio: 2.5),
+      'assets/delivery_marker.png',
+    ).then((icon) {
+      if (mounted) setState(() => _markerIcon = icon);
+    });
+    MapStyleService.load(MapStyleType.silver).then((style) {
+      if (mounted) setState(() => _mapStyle = style);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _RiderMapSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.riderLocation;
+    final previous = oldWidget.riderLocation;
+    if (next.latitude == previous.latitude && next.longitude == previous.longitude) {
+      return;
+    }
+    _positionTween = LatLngTween(
+      begin: _displayedPosition,
+      end: LatLng(next.latitude, next.longitude),
+    );
+    _rotationTween = Tween<double>(
+      begin: _displayedRotation,
+      end: next.heading ?? _displayedRotation,
+    );
+    _animationController
+      ..reset()
+      ..forward();
+  }
+
+  void _onAnimationTick() {
+    final positionTween = _positionTween;
+    final rotationTween = _rotationTween;
+    if (positionTween == null || rotationTween == null) return;
+    final t = _animationController.value;
+    setState(() {
+      _displayedPosition = positionTween.transform(t);
+      _displayedRotation = rotationTween.transform(t);
+    });
+    _controller.future.then((controller) {
+      if (mounted) controller.animateCamera(CameraUpdate.newLatLng(_displayedPosition));
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController
+      ..removeListener(_onAnimationTick)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(w * 0.04),
+      child: SizedBox(
+        height: w * 0.55,
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(target: _displayedPosition, zoom: 16),
+          style: _mapStyle,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          markers: {
+            Marker(
+              markerId: const MarkerId('rider'),
+              position: _displayedPosition,
+              rotation: _displayedRotation,
+              anchor: const Offset(0.5, 0.5),
+              flat: true,
+              icon: _markerIcon ?? BitmapDescriptor.defaultMarker,
+            ),
+          },
+          onMapCreated: (controller) {
+            if (!_controller.isCompleted) _controller.complete(controller);
+          },
+        ),
       ),
     );
   }

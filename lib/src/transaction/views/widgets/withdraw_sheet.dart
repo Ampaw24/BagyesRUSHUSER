@@ -6,8 +6,8 @@ import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart'
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/widgets/app_toast.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_wallet.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_state.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.dart';
 
@@ -24,9 +24,9 @@ import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.da
 class WithdrawSheet extends StatefulWidget {
   const WithdrawSheet({super.key, required this.wallet});
 
-  final PaymentWallet wallet;
+  final CustomerWalletModel wallet;
 
-  static Future<bool?> show(BuildContext context, {required PaymentWallet wallet}) {
+  static Future<bool?> show(BuildContext context, {required CustomerWalletModel wallet}) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -90,7 +90,13 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
   String? get _validationError {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) return 'Enter a valid amount';
-    if (amount > widget.wallet.balance) return 'Amount exceeds your available balance';
+    if (amount > widget.wallet.withdrawable) {
+      return 'Amount exceeds your withdrawable balance';
+    }
+    if (amount < widget.wallet.minimumWithdrawal) {
+      return 'Minimum withdrawal is ${widget.wallet.currency} '
+          '${widget.wallet.minimumWithdrawal.toStringAsFixed(2)}';
+    }
     if (_provider == null) return 'Select a mobile money network';
     if (_phoneController.text.trim().isEmpty) return 'Enter a phone number';
     if (_accountNameController.text.trim().isEmpty) return 'Enter the account name';
@@ -98,7 +104,7 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
   }
 
   void _applyPercentage(double fraction) {
-    final amount = widget.wallet.balance * fraction;
+    final amount = widget.wallet.withdrawable * fraction;
     _amountController.text = amount.toStringAsFixed(2);
     setState(() {});
   }
@@ -158,7 +164,7 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
               ),
               SizedBox(height: w * 0.01),
               Text(
-                'Available balance: ${widget.wallet.formattedBalance}',
+                'Available to withdraw: ${widget.wallet.formattedWithdrawable}',
                 style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
               ),
               SizedBox(height: w * 0.05),
@@ -191,7 +197,9 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
                       padding: EdgeInsets.only(right: w * 0.02),
                       child: _PercentChip(
                         label: pct == 1.0 ? 'Max' : '${(pct * 100).round()}%',
-                        onTap: widget.wallet.balance > 0 ? () => _applyPercentage(pct) : null,
+                        onTap: widget.wallet.withdrawable > 0
+                            ? () => _applyPercentage(pct)
+                            : null,
                         w: w,
                       ),
                     ),

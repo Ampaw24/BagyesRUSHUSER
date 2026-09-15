@@ -81,7 +81,12 @@ class _ChatThreadSheetBodyState extends State<_ChatThreadSheetBody> {
             child: Column(
               children: [
                 _DragHandle(w: w),
-                _SheetHeader(w: w, args: widget.args, state: state),
+                _SheetHeader(
+                  w: w,
+                  args: widget.args,
+                  state: state,
+                  peerTyping: state is ChatThreadLoaded && state.peerTyping,
+                ),
                 const Divider(height: 1, color: AppColors.divider),
                 Expanded(
                   child: switch (state) {
@@ -89,11 +94,15 @@ class _ChatThreadSheetBodyState extends State<_ChatThreadSheetBody> {
                       const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                     ChatThreadError(:final message) =>
                       _ErrorState(w: w, message: message, onRetry: _vm.retryLoad),
-                    ChatThreadLoaded(:final messages, :final isLoadingOlder) => _MessageList(
+                    ChatThreadUnavailable(:final message) =>
+                      _UnavailableState(w: w, message: message, onRetry: _vm.retryLoad),
+                    ChatThreadLoaded(:final messages, :final isLoadingOlder, :final peerReadAt) =>
+                      _MessageList(
                         w: w,
                         scrollController: scrollController,
                         messages: messages,
                         isLoadingOlder: isLoadingOlder,
+                        peerReadAt: peerReadAt,
                         onRetryMessage: _vm.retry,
                         onLoadOlder: _vm.loadOlderMessages,
                       ),
@@ -141,11 +150,17 @@ class _DragHandle extends StatelessWidget {
 }
 
 class _SheetHeader extends StatelessWidget {
-  const _SheetHeader({required this.w, required this.args, required this.state});
+  const _SheetHeader({
+    required this.w,
+    required this.args,
+    required this.state,
+    required this.peerTyping,
+  });
 
   final double w;
   final ChatThreadArgs args;
   final ChatThreadState state;
+  final bool peerTyping;
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +175,7 @@ class _SheetHeader extends StatelessWidget {
       if (counterpart != null) counterpart.roleLabel,
       if (order != null) order.orderNumber,
     ];
+    final subtitle = peerTyping ? 'typing…' : subtitleParts.join(' · ');
     final phone = args.peerPhone;
 
     return Padding(
@@ -199,12 +215,16 @@ class _SheetHeader extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                if (subtitleParts.isNotEmpty)
+                if (subtitle.isNotEmpty)
                   Text(
-                    subtitleParts.join(' · '),
+                    subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: w * 0.029, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: w * 0.029,
+                      fontStyle: peerTyping ? FontStyle.italic : FontStyle.normal,
+                      color: peerTyping ? AppColors.primary : AppColors.textSecondary,
+                    ),
                   ),
               ],
             ),
@@ -239,6 +259,7 @@ class _MessageList extends StatefulWidget {
     required this.scrollController,
     required this.messages,
     required this.isLoadingOlder,
+    required this.peerReadAt,
     required this.onRetryMessage,
     required this.onLoadOlder,
   });
@@ -247,6 +268,7 @@ class _MessageList extends StatefulWidget {
   final ScrollController scrollController;
   final List<ChatMessage> messages;
   final bool isLoadingOlder;
+  final DateTime? peerReadAt;
   final ValueChanged<ChatMessage> onRetryMessage;
   final VoidCallback onLoadOlder;
 
@@ -309,8 +331,13 @@ class _MessageListState extends State<_MessageList> {
           );
         }
         final message = descending[index];
+        final peerReadAt = widget.peerReadAt;
+        final isRead = message.isMine &&
+            peerReadAt != null &&
+            !message.createdAt.isAfter(peerReadAt);
         return MessageBubble(
           message: message,
+          isRead: isRead,
           onRetry: message.deliveryStatus == MessageDeliveryStatus.failed
               ? () => widget.onRetryMessage(message)
               : null,
@@ -357,6 +384,55 @@ class _ErrorState extends StatelessWidget {
             ),
             SizedBox(height: w * 0.05),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown instead of [_ErrorState] when the REST fetch behind this thread
+/// returned a [ConversationNotAvailableException] (422) — a rider hasn't
+/// been assigned to this order yet, not a broken thread. Unlike a real
+/// error this can resolve itself while the sheet stays open, so the retry
+/// action reads as "check again" rather than "retry".
+class _UnavailableState extends StatelessWidget {
+  const _UnavailableState({required this.w, required this.message, required this.onRetry});
+
+  final double w;
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: w * 0.1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedDeliveryBox01,
+              size: w * 0.14,
+              color: AppColors.textHint,
+            ),
+            SizedBox(height: w * 0.04),
+            Text(
+              'Chat not available yet',
+              style: TextStyle(
+                fontSize: w * 0.042,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: w * 0.015),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
+            ),
+            SizedBox(height: w * 0.05),
+            OutlinedButton(onPressed: onRetry, child: const Text('Check again')),
           ],
         ),
       ),

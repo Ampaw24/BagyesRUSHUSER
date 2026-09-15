@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_state.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
 import '../viewmodels/transaction_state.dart';
 import '../viewmodels/transaction_viewmodel.dart';
 import 'widgets/transaction_tile.dart';
@@ -27,7 +27,7 @@ class _TransactionViewState extends State<TransactionView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _vm = context.read<TransactionViewmodel>();
       _vm!.fetchTransactions();
-      context.read<PaymentViewmodel>().getWallet();
+      context.read<CustomerWalletViewmodel>().fetchWallet();
     });
   }
 
@@ -55,20 +55,20 @@ class _TransactionViewState extends State<TransactionView> {
       appBar: AppBar(title: const Text('Transactions')),
       body: Column(
         children: [
-          Consumer<PaymentViewmodel>(
-            builder: (context, paymentVm, _) {
-              final state = paymentVm.state;
+          Consumer<CustomerWalletViewmodel>(
+            builder: (context, walletVm, _) {
+              final state = walletVm.state;
               return WalletBalanceCard(
-                wallet: paymentVm.wallet,
-                isLoading: state is PaymentLoading,
-                errorMessage: state is PaymentError ? state.message : null,
-                onRetry: () => paymentVm.getWallet(),
+                wallet: walletVm.wallet,
+                isLoading: state is CustomerWalletLoading,
+                errorMessage: state is CustomerWalletError ? state.message : null,
+                onRetry: () => walletVm.fetchWallet(),
                 onWithdraw: () async {
-                  final wallet = paymentVm.wallet;
+                  final wallet = walletVm.wallet;
                   if (wallet == null) return;
                   final withdrew = await WithdrawSheet.show(context, wallet: wallet);
                   if (withdrew == true && context.mounted) {
-                    paymentVm.getWallet();
+                    walletVm.fetchWallet();
                     _vm?.fetchTransactions();
                   }
                 },

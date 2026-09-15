@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_wallet.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
 
 /// Hero wallet card for the customer transaction screen — refunds and
 /// order-adjustment credits collect here as a running balance (distinct
@@ -22,7 +22,7 @@ class WalletBalanceCard extends StatefulWidget {
     required this.onRetry,
   });
 
-  final PaymentWallet? wallet;
+  final CustomerWalletModel? wallet;
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback onWithdraw;
@@ -275,7 +275,7 @@ class _WalletBalanceCardState extends State<WalletBalanceCard>
                         showError
                             ? _RetryPill(onTap: widget.onRetry)
                             : _WithdrawButton(
-                                enabled: (wallet?.balance ?? 0) > 0,
+                                enabled: wallet?.canWithdraw ?? false,
                                 onTap: widget.onWithdraw,
                               ),
                       ],

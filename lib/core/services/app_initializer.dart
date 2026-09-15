@@ -9,6 +9,7 @@ import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
 import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
 import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
 import 'package:bagyesrushappusernew/core/services/places_service.dart';
+import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
@@ -34,6 +35,7 @@ class AppInitializer {
     await LocationHelper.ensurePermission();
     await _fetchStartupLocation();
     await _registerDeviceTokenIfSessionRestored();
+    await _connectRealtimeIfSessionRestored();
   }
 
   /// Registers the FCM device token for a session already restored from
@@ -46,6 +48,21 @@ class AppInitializer {
     final authViewmodel = _sl<AuthViewmodel>();
     if (authViewmodel.state is LoggedIn) {
       await authViewmodel.registerDeviceToken();
+    }
+  }
+
+  /// Connects the realtime (Reverb) session for a session already restored
+  /// from secure storage — same shape as [_registerDeviceTokenIfSessionRestored].
+  /// A fresh login/signup connects its own realtime session instead, from
+  /// [AuthViewmodel.login], since no session exists yet when this runs.
+  static Future<void> _connectRealtimeIfSessionRestored() async {
+    final authViewmodel = _sl<AuthViewmodel>();
+    if (authViewmodel.state is LoggedIn) {
+      try {
+        await _sl<RealtimeService>().connect();
+      } catch (e, s) {
+        appLogger.e('[AppInitializer] RealtimeService.connect failed', error: e, stackTrace: s);
+      }
     }
   }
 
@@ -120,6 +137,7 @@ class AppInitializer {
         AuthViewmodel(
           repository: _sl(),
           currentUserProvider: _sl(),
+          realtimeService: _sl(),
         ),
       );
     }

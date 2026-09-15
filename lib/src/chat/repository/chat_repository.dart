@@ -7,6 +7,20 @@ import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
 import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
 import 'package:bagyesrushappusernew/src/chat/model/messages_page.dart';
 
+/// Thrown by [ChatRepository.getConversationForOrder] specifically for a
+/// 422 — no rider assigned yet, so no conversation exists. Distinguished
+/// from a generic [Exception] so the caller can render "chat opens once
+/// your rider is assigned" instead of a retry/error UI.
+class ConversationNotAvailableException implements Exception {
+  const ConversationNotAvailableException([
+    this.message = 'Chat opens once your rider is assigned.',
+  ]);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Backed by the live `v1/chat` API (see `chat-apis.md`). Shared by
 /// customer, vendor and rider apps alike — every endpoint is role-agnostic,
 /// the server resolves the caller from the bearer token.
@@ -64,6 +78,9 @@ class ChatRepository {
       }
       throw Exception(_errorMessage(response.data) ?? 'Failed to load conversation (${response.statusCode}).');
     } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        throw const ConversationNotAvailableException();
+      }
       appLogger.e(
         'ChatRepository.getConversationForOrder → DioException',
         error: e,

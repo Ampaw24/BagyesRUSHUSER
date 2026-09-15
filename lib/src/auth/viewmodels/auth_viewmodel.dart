@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
+import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/device_info_utils.dart';
@@ -110,12 +111,15 @@ class AuthViewmodel extends ViewModel<AuthState> {
   AuthViewmodel({
     required AuthRepository repository,
     required CurrentUserProvider currentUserProvider,
+    required RealtimeService realtimeService,
   })  : _repository = repository,
         _currentUserProvider = currentUserProvider,
+        _realtimeService = realtimeService,
         super(const AuthInitial());
 
   final AuthRepository _repository;
   final CurrentUserProvider _currentUserProvider;
+  final RealtimeService _realtimeService;
 
   // Cached OTP response (needed across signup/OTP screens)
   DataMap? _otpResponse;
@@ -161,6 +165,10 @@ class AuthViewmodel extends ViewModel<AuthState> {
         // navigates to the home screen, rather than waiting for the home
         // screen's own initState to do it.
         unawaited(registerDeviceToken());
+        // Mirrors the device-token call above — a fresh login connects its
+        // own realtime session rather than waiting for AppInitializer's
+        // Phase-3 restored-session check.
+        unawaited(_realtimeService.connect());
       },
     );
   }
@@ -704,6 +712,10 @@ class AuthViewmodel extends ViewModel<AuthState> {
     emit(const AuthLoading());
 
     final result = await _repository.logout();
+
+    // Awaited (unlike the connect() call in login()) so no socket survives
+    // into the next login authenticating against a now-invalid token.
+    await _realtimeService.disconnect();
 
     // Always clear local state — the repository already wipes secure storage
     // and the in-memory Cache regardless of the server response.

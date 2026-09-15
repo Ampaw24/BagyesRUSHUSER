@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:uuid/uuid.dart';
 
+import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
+import 'package:bagyesrushappusernew/src/chat/model/chat_realtime_events.dart';
 import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
 import 'package:bagyesrushappusernew/src/chat/repository/chat_repository.dart';
 import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
@@ -23,6 +25,14 @@ class ChatThreadError extends ChatThreadState {
   final String message;
 }
 
+/// Chat opens once a rider is assigned — this order hasn't got one yet
+/// (the REST fetch returned 422). Distinct from [ChatThreadError] so the
+/// UI can show "not available yet" instead of a generic error/retry state.
+class ChatThreadUnavailable extends ChatThreadState {
+  const ChatThreadUnavailable({required this.message});
+  final String message;
+}
+
 /// [messages] is always kept **ascending** (oldest first) for a
 /// bottom-anchored view — the API itself returns newest-first, reversed on
 /// the way in.
@@ -33,6 +43,8 @@ class ChatThreadLoaded extends ChatThreadState {
     required this.hasMoreOlder,
     this.isLoadingOlder = false,
     this.isSending = false,
+    this.peerTyping = false,
+    this.peerReadAt,
   });
 
   final Conversation conversation;
@@ -41,46 +53,69 @@ class ChatThreadLoaded extends ChatThreadState {
   final bool isLoadingOlder;
   final bool isSending;
 
+  /// True for a few seconds after a `conversation.typing` event — there is
+  /// no "stopped typing" event, so this expires client-side on a timer.
+  final bool peerTyping;
+
+  /// Set from `conversation.read` — own messages at/before this timestamp
+  /// show a "read" tick.
+  final DateTime? peerReadAt;
+
   ChatThreadLoaded copyWith({
     Conversation? conversation,
     List<ChatMessage>? messages,
     bool? hasMoreOlder,
     bool? isLoadingOlder,
     bool? isSending,
+    bool? peerTyping,
+    DateTime? peerReadAt,
   }) => ChatThreadLoaded(
     conversation: conversation ?? this.conversation,
     messages: messages ?? this.messages,
     hasMoreOlder: hasMoreOlder ?? this.hasMoreOlder,
     isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
     isSending: isSending ?? this.isSending,
+    peerTyping: peerTyping ?? this.peerTyping,
+    peerReadAt: peerReadAt ?? this.peerReadAt,
   );
 }
 
 /// Screen-scoped — one fresh instance per `ChatThreadView` push, owned and
 /// disposed directly by its State (mirrors `ReportDetailViewModel`).
 ///
-/// Realtime isn't documented for this API, so new messages arrive via
-/// polling (see [_pollInterval]) rather than a socket; typing/read receipts
-/// are throttled/debounced client-side per the integration guide.
+/// New messages, typing indicators and read receipts arrive via
+/// `RealtimeService`'s `private-conversation.{id}` channel; sending a
+/// message/typing-ping/read-receipt stays a REST call as before — only the
+/// receive side moved off polling.
 class ChatThreadViewModel extends ViewModel<ChatThreadState> {
-  ChatThreadViewModel({required ChatRepository repository, required this.args})
-    : _repository = repository,
-      super(const ChatThreadLoading()) {
+  ChatThreadViewModel({
+    required ChatRepository repository,
+    required RealtimeService realtimeService,
+    required this.args,
+  })  : _repository = repository,
+        _realtimeService = realtimeService,
+        super(const ChatThreadLoading()) {
     _init();
   }
 
-  static const _pollInterval = Duration(seconds: 5);
   static const _typingThrottle = Duration(seconds: 3);
+  static const _typingIndicatorTtl = Duration(seconds: 3);
   static const _readDebounce = Duration(seconds: 3);
   static const _maxBodyLength = 2000;
   static const _uuid = Uuid();
 
   final ChatRepository _repository;
+  final RealtimeService _realtimeService;
   final ChatThreadArgs args;
 
   String? _nextCursor;
-  Timer? _pollTimer;
+  String? _subscribedConversationId;
+  StreamSubscription<ChatMessage>? _messageSub;
+  StreamSubscription<ConversationTypingEvent>? _typingSub;
+  StreamSubscription<ConversationReadEvent>? _readSub;
+  StreamSubscription<RealtimeChannelError>? _channelErrorSub;
   Timer? _typingTimer;
+  Timer? _typingIndicatorTimer;
   DateTime? _lastMarkedReadAt;
 
   /// Re-runs the initial conversation + first-page-of-messages fetch —
@@ -102,7 +137,9 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
         ),
       );
       _markReadDebounced();
-      _startPolling();
+      _subscribeRealtime(conversation.id);
+    } on ConversationNotAvailableException catch (e) {
+      emit(ChatThreadUnavailable(message: e.message));
     } catch (e) {
       appLogger.e('ChatThreadViewModel._init → failed', error: e);
       emit(
@@ -113,40 +150,70 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
     }
   }
 
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(_pollInterval, (_) => _pollNewMessages());
+  void _subscribeRealtime(String conversationId) {
+    _subscribedConversationId = conversationId;
+    _realtimeService.subscribeToConversation(conversationId);
+    _messageSub = _realtimeService.messageEvents.listen(_onIncomingMessage);
+    _typingSub = _realtimeService.typingEvents.listen(_onPeerTyping);
+    _readSub = _realtimeService.readEvents.listen(_onPeerRead);
+    _channelErrorSub = _realtimeService.channelErrors.listen(_onChannelError);
   }
 
-  Future<void> _pollNewMessages() async {
+  /// A 403 here means this account isn't a participant in this conversation
+  /// — shown distinctly from a generic error via [ChatThreadUnavailable]
+  /// rather than [ChatThreadError]. A session-expiry error needs no
+  /// separate handling here: the rest of the app's existing token-refresh/
+  /// login-redirect flow already reacts to a cleared session.
+  void _onChannelError(RealtimeChannelError error) {
+    if (error.channelName != _realtimeService.conversationChannelName(_subscribedConversationId ?? '')) {
+      return;
+    }
+    if (error.type != RealtimeChannelErrorType.forbidden) return;
+    emit(const ChatThreadUnavailable(message: "You don't have access to this conversation."));
+  }
+
+  /// `messageEvents` is a single stream shared by whichever conversation
+  /// channel(s) are currently subscribed — filtering by conversation id is
+  /// required, not decorative. Dedupes by `id`/`clientUuid`, the exact rule
+  /// the old polling path used, since a push notification and this socket
+  /// event can both fire for the same message.
+  void _onIncomingMessage(ChatMessage message) {
     final current = state;
     if (current is! ChatThreadLoaded) return;
-    try {
-      final page = await _repository.getMessages(current.conversation.id);
-      final existingIds = current.messages.map((m) => m.id).toSet();
-      final existingClientUuids = current.messages
-          .map((m) => m.clientUuid)
-          .whereType<String>()
-          .toSet();
-      final freshOnes = page.items.where(
-        (m) =>
-            !existingIds.contains(m.id) &&
-            !(m.clientUuid != null &&
-                existingClientUuids.contains(m.clientUuid)),
-      );
-      if (freshOnes.isEmpty) return;
+    if (message.conversationId != current.conversation.id) return;
+    final existingIds = current.messages.map((m) => m.id).toSet();
+    final existingClientUuids = current.messages
+        .map((m) => m.clientUuid)
+        .whereType<String>()
+        .toSet();
+    final isDuplicate = existingIds.contains(message.id) ||
+        (message.clientUuid != null && existingClientUuids.contains(message.clientUuid));
+    if (isDuplicate) return;
+    final merged = [...current.messages, message]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    emit(current.copyWith(messages: merged));
+    _markReadDebounced();
+  }
 
-      final merged = [...current.messages, ...freshOnes.toList().reversed]
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  void _onPeerTyping(ConversationTypingEvent event) {
+    final current = state;
+    if (current is! ChatThreadLoaded) return;
+    if (event.conversationId != current.conversation.id) return;
+    if (event.userId != current.conversation.counterpart?.userId) return;
+    emit(current.copyWith(peerTyping: true));
+    _typingIndicatorTimer?.cancel();
+    _typingIndicatorTimer = Timer(_typingIndicatorTtl, () {
       final latest = state;
-      if (latest is! ChatThreadLoaded) return;
-      emit(latest.copyWith(messages: merged));
-      _markReadDebounced();
-    } catch (e) {
-      // Polling failures should never surface to the UI — the next tick
-      // retries on its own.
-      appLogger.w('ChatThreadViewModel._pollNewMessages → failed: $e');
-    }
+      if (latest is ChatThreadLoaded) emit(latest.copyWith(peerTyping: false));
+    });
+  }
+
+  void _onPeerRead(ConversationReadEvent event) {
+    final current = state;
+    if (current is! ChatThreadLoaded) return;
+    if (event.conversationId != current.conversation.id) return;
+    if (event.userId != current.conversation.counterpart?.userId) return;
+    emit(current.copyWith(peerReadAt: event.readAt));
   }
 
   Future<void> loadOlderMessages() async {
@@ -292,8 +359,16 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    _messageSub?.cancel();
+    _typingSub?.cancel();
+    _readSub?.cancel();
+    _channelErrorSub?.cancel();
     _typingTimer?.cancel();
+    _typingIndicatorTimer?.cancel();
+    final conversationId = _subscribedConversationId;
+    if (conversationId != null) {
+      _realtimeService.unsubscribeFromConversation(conversationId);
+    }
     super.dispose();
   }
 }

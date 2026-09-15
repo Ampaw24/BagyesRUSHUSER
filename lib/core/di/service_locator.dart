@@ -44,6 +44,8 @@ import '../../src/transaction/repositories/transaction_repository.dart';
 import '../../src/transaction/viewmodels/transaction_viewmodel.dart';
 import '../../src/vendor-wallet/repositories/vendor_wallet_repository.dart';
 import '../../src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
+import '../../src/customer-wallet/repositories/customer_wallet_repository.dart';
+import '../../src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
 import '../../features/vendors/repositories/vendor_repository.dart' as vendor_feature;
 import '../../features/vendors/viewmodels/vendor_viewmodel.dart';
 import '../../src/report/model/report.dart';
@@ -57,6 +59,8 @@ import '../../src/chat/repository/chat_repository.dart';
 import '../../src/chat/viewmodel/chat_list_viewmodel.dart';
 import '../../src/chat/viewmodel/chat_thread_viewmodel.dart';
 import '../../src/chat/view/chat_thread_args.dart';
+import '../services/realtime_repository.dart';
+import '../services/realtime_service.dart';
 
 final sl = GetIt.instance;
 
@@ -96,19 +100,27 @@ Future<void> init() async {
   sl.registerLazySingleton(() => PaymentGatewayRepository(client: sl()));
   sl.registerLazySingleton(() => TransactionRepository(client: sl()));
   sl.registerLazySingleton(() => VendorWalletRepository(client: sl()));
+  sl.registerLazySingleton(() => CustomerWalletRepository(client: sl()));
   sl.registerLazySingleton(() => ReportRepository(client: sl()));
   sl.registerLazySingleton(() => ChatRepository(client: sl()));
+  sl.registerLazySingleton(() => RealtimeRepository(client: sl()));
+  sl.registerLazySingleton(() => RealtimeService(repository: sl(), authDio: sl()));
 
   // ── ViewModels ──────────────────────────────────────────────────────────────
   // Auth viewmodel is registered by AppInitializer (uses new MVVM pattern).
-  sl.registerFactory(() => AuthViewmodel(repository: sl(), currentUserProvider: sl()));
+  sl.registerFactory(
+    () => AuthViewmodel(repository: sl(), currentUserProvider: sl(), realtimeService: sl()),
+  );
   // Singleton (not factory) — cart is shared app-wide state (restaurant
   // detail, cart screen, checkout all read/mutate the same instance).
   sl.registerLazySingleton(() => CartViewModel(repository: sl()));
   // Singleton — the order list is shared app-wide state (My Orders, order
   // tracking, checkout, and the report flow's rider-target picker all
   // read/mutate the same instance), same rationale as CartViewModel above.
-  sl.registerLazySingleton(() => consumer_orders.OrdersViewModel(sl()));
+  // Also subscribes to RealtimeService's order-status/rider-location streams
+  // for its whole lifetime, so every screen watching orders gets live
+  // updates, not just whichever tracking screen is currently open.
+  sl.registerLazySingleton(() => consumer_orders.OrdersViewModel(sl(), sl()));
   // Singleton — backs the Home tab (discovery feed, promo banners, popular
   // restaurants) for the app session, same rationale as CartViewModel above.
   sl.registerLazySingleton(
@@ -124,6 +136,7 @@ Future<void> init() async {
   sl.registerFactory(() => OrderViewModel(repository: sl()));
   sl.registerFactory(() => TransactionViewmodel(repository: sl()));
   sl.registerFactory(() => VendorWalletViewmodel(repository: sl()));
+  sl.registerFactory(() => CustomerWalletViewmodel(repository: sl()));
   sl.registerFactory(() => ParcelViewModel(repository: sl()));
   // Factory (not singleton, not app-wide) — one fresh instance per
   // SendParcelView visit, matching the original `.autoDispose` semantics.
@@ -179,6 +192,6 @@ Future<void> init() async {
   // Factory + param — one fresh instance per ChatThreadView push, matching
   // ReportDetailViewModel's rationale.
   sl.registerFactoryParam<ChatThreadViewModel, ChatThreadArgs, void>(
-    (args, _) => ChatThreadViewModel(repository: sl(), args: args),
+    (args, _) => ChatThreadViewModel(repository: sl(), realtimeService: sl(), args: args),
   );
 }
