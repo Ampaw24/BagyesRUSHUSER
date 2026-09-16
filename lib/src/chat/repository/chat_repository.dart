@@ -7,10 +7,13 @@ import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
 import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
 import 'package:bagyesrushappusernew/src/chat/model/messages_page.dart';
 
-/// Thrown by [ChatRepository.getConversationForOrder] specifically for a
-/// 422 — no rider assigned yet, so no conversation exists. Distinguished
-/// from a generic [Exception] so the caller can render "chat opens once
-/// your rider is assigned" instead of a retry/error UI.
+/// Thrown by [ChatRepository.getConversationForOrder] for a 422 — per the
+/// API contract this means no conversation exists yet for this order
+/// (documented as: no rider assigned). Distinguished from a generic
+/// [Exception] so the caller can render "not available yet" instead of a
+/// retry/error UI. [message] is the backend's own response text when it
+/// supplied one — not assumed to always be the rider-assignment reason,
+/// since a 422 here could in principle be returned for a different cause.
 class ConversationNotAvailableException implements Exception {
   const ConversationNotAvailableException([
     this.message = 'Chat opens once your rider is assigned.',
@@ -79,7 +82,17 @@ class ChatRepository {
       throw Exception(_errorMessage(response.data) ?? 'Failed to load conversation (${response.statusCode}).');
     } on DioException catch (e) {
       if (e.response?.statusCode == 422) {
-        throw const ConversationNotAvailableException();
+        final backendMessage = _errorMessage(e.response?.data);
+        // .w(), not .i() — appLogger suppresses .i()/.d() outside debug
+        // mode, and this is exactly the line worth checking when chat
+        // unexpectedly shows as "not available" in a release build.
+        appLogger.w(
+          'ChatRepository.getConversationForOrder → 422, backend message: '
+          '${backendMessage ?? '(none supplied)'}',
+        );
+        throw backendMessage != null
+            ? ConversationNotAvailableException(backendMessage)
+            : const ConversationNotAvailableException();
       }
       appLogger.e(
         'ChatRepository.getConversationForOrder → DioException',

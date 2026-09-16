@@ -148,16 +148,23 @@ class RealtimeService {
   /// Fetches config and connects, once per session. Safe to call repeatedly
   /// — a no-op once connected, and concurrent callers await the same
   /// in-flight attempt (mirrors `DioInterceptor`'s single-flight refresh).
+  ///
+  /// Logs its own entry/failure at `.w()` rather than `.d()`/`.i()` —
+  /// `appLogger`'s level is `Level.warning` outside debug mode, so this is
+  /// the only tier that's actually visible in a release/profile build.
+  /// Without it, a silent failure here is unobservable outside a debug run.
   Future<void> connect() async {
     if (_client != null) return;
     final inFlight = _connecting;
     if (inFlight != null) return inFlight.future;
+    appLogger.w('[RealtimeService] connect() called');
     final completer = Completer<void>();
     _connecting = completer;
     try {
       await _doConnect();
       completer.complete();
     } catch (e, s) {
+      appLogger.e('[RealtimeService] connect() failed', error: e, stackTrace: s);
       completer.completeError(e, s);
       rethrow;
     } finally {
@@ -196,6 +203,7 @@ class RealtimeService {
     // re-subscribed once the connection is back, or a dropped-then-restored
     // socket would silently stop delivering events for every open screen.
     _establishedSub = client.onConnectionEstablished.listen((_) {
+      appLogger.w('[RealtimeService] socket connected (${config.host}:${config.port})');
       for (final tracked in _activeChannels.values) {
         tracked.channel.subscribeIfNotUnsubscribed();
       }

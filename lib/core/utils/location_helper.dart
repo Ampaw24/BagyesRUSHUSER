@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import '../services/places_service.dart';
 import '../utils/app_logger.dart';
 
 /// Outcome status of a [LocationHelper.getCurrentLocation] attempt.
@@ -196,6 +197,32 @@ class LocationHelper {
     // above: a geocode failure (network blip, no Play Services) shouldn't
     // discard an already-successful position — it should just fall back to
     // the coordinate-string address while keeping status = success.
+    //
+    // Google's Geocoding API first, same as the map picker sheet
+    // (MapLocationPickerSheet._reverseGeocode) — the native platform
+    // geocoder below can return only a broad locality/district name in
+    // regions with thin street-level coverage, which isn't specific enough
+    // to identify a delivery drop-off point.
+    try {
+      final googleAddress = await PlacesService.reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
+      if (googleAddress != null && googleAddress.isNotEmpty) {
+        return LocationResult(
+          status: LocationStatus.success,
+          position: position,
+          address: googleAddress,
+        );
+      }
+    } catch (e, s) {
+      appLogger.e(
+        '[LocationHelper] Google reverse geocode failed',
+        error: e,
+        stackTrace: s,
+      );
+    }
+
     Placemark? place;
     try {
       final placemarks = await placemarkFromCoordinates(

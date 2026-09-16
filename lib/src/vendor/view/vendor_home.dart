@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -274,9 +276,17 @@ class _DashboardTab extends StatefulWidget {
   State<_DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends State<_DashboardTab> {
+class _DashboardTabState extends State<_DashboardTab>
+    with WidgetsBindingObserver {
+  // Vendors need to see incoming orders promptly without manually pulling
+  // to refresh — matches the interval the app already uses elsewhere for
+  // order-related polling (see the consumer order-tracking screen's
+  // pre-realtime poll).
+  static const _pollInterval = Duration(seconds: 15);
+
   String? _currentLocation;
   bool _isTogglingStore = false;
+  Timer? _pollTimer;
 
   // Saved reference so dispose() doesn't call context.read on an unmounted
   // widget, and so we can compare against the previous state to show the
@@ -287,6 +297,7 @@ class _DashboardTabState extends State<_DashboardTab> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -303,13 +314,34 @@ class _DashboardTabState extends State<_DashboardTab> {
         vm.seedStoreOpen(widget.vendorProfile!.isOpenNow);
       }
       vm.loadDashboard();
+      _startPolling();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
     _dashboardVm?.removeListener(_onDashboardStateChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(
+      _pollInterval,
+      (_) => _dashboardVm?.loadDashboard(),
+    );
   }
 
   void _onDashboardStateChanged() {
@@ -356,9 +388,10 @@ class _DashboardTabState extends State<_DashboardTab> {
       ),
       onConfirm: () {
         final minutes = int.tryParse(controller.text.trim());
-        context
-            .read<DashboardViewModel>()
-            .acceptOrder(orderId, estimatedPrepMinutes: minutes);
+        context.read<DashboardViewModel>().acceptOrder(
+          orderId,
+          estimatedPrepMinutes: minutes,
+        );
       },
     );
   }
@@ -582,264 +615,273 @@ class _DashboardTabState extends State<_DashboardTab> {
     // re-deriving completeness client-side from separate sub-signals.
     final setupIncomplete = profile?.isProfileComplete != true;
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // ── Header & Greeting Section ──
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(h, w * 0.02, h, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                VendorHeader(
-                  initials: widget.initials,
-                  imageUrl: widget.vendorProfile?.logoUrl,
-                  onDrawerTap: widget.onDrawerTap,
-                  hasUnreadNotifications: hasUnreadNotifications,
-                  onNotificationTap: () => Navigator.of(context).push(
-                    PageRouteBuilder(
-                      pageBuilder: (_, anim, _) =>
-                          const VendorNotificationsScreen(),
-                      transitionsBuilder: (_, anim, _, child) =>
-                          SlideTransition(
-                            position:
-                                Tween<Offset>(
-                                  begin: const Offset(0, -0.06),
-                                  end: Offset.zero,
-                                ).animate(
-                                  CurvedAnimation(
-                                    parent: anim,
-                                    curve: Curves.easeOutCubic,
+    return RefreshIndicator(
+      onRefresh: () => context.read<DashboardViewModel>().loadDashboard(),
+      color: AppColors.primary,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        slivers: [
+          // ── Header & Greeting Section ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(h, w * 0.02, h, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  VendorHeader(
+                    initials: widget.initials,
+                    imageUrl: widget.vendorProfile?.logoUrl,
+                    onDrawerTap: widget.onDrawerTap,
+                    hasUnreadNotifications: hasUnreadNotifications,
+                    onNotificationTap: () => Navigator.of(context).push(
+                      PageRouteBuilder(
+                        pageBuilder: (_, anim, _) =>
+                            const VendorNotificationsScreen(),
+                        transitionsBuilder: (_, anim, _, child) =>
+                            SlideTransition(
+                              position:
+                                  Tween<Offset>(
+                                    begin: const Offset(0, -0.06),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: anim,
+                                      curve: Curves.easeOutCubic,
+                                    ),
                                   ),
-                                ),
-                            child: FadeTransition(opacity: anim, child: child),
-                          ),
-                      transitionDuration: const Duration(milliseconds: 320),
+                              child: FadeTransition(
+                                opacity: anim,
+                                child: child,
+                              ),
+                            ),
+                        transitionDuration: const Duration(milliseconds: 320),
+                      ),
                     ),
+                    onAvatarTap: widget.onAvatarTap,
                   ),
-                  onAvatarTap: widget.onAvatarTap,
-                ),
-                SizedBox(height: w * 0.05),
-
-                // Greeting
-                Text(
-                  _greeting,
-                  style: TextStyle(
-                    fontSize: w * 0.036,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Mukta',
-                  ),
-                ),
-                Text(
-                  profile?.businessName ?? 'Vendor',
-                  style: TextStyle(
-                    fontSize: w * 0.068,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    height: 1.1,
-                    fontFamily: 'Mukta',
-                    letterSpacing: -0.8,
-                  ),
-                ),
-                SizedBox(height: w * 0.035),
-
-                // Location / hours / radius pills
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(
-                    children: [
-                      if (location != null) ...[
-                        _InfoPill(label: location, w: w, showDot: true),
-                        SizedBox(width: w * 0.02),
-                      ],
-                      if (profile != null) ...[
-                        _InfoPill(
-                          label:
-                              '${profile.openingTime} – ${profile.closingTime}',
-                          w: w,
-                        ),
-                        SizedBox(width: w * 0.02),
-                        //["Removed radius pill for vendors "]
-                        // _InfoPill(
-                        //   label: profile.deliveryRadiusKm > 0
-                        //       ? '${profile.deliveryRadiusKm}km Radius'
-                        //       : 'Radius not set',
-                        //   w: w,
-                        //   muted: profile.deliveryRadiusKm <= 0,
-                        // ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // Status Banners (compact)
-                if (profile?.status == 'pending_review')
-                  GestureDetector(
-                    onTap: () => context.push(AppRoutes.vendorKyc),
-                    child: _StatusBanner(
-                      icon: HugeIcons.strokeRoundedClock01,
-                      label: 'Account pending review (Tap to check)',
-                      color: AppColors.warning,
-                      w: w,
-                    ),
-                  ),
-
-                SizedBox(height: w * 0.05),
-                if (setupIncomplete && profile != null)
-                  SetupProgressCard(
-                    steps: buildVendorSetupSteps(
-                      profile,
-                      onBusinessProfile: () {
-                        if (widget.onAvatarTap != null) {
-                          widget.onAvatarTap!();
-                        } else {
-                          context.push(AppRoutes.vendorKyc);
-                        }
-                      },
-                      onDocuments: () =>
-                          context.push(AppRoutes.vendorKyc, extra: 1),
-                      onPayouts: () => context.push(AppRoutes.vendorPayout),
-                    ),
-                  )
-                else
-                  StoreToggleCard(
-                    isOpen: state.storeOpen,
-                    isLoading: _isTogglingStore,
-                    onToggle: _handleStoreToggle,
-                    revenue: state.todayRevenue,
-                    orders: '${state.activeOrderCount}',
-                    rating: profile?.rating.toString() ?? state.avgRating,
-                  ),
-
-                if (setupIncomplete) ...[
-                  SizedBox(height: w * 0.04),
-                  _SetupPendingStoreRow(w: w),
-                ],
-
-                if (state.activeOrders.any(
-                  (o) => o.status == OrderStatus.pending,
-                )) ...[
                   SizedBox(height: w * 0.05),
-                  Builder(
-                    builder: (_) {
-                      final newest = state.activeOrders.firstWhere(
-                        (o) => o.status == OrderStatus.pending,
-                      );
-                      return NewOrderBanner(
-                        orderId: newest.id,
-                        amount: newest.amount,
-                        customerName: newest.customerName,
-                        itemCount: newest.itemList.length,
-                        onTap: () {},
-                        onAccept: () => _handleAcceptOrder(newest.id),
-                      );
-                    },
-                  ),
-                ],
 
-                SizedBox(height: w * 0.06),
-                _ActiveOrdersLabel(
-                  count: state.activeOrders.length,
-                  onViewAll: widget.onViewAllOrders,
-                ),
-                SizedBox(height: w * 0.025),
-              ],
+                  // Greeting
+                  Text(
+                    _greeting,
+                    style: TextStyle(
+                      fontSize: w * 0.036,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Mukta',
+                    ),
+                  ),
+                  Text(
+                    profile?.businessName ?? 'Vendor',
+                    style: TextStyle(
+                      fontSize: w * 0.068,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      height: 1.1,
+                      fontFamily: 'Mukta',
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  SizedBox(height: w * 0.035),
+
+                  // Location / hours / radius pills
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        if (location != null) ...[
+                          _InfoPill(label: location, w: w, showDot: true),
+                          SizedBox(width: w * 0.02),
+                        ],
+                        if (profile != null) ...[
+                          _InfoPill(
+                            label:
+                                '${profile.openingTime} – ${profile.closingTime}',
+                            w: w,
+                          ),
+                          SizedBox(width: w * 0.02),
+                          //["Removed radius pill for vendors "]
+                          // _InfoPill(
+                          //   label: profile.deliveryRadiusKm > 0
+                          //       ? '${profile.deliveryRadiusKm}km Radius'
+                          //       : 'Radius not set',
+                          //   w: w,
+                          //   muted: profile.deliveryRadiusKm <= 0,
+                          // ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // Status Banners (compact)
+                  if (profile?.status == 'pending_review')
+                    GestureDetector(
+                      onTap: () => context.push(AppRoutes.vendorKyc),
+                      child: _StatusBanner(
+                        icon: HugeIcons.strokeRoundedClock01,
+                        label: 'Account pending review (Tap to check)',
+                        color: AppColors.warning,
+                        w: w,
+                      ),
+                    ),
+
+                  SizedBox(height: w * 0.05),
+                  if (setupIncomplete && profile != null)
+                    SetupProgressCard(
+                      steps: buildVendorSetupSteps(
+                        profile,
+                        onBusinessProfile: () {
+                          if (widget.onAvatarTap != null) {
+                            widget.onAvatarTap!();
+                          } else {
+                            context.push(AppRoutes.vendorKyc);
+                          }
+                        },
+                        onDocuments: () =>
+                            context.push(AppRoutes.vendorKyc, extra: 1),
+                        onPayouts: () => context.push(AppRoutes.vendorPayout),
+                      ),
+                    )
+                  else
+                    StoreToggleCard(
+                      isOpen: state.storeOpen,
+                      isLoading: _isTogglingStore,
+                      onToggle: _handleStoreToggle,
+                      revenue: state.todayRevenue,
+                      orders: '${state.activeOrderCount}',
+                      rating: profile?.rating.toString() ?? state.avgRating,
+                    ),
+
+                  if (setupIncomplete) ...[
+                    SizedBox(height: w * 0.04),
+                    _SetupPendingStoreRow(w: w),
+                  ],
+
+                  if (state.activeOrders.any(
+                    (o) => o.status == OrderStatus.pending,
+                  )) ...[
+                    SizedBox(height: w * 0.05),
+                    Builder(
+                      builder: (_) {
+                        final newest = state.activeOrders.firstWhere(
+                          (o) => o.status == OrderStatus.pending,
+                        );
+                        return NewOrderBanner(
+                          orderId: newest.id,
+                          amount: newest.amount,
+                          customerName: newest.customerName,
+                          itemCount: newest.itemList.length,
+                          onTap: () {},
+                          onAccept: () => _handleAcceptOrder(newest.id),
+                        );
+                      },
+                    ),
+                  ],
+
+                  SizedBox(height: w * 0.06),
+                  _ActiveOrdersLabel(
+                    count: state.activeOrders.length,
+                    onViewAll: widget.onViewAllOrders,
+                  ),
+                  SizedBox(height: w * 0.025),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // ── Active Orders List ──
-        if (state.activeOrders.isEmpty)
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
-            sliver: SliverToBoxAdapter(
-              child: DottedBorder(
-                borderType: BorderType.RRect,
-                radius: Radius.circular(w * 0.05),
-                strokeWidth: 1.5,
-                dashPattern: const [6, 5],
-                color: AppColors.border,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(w * 0.05),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      vertical: w * 0.08,
-                      horizontal: w * 0.06,
-                    ),
-                    color: Colors.transparent,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(w * 0.045),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
-                            shape: BoxShape.circle,
+          // ── Active Orders List ──
+          if (state.activeOrders.isEmpty)
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
+              sliver: SliverToBoxAdapter(
+                child: DottedBorder(
+                  borderType: BorderType.RRect,
+                  radius: Radius.circular(w * 0.05),
+                  strokeWidth: 1.5,
+                  dashPattern: const [6, 5],
+                  color: AppColors.border,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(w * 0.05),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        vertical: w * 0.08,
+                        horizontal: w * 0.06,
+                      ),
+                      color: Colors.transparent,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(w * 0.045),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              shape: BoxShape.circle,
+                            ),
+                            child: HugeIcon(
+                              icon: HugeIcons.strokeRoundedShoppingBag01,
+                              size: w * 0.07,
+                              color: AppColors.primary,
+                            ),
                           ),
-                          child: HugeIcon(
-                            icon: HugeIcons.strokeRoundedShoppingBag01,
-                            size: w * 0.07,
-                            color: AppColors.primary,
+                          SizedBox(height: w * 0.035),
+                          Text(
+                            'No orders yet',
+                            style: TextStyle(
+                              fontSize: w * 0.042,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              fontFamily: 'Mukta',
+                            ),
                           ),
-                        ),
-                        SizedBox(height: w * 0.035),
-                        Text(
-                          'No orders yet',
-                          style: TextStyle(
-                            fontSize: w * 0.042,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                            fontFamily: 'Mukta',
+                          SizedBox(height: w * 0.012),
+                          Text(
+                            'New orders land here the moment you go live.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: w * 0.032,
+                              color: AppColors.textSecondary,
+                              fontFamily: 'Mukta',
+                              height: 1.4,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: w * 0.012),
-                        Text(
-                          'New orders land here the moment you go live.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: w * 0.032,
-                            color: AppColors.textSecondary,
-                            fontFamily: 'Mukta',
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
+            )
+          else
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final order = state.activeOrders[index];
+                  final notifier = context.read<DashboardViewModel>();
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: w * 0.035),
+                    child: OrderCard(
+                      order: order,
+                      onTap: () {},
+                      onAccept: () => _handleAcceptOrder(order.id),
+                      onDecline: () => _handleRejectOrder(order.id),
+                      onMarkPreparing: () => notifier.markPreparing(order.id),
+                      onMarkReady: () => notifier.markReady(order.id),
+                      onMarkOutForDelivery: () =>
+                          notifier.markOutForDelivery(order.id),
+                      onMarkDelivered: () => notifier.markDelivered(order.id),
+                      onCancel: () => _handleCancelOrder(order.id),
+                    ),
+                  );
+                }, childCount: state.activeOrders.length),
+              ),
             ),
-          )
-        else
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final order = state.activeOrders[index];
-                final notifier = context.read<DashboardViewModel>();
-                return Padding(
-                  padding: EdgeInsets.only(bottom: w * 0.035),
-                  child: OrderCard(
-                    order: order,
-                    onTap: () {},
-                    onAccept: () => _handleAcceptOrder(order.id),
-                    onDecline: () => _handleRejectOrder(order.id),
-                    onMarkPreparing: () => notifier.markPreparing(order.id),
-                    onMarkReady: () => notifier.markReady(order.id),
-                    onMarkOutForDelivery: () =>
-                        notifier.markOutForDelivery(order.id),
-                    onMarkDelivered: () => notifier.markDelivered(order.id),
-                    onCancel: () => _handleCancelOrder(order.id),
-                  ),
-                );
-              }, childCount: state.activeOrders.length),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
