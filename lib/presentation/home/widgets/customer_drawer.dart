@@ -239,13 +239,13 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 fadeAnim: _staggeredFade(4),
                                 slideAnim: _staggeredSlide(4),
                               ),
-                              // DrawerTile(
-                              //   icon: HugeIcons.strokeRoundedMoneyBag01,
-                              //   label: 'Invite Friends',
-                              //   onTap: widget.onInviteFriends,
-                              //   fadeAnim: _staggeredFade(5),
-                              //   slideAnim: _staggeredSlide(5),
-                              // ),
+                              DrawerTile(
+                                icon: HugeIcons.strokeRoundedMoneyBag01,
+                                label: 'Invite Friends',
+                                onTap: widget.onInviteFriends,
+                                fadeAnim: _staggeredFade(5),
+                                slideAnim: _staggeredSlide(5),
+                              ),
                               DrawerTile(
                                 icon: HugeIcons.strokeRoundedShieldKey,
                                 label: 'Privacy Policy',

@@ -14,6 +14,7 @@ class VendorDrawer extends StatefulWidget {
   final VoidCallback? onChangePassword;
   final VoidCallback? onPrivacyPolicy;
   final VoidCallback? onPaymentMethods;
+  final VoidCallback? onInviteFriends;
   final VoidCallback? onPayoutSettings;
   final VoidCallback? onWallet;
   final VoidCallback? onNotifications;
@@ -35,6 +36,7 @@ class VendorDrawer extends StatefulWidget {
     this.onChangePassword,
     this.onPrivacyPolicy,
     this.onPaymentMethods,
+    this.onInviteFriends,
     this.onPayoutSettings,
     this.onWallet,
     this.onNotifications,
@@ -231,13 +233,13 @@ class _VendorDrawerState extends State<VendorDrawer>
                                 fadeAnim: _staggeredFade(2),
                                 slideAnim: _staggeredSlide(2),
                               ),
-                              // _AnimatedDrawerTile(
-                              //   icon: HugeIcons.strokeRoundedCreditCard,
-                              //   label: 'Payment Methods',
-                              //   onTap: widget.onPaymentMethods,
-                              //   fadeAnim: _staggeredFade(3),
-                              //   slideAnim: _staggeredSlide(3),
-                              // ),
+                              _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedMoneyBag01,
+                                label: 'Invite Friends',
+                                onTap: widget.onInviteFriends,
+                                fadeAnim: _staggeredFade(3),
+                                slideAnim: _staggeredSlide(3),
+                              ),
                               _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedBank,
                                 label: 'Payout Settings',

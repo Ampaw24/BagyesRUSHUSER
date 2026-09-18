@@ -229,6 +229,10 @@ class _VendorHomeState extends State<VendorHome> {
                   _closeDrawer();
                   context.push(AppRoutes.vendorPaymentMethods);
                 },
+                onInviteFriends: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.inviteFriend);
+                },
                 onPayoutSettings: () {
                   _closeDrawer();
                   context.push(AppRoutes.vendorPayout);

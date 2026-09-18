@@ -10,6 +10,7 @@ import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
 import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
 import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
+import 'package:bagyesrushappusernew/src/referral/widgets/referral_code_card.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class EditProfile extends StatefulWidget {
   @override
@@ -367,6 +369,8 @@ class _EditProfileState extends State<EditProfile> {
                     code: _referralCode(context),
                     count: _referralCount(context),
                     onCopy: () => _copyReferralCode(context),
+                    onShare: () => _shareReferralCode(context),
+                    onTap: () => context.push(AppRoutes.inviteFriend),
                   ),
                 ],
 
@@ -579,6 +583,17 @@ class _EditProfileState extends State<EditProfile> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
+  }
+
+  void _shareReferralCode(BuildContext context) {
+    final code = _referralCode(context);
+    if (code.isEmpty) return;
+    SharePlus.instance.share(
+      ShareParams(
+        text:
+            'Join me on bagyesRUSH! Use my referral code $code when you sign up.',
+      ),
+    );
   }
 }
 
@@ -967,102 +982,75 @@ class _ReferralCard extends StatelessWidget {
   final String code;
   final num count;
   final VoidCallback onCopy;
+  final VoidCallback onShare;
+  final VoidCallback onTap;
 
   const _ReferralCard({
     required this.code,
     required this.count,
     required this.onCopy,
+    required this.onShare,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    return Container(
-      padding: EdgeInsets.all(w * 0.045),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primary, Color(0xFFEF5350)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: EdgeInsets.all(w * 0.045),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primaryDark, AppColors.primary, Color(0xFFEF5350)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
         ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedGift,
-                color: Colors.white,
-                size: w * 0.06,
-              ),
-              SizedBox(width: w * 0.025),
-              Text(
-                'Invite Friends & Earn',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: (w * 0.04).clamp(14.0, 17.0),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: w * 0.02),
-          Text(
-            count > 0
-                ? 'You\'ve referred ${count.toInt()} ${count == 1 ? 'friend' : 'friends'} so far.'
-                : 'Share your code — friends get a discount, you earn rewards.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: (w * 0.032).clamp(11.0, 14.0),
-            ),
-          ),
-          SizedBox(height: w * 0.04),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: w * 0.04,
-              vertical: w * 0.025,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-            ),
-            child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedGift,
+                  color: Colors.white,
+                  size: w * 0.06,
+                ),
+                SizedBox(width: w * 0.025),
                 Expanded(
                   child: Text(
-                    code,
+                    'Invite Friends & Earn',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
-                      fontSize: (w * 0.045).clamp(15.0, 19.0),
-                      letterSpacing: 1.2,
+                      fontSize: (w * 0.04).clamp(14.0, 17.0),
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                InkWell(
-                  onTap: onCopy,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: EdgeInsets.all(w * 0.022),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedCopy01,
-                      color: AppColors.primary,
-                      size: w * 0.04,
-                    ),
-                  ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  size: w * 0.05,
                 ),
               ],
             ),
-          ),
-        ],
+            SizedBox(height: w * 0.02),
+            Text(
+              count > 0
+                  ? 'You\'ve referred ${count.toInt()} ${count == 1 ? 'friend' : 'friends'} so far.'
+                  : 'Share your code with friends and family.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: (w * 0.032).clamp(11.0, 14.0),
+              ),
+            ),
+            SizedBox(height: w * 0.04),
+            ReferralCodeCard(code: code, onCopy: onCopy, onShare: onShare),
+          ],
+        ),
       ),
     );
   }

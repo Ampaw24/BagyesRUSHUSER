@@ -12,7 +12,7 @@ import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
 import 'package:bagyesrushappusernew/features/parcel/presentation/views/send_parcel_view.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
 import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
-import 'package:bagyesrushappusernew/presentation/invite_friend/invite_friend.dart';
+import 'package:bagyesrushappusernew/src/referral/views/referral_view.dart';
 import 'package:bagyesrushappusernew/presentation/help_support/help_support_view.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
@@ -316,7 +316,7 @@ final GoRouter appRouter = GoRouter(
     // ── Other ──
     GoRoute(
       path: AppRoutes.inviteFriend,
-      builder: (context, state) => InviteFriend(),
+      builder: (context, state) => const ReferralView(),
     ),
     GoRoute(
       path: AppRoutes.helpSupport,
