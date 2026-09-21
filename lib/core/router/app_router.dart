@@ -25,6 +25,7 @@ import 'package:bagyesrushappusernew/src/auth/views/otp_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/reset_password_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/walkthrough_view.dart';
 import 'package:bagyesrushappusernew/src/auth/views/kyc_verification_view.dart';
+import 'package:bagyesrushappusernew/src/auth/views/delete_account_view.dart';
 import 'package:bagyesrushappusernew/src/onboarding/views/onboarding_view.dart';
 import 'package:bagyesrushappusernew/src/vendor_registration/views/vendor_registration_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
@@ -85,6 +86,7 @@ const _authRoutesReachableWhileSignedIn = {
 const _kycExemptRoutes = {
   AppRoutes.kycVerification,
   AppRoutes.editProfile,
+  AppRoutes.deleteAccount,
   AppRoutes.profile,
   AppRoutes.vendorKyc,
   AppRoutes.helpSupport,
@@ -246,6 +248,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.editProfile,
       builder: (context, state) => EditProfile(),
+    ),
+    GoRoute(
+      path: AppRoutes.deleteAccount,
+      builder: (context, state) => const DeleteAccountView(),
     ),
     GoRoute(
       path: AppRoutes.customerPaymentMethods,

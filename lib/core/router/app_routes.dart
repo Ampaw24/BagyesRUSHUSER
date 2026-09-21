@@ -23,6 +23,7 @@ abstract final class AppRoutes {
   // ── Profile ──
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
+  static const String deleteAccount = '/profile/delete-account';
   static const String customerPaymentMethods = '/profile/payment-methods';
 
   // ── Courier / delivery ──

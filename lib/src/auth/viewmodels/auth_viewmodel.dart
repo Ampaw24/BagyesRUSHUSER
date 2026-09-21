@@ -376,13 +376,23 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
+  /// Completes once the identity check kicked off by the most recent
+  /// [restoreSession] call has resolved (success or failure) — or
+  /// immediately if there was no cached session to validate.
+  ///
+  /// [SplashScreen] awaits this (bounded by its own short timeout) before
+  /// deciding whether to route to Home or Onboarding, so a token that turns
+  /// out to be invalid/unreachable never gets a chance to land the user on
+  /// Home first. This is intentionally *not* awaited inside [restoreSession]
+  /// itself — app startup (`AppInitializer.initialize()`) must not block on
+  /// a slow or unreachable backend.
+  Future<void> get sessionValidation => _sessionValidation ?? Future.value();
+  Future<void>? _sessionValidation;
+
   /// Called on app launch. If a valid token + userId are found in secure
   /// storage (warmed into [Cache] by AppInitializer), marks the user as
-  /// [LoggedIn] immediately and fetches the profile in the background.
-  ///
-  /// This decouples "auth state" from "profile data" — a network failure
-  /// during profile fetch no longer forces the user back to the login screen
-  /// when they have a valid token.
+  /// [LoggedIn] immediately and validates the session against the backend
+  /// in the background (see [sessionValidation]).
   Future<void> restoreSession() async {
     final token  = Cache.instance.sessionToken;
     final userId = Cache.instance.userId;
@@ -411,8 +421,16 @@ class AuthViewmodel extends ViewModel<AuthState> {
     appLogger.d('AuthViewmodel.restoreSession → token found, marking LoggedIn');
     emit(const LoggedIn());
 
-    // Fetch profile in background — failures are non-fatal
-    _fetchProfileInBackground(userId);
+    // Validate in the background. A short timeout keeps the splash screen's
+    // wait bounded — if the backend can't confirm this token belongs to a
+    // real session (expired, revoked, or simply unreachable), the failure
+    // branch below clears the token and corrects the state to LoggedOut
+    // before anything ever routes to Home.
+    _sessionValidation = _fetchProfileInBackground(
+      userId,
+      isSessionRestore: true,
+      timeout: const Duration(seconds: 10),
+    );
   }
 
   /// Public method to fetch/refresh current user details from the backend and update [CurrentUserProvider].
@@ -424,10 +442,18 @@ class AuthViewmodel extends ViewModel<AuthState> {
     }
   }
 
-  /// Fetches user profile without changing auth state on failure.
-  /// If the fetch succeeds, updates [CurrentUserProvider].
-  /// If it fails (e.g. poor connectivity), the user stays logged in
-  /// and the profile will be retried on next relevant screen.
+  /// Fetches user profile and updates [CurrentUserProvider] on success.
+  ///
+  /// By default (`isSessionRestore: false`, e.g. [fetchUserProfile]'s
+  /// pull-to-refresh use), a failure is non-fatal (e.g. poor connectivity)
+  /// — the user stays logged in and the profile is retried on next relevant
+  /// screen. When [isSessionRestore] is true (only [restoreSession] passes
+  /// this), a failure instead means app-launch couldn't confirm the cached
+  /// token is still valid, so the session is cleared locally and the state
+  /// corrected to [LoggedOut].
+  ///
+  /// [timeout] overrides the request's connect/receive timeout — see
+  /// [AuthRepository.getUserDetails].
   ///
   /// **Vendor profile gap:** `/auth/me` returns only base user fields — it does
   /// NOT embed the vendor profile (business name, status, isProfileComplete,
@@ -437,20 +463,33 @@ class AuthViewmodel extends ViewModel<AuthState> {
   /// **Role preservation:** `/auth/me` may omit the `role` field for vendor
   /// accounts. We capture the authoritative role before the async gap and
   /// restore it if the response comes back empty.
-  Future<void> _fetchProfileInBackground(String userId) async {
+  Future<void> _fetchProfileInBackground(
+    String userId, {
+    bool isSessionRestore = false,
+    Duration? timeout,
+  }) async {
     appLogger.d('AuthViewmodel._fetchProfileInBackground → userId=$userId');
 
     // Capture role BEFORE the async gap so we can restore it if needed.
     final knownRole = _currentUserProvider.user?.role ?? '';
 
-    final result = await _repository.getUserDetails(userId);
+    final result = await _repository.getUserDetails(userId, timeout: timeout);
 
     await result.fold(
       (failure) async {
         appLogger.w(
           'AuthViewmodel._fetchProfileInBackground → '
-          'profile fetch failed (non-fatal): ${failure.message}',
+          'profile fetch failed: ${failure.message}',
         );
+        if (!isSessionRestore) return;
+
+        appLogger.w(
+          'AuthViewmodel._fetchProfileInBackground → '
+          'session restore could not be validated, clearing session',
+        );
+        await _repository.clearLocalSession();
+        _currentUserProvider.clearUser();
+        emit(const LoggedOut());
       },
       (user) async {
         // Restore role if the base endpoint didn't include it.
@@ -732,6 +771,39 @@ class AuthViewmodel extends ViewModel<AuthState> {
       (_) {
         appLogger.i('AuthViewmodel.logout → LoggedOut');
         emit(const LoggedOut());
+      },
+    );
+  }
+
+  /// Permanently deletes the signed-in user's account (role-agnostic — used
+  /// by both customer and vendor "Delete Account" flows).
+  ///
+  /// On success, clears local session state exactly like [logout] (realtime
+  /// disconnect, [CurrentUserProvider], pending signup/OTP state) and emits
+  /// [AccountDeleted]. On failure (e.g. wrong password) the session is left
+  /// untouched so the user can correct their input and retry.
+  Future<void> deleteAccount({required String password, String? reason}) async {
+    appLogger.d('AuthViewmodel.deleteAccount → initiated');
+    emit(const AccountDeleting());
+
+    final result = await _repository.deleteAccount(
+      password: password,
+      reason: reason,
+    );
+
+    await result.fold(
+      (failure) async {
+        appLogger.w('AuthViewmodel.deleteAccount → error: ${failure.message}');
+        emit(AuthError.fromFailure(failure));
+      },
+      (_) async {
+        appLogger.i('AuthViewmodel.deleteAccount → account deleted');
+        await _realtimeService.disconnect();
+        _currentUserProvider.clearUser();
+        _otpResponse = null;
+        _pendingSignupData = null;
+        _pendingPhone = null;
+        emit(const AccountDeleted());
       },
     );
   }

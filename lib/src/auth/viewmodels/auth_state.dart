@@ -98,3 +98,11 @@ final class AvatarUploaded extends AuthState {
   @override
   List<Object> get props => [user];
 }
+
+final class AccountDeleting extends AuthLoading {
+  const AccountDeleting();
+}
+
+final class AccountDeleted extends AuthState {
+  const AccountDeleted();
+}

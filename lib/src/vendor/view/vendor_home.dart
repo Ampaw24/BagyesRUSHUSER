@@ -94,11 +94,9 @@ class _VendorHomeState extends State<VendorHome> {
       subtitle:
           'This action is permanent and cannot be undone. '
           'All your shop data, menu items, order history, and earnings records will be permanently deleted.',
-      confirmText: 'Delete',
+      confirmText: 'Continue',
       cancelText: 'Cancel',
-      onConfirm: () {
-        // TODO: Call deleteAccount via ViewModel when API is ready
-      },
+      onConfirm: () => context.push(AppRoutes.deleteAccount),
     );
   }
 

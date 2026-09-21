@@ -26,9 +26,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:782816451697:android:c0e969294730da0d350fd0",
+        "mobilesdk_app_id": "1:782816451697:android:7779010d1e36c650350fd0",
         "android_client_info": {
-          "package_name": "com.bagye.bagyesrushdelivery"
+          "package_name": "com.bagye.bagyesrushrider"
         }
       },
       "oauth_client": [],

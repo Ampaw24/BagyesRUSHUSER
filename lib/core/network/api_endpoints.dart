@@ -34,6 +34,11 @@ abstract final class ApiEndpoints {
   /// `POST /password/change` — authenticated user changing their own password.
   static const String passwordChange = '/password/change';
 
+  /// `POST /account/delete` — permanently deletes the signed-in user's
+  /// account. Body: `{ password (required), reason (optional, max 500) }`.
+  /// Role-agnostic — shared by customer and vendor accounts alike.
+  static const String accountDelete = '/account/delete';
+
   static const String items = '/items';
   static const String deviceToken = '/device-tokens';
 

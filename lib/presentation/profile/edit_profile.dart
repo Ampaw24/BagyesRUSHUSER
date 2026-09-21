@@ -494,19 +494,9 @@ class _EditProfileState extends State<EditProfile> {
       subtitle:
           'This action is permanent and cannot be undone. All your orders, '
           'saved details, and wallet history will be permanently deleted.',
-      confirmText: 'Delete',
+      confirmText: 'Continue',
       cancelText: 'Cancel',
-      onConfirm: () {
-        // TODO: Call AuthRepository.deleteAccount() via AuthViewmodel once
-        // the backend endpoint for customer account deletion is available.
-        CustomDialog.showInfo(
-          context: context,
-          title: 'Coming Soon',
-          subtitle:
-              'Account deletion isn\'t available yet. Please contact '
-              'support if you need your account removed.',
-        );
-      },
+      onConfirm: () => context.push(AppRoutes.deleteAccount),
     );
   }
 

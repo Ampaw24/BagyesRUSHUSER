@@ -76,11 +76,21 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateToNextScreen() async {
-    await Future.delayed(const Duration(seconds: 4));
+    final authViewmodel = context.read<AuthViewmodel>();
+
+    // Show the branded splash for at least 4 seconds, but also wait for the
+    // launch-time session validation kicked off by `restoreSession()` — its
+    // own bounded timeout keeps this from hanging, and its outcome may
+    // correct `authState` from LoggedIn to LoggedOut before we read it below,
+    // so a stale/unreachable token never gets routed to Home.
+    await Future.wait([
+      Future.delayed(const Duration(seconds: 4)),
+      authViewmodel.sessionValidation,
+    ]);
 
     if (!mounted) return;
 
-    final authState = context.read<AuthViewmodel>().state;
+    final authState = authViewmodel.state;
     final currentUser = context.read<CurrentUserProvider>();
 
     if (!mounted) return;

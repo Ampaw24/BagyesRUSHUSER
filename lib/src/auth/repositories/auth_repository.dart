@@ -462,10 +462,19 @@ class AuthRepository {
     }
   }
 
-  ResultFuture<User> getUserDetails(String id) async {
+  /// [timeout], when provided, overrides the connect/receive timeout for
+  /// just this call — used during app-launch session restore so a slow or
+  /// unreachable backend fails fast instead of hanging on the shared
+  /// 30-second default (see [AuthViewmodel.restoreSession]).
+  ResultFuture<User> getUserDetails(String id, {Duration? timeout}) async {
     appLogger.d('AuthRepository.getUserDetails → id=$id');
     try {
-      final response = await _client.get(ApiEndpoints.profile);
+      final response = await _client.get(
+        ApiEndpoints.profile,
+        options: timeout == null
+            ? null
+            : Options(connectTimeout: timeout, receiveTimeout: timeout),
+      );
 
       if (response.statusCode == 200) {
         final responseData = response.data as DataMap;
@@ -845,6 +854,66 @@ class AuthRepository {
         s,
         repositoryName: 'AuthRepository',
         methodName: 'logout',
+      );
+    }
+  }
+
+  /// Clears the persisted session locally only — no server round-trip.
+  ///
+  /// Used when app-launch session restore can't confirm the cached token is
+  /// still valid (expired/invalid, or the backend couldn't be reached at
+  /// all). Unlike [logout], this never calls the server: if the backend is
+  /// the reason validation failed, best-effort "notify the server" calls
+  /// would just hang on the same problem.
+  Future<void> clearLocalSession() async {
+    await _cacheHelper.resetSession();
+  }
+
+  /// Permanently deletes the signed-in user's account via `POST
+  /// /account/delete`. [password] re-verifies identity (required by the
+  /// backend); [reason] is an optional, free-text explanation (max 500
+  /// chars) used for churn feedback.
+  ///
+  /// Unlike [logout], the local session is only cleared on success — a
+  /// rejected request (e.g. wrong password) leaves the session intact so the
+  /// caller can let the user retry.
+  ResultFuture<void> deleteAccount({
+    required String password,
+    String? reason,
+  }) async {
+    appLogger.d('AuthRepository.deleteAccount → initiated');
+    try {
+      final response = await _client.post(
+        ApiEndpoints.accountDelete,
+        data: {
+          'password': password,
+          if (reason != null && reason.trim().isNotEmpty)
+            'reason': reason.trim(),
+        },
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        appLogger.i('AuthRepository.deleteAccount → success, clearing session');
+        await _cacheHelper.resetSession();
+        return const Right(null);
+      }
+
+      appLogger.w('AuthRepository.deleteAccount → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e(
+        'AuthRepository.deleteAccount → DioException\n'
+        '  status : ${e.response?.statusCode}\n'
+        '  data   : ${e.response?.data}',
+        error: e,
+      );
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'AuthRepository',
+        methodName: 'deleteAccount',
       );
     }
   }
