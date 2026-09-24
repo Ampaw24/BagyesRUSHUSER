@@ -18,6 +18,7 @@ import 'package:bagyesrushappusernew/src/vendor/viewmodel/orders_viewmodel.dart'
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/settings_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/vendor_reviews/viewmodels/reviews_viewmodel.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -44,6 +45,7 @@ class ScwProviders {
         ChangeNotifierProvider(create: (_) => sl<EarningsViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<SettingsViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<VendorKycViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<ReviewsViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<NotificationViewmodel>()),
         ChangeNotifierProvider(create: (_) => sl<ParcelViewModel>()),
         ChangeNotifierProvider(create: (_) => sl<PayoutProvidersViewModel>()),

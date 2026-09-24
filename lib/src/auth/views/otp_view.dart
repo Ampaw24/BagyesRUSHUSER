@@ -868,7 +868,14 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
       title: 'Welcome to bagyesRUSH!',
       subtitle: 'Your phone number has been verified.',
     );
-    AppNavigator.toHome(context);
+    // Route by role — a vendor's `user.profile` is a VendorProfile, which
+    // the consumer Home screen can't render (it expects CustomerProfile
+    // fields like firstName).
+    if (user?.role == 'vendor') {
+      AppNavigator.toVendorHome(context);
+    } else {
+      AppNavigator.toHome(context);
+    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────

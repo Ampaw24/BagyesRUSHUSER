@@ -55,6 +55,8 @@ import '../../src/report/viewmodel/report_detail_viewmodel.dart';
 import '../../src/report/viewmodel/report_form_viewmodel.dart';
 import '../../src/report/viewmodel/report_vendors_viewmodel.dart';
 import '../../src/report/views/report_flow_args.dart';
+import '../../src/vendor_reviews/repositories/review_repository.dart';
+import '../../src/vendor_reviews/viewmodels/reviews_viewmodel.dart';
 import '../../src/chat/repository/chat_repository.dart';
 import '../../src/chat/viewmodel/chat_list_viewmodel.dart';
 import '../../src/chat/viewmodel/chat_thread_viewmodel.dart';
@@ -102,6 +104,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => VendorWalletRepository(client: sl()));
   sl.registerLazySingleton(() => CustomerWalletRepository(client: sl()));
   sl.registerLazySingleton(() => ReportRepository(client: sl()));
+  sl.registerLazySingleton(() => ReviewRepository(client: sl()));
   sl.registerLazySingleton(() => ChatRepository(client: sl()));
   sl.registerLazySingleton(() => RealtimeRepository(client: sl()));
   sl.registerLazySingleton(() => RealtimeService(repository: sl(), authDio: sl()));
@@ -154,6 +157,10 @@ Future<void> init() async {
   sl.registerFactory(() => MenuViewModel(sl()));
   sl.registerFactory(() => EarningsViewModel());
   sl.registerFactory(() => SettingsViewModel(sl()));
+  // Factory — reviews screen is opened from the vendor drawer and is
+  // screen-scoped, matching MenuViewModel/EarningsViewModel (no shared
+  // state needed once popped).
+  sl.registerFactory(() => ReviewsViewModel(sl()));
   sl.registerFactory(
     () => VendorKycViewModel(
       dashboardRepository: sl(),

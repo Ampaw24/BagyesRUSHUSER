@@ -177,10 +177,15 @@ class CheckoutViewModel extends ViewModel<CheckoutState> {
   /// when the order is created, so a failure here doesn't block checkout —
   /// the UI falls back to the cart's fee and offers a manual retry.
   Future<void> fetchDeliveryQuote(String vendorId) async {
+    // The delivery fee is about to change, and any applied promo was
+    // validated against the previous quote — drop it rather than keep
+    // showing a discount computed against stale totals (re-apply is one tap).
     emit(CheckoutIdle(
       form: _currentForm.copyWith(
         isFetchingDeliveryQuote: true,
         deliveryQuoteError: null,
+        appliedPromo: null,
+        promoError: null,
       ),
     ));
 
@@ -199,6 +204,7 @@ class CheckoutViewModel extends ViewModel<CheckoutState> {
           deliveryQuoteFee: quote.fee,
           deliveryQuoteCurrency: quote.currency,
           deliveryQuoteServiceFee: quote.serviceFee,
+          deliveryQuoteId: quote.id,
         ),
       ));
     } on DioException catch (e) {
@@ -216,5 +222,55 @@ class CheckoutViewModel extends ViewModel<CheckoutState> {
         ),
       ));
     }
+  }
+
+  // ─── Promo code ────────────────────────────────────────────────────────────
+
+  /// Validates [code] against the backend and, on success, stores the
+  /// returned discount/totals for the summary to display. The discount
+  /// amount and any recomputed totals always come from the response —
+  /// nothing here is calculated client-side.
+  Future<void> applyPromoCode(String code, {required String vendorId}) async {
+    final trimmed = code.trim();
+    if (trimmed.isEmpty || _currentForm.isApplyingPromo) return;
+
+    emit(CheckoutIdle(
+      form: _currentForm.copyWith(isApplyingPromo: true, promoError: null),
+    ));
+
+    try {
+      final result = await _ordersRepository.validatePromoCode(
+        code: trimmed,
+        vendorId: vendorId,
+        deliveryQuoteId: _currentForm.deliveryQuoteId,
+      );
+      emit(CheckoutIdle(
+        form: _currentForm.copyWith(
+          isApplyingPromo: false,
+          appliedPromo: result,
+          promoError: null,
+        ),
+      ));
+    } on DioException catch (e) {
+      emit(CheckoutIdle(
+        form: _currentForm.copyWith(
+          isApplyingPromo: false,
+          promoError: NetworkUtils.handleDioException(e).value.message,
+        ),
+      ));
+    } catch (_) {
+      emit(CheckoutIdle(
+        form: _currentForm.copyWith(
+          isApplyingPromo: false,
+          promoError: 'Could not apply promo code. Please try again.',
+        ),
+      ));
+    }
+  }
+
+  void removePromoCode() {
+    emit(CheckoutIdle(
+      form: _currentForm.copyWith(appliedPromo: null, promoError: null),
+    ));
   }
 }

@@ -9,6 +9,7 @@ import '../../../../constant/app_theme.dart';
 import '../../../../core/common/app/current_user_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/widgets/custom_dialogs.dart';
+import '../../../../core/widgets/password_confirm_dialog.dart';
 import '../../payment/viewmodel/payout_providers_viewmodel.dart';
 import '../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../viewmodel/vendor_kyc_viewmodel.dart';
@@ -125,7 +126,13 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
   }
 
   Future<void> _submit(VendorKycViewModel vm) async {
-    final payoutOk = await vm.submitPayoutDetails();
+    final password = await promptCurrentPassword(
+      context,
+      message: 'For your security, enter your account password to save payout details.',
+    );
+    if (password == null || !mounted) return;
+
+    final payoutOk = await vm.submitPayoutDetails(currentPassword: password);
     if (!payoutOk || !mounted) return;
 
     final profile = context.read<CurrentUserProvider>().user?.profile as VendorProfile?;

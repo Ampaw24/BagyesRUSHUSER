@@ -201,10 +201,20 @@ class PlacesService {
       final results = data['results'] as List<dynamic>;
       if (results.isEmpty) return null;
 
-      final formattedAddress =
-          ((results.first as Map<String, dynamic>)['formatted_address']
-                  as String?)
-              ?.trim();
+      // Google returns several candidate results per coordinate. In areas
+      // with thin premise-level coverage (common outside Accra's main
+      // roads), the top result is often a Plus Code — e.g. "MP4W+FXJ
+      // Directly opposite the Taifa Mosque" — which reads badly as a
+      // delivery address. Prefer the first result that isn't plus-code-only,
+      // falling back to the plus code only when nothing better exists.
+      final best = results.cast<Map<String, dynamic>>().firstWhere(
+            (r) => !(r['types'] as List<dynamic>? ?? [])
+                .cast<String>()
+                .contains('plus_code'),
+            orElse: () => results.first as Map<String, dynamic>,
+          );
+
+      final formattedAddress = (best['formatted_address'] as String?)?.trim();
       return (formattedAddress != null && formattedAddress.isNotEmpty)
           ? formattedAddress
           : null;

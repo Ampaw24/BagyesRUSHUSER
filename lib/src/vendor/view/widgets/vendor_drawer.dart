@@ -17,6 +17,7 @@ class VendorDrawer extends StatefulWidget {
   final VoidCallback? onInviteFriends;
   final VoidCallback? onPayoutSettings;
   final VoidCallback? onWallet;
+  final VoidCallback? onReviews;
   final VoidCallback? onNotifications;
   final VoidCallback? onHelpSupport;
   final VoidCallback? onReport;
@@ -39,6 +40,7 @@ class VendorDrawer extends StatefulWidget {
     this.onInviteFriends,
     this.onPayoutSettings,
     this.onWallet,
+    this.onReviews,
     this.onNotifications,
     this.onHelpSupport,
     this.onReport,
@@ -248,32 +250,39 @@ class _VendorDrawerState extends State<VendorDrawer>
                                 slideAnim: _staggeredSlide(4),
                               ),
                               _AnimatedDrawerTile(
+                                icon: HugeIcons.strokeRoundedStarCircle,
+                                label: 'Reviews',
+                                onTap: widget.onReviews,
+                                fadeAnim: _staggeredFade(5),
+                                slideAnim: _staggeredSlide(5),
+                              ),
+                              _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedLockPassword,
                                 label: 'Change Password',
                                 onTap: widget.onChangePassword,
-                                fadeAnim: _staggeredFade(5),
-                                slideAnim: _staggeredSlide(5),
+                                fadeAnim: _staggeredFade(6),
+                                slideAnim: _staggeredSlide(6),
                               ),
                               _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedShieldKey,
                                 label: 'Privacy Policy',
                                 onTap: widget.onPrivacyPolicy,
-                                fadeAnim: _staggeredFade(6),
-                                slideAnim: _staggeredSlide(6),
+                                fadeAnim: _staggeredFade(7),
+                                slideAnim: _staggeredSlide(7),
                               ),
                               _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedHelpCircle,
                                 label: 'Help & Support',
                                 onTap: widget.onHelpSupport,
-                                fadeAnim: _staggeredFade(7),
-                                slideAnim: _staggeredSlide(7),
+                                fadeAnim: _staggeredFade(8),
+                                slideAnim: _staggeredSlide(8),
                               ),
                               _AnimatedDrawerTile(
                                 icon: HugeIcons.strokeRoundedFlag02,
                                 label: 'Report an Issue',
                                 onTap: widget.onReport,
-                                fadeAnim: _staggeredFade(8),
-                                slideAnim: _staggeredSlide(8),
+                                fadeAnim: _staggeredFade(9),
+                                slideAnim: _staggeredSlide(9),
                               ),
                             ],
                           ),
@@ -293,16 +302,16 @@ class _VendorDrawerState extends State<VendorDrawer>
                         label: 'Delete Account',
                         color: AppColors.warning,
                         onTap: widget.onDeleteAccount,
-                        fadeAnim: _staggeredFade(9),
-                        slideAnim: _staggeredSlide(9),
+                        fadeAnim: _staggeredFade(10),
+                        slideAnim: _staggeredSlide(10),
                       ),
                       _AnimatedDrawerTile(
                         icon: HugeIcons.strokeRoundedLogout01,
                         label: 'Logout',
                         color: AppColors.error,
                         onTap: widget.onLogout,
-                        fadeAnim: _staggeredFade(10),
-                        slideAnim: _staggeredSlide(10),
+                        fadeAnim: _staggeredFade(11),
+                        slideAnim: _staggeredSlide(11),
                       ),
                       SizedBox(height: h * 0.015),
                     ],

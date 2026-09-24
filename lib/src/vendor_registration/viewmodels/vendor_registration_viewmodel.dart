@@ -69,19 +69,16 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         );
         notifyListeners();
       } else {
-        // Normal path — go to OTP step and auto-send the code immediately
-        // so the user lands straight on the input fields, not a button screen.
+        // Normal path — land on the verify step. The user explicitly taps
+        // "Send Verification Code" there (VerificationStep → vm.sendOtp())
+        // rather than it firing automatically here.
         _state = _state.copyWith(
-          status: VendorRegistrationStatus.loading,
+          status: VendorRegistrationStatus.idle,
           currentStep: VendorRegistrationStep.verifySubmit,
           errorMessage: null,
         );
         notifyListeners();
         _authViewmodel.resetState();
-        _authViewmodel.sendOtp(
-          '${Config.defaultCountryCode}${_state.businessDetails.phone}',
-          OtpPurpose.signup,
-        );
         return;
       }
       _authViewmodel.resetState();
@@ -105,10 +102,11 @@ class VendorRegistrationViewModel extends ChangeNotifier {
       final isAlreadyExists = _kAlreadyExistsPatterns.any(msg.contains) && !msg.contains('email');
 
       if (isAlreadyExists && _state.currentStep == VendorRegistrationStep.createPassword) {
-        // Account exists but phone is unverified. Skip re-registration,
-        // jump to OTP and send the code immediately.
+        // Account exists but phone is unverified. Skip re-registration and
+        // land on the verify step — the user taps "Send Verification Code"
+        // there to request a fresh code.
         _state = _state.copyWith(
-          status: VendorRegistrationStatus.loading,
+          status: VendorRegistrationStatus.idle,
           isResumeFlow: true,
           errorMessage: null,
           currentStep: VendorRegistrationStep.verifySubmit,
@@ -119,11 +117,6 @@ class VendorRegistrationViewModel extends ChangeNotifier {
         );
         notifyListeners();
         _authViewmodel.resetState();
-        // Kick off OTP send — result handled by next _onAuthStateChanged cycle.
-        _authViewmodel.sendOtp(
-          '${Config.defaultCountryCode}${_state.businessDetails.phone}',
-          OtpPurpose.signup,
-        );
       } else {
         _state = _state.copyWith(
           status: VendorRegistrationStatus.error,
@@ -309,6 +302,8 @@ class VendorRegistrationViewModel extends ChangeNotifier {
       businessTypeID: b.businessType?.id ?? '',
       contactPersonName: b.contactPersonName,
       businessAddress: b.businessAddress,
+      latitude: b.businessLatitude!,
+      longitude: b.businessLongitude!,
       city: b.city,
       description: b.description ?? '',
       taxIdentificationNumber: b.taxIdentificationNumber ?? '',

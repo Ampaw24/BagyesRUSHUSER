@@ -31,6 +31,7 @@ import 'package:bagyesrushappusernew/src/vendor_registration/views/vendor_regist
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_home.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_kyc_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_payout_view.dart';
+import 'package:bagyesrushappusernew/src/vendor_reviews/views/reviews_view.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
 import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/payment_methods_screen.dart'
     as consumer_payment_methods;
@@ -309,6 +310,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.vendorPayout,
       builder: (context, state) => const VendorPayoutView(),
+    ),
+    GoRoute(
+      path: AppRoutes.vendorReviews,
+      builder: (context, state) => const ReviewsView(),
     ),
     GoRoute(
       path: AppRoutes.wallet,

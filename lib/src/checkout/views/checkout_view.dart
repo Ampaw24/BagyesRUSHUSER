@@ -15,7 +15,9 @@ import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart
 import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/promo_code_result.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
@@ -41,6 +43,7 @@ class _CheckoutViewState extends State<CheckoutView> {
   // Address starts empty — user MUST provide an address before placing order.
   final _addressController = TextEditingController();
   final _instructionsController = TextEditingController();
+  final _promoController = TextEditingController();
   bool _isLocatingCurrentPosition = false;
   Timer? _quoteDebounceTimer;
 
@@ -89,7 +92,22 @@ class _CheckoutViewState extends State<CheckoutView> {
     _vm?.removeListener(_onCheckoutStateChanged);
     _addressController.dispose();
     _instructionsController.dispose();
+    _promoController.dispose();
     super.dispose();
+  }
+
+  void _applyPromoCode(CartModel cart) {
+    if (_promoController.text.trim().isEmpty) return;
+    FocusScope.of(context).unfocus();
+    context.read<CheckoutViewModel>().applyPromoCode(
+          _promoController.text,
+          vendorId: cart.vendorId,
+        );
+  }
+
+  void _removePromoCode() {
+    _promoController.clear();
+    context.read<CheckoutViewModel>().removePromoCode();
   }
 
   /// Requests a fresh delivery-fee quote once [address] looks complete
@@ -236,13 +254,27 @@ class _CheckoutViewState extends State<CheckoutView> {
     // Prefer the live quote once it's loaded; fall back to the cart's
     // (possibly stale) embedded fee while loading, on error, or before the
     // first fetch completes — the screen never shows a broken/empty total.
-    final effectiveDeliveryFee =
-        form.deliveryQuoteFee ?? cart?.deliveryFee ?? 0;
-    final effectiveServiceFee =
-        form.deliveryQuoteServiceFee ?? cart?.serviceFee ?? 0;
-    final deliveryFeeCurrency = form.deliveryQuoteCurrency ?? 'GHS';
-    final effectiveTotal =
-        (cart?.subtotal ?? 0) + effectiveDeliveryFee + effectiveServiceFee;
+    // A backend-returned promo `totals` breakdown (when present) outranks
+    // both, since it's the most recently authoritative source for the same
+    // figures.
+    final appliedPromo = form.appliedPromo;
+    final promoDiscount = appliedPromo?.discount ?? 0;
+    final effectiveDeliveryFee = appliedPromo?.deliveryFee ??
+        form.deliveryQuoteFee ??
+        cart?.deliveryFee ??
+        0;
+    final effectiveServiceFee = appliedPromo?.serviceFee ??
+        form.deliveryQuoteServiceFee ??
+        cart?.serviceFee ??
+        0;
+    final deliveryFeeCurrency =
+        appliedPromo?.currency ?? form.deliveryQuoteCurrency ?? 'GHS';
+    final effectiveSubtotal = appliedPromo?.subtotal ?? cart?.subtotal ?? 0;
+    final effectiveTotal = appliedPromo?.total ??
+        (effectiveSubtotal +
+            effectiveDeliveryFee +
+            effectiveServiceFee -
+            promoDiscount);
 
     if (cart == null) {
       return const Scaffold(
@@ -340,6 +372,18 @@ class _CheckoutViewState extends State<CheckoutView> {
 
                 SizedBox(height: w * 0.055),
 
+                // ── Promo code ──
+                _PromoCodeSection(
+                  controller: _promoController,
+                  isApplying: form.isApplyingPromo,
+                  error: form.promoError,
+                  applied: appliedPromo,
+                  onApply: () => _applyPromoCode(cart),
+                  onRemove: _removePromoCode,
+                ),
+
+                SizedBox(height: w * 0.055),
+
                 // ── Step 3: Order summary ──
                 _SectionHeader(number: '3', title: 'Order Summary'),
                 SizedBox(height: w * 0.03),
@@ -398,7 +442,14 @@ class _CheckoutViewState extends State<CheckoutView> {
                             ),
                           )),
                       const Divider(color: AppColors.divider),
-                      _TotalRow(label: 'Subtotal', value: cart.subtotal),
+                      _TotalRow(label: 'Subtotal', value: effectiveSubtotal),
+                      if (promoDiscount > 0)
+                        _TotalRow(
+                          label: 'Promo Discount',
+                          value: promoDiscount,
+                          currency: deliveryFeeCurrency,
+                          isDiscount: true,
+                        ),
                       _DeliveryFeeRow(
                         isFetching: form.isFetchingDeliveryQuote,
                         error: form.deliveryQuoteError,
@@ -874,6 +925,150 @@ class _NoPaymentMethodsCard extends StatelessWidget {
   }
 }
 
+// ─── Promo Code ─────────────────────────────────────────────────────────
+
+/// Checkout's promo-code apply/remove UI. Every displayed number — the
+/// discount, and any updated subtotal/fees — comes straight from
+/// [applied]/[PromoCodeResult], which is whatever the backend returned from
+/// `POST /customer/promo-codes/validate`; this widget never computes a
+/// discount itself.
+class _PromoCodeSection extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isApplying;
+  final String? error;
+  final PromoCodeResult? applied;
+  final VoidCallback onApply;
+  final VoidCallback onRemove;
+
+  const _PromoCodeSection({
+    required this.controller,
+    required this.isApplying,
+    required this.error,
+    required this.applied,
+    required this.onApply,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    if (applied != null) {
+      final promo = applied!;
+      return Container(
+        padding: EdgeInsets.all(w * 0.035),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(w * 0.03),
+          border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.local_offer_rounded,
+                color: AppColors.success, size: w * 0.05),
+            SizedBox(width: w * 0.03),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    promo.code,
+                    style: TextStyle(
+                      fontSize: w * 0.035,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (promo.description != null &&
+                      promo.description!.isNotEmpty)
+                    Text(
+                      promo.description!,
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onRemove,
+              child: Text(
+                'Remove',
+                style: TextStyle(
+                  fontSize: w * 0.032,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.error,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                enabled: !isApplying,
+                textCapitalization: TextCapitalization.characters,
+                onSubmitted: (_) => onApply(),
+                decoration: InputDecoration(
+                  hintText: 'Enter promo code',
+                  prefixIcon: const Icon(
+                    Icons.local_offer_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.surfaceVariant,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(w * 0.03),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: w * 0.025),
+            SizedBox(
+              height: w * 0.13,
+              child: ElevatedButton(
+                onPressed: isApplying ? null : onApply,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(w * 0.03),
+                  ),
+                ),
+                child: isApplying
+                    ? SizedBox(
+                        width: w * 0.045,
+                        height: w * 0.045,
+                        child: const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text('Apply'),
+              ),
+            ),
+          ],
+        ),
+        if (error != null) ...[
+          SizedBox(height: w * 0.015),
+          Text(
+            error!,
+            style: TextStyle(fontSize: w * 0.03, color: AppColors.error),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _ValidationWarning extends StatelessWidget {
   final String message;
 
@@ -987,11 +1182,16 @@ class _TotalRow extends StatelessWidget {
   final bool isBold;
   final String currency;
 
+  /// Renders [value] (always passed as a positive amount) with a leading
+  /// "-" and a success tint, for the promo-discount line.
+  final bool isDiscount;
+
   const _TotalRow({
     required this.label,
     required this.value,
     this.isBold = false,
     this.currency = 'GHS',
+    this.isDiscount = false,
   });
 
   @override
@@ -1013,11 +1213,15 @@ class _TotalRow extends StatelessWidget {
             ),
           ),
           Text(
-            '$currency ${value.toStringAsFixed(2)}',
+            isDiscount
+                ? '-$currency ${value.toStringAsFixed(2)}'
+                : '$currency ${value.toStringAsFixed(2)}',
             style: TextStyle(
               fontSize: isBold ? w * 0.038 : w * 0.033,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-              color: isBold ? AppColors.primary : AppColors.textPrimary,
+              color: isDiscount
+                  ? AppColors.success
+                  : (isBold ? AppColors.primary : AppColors.textPrimary),
             ),
           ),
         ],

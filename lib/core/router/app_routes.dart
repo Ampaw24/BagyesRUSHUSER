@@ -61,6 +61,7 @@ abstract final class AppRoutes {
   static const String vendorWallet = '/vendor/wallet';
   static const String vendorKyc = '/vendor/kyc';
   static const String vendorPayout = '/vendor/payout';
+  static const String vendorReviews = '/vendor/reviews';
 
   // ── Other ──
   static const String inviteFriend = '/invite-friend';

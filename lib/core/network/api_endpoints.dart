@@ -18,8 +18,10 @@ abstract final class ApiEndpoints {
   static const String refreshToken = '/auth/refresh-token';
 
   /// Shared phone-verification pair — used by both customer and vendor OTP flows.
-  static const String phoneSendCode = '/otp/send-code';
-  static const String phoneVerify = '/otp/verify';
+  /// Body for [phoneSendCode]: `{ phone }`. Body for [phoneVerify]:
+  /// `{ phone, code }`. Neither endpoint accepts a `purpose` field.
+  static const String phoneSendCode = '/phone/send-code';
+  static const String phoneVerify = '/phone/verify';
   static const String otpSend = phoneSendCode;
   static const String otpVerify = phoneVerify;
 
@@ -280,6 +282,13 @@ abstract final class ApiEndpoints {
   /// order. Query params: `vendor_id` (required), `address_id` (nullable).
   static const String customerDeliveryQuote = '/customer/delivery-quote';
 
+  /// `POST /customer/promo-codes/validate` —
+  /// `App\Http\Controllers\Api\V1\Customer\PromoCodeController@validateCode`.
+  /// Auth: Bearer, role: customer. Body: `code` (required, string, max:32),
+  /// `vendor_id` (required, integer), `delivery_quote_id` (nullable, integer).
+  static const String customerPromoCodeValidate =
+      '/customer/promo-codes/validate';
+
   /// `GET /categories/:id`
   static String categoryById(String id) => '/categories/$id';
 
@@ -310,6 +319,16 @@ abstract final class ApiEndpoints {
 
   /// `GET /vendor/me/reports/:id`
   static String vendorReportById(String id) => '$vendorReports/$id';
+
+  // ─── Vendor Reviews ────────────────────────────────────────────────────────
+  /// `GET /vendor/me/reviews`
+  static const String vendorReviews = '/vendor/me/reviews';
+
+  /// `GET /vendor/me/reviews/summary`
+  static const String vendorReviewsSummary = '$vendorReviews/summary';
+
+  /// `POST /vendor/me/reviews/:id/reply`
+  static String vendorReviewReply(String id) => '$vendorReviews/$id/reply';
 
   // ─── Customer Parcels ──────────────────────────────────────────────────────
   static const String customerParcels = '/customer/parcels';

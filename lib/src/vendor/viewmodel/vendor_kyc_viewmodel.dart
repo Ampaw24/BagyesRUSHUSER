@@ -172,8 +172,10 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
 
   /// Validates and submits the payout step via the same `PUT /vendor/me/payout`
   /// endpoint used by the standalone Payout Settings screen. Required: at
-  /// least one of a complete bank set or a complete mobile-money set.
-  Future<bool> submitPayoutDetails() async {
+  /// least one of a complete bank set or a complete mobile-money set, plus
+  /// [currentPassword] — the backend re-confirms identity before changing
+  /// where the vendor gets paid.
+  Future<bool> submitPayoutDetails({required String currentPassword}) async {
     final bank = state.selectedBank;
     final accountNumber = state.bankAccountNumber.trim();
     final accountName = state.bankAccountName.trim();
@@ -214,13 +216,14 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
     ));
 
     final data = <String, dynamic>{
-      if (bankComplete) 'bank_name': bank.name,
+      'current_password': currentPassword,
+      if (bankComplete) 'payout_provider_id': bank.id,
       if (bankComplete) 'account_number': accountNumber,
       if (bankComplete) 'account_name': accountName,
       if (bankComplete && state.branchCode.trim().isNotEmpty)
         'branch_code': state.branchCode.trim(),
+      if (momoComplete) 'momo_provider_id': momo.id,
       if (momoComplete) 'mobile_money_number': momoNumber,
-      if (momoComplete) 'mobile_money_provider': momo.shortName.toLowerCase(),
     };
 
     final result = await _dashboardRepository.updateVendorPayout(data);

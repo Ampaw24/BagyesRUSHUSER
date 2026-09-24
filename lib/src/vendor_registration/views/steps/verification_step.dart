@@ -562,26 +562,25 @@ class _VerificationStepState extends State<VerificationStep>
         _buildHeader(d, otpSent),
         SizedBox(height: d.h * 0.04),
 
-        // OTP fields are always visible. They are disabled while the OTP is
-        // being dispatched (isLoading && !otpSent) so the user sees where
-        // to type without waiting for the network round-trip.
         if (!widget.isVerified) ...[
-          // Spinner shown above the fields while OTP is being sent
-          if (widget.isLoading && !otpSent) ...[
-            const SpinKitCircle(size: 24, color: AppColors.primary),
-            SizedBox(height: d.h * 0.025),
+          if (!otpSent) ...[
+            // Stage 1: nothing has been sent yet — the user explicitly
+            // requests a code rather than it firing automatically.
+            _buildSendButton(d),
+          ] else ...[
+            // Stage 2: code sent — show the entry fields.
+            _buildOtpRow(d),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              child: _hasError && _errorMessage != null
+                  ? _buildErrorBanner(d)
+                  : const SizedBox.shrink(),
+            ),
+            SizedBox(height: d.h * 0.03),
+            _buildVerifyButton(d),
+            SizedBox(height: d.h * 0.022),
+            _buildResendRow(d),
           ],
-          _buildOtpRow(d),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            child: _hasError && _errorMessage != null
-                ? _buildErrorBanner(d)
-                : const SizedBox.shrink(),
-          ),
-          SizedBox(height: d.h * 0.03),
-          _buildVerifyButton(d),
-          SizedBox(height: d.h * 0.022),
-          _buildResendRow(d),
         ],
 
         SizedBox(height: d.h * 0.02),
@@ -609,8 +608,8 @@ class _VerificationStepState extends State<VerificationStep>
           Expanded(
             child: Text(
               'It looks like you already started registration. '
-              'We\'ve sent a new verification code to your phone — '
-              'enter it below to complete your account.',
+              'Tap below to receive a new verification code and finish '
+              'setting up your account.',
               style: TextStyle(
                 fontSize: d.w * 0.03,
                 color:    Colors.amber.shade900,
@@ -774,6 +773,37 @@ class _VerificationStepState extends State<VerificationStep>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Send button (stage 1 — before a code has been dispatched) ──────────────────
+
+  Widget _buildSendButton(_Dims d) {
+    final sending = widget.isLoading;
+    return SizedBox(
+      width:  double.infinity,
+      height: d.buttonHeight,
+      child: ElevatedButton(
+        onPressed: sending ? null : widget.onSendOtp,
+        style: ElevatedButton.styleFrom(
+          backgroundColor:         AppColors.primary,
+          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.50),
+          elevation:               0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(d.buttonRadius),
+          ),
+        ),
+        child: sending
+            ? const SpinKitCircle(size: 22, color: Colors.white)
+            : Text(
+                'Send Verification Code',
+                style: TextStyle(
+                  fontSize:   d.buttonFontSize,
+                  fontWeight: FontWeight.w600,
+                  color:      Colors.white,
+                ),
+              ),
       ),
     );
   }

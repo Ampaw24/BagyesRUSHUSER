@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../core/errors/failure.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../model/vendor_order.dart';
 import '../repository/vendor_dashboard_repository.dart';
@@ -17,6 +18,11 @@ class DashboardState extends Equatable {
   final int activeOrderCount;
   final String avgRating;
   final List<VendorOrder> activeOrders;
+
+  /// A handful of the vendor's most recently placed orders (any status),
+  /// for a quick glance on the dashboard — distinct from [activeOrders],
+  /// which is only orders still awaiting accept/reject.
+  final List<VendorOrder> recentOrders;
   final String? errorMessage;
 
   const DashboardState({
@@ -26,6 +32,7 @@ class DashboardState extends Equatable {
     this.activeOrderCount = 0,
     this.avgRating = '0.0',
     this.activeOrders = const [],
+    this.recentOrders = const [],
     this.errorMessage,
   });
 
@@ -36,6 +43,7 @@ class DashboardState extends Equatable {
     int? activeOrderCount,
     String? avgRating,
     List<VendorOrder>? activeOrders,
+    List<VendorOrder>? recentOrders,
     String? errorMessage,
   }) {
     return DashboardState(
@@ -45,6 +53,7 @@ class DashboardState extends Equatable {
       activeOrderCount: activeOrderCount ?? this.activeOrderCount,
       avgRating: avgRating ?? this.avgRating,
       activeOrders: activeOrders ?? this.activeOrders,
+      recentOrders: recentOrders ?? this.recentOrders,
       errorMessage: errorMessage,
     );
   }
@@ -57,6 +66,7 @@ class DashboardState extends Equatable {
         activeOrderCount,
         avgRating,
         activeOrders,
+        recentOrders,
         errorMessage,
       ];
 }
@@ -73,6 +83,9 @@ class DashboardViewModel extends ViewModel<DashboardState> {
 
     final statsResult = await _repository.fetchDashboardStats();
     final ordersResult = await _repository.fetchActiveOrders();
+    // Best-effort — a failure here shouldn't fail the whole dashboard load,
+    // it just leaves the "Recent Orders" glance section empty.
+    final recentResult = await _repository.fetchAllOrders(perPage: 5);
 
     statsResult.fold(
       (failure) => emit(state.copyWith(
@@ -85,14 +98,40 @@ class DashboardViewModel extends ViewModel<DashboardState> {
             status: DashboardStatus.error,
             errorMessage: failure.message,
           )),
-          (orders) => emit(state.copyWith(
-            status: DashboardStatus.loaded,
-            todayRevenue: 'GH₵ ${stats.today.revenue.toStringAsFixed(2)}',
-            activeOrderCount: orders.length,
-            avgRating: stats.reputation.rating.toStringAsFixed(1),
-            activeOrders: orders,
-            errorMessage: null,
-          )),
+          (orders) {
+            final activeIds = orders.map((o) => o.id).toSet();
+            final recent = recentResult.fold(
+              (failure) {
+                appLogger.w(
+                  'DashboardViewModel.loadDashboard → recent orders failed '
+                  '(non-fatal): ${failure.message}',
+                );
+                return <VendorOrder>[];
+              },
+              // Excludes orders also shown in the Active Orders section
+              // above, and re-sorted client-side since the backend's
+              // default order isn't guaranteed recency (same reasoning as
+              // fetchActiveOrders' own sort).
+              (all) => (all.where((o) => !activeIds.contains(o.id)).toList()
+                    ..sort((a, b) {
+                      final aTime = a.createdAt;
+                      final bTime = b.createdAt;
+                      if (aTime == null || bTime == null) return 0;
+                      return bTime.compareTo(aTime);
+                    }))
+                  .take(5)
+                  .toList(),
+            );
+            emit(state.copyWith(
+              status: DashboardStatus.loaded,
+              todayRevenue: 'GH₵ ${stats.today.revenue.toStringAsFixed(2)}',
+              activeOrderCount: orders.length,
+              avgRating: stats.reputation.rating.toStringAsFixed(1),
+              activeOrders: orders,
+              recentOrders: recent,
+              errorMessage: null,
+            ));
+          },
         );
       },
     );

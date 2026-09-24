@@ -37,6 +37,9 @@ class StepValidator {
     if (data.businessAddress.trim().isEmpty) {
       return 'Business address is required';
     }
+    if (data.businessLatitude == null || data.businessLongitude == null) {
+      return 'Please pin your business location on the map';
+    }
     if (data.city.trim().isEmpty) {
       return 'City is required';
     }

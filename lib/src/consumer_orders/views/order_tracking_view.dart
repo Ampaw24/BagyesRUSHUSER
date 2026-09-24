@@ -342,6 +342,12 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
             _StatusBanner(order: order),
             SizedBox(height: w * 0.05),
 
+            // ── Delivery PIN ──
+            if ((order.deliveryPin ?? '').trim().isNotEmpty) ...[
+              _DeliveryPinCard(pin: order.deliveryPin!.trim()),
+              SizedBox(height: w * 0.05),
+            ],
+
             // ── Order timeline ──
             const _SectionHeader(
               icon: Icons.timeline_rounded,
@@ -370,6 +376,15 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
               ),
               SizedBox(height: w * 0.025),
               _RiderMapSection(riderLocation: order.riderLocation!),
+              SizedBox(height: w * 0.05),
+            ],
+
+            // ── Arrival status (distance away + wait timer) ──
+            if (order.arrivalDistanceMetres != null || order.waitExpiresAt != null) ...[
+              _ArrivalStatusCard(
+                distanceMetres: order.arrivalDistanceMetres,
+                waitExpiresAt: order.waitExpiresAt,
+              ),
               SizedBox(height: w * 0.05),
             ],
 
@@ -694,6 +709,163 @@ class _StatusBanner extends StatelessWidget {
     final remaining = eta.difference(DateTime.now());
     if (remaining.isNegative) return 'Any moment now';
     return '${remaining.inMinutes} min';
+  }
+}
+
+/// Highlighted card showing the code the courier will ask for at drop-off
+/// to confirm they're handing the order to the right person.
+class _DeliveryPinCard extends StatelessWidget {
+  final String pin;
+
+  const _DeliveryPinCard({required this.pin});
+
+  void _copyPin(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: pin));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('PIN copied'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(w * 0.04),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.password_rounded, color: AppColors.primary, size: w * 0.07),
+          SizedBox(width: w * 0.035),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Delivery PIN',
+                  style: TextStyle(
+                    fontSize: w * 0.032,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                SizedBox(height: w * 0.008),
+                Text(
+                  'Share this with your rider to confirm delivery',
+                  style: TextStyle(
+                    fontSize: w * 0.03,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: w * 0.03),
+          GestureDetector(
+            onTap: () => _copyPin(context),
+            child: Row(
+              children: [
+                Text(
+                  pin,
+                  style: TextStyle(
+                    fontSize: w * 0.065,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: w * 0.012,
+                    color: AppColors.primary,
+                  ),
+                ),
+                SizedBox(width: w * 0.015),
+                Icon(Icons.copy_rounded, color: AppColors.primary, size: w * 0.04),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shows how far away the rider currently is and, once they've arrived,
+/// how much longer they'll wait at the door before the backend treats the
+/// customer as unreachable.
+class _ArrivalStatusCard extends StatelessWidget {
+  final double? distanceMetres;
+  final DateTime? waitExpiresAt;
+
+  const _ArrivalStatusCard({this.distanceMetres, this.waitExpiresAt});
+
+  String _distanceLabel(double metres) {
+    if (metres >= 1000) return '${(metres / 1000).toStringAsFixed(1)} km away';
+    return '${metres.round()} m away';
+  }
+
+  String? _waitLabel() {
+    final expires = waitExpiresAt;
+    if (expires == null) return null;
+    final remaining = expires.difference(DateTime.now());
+    if (remaining.isNegative) return 'Wait time has expired';
+    if (remaining.inMinutes < 1) return 'Rider waiting — less than a minute left';
+    return 'Rider waiting — ${remaining.inMinutes} min left';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final distanceLabel = distanceMetres != null ? _distanceLabel(distanceMetres!) : null;
+    final waitLabel = _waitLabel();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: _cardDecoration(w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (distanceLabel != null)
+            Row(
+              children: [
+                Icon(Icons.social_distance_rounded, color: AppColors.primary, size: w * 0.05),
+                SizedBox(width: w * 0.025),
+                Text(
+                  distanceLabel,
+                  style: TextStyle(
+                    fontSize: w * 0.035,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          if (distanceLabel != null && waitLabel != null) SizedBox(height: w * 0.025),
+          if (waitLabel != null)
+            Row(
+              children: [
+                Icon(Icons.timer_outlined, color: AppColors.warning, size: w * 0.05),
+                SizedBox(width: w * 0.025),
+                Expanded(
+                  child: Text(
+                    waitLabel,
+                    style: TextStyle(
+                      fontSize: w * 0.035,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 }
 

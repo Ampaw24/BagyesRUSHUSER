@@ -11,6 +11,11 @@ class BusinessDetailsData extends Equatable {
   final String password;
   final String confirmPassword;
   final String businessAddress;
+  // Populated by the map location picker (KYC-grade geo-pin, not derived
+  // from free-text geocoding) — required by the backend's PostGIS
+  // `ST_DWithin` nearby-vendor queries and delivery-radius calculations.
+  final double? businessLatitude;
+  final double? businessLongitude;
   final String city;
   final String? description;
   final String? taxIdentificationNumber;
@@ -24,6 +29,8 @@ class BusinessDetailsData extends Equatable {
     this.password = '',
     this.confirmPassword = '',
     this.businessAddress = '',
+    this.businessLatitude,
+    this.businessLongitude,
     this.city = '',
     this.description,
     this.taxIdentificationNumber,
@@ -38,6 +45,8 @@ class BusinessDetailsData extends Equatable {
     String? password,
     String? confirmPassword,
     String? businessAddress,
+    double? businessLatitude,
+    double? businessLongitude,
     String? city,
     String? description,
     String? taxIdentificationNumber,
@@ -51,6 +60,8 @@ class BusinessDetailsData extends Equatable {
       password: password ?? this.password,
       confirmPassword: confirmPassword ?? this.confirmPassword,
       businessAddress: businessAddress ?? this.businessAddress,
+      businessLatitude: businessLatitude ?? this.businessLatitude,
+      businessLongitude: businessLongitude ?? this.businessLongitude,
       city: city ?? this.city,
       description: description ?? this.description,
       taxIdentificationNumber:
@@ -69,6 +80,8 @@ class BusinessDetailsData extends Equatable {
       'business_type': businessType?.name,
       'contact_person_name': contactPersonName,
       'business_address': businessAddress,
+      'latitude': businessLatitude,
+      'longitude': businessLongitude,
       'city': city,
       'description': description,
       'tax_identification_number': taxIdentificationNumber,
@@ -85,6 +98,8 @@ class BusinessDetailsData extends Equatable {
     // password and confirmPassword excluded from props to prevent
     // credentials appearing in Equatable toString() output.
     businessAddress,
+    businessLatitude,
+    businessLongitude,
     city,
     description,
     taxIdentificationNumber,

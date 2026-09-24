@@ -109,6 +109,8 @@ class AuthRepository {
     required String businessTypeId,
     required String contactPersonName,
     required String businessAddress,
+    required double latitude,
+    required double longitude,
     required String city,
     required String description,
     required String taxIdentificationNumber,
@@ -126,6 +128,8 @@ class AuthRepository {
       "business_type_id": businessTypeId,
       "contact_person_name": contactPersonName,
       "business_address": businessAddress,
+      "latitude": latitude,
+      "longitude": longitude,
       "city": city,
       "description": description,
       "tax_identification_number": taxIdentificationNumber,
@@ -324,9 +328,12 @@ class AuthRepository {
   }) async {
     appLogger.d('AuthRepository.sendOtp → purpose=${purpose.value}');
     try {
+      // The backend's phone-verification endpoint is purpose-agnostic — it
+      // only accepts `phone`. `purpose` stays a client-side concept, used to
+      // decide what happens locally once the code is sent/verified.
       final response = await _client.post(
         ApiEndpoints.otpSend,
-        data: {'phone': phone, 'purpose': purpose.value},
+        data: {'phone': phone},
       );
 
       appLogger.d(
@@ -414,9 +421,11 @@ class AuthRepository {
   }) async {
     appLogger.d('AuthRepository.verifyOtp → purpose=${purpose.value}');
     try {
+      // Same as sendOtp — the backend's verify endpoint only accepts
+      // `phone` + `code`, no `purpose`.
       final response = await _client.post(
         ApiEndpoints.otpVerify,
-        data: {'phone': phone, 'code': otp, 'purpose': purpose.value},
+        data: {'phone': phone, 'code': otp},
       );
 
       appLogger.d(

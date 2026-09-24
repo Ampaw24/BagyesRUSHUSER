@@ -15,6 +15,11 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onReport;
 
+  /// False for a read-only listing (e.g. the dashboard's "Recent Orders"
+  /// glance) where action handlers aren't wired up — hides the action-button
+  /// row entirely instead of rendering buttons that do nothing when tapped.
+  final bool showActions;
+
   const OrderCard({
     super.key,
     required this.order,
@@ -27,6 +32,7 @@ class OrderCard extends StatelessWidget {
     this.onMarkDelivered,
     this.onCancel,
     this.onReport,
+    this.showActions = true,
   });
 
   @override
@@ -416,7 +422,7 @@ class OrderCard extends StatelessWidget {
               ],
 
               // Action buttons — exactly one primary next-action per status.
-              ..._buildActions(w),
+              if (showActions) ..._buildActions(w),
             ],
           ),
         ),

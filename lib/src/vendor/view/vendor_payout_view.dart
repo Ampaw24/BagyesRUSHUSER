@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constant/app_theme.dart';
+import '../../../core/widgets/password_confirm_dialog.dart';
 import '../../payment/model/payout_provider_matching.dart';
 import '../../payment/model/payout_provider_model.dart';
 import '../../payment/viewmodel/payout_providers_state.dart';
@@ -116,17 +117,22 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
     }
     setState(() => _formError = null);
 
+    final password = await promptCurrentPassword(
+      context,
+      message: 'For your security, enter your account password to save payout details.',
+    );
+    if (password == null || !mounted) return;
+
     final data = <String, dynamic>{
-      if (bank != null) 'bank_name': bank.name,
+      'current_password': password,
+      if (bank != null) 'payout_provider_id': bank.id,
       if (accountNumber.isNotEmpty) 'account_number': accountNumber,
       if (accountName.isNotEmpty) 'account_name': accountName,
       if (_branchCodeCtrl.text.trim().isNotEmpty)
         'branch_code': _branchCodeCtrl.text.trim(),
       if (momoNumber.isNotEmpty) 'mobile_money_number': momoNumber,
-      if (momo != null) 'mobile_money_provider': momo.shortName.toLowerCase(),
+      if (momo != null) 'momo_provider_id': momo.id,
     };
-
-    if (data.isEmpty) return;
 
     final success = await vm.updatePayout(data);
     if (!mounted) return;

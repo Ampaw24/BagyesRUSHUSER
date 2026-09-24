@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/src/consumer_orders/models/promo_code_result.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
 /// Sentinel distinguishing "leave unchanged" from "set to null" in
@@ -30,6 +31,19 @@ class CheckoutForm {
   /// `service_fee` from the same delivery-quote response, when present.
   final double? deliveryQuoteServiceFee;
 
+  /// `id` off the same delivery-quote response — passed as the optional
+  /// `delivery_quote_id` when validating a promo code, so the backend can
+  /// price the discount against the same quote the screen is showing.
+  final int? deliveryQuoteId;
+
+  /// Promo-code apply/remove state — orthogonal to the delivery-quote
+  /// fields above but follows the same "live on the form, mirror
+  /// `fetchDeliveryQuote`" shape rather than a separate ViewModel, since it
+  /// only ever mutates checkout's own totals display.
+  final bool isApplyingPromo;
+  final String? promoError;
+  final PromoCodeResult? appliedPromo;
+
   const CheckoutForm({
     this.deliveryAddress = '',
     this.deliveryInstructions = '',
@@ -41,6 +55,10 @@ class CheckoutForm {
     this.deliveryQuoteFee,
     this.deliveryQuoteCurrency,
     this.deliveryQuoteServiceFee,
+    this.deliveryQuoteId,
+    this.isApplyingPromo = false,
+    this.promoError,
+    this.appliedPromo,
   });
 
   CheckoutForm copyWith({
@@ -54,6 +72,10 @@ class CheckoutForm {
     Object? deliveryQuoteFee = _unset,
     Object? deliveryQuoteCurrency = _unset,
     Object? deliveryQuoteServiceFee = _unset,
+    Object? deliveryQuoteId = _unset,
+    bool? isApplyingPromo,
+    Object? promoError = _unset,
+    Object? appliedPromo = _unset,
   }) {
     return CheckoutForm(
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
@@ -75,6 +97,16 @@ class CheckoutForm {
       deliveryQuoteServiceFee: identical(deliveryQuoteServiceFee, _unset)
           ? this.deliveryQuoteServiceFee
           : deliveryQuoteServiceFee as double?,
+      deliveryQuoteId: identical(deliveryQuoteId, _unset)
+          ? this.deliveryQuoteId
+          : deliveryQuoteId as int?,
+      isApplyingPromo: isApplyingPromo ?? this.isApplyingPromo,
+      promoError: identical(promoError, _unset)
+          ? this.promoError
+          : promoError as String?,
+      appliedPromo: identical(appliedPromo, _unset)
+          ? this.appliedPromo
+          : appliedPromo as PromoCodeResult?,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/promo_code_result.dart';
 
 class OrdersPage {
   final List<ConsumerOrder> orders;
@@ -197,6 +198,26 @@ class ConsumerOrdersRepository {
       },
     );
     return DeliveryQuote.fromJson(_dataMap(response));
+  }
+
+  /// Validates a promo code and returns the backend-computed discount/totals
+  /// preview for checkout. Read-only — this does not redeem the code or
+  /// mutate anything server-side, so it's safe to call repeatedly (e.g. on
+  /// every "Apply" tap) without duplicate-submission concerns.
+  Future<PromoCodeResult> validatePromoCode({
+    required String code,
+    required String vendorId,
+    int? deliveryQuoteId,
+  }) async {
+    final response = await _client.post(
+      ApiEndpoints.customerPromoCodeValidate,
+      data: {
+        'code': code,
+        'vendor_id': int.tryParse(vendorId) ?? vendorId,
+        if (deliveryQuoteId != null) 'delivery_quote_id': deliveryQuoteId,
+      },
+    );
+    return PromoCodeResult.fromJson(_dataMap(response));
   }
 
   // ─── Private helpers ───────────────────────────────────────────────────────

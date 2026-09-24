@@ -15,6 +15,7 @@ class DeliveryQuote extends Equatable {
     this.distanceKm,
     this.expiresAt,
     this.serviceFee,
+    this.id,
   });
 
   final double fee;
@@ -25,6 +26,12 @@ class DeliveryQuote extends Equatable {
   /// `service_fee` on the quote response, when the backend sends one.
   final double? serviceFee;
 
+  /// `id` (aka `delivery_quote_id`) — this quote's identifier, needed when
+  /// referencing it from another endpoint (e.g. promo-code validation's
+  /// optional `delivery_quote_id`). Mirrors the same fallback already proven
+  /// for `ParcelQuote.id` on this backend's sibling quote endpoint.
+  final int? id;
+
   factory DeliveryQuote.fromJson(Map<String, dynamic> json) {
     final rawFee = json['fee'] ??
         json['delivery_fee'] ??
@@ -32,15 +39,18 @@ class DeliveryQuote extends Equatable {
         json['amount'] ??
         json['total'] ??
         json['cost'];
+    final rawId = json['id'] ?? json['delivery_quote_id'];
     return DeliveryQuote(
       fee: (rawFee as num?)?.toDouble() ?? 0.0,
       currency: json['currency']?.toString() ?? 'GHS',
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
       expiresAt: DateTime.tryParse(json['expires_at']?.toString() ?? ''),
       serviceFee: (json['service_fee'] as num?)?.toDouble(),
+      id: (rawId as num?)?.toInt(),
     );
   }
 
   @override
-  List<Object?> get props => [fee, currency, distanceKm, expiresAt, serviceFee];
+  List<Object?> get props =>
+      [fee, currency, distanceKm, expiresAt, serviceFee, id];
 }

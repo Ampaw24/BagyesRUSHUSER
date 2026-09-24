@@ -2,7 +2,13 @@ import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../constant/app_theme.dart';
+import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/location_helper.dart';
+import '../../../../core/widgets/map_location_picker_sheet.dart';
 import '../../models/business_details_data.dart';
 import '../widgets/vendor_text_field.dart';
 
@@ -40,6 +46,8 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
   late TextEditingController _tinCtrl;
   String? _selectedRegion;
   BusinessTypeModel? _selectedBusinessType;
+  LatLng? _selectedLatLng;
+  bool _isLocatingCurrentPosition = false;
 
   static const List<String> _ghanaRegions = [
     'Ahafo',
@@ -86,6 +94,11 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     );
     _selectedRegion = widget.data.city.isEmpty ? null : widget.data.city;
     _selectedBusinessType = widget.data.businessType;
+    _selectedLatLng =
+        (widget.data.businessLatitude != null &&
+                widget.data.businessLongitude != null)
+            ? LatLng(widget.data.businessLatitude!, widget.data.businessLongitude!)
+            : null;
 
     _nameFocus = FocusNode()
       ..addListener(() {
@@ -144,6 +157,125 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
     super.dispose();
   }
 
+  void _openMapPicker() {
+    _addressFocus.unfocus();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MapLocationPickerSheet(
+        title: 'Business Location',
+        initialPosition: _selectedLatLng,
+        onConfirm: (LatLng latLng, String address) {
+          setState(() {
+            _selectedLatLng = latLng;
+            _addressCtrl.text = address;
+          });
+          _emit();
+          _autoSelectRegionFromLatLng(latLng);
+        },
+      ),
+    );
+  }
+
+  /// Derives the Ghana region from the picked coordinates and auto-selects
+  /// it in the Region dropdown, so the user isn't asked to pick something
+  /// the map pin already told us. Runs after the pin/address are already
+  /// shown — a convenience, not a blocker, so it fails silently and leaves
+  /// the region selector open for a manual pick if it can't resolve a match.
+  Future<void> _autoSelectRegionFromLatLng(LatLng latLng) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        latLng.latitude,
+        latLng.longitude,
+      ).timeout(const Duration(seconds: 8));
+      if (!mounted || placemarks.isEmpty) return;
+
+      final adminArea = placemarks.first.administrativeArea?.trim();
+      if (adminArea == null || adminArea.isEmpty) return;
+
+      // Platform geocoders often suffix the admin area with "Region" (e.g.
+      // "Greater Accra Region") while our picker list uses the bare name.
+      final normalized = adminArea
+          .toLowerCase()
+          .replaceAll(RegExp(r'\s*region\s*$'), '')
+          .trim();
+
+      final match = _ghanaRegions.firstWhere(
+        (region) => region.toLowerCase() == normalized,
+        orElse: () => '',
+      );
+
+      if (match.isNotEmpty && match != _selectedRegion && mounted) {
+        setState(() => _selectedRegion = match);
+        _emit();
+      }
+    } catch (e, s) {
+      appLogger.w(
+        '[BusinessDetailsStep] Could not derive region from coordinates',
+        error: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    if (_isLocatingCurrentPosition) return;
+    setState(() => _isLocatingCurrentPosition = true);
+    try {
+      final result = await LocationHelper.getCurrentLocation(
+        accuracy: LocationAccuracy.high,
+      );
+      if (!mounted) return;
+
+      switch (result.status) {
+        case LocationStatus.success:
+          final latLng = LatLng(
+            result.position!.latitude,
+            result.position!.longitude,
+          );
+          setState(() {
+            _selectedLatLng = latLng;
+            _addressCtrl.text = result.address;
+          });
+          _emit();
+          _autoSelectRegionFromLatLng(latLng);
+          break;
+        case LocationStatus.serviceDisabled:
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Location services disabled. Enable GPS and try again.'),
+            behavior: SnackBarBehavior.floating,
+          ));
+          break;
+        case LocationStatus.permissionDeniedForever:
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text(
+                'Location permission denied. Enable it in Settings.'),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: LocationHelper.openAppSettings,
+            ),
+          ));
+          break;
+        case LocationStatus.permissionDenied:
+        case LocationStatus.timeout:
+        case LocationStatus.error:
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Could not detect your location. Try pinning it on the map instead.'),
+            behavior: SnackBarBehavior.floating,
+          ));
+          break;
+      }
+    } finally {
+      if (mounted) setState(() => _isLocatingCurrentPosition = false);
+    }
+  }
+
   void _emit() {
     widget.onChanged(
       widget.data.copyWith(
@@ -152,6 +284,8 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         phone: _phoneCtrl.text,
         email: _emailCtrl.text,
         businessAddress: _addressCtrl.text,
+        businessLatitude: _selectedLatLng?.latitude,
+        businessLongitude: _selectedLatLng?.longitude,
         city: _selectedRegion ?? '',
         businessType: _selectedBusinessType,
         description: _descriptionCtrl.text,
@@ -255,13 +389,67 @@ class _BusinessDetailsStepState extends State<BusinessDetailsStep> {
         ),
         SizedBox(height: size.height * 0.022),
 
-        // Business Address
+        // Business Address + real-time map location picker
         VendorTextField(
           label: 'Business Address',
           hint: 'Street address or landmark',
           controller: _addressCtrl,
           focusNode: _addressFocus,
+          suffixIcon: IconButton(
+            icon: Icon(
+              Icons.map_rounded,
+              color: _selectedLatLng != null
+                  ? AppColors.success
+                  : AppColors.primary,
+            ),
+            tooltip: 'Pin on map',
+            onPressed: _openMapPicker,
+          ),
         ),
+        SizedBox(height: size.height * 0.008),
+        Row(
+          children: [
+            Expanded(
+              child: _LocationQuickAction(
+                icon: Icons.my_location_rounded,
+                label: _isLocatingCurrentPosition
+                    ? 'Locating…'
+                    : 'Use current location',
+                isLoading: _isLocatingCurrentPosition,
+                onTap: _useCurrentLocation,
+              ),
+            ),
+            SizedBox(width: size.width * 0.02),
+            Expanded(
+              child: _LocationQuickAction(
+                icon: Icons.map_outlined,
+                label: 'Pick on map',
+                onTap: _openMapPicker,
+              ),
+            ),
+          ],
+        ),
+        if (_selectedLatLng != null) ...[
+          SizedBox(height: size.height * 0.006),
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                size: size.width * 0.034,
+                color: AppColors.success,
+              ),
+              SizedBox(width: size.width * 0.012),
+              Text(
+                'Location pinned',
+                style: TextStyle(
+                  fontSize: size.width * 0.03,
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
         SizedBox(height: size.height * 0.022),
 
         // Region (replacing City)
@@ -656,6 +844,75 @@ class _RegionSelector extends StatelessWidget {
               ),
             ),
             SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Small pill-shaped action used to trigger GPS lookup / the map picker for
+// the business location, mirroring the pattern used on the consumer
+// checkout address field so location-picking feels consistent app-wide.
+class _LocationQuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isLoading;
+
+  const _LocationQuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: size.width * 0.03,
+          vertical: size.height * 0.01,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(size.width * 0.05),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading)
+              SizedBox(
+                width: size.width * 0.032,
+                height: size.width * 0.032,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              )
+            else
+              Icon(icon, size: size.width * 0.04, color: AppColors.primary),
+            SizedBox(width: size.width * 0.016),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: size.width * 0.03,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),

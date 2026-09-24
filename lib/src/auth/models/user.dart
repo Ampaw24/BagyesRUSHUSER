@@ -51,10 +51,18 @@ class User extends Equatable {
     final role = JsonUtils.asString(userMap['role'] ?? json['role']);
     final email = JsonUtils.asString(userMap['email'] ?? json['email']);
     final phone = JsonUtils.asString(userMap['phone'] ?? json['phone']);
+    // `user_id` is checked first: some endpoints (e.g. `POST customer/me/avatar`,
+    // `PUT customer/me`) respond with the bare profile document instead of a
+    // wrapped user object. There, `_id`/`id` are the *profile's* own id, and
+    // `user_id` is the only field pointing back to the actual account — if we
+    // picked `_id` here instead, the resulting User.id wouldn't match the
+    // cached one, and AuthViewmodel._mergeUser's cross-account guard would
+    // discard phoneVerified/role/phone/email instead of merging, bouncing the
+    // user into the KYC-verification redirect on every profile update.
     final id = JsonUtils.asString(
-      userMap['_id'] ??
+      userMap['user_id'] ??
+          userMap['_id'] ??
           userMap['id'] ??
-          userMap['user_id'] ??
           json['_id'] ??
           json['id'],
     );

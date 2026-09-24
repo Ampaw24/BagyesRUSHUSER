@@ -157,6 +157,20 @@ class ConsumerOrder {
   final PaymentStatus paymentStatus;
   final int? estimatedPrepMinutes;
 
+  /// Handed to the courier at drop-off to confirm the right person is
+  /// receiving the order. Generated once by the backend at order creation
+  /// and never changes, so it isn't touched by [copyWith].
+  final String? deliveryPin;
+
+  /// When the rider's wait period at the drop-off location expires. Comes
+  /// from the tracking endpoint / realtime updates, so it's part of
+  /// [copyWith] like the other live tracking fields below.
+  final DateTime? waitExpiresAt;
+
+  /// Live straight-line distance, in metres, between the rider and the
+  /// delivery address. Comes from the tracking endpoint / realtime updates.
+  final double? arrivalDistanceMetres;
+
   /// Live rider position — only ever set from a realtime `rider.location`
   /// event, never from `fromJson`; not part of any REST payload.
   final RiderLocation? riderLocation;
@@ -183,6 +197,9 @@ class ConsumerOrder {
     this.driverName,
     this.driverPhone,
     this.riderLocation,
+    this.deliveryPin,
+    this.waitExpiresAt,
+    this.arrivalDistanceMetres,
   });
 
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
@@ -202,6 +219,8 @@ class ConsumerOrder {
     String? driverName,
     String? driverPhone,
     RiderLocation? riderLocation,
+    DateTime? waitExpiresAt,
+    double? arrivalDistanceMetres,
   }) {
     return ConsumerOrder(
       id: id ?? this.id,
@@ -225,6 +244,9 @@ class ConsumerOrder {
       driverName: driverName ?? this.driverName,
       driverPhone: driverPhone ?? this.driverPhone,
       riderLocation: riderLocation ?? this.riderLocation,
+      deliveryPin: deliveryPin,
+      waitExpiresAt: waitExpiresAt ?? this.waitExpiresAt,
+      arrivalDistanceMetres: arrivalDistanceMetres ?? this.arrivalDistanceMetres,
     );
   }
 
@@ -281,6 +303,12 @@ class ConsumerOrder {
       paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',
       paymentStatus: _paymentStatusFromString(
           payment?['status'] as String? ?? json['payment_status'] as String?),
+      deliveryPin: delivery?['pin'] as String? ?? json['delivery_pin'] as String?,
+      waitExpiresAt: DateTime.tryParse(
+          (json['wait_expires_at'] ?? delivery?['wait_expires_at']) as String? ?? ''),
+      arrivalDistanceMetres:
+          (json['arrival_distance_metres'] as num?)?.toDouble() ??
+              (rider?['arrival_distance_metres'] as num?)?.toDouble(),
     );
   }
 
@@ -298,5 +326,8 @@ class ConsumerOrder {
         'delivery_instructions': deliveryInstructions,
         'payment_method': paymentMethod,
         'payment_status': paymentStatus.name,
+        'delivery_pin': deliveryPin,
+        'wait_expires_at': waitExpiresAt?.toIso8601String(),
+        'arrival_distance_metres': arrivalDistanceMetres,
       };
 }

@@ -235,6 +235,10 @@ class _VendorHomeState extends State<VendorHome> {
                   _closeDrawer();
                   context.push(AppRoutes.vendorPayout);
                 },
+                onReviews: () {
+                  _closeDrawer();
+                  context.push(AppRoutes.vendorReviews);
+                },
                 onChangePassword: () {
                   _closeDrawer();
                   ChangePasswordSheet.show(context);
@@ -388,12 +392,12 @@ class _DashboardTabState extends State<_DashboardTab>
           border: OutlineInputBorder(),
         ),
       ),
-      onConfirm: () {
+      onConfirm: () async {
         final minutes = int.tryParse(controller.text.trim());
-        context.read<DashboardViewModel>().acceptOrder(
-          orderId,
-          estimatedPrepMinutes: minutes,
-        );
+        final vm = context.read<DashboardViewModel>();
+        await vm.acceptOrder(orderId, estimatedPrepMinutes: minutes);
+        if (!mounted || vm.state.errorMessage != null) return;
+        widget.onViewAllOrders?.call();
       },
     );
   }
@@ -797,7 +801,7 @@ class _DashboardTabState extends State<_DashboardTab>
           // ── Active Orders List ──
           if (state.activeOrders.isEmpty)
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
+              padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.03),
               sliver: SliverToBoxAdapter(
                 child: DottedBorder(
                   borderType: BorderType.RRect,
@@ -859,7 +863,7 @@ class _DashboardTabState extends State<_DashboardTab>
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.28),
+              padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.03),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final order = state.activeOrders[index];
@@ -881,6 +885,34 @@ class _DashboardTabState extends State<_DashboardTab>
                   );
                 }, childCount: state.activeOrders.length),
               ),
+            ),
+
+          // ── Recent Orders (read-only glance, any status) ──
+          if (state.recentOrders.isNotEmpty)
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.28),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ActiveOrdersLabel(
+                      title: 'Recent Orders',
+                      onViewAll: widget.onViewAllOrders,
+                    ),
+                    SizedBox(height: w * 0.03),
+                    for (final order in state.recentOrders)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: w * 0.035),
+                        child: OrderCard(order: order, showActions: false),
+                      ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: EdgeInsets.only(bottom: w * 0.28),
+              sliver: const SliverToBoxAdapter(child: SizedBox.shrink()),
             ),
         ],
       ),
@@ -1014,9 +1046,14 @@ class _SetupPendingStoreRow extends StatelessWidget {
 // ─── Active orders section label ────────────────────────────────────────
 
 class _ActiveOrdersLabel extends StatelessWidget {
+  final String title;
   final int count;
   final VoidCallback? onViewAll;
-  const _ActiveOrdersLabel({this.count = 0, this.onViewAll});
+  const _ActiveOrdersLabel({
+    this.title = 'Active Orders',
+    this.count = 0,
+    this.onViewAll,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1025,7 +1062,7 @@ class _ActiveOrdersLabel extends StatelessWidget {
     return Row(
       children: [
         Text(
-          'Active Orders',
+          title,
           style: TextStyle(
             fontSize: w * 0.045,
             fontWeight: FontWeight.w700,

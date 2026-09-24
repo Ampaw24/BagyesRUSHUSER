@@ -39,12 +39,18 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
   late Animation<double> _contentFade;
   late Animation<Offset> _contentSlide;
 
+  /// Saved reference so dispose() doesn't call context.read on a widget
+  /// whose element tree may already be deactivated by then.
+  VendorRegistrationViewModel? _vm;
+
   @override
   void initState() {
     super.initState();
     _setupAnimations();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final vm = context.read<VendorRegistrationViewModel>();
+      _vm = vm;
       vm.loadBusinessTypes();
       vm.loadCuisineTypes();
       vm.addListener(_onVmStateChanged);
@@ -127,9 +133,7 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
 
   @override
   void dispose() {
-    context.read<VendorRegistrationViewModel>().removeListener(
-      _onVmStateChanged,
-    );
+    _vm?.removeListener(_onVmStateChanged);
     _headerController.dispose();
     _contentController.dispose();
     super.dispose();
