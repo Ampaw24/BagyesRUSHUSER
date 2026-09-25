@@ -21,6 +21,7 @@ class VendorKycState extends Equatable {
   final VendorKycStatus status;
   final String? businessCertPath;
   final String? foodSafetyLicensePath;
+  final String? ownerIdPath;
 
   final String openingTime;
   final String closingTime;
@@ -41,6 +42,7 @@ class VendorKycState extends Equatable {
     this.status = VendorKycStatus.initial,
     this.businessCertPath,
     this.foodSafetyLicensePath,
+    this.ownerIdPath,
     this.openingTime = '08:00',
     this.closingTime = '22:00',
     this.operatingDays = kAllOperatingDays,
@@ -61,6 +63,8 @@ class VendorKycState extends Equatable {
     bool clearBusinessCertPath = false,
     String? foodSafetyLicensePath,
     bool clearFoodSafetyLicensePath = false,
+    String? ownerIdPath,
+    bool clearOwnerIdPath = false,
     String? openingTime,
     String? closingTime,
     List<String>? operatingDays,
@@ -83,6 +87,7 @@ class VendorKycState extends Equatable {
       foodSafetyLicensePath: clearFoodSafetyLicensePath
           ? null
           : (foodSafetyLicensePath ?? this.foodSafetyLicensePath),
+      ownerIdPath: clearOwnerIdPath ? null : (ownerIdPath ?? this.ownerIdPath),
       openingTime: openingTime ?? this.openingTime,
       closingTime: closingTime ?? this.closingTime,
       operatingDays: operatingDays ?? this.operatingDays,
@@ -105,6 +110,7 @@ class VendorKycState extends Equatable {
         status,
         businessCertPath,
         foodSafetyLicensePath,
+        ownerIdPath,
         openingTime,
         closingTime,
         operatingDays,
@@ -138,6 +144,10 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
   void setFoodSafetyLicensePath(String? path) => emit(state.copyWith(
         foodSafetyLicensePath: path,
         clearFoodSafetyLicensePath: path == null,
+      ));
+  void setOwnerIdPath(String? path) => emit(state.copyWith(
+        ownerIdPath: path,
+        clearOwnerIdPath: path == null,
       ));
 
   void setOpeningTime(String time) => emit(state.copyWith(openingTime: time));
@@ -308,14 +318,13 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
 
   /// Confirms the required documents are uploaded, then submits the profile
   /// for admin review via `POST /vendor/me/submit-review`. Business
-  /// registration certificate and food safety license are already uploaded
-  /// via [uploadDocument] as soon as the vendor confirms each one — no
-  /// identity/ID-card step, no redundant profile PATCH.
+  /// registration certificate, food safety license, and owner ID are already
+  /// uploaded via [uploadDocument] as soon as the vendor confirms each one —
+  /// no redundant profile PATCH here.
   Future<bool> submitKyc() async {
     final profile = _currentUserProvider.user?.profile as VendorProfile?;
     final documents = profile?.documents;
-    if (!(documents?.businessRegistrationCertificate.uploaded ?? false) ||
-        !(documents?.foodSafetyLicense.uploaded ?? false)) {
+    if (!(documents?.allUploaded ?? false)) {
       emit(state.copyWith(
         status: VendorKycStatus.error,
         errorMessage: 'Please upload all required documents',

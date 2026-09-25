@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:math' show cos, sqrt, asin, max;
+import 'dart:math' show cos, sqrt, asin;
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -41,12 +41,8 @@ class SendParcelState {
   /// Users may add up to [SendParcelViewModel.maxStops] stops.
   final List<DeliveryStop> deliveryStops;
 
-  final List<RiderModel> availableRiders;
-  final String? selectedRiderId;
-
   /// Total route distance: pickup → stop1 → stop2 → … → stopN (km).
   final double distanceKm;
-  final bool isLoadingRiders;
 
   /// Whether the package contains fragile items — shown to the rider.
   /// Matches the booking-level toggle used by Lalamove and GrabExpress.
@@ -57,11 +53,16 @@ class SendParcelState {
   /// stop in the create/quote requests.
   final String packageSize;
 
-  // ── Backend quote (authoritative price) ───────────────────────────────────
+  // ── Backend quote (authoritative price + matched rider) ────────────────────
   final bool isFetchingQuote;
   final String? quoteError;
   final double? quotedPrice;
   final String? quoteCurrency;
+  final int? quotedEtaMinutes;
+
+  /// The rider the backend matched to the current quote. Null while
+  /// fetching, on error, or when no rider is available nearby.
+  final RiderModel? assignedRider;
 
   // ── Payment + submission ────────────────────────────────────────────────
   final PaymentMethod? selectedPaymentMethod;
@@ -78,16 +79,15 @@ class SendParcelState {
     this.pickupLatLng,
     this.pickupAddress = '',
     this.deliveryStops = const [DeliveryStop(id: 'stop_0')],
-    this.availableRiders = const [],
-    this.selectedRiderId,
     this.distanceKm = 0.0,
-    this.isLoadingRiders = false,
     this.fragile = false,
     this.packageSize = '',
     this.isFetchingQuote = false,
     this.quoteError,
     this.quotedPrice,
     this.quoteCurrency,
+    this.quotedEtaMinutes,
+    this.assignedRider,
     this.selectedPaymentMethod,
     this.isSubmitting = false,
     this.submitError,
@@ -95,22 +95,6 @@ class SendParcelState {
   });
 
   // ── Computed ───────────────────────────────────────────────────────────────
-
-  RiderModel? get selectedRider =>
-      availableRiders.where((r) => r.id == selectedRiderId).firstOrNull;
-
-  /// Additional fee for every stop beyond the first.
-  double get extraStopSurchargeGhs {
-    final extra = (deliveryStops.length - 1).clamp(0, 99);
-    return extra * SendParcelViewModel.perStopFeeGhs;
-  }
-
-  /// Full cost including base fee, distance charge, and per-stop surcharge.
-  double get totalCostGhs {
-    final rider = selectedRider;
-    if (rider == null) return 0.0;
-    return rider.totalCost(distanceKm) + extraStopSurchargeGhs;
-  }
 
   bool get canProceed {
     switch (currentStep) {
@@ -125,7 +109,7 @@ class SendParcelState {
         return deliveryStops.isNotEmpty &&
             deliveryStops.every((s) => s.isComplete);
       case ParcelStep.availableRiders:
-        return selectedRiderId != null;
+        return !isFetchingQuote && assignedRider != null;
       case ParcelStep.summary:
         return selectedPaymentMethod != null && !isSubmitting;
     }
@@ -140,16 +124,15 @@ class SendParcelState {
     LatLng? pickupLatLng,
     String? pickupAddress,
     List<DeliveryStop>? deliveryStops,
-    List<RiderModel>? availableRiders,
-    String? selectedRiderId,
     double? distanceKm,
-    bool? isLoadingRiders,
     bool? fragile,
     String? packageSize,
     bool? isFetchingQuote,
     Object? quoteError = _unset,
     Object? quotedPrice = _unset,
     Object? quoteCurrency = _unset,
+    Object? quotedEtaMinutes = _unset,
+    Object? assignedRider = _unset,
     Object? selectedPaymentMethod = _unset,
     bool? isSubmitting,
     Object? submitError = _unset,
@@ -164,10 +147,7 @@ class SendParcelState {
         pickupLatLng: pickupLatLng ?? this.pickupLatLng,
         pickupAddress: pickupAddress ?? this.pickupAddress,
         deliveryStops: deliveryStops ?? this.deliveryStops,
-        availableRiders: availableRiders ?? this.availableRiders,
-        selectedRiderId: selectedRiderId ?? this.selectedRiderId,
         distanceKm: distanceKm ?? this.distanceKm,
-        isLoadingRiders: isLoadingRiders ?? this.isLoadingRiders,
         fragile: fragile ?? this.fragile,
         packageSize: packageSize ?? this.packageSize,
         isFetchingQuote: isFetchingQuote ?? this.isFetchingQuote,
@@ -179,6 +159,12 @@ class SendParcelState {
         quoteCurrency: identical(quoteCurrency, _unset)
             ? this.quoteCurrency
             : quoteCurrency as String?,
+        quotedEtaMinutes: identical(quotedEtaMinutes, _unset)
+            ? this.quotedEtaMinutes
+            : quotedEtaMinutes as int?,
+        assignedRider: identical(assignedRider, _unset)
+            ? this.assignedRider
+            : assignedRider as RiderModel?,
         selectedPaymentMethod: identical(selectedPaymentMethod, _unset)
             ? this.selectedPaymentMethod
             : selectedPaymentMethod as PaymentMethod?,
@@ -204,9 +190,6 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
   static const int maxImages = 5;
 
-  /// Extra fee charged per stop beyond the first, in GHS.
-  static const double perStopFeeGhs = 2.0;
-
   /// Monotonically increasing counter — ensures stop IDs are never recycled
   /// after a remove+add cycle, preventing stale `_StopCardState` reuse.
   int _stopCounter = 1;
@@ -226,21 +209,18 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
     final nextStep = steps[next];
 
-    // When entering the riders step, compute the total route distance and
-    // generate mock riders sized for that distance.
+    // When entering the riders step, compute the client-side route distance
+    // for immediate display, then fetch the real backend quote — which is
+    // what actually matches and returns the assigned rider.
     if (nextStep == ParcelStep.availableRiders) {
       final dist = _calculateTotalRouteDistance();
-      final riders = _generateRiders(dist);
-      emit(state.copyWith(
-        currentStep: nextStep,
-        distanceKm: dist,
-        availableRiders: riders,
-      ));
+      emit(state.copyWith(currentStep: nextStep, distanceKm: dist));
+      fetchQuote();
       return;
     }
 
-    // When entering the summary step, fetch the authoritative backend
-    // quote up front so the customer sees the real price before paying.
+    // When entering the summary step, re-fetch the quote so the price and
+    // assigned rider shown are fresh right before paying.
     if (nextStep == ParcelStep.summary) {
       emit(state.copyWith(currentStep: nextStep));
       fetchQuote();
@@ -349,11 +329,6 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     emit(state.copyWith(deliveryStops: stops));
   }
 
-  // ── Rider selection ──────────────────────────────────────────────────────
-
-  void selectRider(String riderId) =>
-      emit(state.copyWith(selectedRiderId: riderId));
-
   // ── Payment method ────────────────────────────────────────────────────────
 
   void selectPaymentMethod(PaymentMethod method) =>
@@ -361,11 +336,12 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
   // ── Backend quote ────────────────────────────────────────────────────────
 
-  /// Fetches the authoritative delivery quote from the backend so the
-  /// customer sees the real price on the summary screen before paying.
-  /// This is a display-only fetch — [submitParcel] always requests a fresh
-  /// quote of its own right before creating the parcel, so a stale price
-  /// shown here can never be what actually gets charged.
+  /// Fetches the authoritative delivery quote from the backend — this is
+  /// also how a rider gets matched, since the backend embeds the nearest
+  /// available rider on the quote response. This is a display-only fetch —
+  /// [submitParcel] always requests a fresh quote of its own right before
+  /// creating the parcel, so a stale price/rider shown here can never be
+  /// what actually gets charged/assigned.
   Future<void> fetchQuote() async {
     if (state.pickupLatLng == null || state.deliveryStops.isEmpty) return;
 
@@ -387,6 +363,8 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
         isFetchingQuote: false,
         quotedPrice: quote.price,
         quoteCurrency: quote.currency,
+        quotedEtaMinutes: quote.etaMinutes,
+        assignedRider: quote.rider,
       )),
     );
   }
@@ -559,51 +537,4 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
             2;
     return 12742 * asin(sqrt(val));
   }
-
-  List<RiderModel> _generateRiders(double distanceKm) => [
-        RiderModel(
-          id: 'r1',
-          name: 'Kwame Asante',
-          vehicle: VehicleType.motorbike,
-          rating: 4.8,
-          reviewCount: 142,
-          baseFeeGhs: 5.0,
-          perKmFeeGhs: 2.5,
-          etaMinutes: max(6, (distanceKm * 2.2).round()),
-          initials: 'KA',
-        ),
-        RiderModel(
-          id: 'r2',
-          name: 'Abena Mensah',
-          vehicle: VehicleType.bicycle,
-          rating: 4.6,
-          reviewCount: 89,
-          baseFeeGhs: 3.0,
-          perKmFeeGhs: 1.5,
-          etaMinutes: max(10, (distanceKm * 4.5).round()),
-          initials: 'AM',
-        ),
-        RiderModel(
-          id: 'r3',
-          name: 'Yaw Boateng',
-          vehicle: VehicleType.car,
-          rating: 4.9,
-          reviewCount: 214,
-          baseFeeGhs: 10.0,
-          perKmFeeGhs: 4.0,
-          etaMinutes: max(4, (distanceKm * 1.6).round()),
-          initials: 'YB',
-        ),
-        RiderModel(
-          id: 'r4',
-          name: 'Ama Darko',
-          vehicle: VehicleType.motorbike,
-          rating: 4.7,
-          reviewCount: 97,
-          baseFeeGhs: 5.0,
-          perKmFeeGhs: 2.8,
-          etaMinutes: max(5, (distanceKm * 2.0).round()),
-          initials: 'AD',
-        ),
-      ];
 }

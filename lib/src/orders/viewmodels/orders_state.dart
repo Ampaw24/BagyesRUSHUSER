@@ -95,7 +95,7 @@ final class MenuLoadedState extends OrdersState {
   int get outOfStockCount =>
       items.where((i) => i.isOutOfStock || !i.isAvailable).length;
 
-  List<MenuItem> get featuredItems => items.where((i) => i.isFeatured).toList();
+  List<MenuItem> get featuredItems => items.where((i) => i.isPopular).toList();
 
   List<MenuItem> get filteredItems {
     var result = List<MenuItem>.from(items);
@@ -140,7 +140,7 @@ final class MenuLoadedState extends OrdersState {
         break;
       case 'featured':
         result.sort(
-          (a, b) => (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0),
+          (a, b) => (b.isPopular ? 1 : 0).compareTo(a.isPopular ? 1 : 0),
         );
         break;
     }

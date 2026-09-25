@@ -13,7 +13,7 @@ class ISignup {
   String otp = '';
 }
 
-Future<http.Response> userSignup(data) {
+Future<http.Response> userSignup(dynamic data) {
   const headers = {
     'Content-Type': 'application/json',
     "Access-Control-Allow-Origin": "*",
@@ -25,7 +25,7 @@ Future<http.Response> userSignup(data) {
       headers: headers, body: jsonEncode(data));
 }
 //TODO::  Auth 
-Future<http.Response> sendOtp(data) {
+Future<http.Response> sendOtp(dynamic data) {
   const headers = {
     'Content-Type': 'application/json',
     "Access-Control-Allow-Origin": "*",
@@ -34,7 +34,7 @@ Future<http.Response> sendOtp(data) {
       headers: headers, body: jsonEncode(data));
 }
 
-Future<http.Response> updateUser(token, data) {
+Future<http.Response> updateUser(dynamic token, dynamic data) {
   final headers = {
     'Content-Type': 'application/json',
     "Access-Control-Allow-Origin": "*",
@@ -44,7 +44,7 @@ Future<http.Response> updateUser(token, data) {
       headers: headers, body: jsonEncode(data));
 }
 
-Future<http.Response> getDetails(token, id) {
+Future<http.Response> getDetails(dynamic token, dynamic id) {
   const headers = {
     'Content-Type': 'application/json',
     "Access-Control-Allow-Origin": "*",

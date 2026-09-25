@@ -11,7 +11,7 @@ class MenuItem extends Equatable {
   final bool isAvailable;
   final List<String> tags;
   final int prepTimeMinutes;
-  final bool isFeatured;
+  final bool isPopular;
   final bool isOutOfStock;
   final List<AddonGroup> addonGroups;
   final int minimumOrderQty;
@@ -27,7 +27,7 @@ class MenuItem extends Equatable {
     this.isAvailable = true,
     this.tags = const [],
     this.prepTimeMinutes = 15,
-    this.isFeatured = false,
+    this.isPopular = false,
     this.isOutOfStock = false,
     this.addonGroups = const [],
     this.minimumOrderQty = 1,
@@ -49,7 +49,7 @@ class MenuItem extends Equatable {
       isAvailable: json['is_available'] as bool? ?? true,
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
       prepTimeMinutes: json['prep_time_minutes'] as int? ?? 15,
-      isFeatured: json['is_featured'] as bool? ?? false,
+      isPopular: json['is_popular'] as bool? ?? false,
       isOutOfStock: json['is_out_of_stock'] as bool? ?? false,
       addonGroups: (json['addon_groups'] as List<dynamic>? ?? [])
           .map((e) => AddonGroup.fromJson(e as Map<String, dynamic>))
@@ -70,7 +70,7 @@ class MenuItem extends Equatable {
       'is_available': isAvailable,
       'tags': tags,
       'prep_time_minutes': prepTimeMinutes,
-      'is_featured': isFeatured,
+      'is_popular': isPopular,
       'is_out_of_stock': isOutOfStock,
       'addon_groups': addonGroups.map((g) => g.toJson()).toList(),
       'minimum_order_qty': minimumOrderQty,
@@ -88,7 +88,7 @@ class MenuItem extends Equatable {
     bool? isAvailable,
     List<String>? tags,
     int? prepTimeMinutes,
-    bool? isFeatured,
+    bool? isPopular,
     bool? isOutOfStock,
     List<AddonGroup>? addonGroups,
     int? minimumOrderQty,
@@ -105,7 +105,7 @@ class MenuItem extends Equatable {
       isAvailable: isAvailable ?? this.isAvailable,
       tags: tags ?? this.tags,
       prepTimeMinutes: prepTimeMinutes ?? this.prepTimeMinutes,
-      isFeatured: isFeatured ?? this.isFeatured,
+      isPopular: isPopular ?? this.isPopular,
       isOutOfStock: isOutOfStock ?? this.isOutOfStock,
       addonGroups: addonGroups ?? this.addonGroups,
       minimumOrderQty: minimumOrderQty ?? this.minimumOrderQty,
@@ -126,7 +126,7 @@ class MenuItem extends Equatable {
     isAvailable,
     tags,
     prepTimeMinutes,
-    isFeatured,
+    isPopular,
     isOutOfStock,
     addonGroups,
     minimumOrderQty,

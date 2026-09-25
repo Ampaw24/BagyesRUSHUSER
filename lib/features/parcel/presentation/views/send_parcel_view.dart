@@ -239,11 +239,16 @@ class _SendParcelViewState extends State<SendParcelView> {
 
       case ParcelStep.availableRiders:
         return AvailableRidersStep(
-          riders: state.availableRiders,
-          selectedRiderId: state.selectedRiderId,
+          rider: state.assignedRider,
           distanceKm: state.distanceKm,
-          extraStopSurchargeGhs: state.extraStopSurchargeGhs,
-          onRiderSelected: vm.selectRider,
+          etaMinutes: state.quotedEtaMinutes,
+          quotedPrice: state.quotedPrice,
+          quoteCurrency: state.quoteCurrency,
+          isFetchingQuote: state.isFetchingQuote,
+          quoteError: state.quoteError,
+          onRetry: vm.fetchQuote,
+          pickupLatLng: state.pickupLatLng,
+          deliveryStops: state.deliveryStops,
         );
 
       case ParcelStep.summary:
@@ -253,9 +258,7 @@ class _SendParcelViewState extends State<SendParcelView> {
           pickupAddress: state.pickupAddress,
           deliveryStops: state.deliveryStops,
           distanceKm: state.distanceKm,
-          extraStopSurchargeGhs: state.extraStopSurchargeGhs,
-          selectedRider: state.selectedRider,
-          totalCostGhs: state.totalCostGhs,
+          assignedRider: state.assignedRider,
           fragile: state.fragile,
           packageImages: state.packageImages,
         );
@@ -289,7 +292,7 @@ class _SendParcelViewState extends State<SendParcelView> {
       case ParcelStep.deliveryLocation:
         return 'Delivery Location';
       case ParcelStep.availableRiders:
-        return 'Choose a Rider';
+        return 'Your Rider';
       case ParcelStep.summary:
         return 'Delivery Summary';
     }

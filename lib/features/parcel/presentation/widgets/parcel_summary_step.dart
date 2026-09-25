@@ -23,9 +23,7 @@ class ParcelSummaryStep extends StatefulWidget {
   final String pickupAddress;
   final List<DeliveryStop> deliveryStops;
   final double distanceKm;
-  final double extraStopSurchargeGhs;
-  final RiderModel? selectedRider;
-  final double totalCostGhs;
+  final RiderModel? assignedRider;
   final bool fragile;
   final List<File> packageImages;
 
@@ -36,9 +34,7 @@ class ParcelSummaryStep extends StatefulWidget {
     required this.pickupAddress,
     required this.deliveryStops,
     required this.distanceKm,
-    required this.extraStopSurchargeGhs,
-    required this.selectedRider,
-    required this.totalCostGhs,
+    required this.assignedRider,
     required this.fragile,
     required this.packageImages,
   });
@@ -103,13 +99,12 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
     if (result == null) return;
     _paymentVm.loadPaymentMethods();
     if (!mounted) return;
-    context.read<SendParcelViewModel>().selectPaymentMethod(result);
+    this.context.read<SendParcelViewModel>().selectPaymentMethod(result);
   }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final hasExtraStops = widget.deliveryStops.length > 1;
     final sendVm = context.watch<SendParcelViewModel>();
     final sendState = sendVm.state;
 
@@ -166,53 +161,19 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
           ),
 
           // ── Rider summary ────────────────────────────────────────────────
-          if (widget.selectedRider != null) ...[
+          if (widget.assignedRider != null) ...[
             SizedBox(height: w * 0.04),
             _Divider(),
             SizedBox(height: w * 0.04),
-            _RiderSummaryRow(rider: widget.selectedRider!, w: w),
+            _RiderSummaryRow(rider: widget.assignedRider!, w: w),
           ],
 
           SizedBox(height: w * 0.04),
           _Divider(),
           SizedBox(height: w * 0.04),
 
-          // ── Cost breakdown ───────────────────────────────────────────────
-          _CostRow(
-            label: 'Base fee',
-            value:
-                'GHS ${widget.selectedRider?.baseFeeGhs.toStringAsFixed(2) ?? '0.00'}',
-            w: w,
-          ),
-          SizedBox(height: w * 0.02),
-          _CostRow(
-            label:
-                'Distance (${widget.distanceKm.toStringAsFixed(1)} km × GHS ${widget.selectedRider?.perKmFeeGhs.toStringAsFixed(2) ?? '0'})',
-            value:
-                'GHS ${((widget.selectedRider?.perKmFeeGhs ?? 0) * widget.distanceKm).toStringAsFixed(2)}',
-            w: w,
-          ),
-          if (hasExtraStops) ...[
-            SizedBox(height: w * 0.02),
-            _CostRow(
-              label:
-                  'Extra stops (${widget.deliveryStops.length - 1} × GHS 2.00)',
-              value: 'GHS ${widget.extraStopSurchargeGhs.toStringAsFixed(2)}',
-              w: w,
-              accent: true,
-            ),
-          ],
-          SizedBox(height: w * 0.015),
-          Text(
-            'Estimated breakdown — the amount charged is confirmed by the '
-            'total below.',
-            style: TextStyle(fontSize: w * 0.028, color: AppColors.textHint),
-          ),
-          SizedBox(height: w * 0.03),
-
-          // Total box — always driven by the backend quote, never the
-          // client-side estimate above, since that's what actually gets
-          // charged.
+          // Total box — always driven by the backend quote, the amount
+          // that actually gets charged.
           _QuoteTotalBox(
             isFetchingQuote: sendState.isFetchingQuote,
             quoteError: sendState.quoteError,
@@ -512,7 +473,7 @@ class _RiderSummaryRow extends StatelessWidget {
                   ),
                   SizedBox(width: w * 0.01),
                   Text(
-                    rider.vehicleLabel,
+                    rider.vehicleTypeLabel ?? 'Rider',
                     style: TextStyle(
                       fontSize: w * 0.03,
                       color: AppColors.textSecondary,
@@ -699,48 +660,6 @@ class _DetailChip extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Cost row ──────────────────────────────────────────────────────────────────
-
-class _CostRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final double w;
-  final bool accent;
-
-  const _CostRow({
-    required this.label,
-    required this.value,
-    required this.w,
-    this.accent = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: w * 0.033,
-              color: accent ? AppColors.primary : AppColors.textSecondary,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: w * 0.033,
-            fontWeight: FontWeight.w600,
-            color: accent ? AppColors.primary : AppColors.textPrimary,
-          ),
-        ),
-      ],
     );
   }
 }

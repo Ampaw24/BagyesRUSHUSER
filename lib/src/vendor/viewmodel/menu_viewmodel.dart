@@ -49,7 +49,7 @@ class MenuState extends Equatable {
       items.where((i) => i.isOutOfStock || !i.isAvailable).length;
 
   List<MenuItem> get featuredItems =>
-      items.where((i) => i.isFeatured).toList();
+      items.where((i) => i.isPopular).toList();
 
   List<MenuItem> get filteredItems {
     var result = List<MenuItem>.from(items);
@@ -95,7 +95,7 @@ class MenuState extends Equatable {
       case 'featured':
         result.sort(
           (a, b) =>
-              (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0),
+              (b.isPopular ? 1 : 0).compareTo(a.isPopular ? 1 : 0),
         );
         break;
     }

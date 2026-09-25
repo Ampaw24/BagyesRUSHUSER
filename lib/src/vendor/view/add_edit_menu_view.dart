@@ -88,7 +88,7 @@ class _AddEditMenuViewState extends State<AddEditMenuView> {
       _selectedCategoryId = match.isNotEmpty
           ? match.first.id
           : (categoryOptions.isNotEmpty ? categoryOptions.first.id : null);
-      _isFeatured = item.isFeatured;
+      _isFeatured = item.isPopular;
       _isAvailable = item.isAvailable;
       _addonGroups = List<AddonGroup>.from(item.addonGroups);
       _minimumOrderQty = item.minimumOrderQty;
@@ -194,7 +194,7 @@ class _AddEditMenuViewState extends State<AddEditMenuView> {
       'price': double.tryParse(_priceController.text.trim()) ?? 0.0,
       'category_id': int.tryParse(_selectedCategoryId!) ?? _selectedCategoryId,
       'is_available': _isAvailable,
-      'is_featured': _isFeatured,
+      'is_popular': _isFeatured,
       'minimum_order_qty': _minimumOrderQty,
       if (_maximumOrderQty != null) 'maximum_order_qty': _maximumOrderQty,
       'addon_groups': _buildAddonGroupsPayload(),

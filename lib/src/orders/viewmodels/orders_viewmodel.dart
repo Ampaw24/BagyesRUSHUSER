@@ -296,12 +296,42 @@ class OrderViewModel extends ViewModel<OrdersState> {
     );
   }
 
-  Future<void> toggleFeatured(String itemId, bool isFeatured) async {
+  /// Flips [MenuItem.isPopular] via the general-purpose `PUT
+  /// /vendor/me/menu-items/:id` endpoint — there's no dedicated toggle route
+  /// for this flag (unlike availability's `toggle-availability`), and that
+  /// endpoint is a full-replace, so the request is built from the item's
+  /// already-loaded fields rather than sending `is_popular` alone. Bails out
+  /// instead of submitting if the item's category can't be resolved from
+  /// [MenuLoadedState.categoryOptions], since sending a null `category_id`
+  /// would clear the item's category server-side.
+  Future<void> toggleFeatured(String itemId, bool isPopular) async {
     final currentState = _getMenuState();
-    final result = await _repository.toggleMenuItemPopular(
-      itemId: itemId,
-      isPopular: isFeatured,
-    );
+    final itemIndex = currentState.items.indexWhere((i) => i.id == itemId);
+    if (itemIndex == -1) return;
+    final item = currentState.items[itemIndex];
+
+    final categoryIndex = currentState.categoryOptions
+        .indexWhere((c) => c.name == item.category);
+    if (categoryIndex == -1) {
+      emit(currentState.copyWith(
+        errorMessage: "Couldn't find this item's category — refresh the menu and try again.",
+      ));
+      return;
+    }
+
+    final data = <String, dynamic>{
+      'name': item.name,
+      'description': item.description,
+      'price': double.tryParse(item.price.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0,
+      'category_id': currentState.categoryOptions[categoryIndex].id,
+      'is_available': item.isAvailable,
+      'is_popular': isPopular,
+      'minimum_order_qty': item.minimumOrderQty,
+      if (item.maximumOrderQty != null) 'maximum_order_qty': item.maximumOrderQty,
+      'addon_groups': item.addonGroups.map((g) => g.toJson()).toList(),
+    };
+
+    final result = await _repository.updateMenuItem(id: itemId, data: data);
 
     result.fold(
       (failure) => emit(currentState.copyWith(errorMessage: failure.message)),

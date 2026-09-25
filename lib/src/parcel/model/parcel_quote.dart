@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'parcel_stop.dart';
+import 'rider_model.dart';
 
 class ParcelQuote extends Equatable {
   const ParcelQuote({
@@ -11,7 +12,9 @@ class ParcelQuote extends Equatable {
     required this.price,
     required this.currency,
     required this.distanceKm,
+    required this.etaMinutes,
     required this.expiresAt,
+    required this.rider,
   });
 
   final int id;
@@ -22,7 +25,12 @@ class ParcelQuote extends Equatable {
   final double price;
   final String currency;
   final double? distanceKm;
+  final int? etaMinutes;
   final DateTime? expiresAt;
+
+  /// The rider the backend matched to this quote, or null when no rider
+  /// is available nearby right now.
+  final RiderModel? rider;
 
   factory ParcelQuote.fromJson(Map<String, dynamic> json) {
     final rawId = json['id'] ?? json['delivery_quote_id'];
@@ -32,6 +40,7 @@ class ParcelQuote extends Equatable {
         json['total'] ??
         json['cost'];
     final rawStops = json['stops'] as List<dynamic>? ?? [];
+    final rawRider = json['rider'];
     return ParcelQuote(
       id: (rawId as num?)?.toInt() ?? 0,
       pickupAddress: json['pickup_address']?.toString() ?? '',
@@ -43,7 +52,11 @@ class ParcelQuote extends Equatable {
       price: (rawPrice as num?)?.toDouble() ?? 0.0,
       currency: json['currency']?.toString() ?? 'GHS',
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
+      etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
       expiresAt: DateTime.tryParse(json['expires_at']?.toString() ?? ''),
+      rider: rawRider is Map<String, dynamic>
+          ? RiderModel.fromJson(rawRider)
+          : null,
     );
   }
 
@@ -56,6 +69,7 @@ class ParcelQuote extends Equatable {
         'price': price,
         'currency': currency,
         'distance_km': distanceKm,
+        'eta_minutes': etaMinutes,
         'expires_at': expiresAt?.toIso8601String(),
       };
 
@@ -72,6 +86,8 @@ class ParcelQuote extends Equatable {
         price,
         currency,
         distanceKm,
+        etaMinutes,
         expiresAt,
+        rider,
       ];
 }

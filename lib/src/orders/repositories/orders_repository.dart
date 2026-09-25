@@ -285,45 +285,6 @@ class OrdersRepository {
     }
   }
 
-  ResultFuture<MenuItem> toggleMenuItemPopular({
-    required String itemId,
-    required bool isPopular,
-  }) async {
-    appLogger.d(
-      'OrdersRepository.toggleMenuItemPopular → id=$itemId, isPopular=$isPopular',
-    );
-    try {
-      final response = await _client.patch(
-        ApiEndpoints.vendorMenuItem(itemId),
-        data: {'is_popular': isPopular},
-      );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final item = MenuItem.fromJson(_dataMap(response));
-        appLogger.i(
-          'OrdersRepository.toggleMenuItemPopular → success, id=${item.id}',
-        );
-        return Right(item);
-      }
-      appLogger.w(
-        'OrdersRepository.toggleMenuItemPopular → HTTP ${response.statusCode}',
-      );
-      return NetworkUtils.handleDioResponseError(response);
-    } on DioException catch (e) {
-      appLogger.e(
-        'OrdersRepository.toggleMenuItemPopular → DioException',
-        error: e,
-      );
-      return NetworkUtils.handleDioException(e);
-    } catch (e, s) {
-      return NetworkUtils.handleException(
-        e,
-        s,
-        repositoryName: 'OrdersRepository',
-        methodName: 'toggleMenuItemPopular',
-      );
-    }
-  }
-
   ResultFuture<MenuItem> uploadMenuItemImage({
     required String itemId,
     required String filePath,
@@ -408,7 +369,7 @@ class OrdersRepository {
           : double.tryParse(data['price']?.toString() ?? '') ?? 0.0,
       'category_id': data['category_id'],
       'is_available': data['is_available'] ?? true,
-      'is_featured': data['is_featured'] ?? false,
+      'is_popular': data['is_popular'] ?? false,
       'minimum_order_qty': data['minimum_order_qty'] ?? 1,
       if (data['maximum_order_qty'] != null)
         'maximum_order_qty': data['maximum_order_qty'],

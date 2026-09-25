@@ -75,18 +75,6 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
     }
   }
 
-  void _prevStep() {
-    if (_currentStep > 0) {
-      setState(() {
-        _currentStep--;
-      });
-      _pageCtrl.previousPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOutCubic,
-      );
-    }
-  }
-
   /// Picks an image, shows a preview confirmation dialog, and — only if the
   /// vendor confirms — immediately uploads it via [upload] (the backend only
   /// accepts one document per request). Used on the documents/identity steps
@@ -142,6 +130,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
         'Business Registration Certificate',
       if (!(documents?.foodSafetyLicense.uploaded ?? false))
         'Food Safety / Hygiene Permit',
+      if (!(documents?.ownerId.uploaded ?? false)) 'Owner ID',
     ];
     if (missing.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -187,13 +176,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: w * 0.05),
-          onPressed: () {
-            if (_currentStep > 0) {
-              _prevStep();
-            } else {
-              context.pop();
-            }
-          },
+          onPressed: () => context.pop(),
         ),
       ),
       body: Stack(
@@ -583,6 +566,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
     final businessCertUploaded =
         profile?.documents.businessRegistrationCertificate.uploaded ?? false;
     final foodSafetyUploaded = profile?.documents.foodSafetyLicense.uploaded ?? false;
+    final ownerIdUploaded = profile?.documents.ownerId.uploaded ?? false;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(w * 0.05),
@@ -600,7 +584,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
           ),
           SizedBox(height: w * 0.015),
           Text(
-            'Upload your business permits to speed up verification. Scanned copies or high-quality photos are accepted. Both documents below are required.',
+            'Upload your business permits to speed up verification. Scanned copies or high-quality photos are accepted. All documents below are required.',
             style: TextStyle(
               fontSize: w * 0.032,
               color: AppColors.textSecondary,
@@ -649,6 +633,28 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
               ),
             ),
             onRemove: () => vm.setFoodSafetyLicensePath(null),
+            w: w,
+          ),
+          SizedBox(height: w * 0.04),
+
+          // Owner ID
+          _buildUploadItem(
+            title: 'Owner ID',
+            subtitle: 'Government-issued ID (Ghana Card, passport, etc.)',
+            path: state.ownerIdPath,
+            isRequired: true,
+            isUploaded: ownerIdUploaded,
+            onTap: () => _pickConfirmAndUpload(
+              context,
+              label: 'Owner ID',
+              setLocalPath: vm.setOwnerIdPath,
+              upload: (path) => vm.uploadDocument(
+                type: 'owner_id',
+                filePath: path,
+                label: 'Owner ID',
+              ),
+            ),
+            onRemove: () => vm.setOwnerIdPath(null),
             w: w,
           ),
         ],
@@ -943,31 +949,10 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
       ),
       child: Row(
         children: [
-          if (_currentStep > 0)
-            Expanded(
-              flex: 1,
-              child: OutlinedButton(
-                onPressed: _prevStep,
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: w * 0.035),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(w * 0.03)),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-                child: Text(
-                  'Back',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: w * 0.036,
-                  ),
-                ),
-              ),
-            ),
-          if (_currentStep > 0) SizedBox(width: w * 0.03),
           Expanded(
-            flex: 2,
             child: ElevatedButton(
               onPressed: () {
+                if (_currentStep == 2) FocusScope.of(context).unfocus();
                 if (_currentStep < 2) {
                   _nextStep(vm);
                 } else {

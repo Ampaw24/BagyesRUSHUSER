@@ -684,7 +684,7 @@ class AuthRepository {
           'last_name': lastName,
           'email': email,
           'phone': phone,
-          if (address != null) 'address': address,
+          ...?address == null ? null : {'address': address},
         },
       );
 

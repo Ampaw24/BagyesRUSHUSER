@@ -41,10 +41,10 @@ class MenuItemCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(w * 0.035),
         border: Border.all(
-          color: item.isFeatured
+          color: item.isPopular
               ? AppColors.accent.withValues(alpha: 0.5)
               : AppColors.border,
-          width: item.isFeatured ? 1.5 : 0.5,
+          width: item.isPopular ? 1.5 : 0.5,
         ),
         boxShadow: [
           BoxShadow(
@@ -142,22 +142,22 @@ class MenuItemCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     GestureDetector(
-                      onTap: () => onFeaturedChanged?.call(!item.isFeatured),
+                      onTap: () => onFeaturedChanged?.call(!item.isPopular),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         padding: EdgeInsets.all(w * 0.015),
                         decoration: BoxDecoration(
-                          color: item.isFeatured
+                          color: item.isPopular
                               ? AppColors.accent.withValues(alpha: 0.12)
                               : AppColors.surfaceVariant,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          item.isFeatured
+                          item.isPopular
                               ? Icons.star_rounded
                               : Icons.star_border_rounded,
                           size: w * 0.045,
-                          color: item.isFeatured
+                          color: item.isPopular
                               ? AppColors.accent
                               : AppColors.textHint,
                         ),
@@ -263,10 +263,10 @@ class MenuItemGridCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(cw * 0.06),
             border: Border.all(
-              color: item.isFeatured
+              color: item.isPopular
                   ? AppColors.accent.withValues(alpha: 0.5)
                   : AppColors.border,
-              width: item.isFeatured ? 1.5 : 0.5,
+              width: item.isPopular ? 1.5 : 0.5,
             ),
             boxShadow: [
               BoxShadow(
@@ -293,7 +293,7 @@ class MenuItemGridCard extends StatelessWidget {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    if (item.isFeatured)
+                    if (item.isPopular)
                       Positioned(
                         top: cw * 0.03,
                         left: cw * 0.03,
@@ -407,13 +407,13 @@ class MenuItemGridCard extends StatelessWidget {
                         const Spacer(),
                         GestureDetector(
                           onTap: () =>
-                              onFeaturedChanged?.call(!item.isFeatured),
+                              onFeaturedChanged?.call(!item.isPopular),
                           child: Icon(
-                            item.isFeatured
+                            item.isPopular
                                 ? Icons.star_rounded
                                 : Icons.star_border_rounded,
                             size: cw * 0.1,
-                            color: item.isFeatured
+                            color: item.isPopular
                                 ? AppColors.accent
                                 : AppColors.textHint,
                           ),

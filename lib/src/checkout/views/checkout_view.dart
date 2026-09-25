@@ -16,6 +16,9 @@ import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/promo_code_result.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
@@ -68,6 +71,12 @@ class _CheckoutViewState extends State<CheckoutView> {
       if (form.deliveryInstructions.isNotEmpty) {
         _instructionsController.text = form.deliveryInstructions;
       }
+
+      // Wallet balance is display-only here (see [_WalletBalanceRow]) but
+      // must never be shown stale, so it's re-fetched every time checkout
+      // opens rather than relying on whatever this shared view model last
+      // cached from another screen.
+      context.read<CustomerWalletViewmodel>().fetchWallet();
     });
   }
 
@@ -244,6 +253,8 @@ class _CheckoutViewState extends State<CheckoutView> {
     final cart = cartVm.cart;
     final checkoutVm = context.watch<CheckoutViewModel>();
     final checkoutState = checkoutVm.state;
+    final walletVm = context.watch<CustomerWalletViewmodel>();
+    final walletState = walletVm.state;
 
     final isPlacing = checkoutState is CheckoutPlacing;
     final form = _formFromState(checkoutState);
@@ -336,6 +347,12 @@ class _CheckoutViewState extends State<CheckoutView> {
 
                 // ── Step 2: Payment method ──
                 _SectionHeader(number: '2', title: 'Payment Method'),
+                SizedBox(height: w * 0.03),
+                _WalletBalanceRow(
+                  wallet: walletVm.wallet,
+                  isLoading: walletState is CustomerWalletLoading,
+                  hasError: walletState is CustomerWalletError,
+                ),
                 SizedBox(height: w * 0.03),
                 switch (checkoutVm.paymentMethodsStatus) {
                   PaymentMethodsStatus.loading =>
@@ -919,6 +936,77 @@ class _NoPaymentMethodsCard extends StatelessWidget {
           ),
           SizedBox(height: w * 0.02),
           _AddPaymentMethodButton(onTap: onAdd),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Wallet Balance ─────────────────────────────────────────────────────
+
+/// Read-only wallet balance shown for reference while picking a payment
+/// method. `GET /customer/wallet` is the only wallet endpoint confirmed so
+/// far — this checkout doesn't yet offer "pay with wallet" as a channel, so
+/// the row is informational only, never gating checkout on its own load
+/// state (a slow/failed wallet fetch shouldn't block placing an order).
+class _WalletBalanceRow extends StatelessWidget {
+  final CustomerWalletModel? wallet;
+  final bool isLoading;
+  final bool hasError;
+
+  const _WalletBalanceRow({
+    required this.wallet,
+    required this.isLoading,
+    required this.hasError,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    if (wallet == null && !isLoading && !hasError) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.03),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(w * 0.03),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.account_balance_wallet_outlined,
+              color: AppColors.textSecondary, size: w * 0.045),
+          SizedBox(width: w * 0.025),
+          Text(
+            'Wallet Balance',
+            style: TextStyle(
+              fontSize: w * 0.033,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const Spacer(),
+          if (isLoading && wallet == null)
+            SizedBox(
+              width: w * 0.035,
+              height: w * 0.035,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            )
+          else if (wallet != null)
+            Text(
+              wallet!.formattedBalance,
+              style: TextStyle(
+                fontSize: w * 0.035,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            )
+          else if (hasError)
+            Text(
+              'Unavailable',
+              style: TextStyle(fontSize: w * 0.032, color: AppColors.error),
+            ),
         ],
       ),
     );

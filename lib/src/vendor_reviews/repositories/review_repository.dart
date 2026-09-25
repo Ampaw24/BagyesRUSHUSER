@@ -45,10 +45,10 @@ class ReviewRepository {
       final response = await _client.get(
         ApiEndpoints.vendorReviews,
         queryParameters: {
-          if (rating != null) 'rating': rating,
-          if (withComment != null) 'with_comment': withComment,
-          if (unanswered != null) 'unanswered': unanswered,
-          if (isVisible != null) 'is_visible': isVisible,
+          'rating': ?rating,
+          'with_comment': ?withComment,
+          'unanswered': ?unanswered,
+          'is_visible': ?isVisible,
           'per_page': perPage,
           'page': page,
         },
