@@ -182,7 +182,7 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Hey, ${firstName.isNotEmpty ? user?.profile?.firstName : 'there'} 👋',
+                            'Hey, ${firstName.isNotEmpty ? user?.profile?.firstName : 'there'} ',
                             style: TextStyle(
                               fontSize: w * 0.04,
                               fontWeight: FontWeight.w700,
@@ -208,7 +208,6 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-
                             ],
                           ),
                         ],
@@ -240,8 +239,10 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
                                   decoration: BoxDecoration(
                                     color: AppColors.primary,
                                     shape: BoxShape.circle,
-                                    border:
-                                        Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -340,24 +341,23 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
             height: w * 0.088,
             child: switch (homeState.categoriesStatus) {
               CategoriesStatus.loading => _categoryShimmer(w),
-              CategoriesStatus.error =>
-                _staticCategories(w, selectedCategory),
+              CategoriesStatus.error => _staticCategories(w, selectedCategory),
               CategoriesStatus.loaded => ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-                  itemCount: homeState.categories.length,
-                  separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
-                  itemBuilder: (_, i) {
-                    final cat = homeState.categories[i];
-                    return FoodCategoryChip(
-                      category: cat,
-                      isSelected: selectedCategory == cat.label,
-                      onTap: () => context
-                          .read<HomeDiscoveryViewModel>()
-                          .updateCategory(cat.label),
-                    );
-                  },
-                ),
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+                itemCount: homeState.categories.length,
+                separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+                itemBuilder: (_, i) {
+                  final cat = homeState.categories[i];
+                  return FoodCategoryChip(
+                    category: cat,
+                    isSelected: selectedCategory == cat.label,
+                    onTap: () => context
+                        .read<HomeDiscoveryViewModel>()
+                        .updateCategory(cat.label),
+                  );
+                },
+              ),
             },
           ),
         ),
@@ -479,9 +479,7 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
 
     // Empty state
     if (restaurants.isEmpty) {
-      return [
-        SliverToBoxAdapter(child: _EmptyState(w: w)),
-      ];
+      return [SliverToBoxAdapter(child: _EmptyState(w: w))];
     }
 
     // Data
@@ -506,12 +504,12 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
   }
 
   Widget _categoryShimmer(double w) => ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: w * 0.05),
-        itemCount: FoodCategory.all.length,
-        separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
-        itemBuilder: (_, i) => ShimmerCard(width: w * 0.22, height: w * 0.088),
-      );
+    scrollDirection: Axis.horizontal,
+    padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+    itemCount: FoodCategory.all.length,
+    separatorBuilder: (_, _) => SizedBox(width: w * 0.025),
+    itemBuilder: (_, i) => ShimmerCard(width: w * 0.22, height: w * 0.088),
+  );
 
   Widget _staticCategories(double w, String selectedCategory) =>
       ListView.separated(
@@ -524,9 +522,9 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
           return FoodCategoryChip(
             category: cat,
             isSelected: selectedCategory == cat.label,
-            onTap: () => context
-                .read<HomeDiscoveryViewModel>()
-                .updateCategory(cat.label),
+            onTap: () => context.read<HomeDiscoveryViewModel>().updateCategory(
+              cat.label,
+            ),
           );
         },
       );

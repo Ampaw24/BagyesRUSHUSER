@@ -9,11 +9,17 @@ class AddonOption {
   final double additionalPrice;
   final bool isAvailable;
 
+  /// Sort position among sibling options within the same [AddonGroup].
+  /// Nullable — the backend treats it as optional and falls back to
+  /// insertion order when absent.
+  final int? displayOrder;
+
   const AddonOption({
     required this.id,
     required this.name,
     required this.additionalPrice,
     this.isAvailable = true,
+    this.displayOrder,
   });
 
   AddonOption copyWith({
@@ -21,12 +27,14 @@ class AddonOption {
     String? name,
     double? additionalPrice,
     bool? isAvailable,
+    int? displayOrder,
   }) {
     return AddonOption(
       id: id ?? this.id,
       name: name ?? this.name,
       additionalPrice: additionalPrice ?? this.additionalPrice,
       isAvailable: isAvailable ?? this.isAvailable,
+      displayOrder: displayOrder ?? this.displayOrder,
     );
   }
 
@@ -35,6 +43,7 @@ class AddonOption {
     name: json['name'] as String? ?? '',
     additionalPrice: (json['additional_price'] as num? ?? 0).toDouble(),
     isAvailable: json['is_available'] as bool? ?? true,
+    displayOrder: json['display_order'] as int?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -42,6 +51,7 @@ class AddonOption {
     'name': name,
     'additional_price': additionalPrice,
     'is_available': isAvailable,
+    if (displayOrder != null) 'display_order': displayOrder,
   };
 
   @override
@@ -66,6 +76,11 @@ class AddonGroup {
 
   final List<AddonOption> options;
 
+  /// Sort position among sibling groups on the same menu item. Nullable —
+  /// the backend treats it as optional and falls back to insertion order
+  /// when absent.
+  final int? displayOrder;
+
   const AddonGroup({
     required this.id,
     required this.name,
@@ -73,6 +88,7 @@ class AddonGroup {
     this.minSelections = 0,
     this.maxSelections = 1,
     required this.options,
+    this.displayOrder,
   });
 
   AddonGroup copyWith({
@@ -82,6 +98,7 @@ class AddonGroup {
     int? minSelections,
     int? maxSelections,
     List<AddonOption>? options,
+    int? displayOrder,
   }) {
     return AddonGroup(
       id: id ?? this.id,
@@ -90,6 +107,7 @@ class AddonGroup {
       minSelections: minSelections ?? this.minSelections,
       maxSelections: maxSelections ?? this.maxSelections,
       options: options ?? this.options,
+      displayOrder: displayOrder ?? this.displayOrder,
     );
   }
 
@@ -102,6 +120,7 @@ class AddonGroup {
     options: (json['options'] as List<dynamic>? ?? [])
         .map((e) => AddonOption.fromJson(e as Map<String, dynamic>))
         .toList(),
+    displayOrder: json['display_order'] as int?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -111,6 +130,7 @@ class AddonGroup {
     'min_selections': minSelections,
     'max_selections': maxSelections,
     'options': options.map((o) => o.toJson()).toList(),
+    if (displayOrder != null) 'display_order': displayOrder,
   };
 
   @override

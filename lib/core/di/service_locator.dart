@@ -155,7 +155,7 @@ Future<void> init() async {
   sl.registerFactory(() => vendor_orders.OrdersViewModel(sl()));
   sl.registerFactory(() => DashboardViewModel(sl()));
   sl.registerFactory(() => MenuViewModel(sl()));
-  sl.registerFactory(() => EarningsViewModel());
+  sl.registerFactory(() => EarningsViewModel(sl()));
   sl.registerFactory(() => SettingsViewModel(sl()));
   // Factory — reviews screen is opened from the vendor drawer and is
   // screen-scoped, matching MenuViewModel/EarningsViewModel (no shared

@@ -177,6 +177,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
           _QuoteTotalBox(
             isFetchingQuote: sendState.isFetchingQuote,
             quoteError: sendState.quoteError,
+            noRidersMessage: sendState.noRidersMessage,
             quotedPrice: sendState.quotedPrice,
             quoteCurrency: sendState.quoteCurrency,
             onRetry: () => sendVm.fetchQuote(),
@@ -672,6 +673,7 @@ class _DetailChip extends StatelessWidget {
 class _QuoteTotalBox extends StatelessWidget {
   final bool isFetchingQuote;
   final String? quoteError;
+  final String? noRidersMessage;
   final double? quotedPrice;
   final String? quoteCurrency;
   final VoidCallback onRetry;
@@ -680,6 +682,7 @@ class _QuoteTotalBox extends StatelessWidget {
   const _QuoteTotalBox({
     required this.isFetchingQuote,
     required this.quoteError,
+    required this.noRidersMessage,
     required this.quotedPrice,
     required this.quoteCurrency,
     required this.onRetry,
@@ -730,6 +733,34 @@ class _QuoteTotalBox extends StatelessWidget {
             child: Text(
               'Couldn\'t get a delivery price. Please retry.',
               style: TextStyle(fontSize: w * 0.034, color: AppColors.error),
+            ),
+          ),
+          GestureDetector(
+            onTap: onRetry,
+            child: Text(
+              'Retry',
+              style: TextStyle(
+                fontSize: w * 0.034,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Server responded but couldn't match a rider — a normal outcome, not
+    // an error, so it's styled neutral rather than red.
+    if (noRidersMessage != null) {
+      return Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: AppColors.textSecondary, size: w * 0.05),
+          SizedBox(width: w * 0.025),
+          Expanded(
+            child: Text(
+              noRidersMessage!,
+              style: TextStyle(fontSize: w * 0.034, color: AppColors.textSecondary),
             ),
           ),
           GestureDetector(

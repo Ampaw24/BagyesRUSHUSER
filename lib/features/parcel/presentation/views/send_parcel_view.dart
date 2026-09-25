@@ -246,6 +246,7 @@ class _SendParcelViewState extends State<SendParcelView> {
           quoteCurrency: state.quoteCurrency,
           isFetchingQuote: state.isFetchingQuote,
           quoteError: state.quoteError,
+          noRidersMessage: state.noRidersMessage,
           onRetry: vm.fetchQuote,
           pickupLatLng: state.pickupLatLng,
           deliveryStops: state.deliveryStops,

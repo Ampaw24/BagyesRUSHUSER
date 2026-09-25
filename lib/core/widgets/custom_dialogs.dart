@@ -215,7 +215,7 @@ class _CustomDialogState extends State<CustomDialog>
       case DialogType.success:
         return const Color(0xFF2E7D32);
       case DialogType.warning:
-        return const Color(0xFFE65100);
+        return const Color.fromARGB(255, 250, 205, 3);
       case DialogType.confirmation:
         return const Color(0xFFD32F2F);
       case DialogType.info:

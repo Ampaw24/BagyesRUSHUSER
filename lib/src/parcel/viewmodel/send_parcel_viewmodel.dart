@@ -55,7 +55,16 @@ class SendParcelState {
 
   // ── Backend quote (authoritative price + matched rider) ────────────────────
   final bool isFetchingQuote;
+
+  /// Set only when the request never reached the server (timeout, no
+  /// internet) — drives the "Couldn't reach the server" error state.
   final String? quoteError;
+
+  /// Set when the server responded but couldn't match a rider (e.g. "No
+  /// riders are available near that pickup point right now") — a normal
+  /// business outcome, not a connectivity error, so it drives the muted
+  /// "no riders nearby" state instead of an error screen.
+  final String? noRidersMessage;
   final double? quotedPrice;
   final String? quoteCurrency;
   final int? quotedEtaMinutes;
@@ -84,6 +93,7 @@ class SendParcelState {
     this.packageSize = '',
     this.isFetchingQuote = false,
     this.quoteError,
+    this.noRidersMessage,
     this.quotedPrice,
     this.quoteCurrency,
     this.quotedEtaMinutes,
@@ -129,6 +139,7 @@ class SendParcelState {
     String? packageSize,
     bool? isFetchingQuote,
     Object? quoteError = _unset,
+    Object? noRidersMessage = _unset,
     Object? quotedPrice = _unset,
     Object? quoteCurrency = _unset,
     Object? quotedEtaMinutes = _unset,
@@ -153,6 +164,9 @@ class SendParcelState {
         isFetchingQuote: isFetchingQuote ?? this.isFetchingQuote,
         quoteError:
             identical(quoteError, _unset) ? this.quoteError : quoteError as String?,
+        noRidersMessage: identical(noRidersMessage, _unset)
+            ? this.noRidersMessage
+            : noRidersMessage as String?,
         quotedPrice: identical(quotedPrice, _unset)
             ? this.quotedPrice
             : quotedPrice as double?,
@@ -345,7 +359,11 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   Future<void> fetchQuote() async {
     if (state.pickupLatLng == null || state.deliveryStops.isEmpty) return;
 
-    emit(state.copyWith(isFetchingQuote: true, quoteError: null));
+    emit(state.copyWith(
+      isFetchingQuote: true,
+      quoteError: null,
+      noRidersMessage: null,
+    ));
 
     final result = await _repository.getParcelQuote(
       pickupAddress: state.pickupAddress,
@@ -355,9 +373,15 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     );
 
     result.fold(
+      // A connectivity failure (timeout/no internet) never reached the
+      // backend, so it's a true error state. Anything else is the server
+      // responding that it couldn't match a rider — a normal "try again
+      // shortly" outcome, not something to alarm the user about.
       (failure) => emit(state.copyWith(
         isFetchingQuote: false,
-        quoteError: failure.message,
+        quoteError: failure.isConnectivityFailure ? failure.message : null,
+        noRidersMessage: failure.isConnectivityFailure ? null : failure.message,
+        assignedRider: null,
       )),
       (quote) => emit(state.copyWith(
         isFetchingQuote: false,

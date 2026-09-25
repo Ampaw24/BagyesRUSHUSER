@@ -13,7 +13,6 @@ import '../../../core/utils/network_utils.dart';
 import '../../../core/utils/network_utility.dart';
 import '../../../core/utils/typedefs.dart';
 import '../../../src/restaurant/models/addon.dart';
-import '../model/earnings_data.dart';
 import '../model/menu_item.dart';
 import '../model/vendor_dashboard_stats.dart';
 import '../model/vendor_order.dart';
@@ -666,40 +665,6 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
         s,
         repositoryName: 'VendorDashboardRepo',
         methodName: 'deleteAddonGroup',
-      );
-    }
-  }
-
-  // ── Earnings ──────────────────────────────────────────────────────────────
-
-  @override
-  Future<Either<Failure, EarningsData>> fetchEarnings({String? period}) async {
-    appLogger.d(
-      'VendorDashboardRepo.fetchEarnings → period=${period ?? 'all'}',
-    );
-    try {
-      final response = await _networkUtility.dio.get(
-        ApiEndpoints.vendorEarnings,
-        queryParameters: period != null ? {'period': period} : null,
-      );
-      if (_isSuccess(response.statusCode)) {
-        final earnings = EarningsData.fromJson(_dataMap(response));
-        appLogger.i('VendorDashboardRepo.fetchEarnings → loaded');
-        return Right(earnings);
-      }
-      appLogger.w(
-        'VendorDashboardRepo.fetchEarnings → HTTP ${response.statusCode}',
-      );
-      return NetworkUtils.handleDioResponseError<EarningsData>(response);
-    } on DioException catch (e) {
-      appLogger.e('VendorDashboardRepo.fetchEarnings → DioException', error: e);
-      return NetworkUtils.handleDioException<EarningsData>(e);
-    } catch (e, s) {
-      return NetworkUtils.handleException<EarningsData>(
-        e,
-        s,
-        repositoryName: 'VendorDashboardRepo',
-        methodName: 'fetchEarnings',
       );
     }
   }

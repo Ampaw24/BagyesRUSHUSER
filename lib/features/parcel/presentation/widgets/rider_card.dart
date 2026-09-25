@@ -113,6 +113,101 @@ class _RiderAvatar extends StatelessWidget {
   }
 }
 
+// ── No rider available ───────────────────────────────────────────────────
+
+/// Placeholder shown in [AssignedRiderCard]'s place when the backend
+/// couldn't match a rider (e.g. none available near the pickup point right
+/// now). Mirrors the assigned card's avatar+details shape but muted, so the
+/// screen still reads as "a rider will appear here" rather than collapsing
+/// into a bare error message — the way Uber/Bolt grey out the driver card
+/// while no match has been found instead of showing an alarm.
+class NoRiderAvailableCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const NoRiderAvailableCard({
+    super.key,
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+
+    return Container(
+      padding: EdgeInsets.all(w * 0.045),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(w * 0.04),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: w * 0.075,
+                backgroundColor: AppColors.surfaceVariant,
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedDeliveryTruck01,
+                  color: AppColors.textSecondary,
+                  size: w * 0.06,
+                ),
+              ),
+              SizedBox(width: w * 0.04),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No riders nearby right now',
+                      style: TextStyle(
+                        fontSize: w * 0.04,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: w * 0.01),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: w * 0.032,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: w * 0.04),
+          GestureDetector(
+            onTap: onRetry,
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: w * 0.03),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(w * 0.03),
+              ),
+              child: Text(
+                'Search again',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: w * 0.035,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Meta chip ─────────────────────────────────────────────────────────────
 
 class _MetaChip extends StatelessWidget {

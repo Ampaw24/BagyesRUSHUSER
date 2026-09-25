@@ -5,7 +5,6 @@ import '../model/vendor_dashboard_stats.dart';
 import '../model/vendor_order.dart';
 import '../model/vendor_order_stats.dart';
 import '../model/menu_item.dart';
-import '../model/earnings_data.dart';
 import '../model/vendor_profile.dart';
 
 /// Contract for all vendor dashboard API operations.
@@ -88,9 +87,6 @@ abstract class VendorDashboardRepository {
     String menuItemId,
     String groupId,
   );
-
-  // ── Earnings ──
-  Future<Either<Failure, EarningsData>> fetchEarnings({String? period});
 
   // ── Settings / Profile ──
   Future<Either<Failure, VendorProfile>> fetchVendorProfile();

@@ -157,6 +157,7 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
   }
 
   Future<void> _loadNearby() async {
+    emit(state.copyWith(nearbyStatus: NearbyStatus.loading));
     try {
       final restaurants = await _restaurantRepository.getNearbyRestaurants();
       emit(state.copyWith(
@@ -229,4 +230,6 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
   /// Retries the first page after an error.
   Future<void> retryVendorList() =>
       _loadVendorList(category: state.selectedCategory, page: 1);
+
+  Future<void> retryNearby() => _loadNearby();
 }

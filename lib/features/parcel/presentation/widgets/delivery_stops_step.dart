@@ -21,9 +21,11 @@ import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.
 /// identical flow to before. Multi-stop users see the "Add another stop"
 /// button animate in once the first stop is confirmed.
 ///
-/// After location is set, each card expands inline to show optional
-/// item details (description, quantity, recipient name, phone) — the
+/// After location is set, each card expands inline to show item details
+/// (description, quantity, recipient name, phone, instructions) — the
 /// industry-standard fields used by Lalamove, GrabExpress, Kwik, and Bosta.
+/// Recipient name and phone are required so the rider always has someone
+/// to hand the package to and call on arrival; the rest stay optional.
 class DeliveryStopsStep extends StatelessWidget {
   final List<DeliveryStop> stops;
   final List<File> packageImages;
@@ -229,23 +231,29 @@ class _StopCardState extends State<_StopCard> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final isSet = widget.stop.isComplete;
+    // Reveals the details section (incl. the required recipient fields) as
+    // soon as a location is picked — gating this on `isComplete` instead
+    // would hide those fields until they're already filled in.
+    final hasLocation = widget.stop.hasLocation;
+    // Drives the "done" styling (green border/badge) — only once the stop,
+    // including its required recipient info, is actually complete.
+    final isComplete = widget.stop.isComplete;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color: isSet
+        color: isComplete
             ? AppColors.success.withValues(alpha: 0.02)
             : AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(w * 0.04),
         border: Border.all(
-          color: isSet
+          color: isComplete
               ? AppColors.success.withValues(alpha: 0.4)
               : AppColors.border,
-          width: isSet ? 1.5 : 1.0,
+          width: isComplete ? 1.5 : 1.0,
         ),
-        boxShadow: isSet
+        boxShadow: isComplete
             ? [
                 BoxShadow(
                   color: AppColors.success.withValues(alpha: 0.03),
@@ -267,7 +275,7 @@ class _StopCardState extends State<_StopCard> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _StopBadge(index: widget.index, isSet: isSet),
+                  _StopBadge(index: widget.index, isSet: isComplete),
                   SizedBox(width: w * 0.035),
                   Expanded(
                     child: Column(
@@ -279,19 +287,19 @@ class _StopCardState extends State<_StopCard> {
                             fontSize: w * 0.027,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
-                            color: isSet
+                            color: isComplete
                                 ? AppColors.success
                                 : AppColors.textHint,
                           ),
                         ),
                         SizedBox(height: w * 0.008),
                         Text(
-                          isSet
+                          hasLocation
                               ? widget.stop.address
                               : 'Tap to set delivery location',
                           style: TextStyle(
                             fontSize: w * 0.036,
-                            color: isSet
+                            color: hasLocation
                                 ? AppColors.textPrimary
                                 : AppColors.textHint,
                             height: 1.35,
@@ -307,11 +315,12 @@ class _StopCardState extends State<_StopCard> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isSet
+                        hasLocation
                             ? Icons.edit_location_alt_outlined
                             : Icons.add_location_alt_outlined,
                         size: w * 0.055,
-                        color: isSet ? AppColors.primary : AppColors.textHint,
+                        color:
+                            hasLocation ? AppColors.primary : AppColors.textHint,
                       ),
                       if (widget.canRemove) ...[
                         SizedBox(height: w * 0.018),
@@ -339,7 +348,8 @@ class _StopCardState extends State<_StopCard> {
           AnimatedSize(
             duration: const Duration(milliseconds: 320),
             curve: Curves.easeOutCubic,
-            child: isSet ? _buildDetailsSection(w) : const SizedBox.shrink(),
+            child:
+                hasLocation ? _buildDetailsSection(w) : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -489,7 +499,8 @@ class _StopCardState extends State<_StopCard> {
               _DetailLabel(
                 icon: HugeIcons.strokeRoundedUser,
                 label: 'Recipient name',
-                hint: 'optional',
+                hint: null,
+                required: true,
                 w: w,
               ),
               SizedBox(height: w * 0.02),
@@ -514,7 +525,8 @@ class _StopCardState extends State<_StopCard> {
               _DetailLabel(
                 icon: HugeIcons.strokeRoundedCall,
                 label: 'Recipient phone',
-                hint: 'optional',
+                hint: null,
+                required: true,
                 w: w,
               ),
               SizedBox(height: w * 0.02),
@@ -587,6 +599,7 @@ class _DetailLabel extends StatelessWidget {
   final List<List<dynamic>> icon;
   final String label;
   final String? hint;
+  final bool required;
   final double w;
 
   const _DetailLabel({
@@ -594,6 +607,7 @@ class _DetailLabel extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.w,
+    this.required = false,
   });
 
   @override
@@ -610,6 +624,17 @@ class _DetailLabel extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
+        if (required) ...[
+          SizedBox(width: w * 0.008),
+          Text(
+            '*',
+            style: TextStyle(
+              fontSize: w * 0.033,
+              fontWeight: FontWeight.w700,
+              color: AppColors.error,
+            ),
+          ),
+        ],
         if (hint != null) ...[
           SizedBox(width: w * 0.015),
           Text(

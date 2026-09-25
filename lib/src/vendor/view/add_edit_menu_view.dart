@@ -172,15 +172,20 @@ class _AddEditMenuViewState extends State<AddEditMenuView> {
   /// locally to brand-new, not-yet-persisted addon groups/options so the UI
   /// has something to key off of) before sending to the backend — an id
   /// there should only ever reference a real, already-persisted record.
+  /// Also stamps `display_order` from each group's/option's current position
+  /// in the list, since there's no dedicated reorder UI — list order *is*
+  /// display order.
   List<Map<String, dynamic>> _buildAddonGroupsPayload() {
-    return _addonGroups.map((g) {
-      final json = Map<String, dynamic>.from(g.toJson());
+    return _addonGroups.asMap().entries.map((groupEntry) {
+      final json = Map<String, dynamic>.from(groupEntry.value.toJson());
       if ((json['id'] as String).startsWith('grp_')) json.remove('id');
-      json['options'] = (json['options'] as List).map((o) {
-        final optJson = Map<String, dynamic>.from(o as Map);
+      json['display_order'] = groupEntry.key;
+      json['options'] = (json['options'] as List).asMap().entries.map((optEntry) {
+        final optJson = Map<String, dynamic>.from(optEntry.value as Map);
         if ((optJson['id'] as String).startsWith('opt_')) {
           optJson.remove('id');
         }
+        optJson['display_order'] = optEntry.key;
         return optJson;
       }).toList();
       return json;

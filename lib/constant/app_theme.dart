@@ -247,6 +247,14 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
 
+      // Time picker — explicit white background; `colorScheme.surface` is a
+      // warm off-white (AppColors.surface) that reads as dingy on the
+      // picker dial.
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+
       // Bottom sheet
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.scaffold,

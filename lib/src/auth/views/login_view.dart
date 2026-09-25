@@ -262,13 +262,7 @@ class _LoginViewState extends State<LoginView>
     return Row(
       children: [
         GestureDetector(
-          onTap: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go(AppRoutes.onboarding);
-            }
-          },
+          onTap: () => context.go(AppRoutes.onboarding),
           child: Container(
             padding: EdgeInsets.all(sw * 0.018),
             decoration: BoxDecoration(
