@@ -1,10 +1,8 @@
 import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/promo_code_result.dart';
 
 class OrdersPage {
   final List<ConsumerOrder> orders;
@@ -55,41 +53,28 @@ class ConsumerOrdersRepository {
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
+  /// `POST /customer/orders`. No prices, items or promo code — the server
+  /// re-derives every amount from the live menu, takes the coupon off the
+  /// cart and reads the fee from the stored quote. [useWallet] is a flag;
+  /// the server decides how much credit to spend.
   Future<ConsumerOrder> placeOrder({
-    required CartModel cart,
-    required String deliveryAddress,
-    String? deliveryInstructions,
+    required String vendorId,
     required String paymentMethod,
-    double? deliveryLat,
-    double? deliveryLng,
+    required int customerAddressId,
+    required int deliveryQuoteId,
+    required bool useWallet,
+    String? notes,
   }) async {
-    final body = {
-      'vendor_id': int.tryParse(cart.vendorId) ?? cart.vendorId,
-      'items': cart.items
-          .map(
-            (ci) => {
-              'menu_item_id': ci.menuItemId,
-              'quantity': ci.quantity,
-              'addons': ci.addonOptions.map((a) => a.toJson()).toList(),
-              if (ci.notes != null && ci.notes!.isNotEmpty)
-                'special_instructions': ci.notes,
-            },
-          )
-          .toList(),
-      'delivery_address': deliveryAddress,
-      if (deliveryInstructions != null && deliveryInstructions.isNotEmpty)
-        'delivery_instructions': deliveryInstructions,
-      'payment_method': paymentMethod,
-      // Best-effort: only sent when resolved via GPS/map-pick. Omitted
-      // entirely (not sent as null) when the user hand-typed the address.
-      if (deliveryLat != null && deliveryLng != null) ...{
-        'latitude': deliveryLat,
-        'longitude': deliveryLng,
-      },
-    };
     final response = await _client.post(
       ApiEndpoints.customerOrders,
-      data: body,
+      data: {
+        'vendor_id': int.tryParse(vendorId) ?? vendorId,
+        'payment_method': paymentMethod,
+        'customer_address_id': customerAddressId,
+        'delivery_quote_id': deliveryQuoteId,
+        'use_wallet': useWallet,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
     );
     return ConsumerOrder.fromJson(_dataMap(response));
   }
@@ -125,6 +110,7 @@ class ConsumerOrdersRepository {
     return previous.copyWith(
       status: tracked.status,
       paymentStatus: tracked.paymentStatus,
+      requiresPayment: tracked.requiresPayment,
       estimatedPrepMinutes: tracked.estimatedPrepMinutes,
       estimatedDelivery: tracked.estimatedDelivery,
       driverName: tracked.driverName,
@@ -182,45 +168,20 @@ class ConsumerOrdersRepository {
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
+  /// `GET /customer/delivery-quote` — only needed for a non-default
+  /// address; the cart already embeds the default address's quote.
   Future<DeliveryQuote> getDeliveryQuote({
     required String vendorId,
-    String? addressId,
-    double? latitude,
-    double? longitude,
-    String? deliveryAddress,
+    required int customerAddressId,
   }) async {
     final response = await _client.get(
       ApiEndpoints.customerDeliveryQuote,
       queryParameters: {
         'vendor_id': vendorId,
-        if (addressId != null) 'address_id': addressId,
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
-        if (deliveryAddress != null && deliveryAddress.isNotEmpty)
-          'delivery_address': deliveryAddress,
+        'customer_address_id': customerAddressId,
       },
     );
     return DeliveryQuote.fromJson(_dataMap(response));
-  }
-
-  /// Validates a promo code and returns the backend-computed discount/totals
-  /// preview for checkout. Read-only — this does not redeem the code or
-  /// mutate anything server-side, so it's safe to call repeatedly (e.g. on
-  /// every "Apply" tap) without duplicate-submission concerns.
-  Future<PromoCodeResult> validatePromoCode({
-    required String code,
-    required String vendorId,
-    int? deliveryQuoteId,
-  }) async {
-    final response = await _client.post(
-      ApiEndpoints.customerPromoCodeValidate,
-      data: {
-        'code': code,
-        'vendor_id': int.tryParse(vendorId) ?? vendorId,
-        if (deliveryQuoteId != null) 'delivery_quote_id': deliveryQuoteId,
-      },
-    );
-    return PromoCodeResult.fromJson(_dataMap(response));
   }
 
   // ─── Private helpers ───────────────────────────────────────────────────────

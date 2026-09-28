@@ -164,9 +164,6 @@ class SelectedAddon {
     this.quantity = 1,
   });
 
-  /// Total price contribution of this addon (price × quantity).
-  double get totalPrice => additionalPrice * quantity;
-
   SelectedAddon copyWith({
     String? groupId,
     String? groupName,

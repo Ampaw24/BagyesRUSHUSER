@@ -23,6 +23,8 @@ class Parcel extends Equatable {
     this.directionLabel,
     this.pickup,
     this.canCancel = false,
+    this.paymentStatus,
+    this.amountDue,
   });
 
   final String id;
@@ -43,6 +45,15 @@ class Parcel extends Equatable {
   final ParcelPickup? pickup;
   final bool canCancel;
 
+  /// Present when the backend reports it on create — lets the client skip
+  /// the mobile-money step when the wallet already settled the charge.
+  final String? paymentStatus;
+  final double? amountDue;
+
+  bool get isPaid =>
+      const {'paid', 'success', 'successful'}.contains(paymentStatus) ||
+      (amountDue != null && amountDue! <= 0);
+
   Parcel copyWith({
     String? id,
     int? deliveryQuoteId,
@@ -61,6 +72,8 @@ class Parcel extends Equatable {
     String? directionLabel,
     ParcelPickup? pickup,
     bool? canCancel,
+    String? paymentStatus,
+    double? amountDue,
   }) {
     return Parcel(
       id: id ?? this.id,
@@ -80,6 +93,8 @@ class Parcel extends Equatable {
       directionLabel: directionLabel ?? this.directionLabel,
       pickup: pickup ?? this.pickup,
       canCancel: canCancel ?? this.canCancel,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      amountDue: amountDue ?? this.amountDue,
     );
   }
 
@@ -110,6 +125,8 @@ class Parcel extends Equatable {
       directionLabel: json['direction_label']?.toString(),
       pickup: pickup,
       canCancel: json['can_cancel'] == true,
+      paymentStatus: json['payment_status']?.toString(),
+      amountDue: (json['amount_due'] as num?)?.toDouble(),
     );
   }
 
@@ -153,5 +170,7 @@ class Parcel extends Equatable {
         directionLabel,
         pickup,
         canCancel,
+        paymentStatus,
+        amountDue,
       ];
 }

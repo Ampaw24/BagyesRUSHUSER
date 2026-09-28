@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 
@@ -9,10 +10,19 @@ class CartItemModel {
   final String menuItemId;
   final String name;
   final String imageUrl;
+  /// One portion *including* the chosen addons — `options[].additional_price`
+  /// is display-only and must never be added on top.
   final double price;
   final int quantity;
   final String? notes;
   final List<SelectedAddon> addonOptions;
+
+  /// False once the item went unavailable while the cart sat idle.
+  final bool isAvailable;
+
+  /// Backend-computed line total. Null when the response omits it or the
+  /// item was changed optimistically and not yet reconciled.
+  final double? lineTotal;
 
   const CartItemModel({
     required this.id,
@@ -23,13 +33,11 @@ class CartItemModel {
     required this.quantity,
     this.notes,
     this.addonOptions = const [],
+    this.isAvailable = true,
+    this.lineTotal,
   });
 
-  double get addonsUnitTotal =>
-      addonOptions.fold(0.0, (sum, a) => sum + a.totalPrice);
-
-  double get lineTotal => (price + addonsUnitTotal) * quantity;
-
+  /// A quantity change invalidates [lineTotal] until the server reconciles.
   CartItemModel copyWith({int? quantity, String? notes}) => CartItemModel(
         id: id,
         menuItemId: menuItemId,
@@ -39,6 +47,8 @@ class CartItemModel {
         quantity: quantity ?? this.quantity,
         notes: notes ?? this.notes,
         addonOptions: addonOptions,
+        isAvailable: isAvailable,
+        lineTotal: quantity == null ? lineTotal : null,
       );
 
   factory CartItemModel.fromJson(DataMap json) {
@@ -58,6 +68,11 @@ class CartItemModel {
       quantity: (json['quantity'] as num?)?.toInt() ?? 1,
       notes: json['notes'] as String?,
       addonOptions: _parseAddons(json),
+      isAvailable: JsonUtils.asBool(json['is_available'], true),
+      lineTotal: JsonUtils.firstDoubleOrNull(
+        json,
+        const ['line_total', 'total_price', 'total'],
+      ),
     );
   }
 

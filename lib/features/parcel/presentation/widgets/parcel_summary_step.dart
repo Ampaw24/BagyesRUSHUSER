@@ -5,6 +5,11 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_state.dart';
@@ -45,6 +50,7 @@ class ParcelSummaryStep extends StatefulWidget {
 
 class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
   late final PaymentViewModel _paymentVm;
+  late final CustomerWalletViewmodel _walletVm;
 
   @override
   void initState() {
@@ -52,13 +58,26 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
     _paymentVm = sl<PaymentViewModel>(param1: false);
     _paymentVm.addListener(_onPaymentStateChanged);
     _paymentVm.loadPaymentMethods();
+
+    // Fresh balance every time — the wallet split must never be previewed
+    // against a balance another screen cached earlier.
+    _walletVm = context.read<CustomerWalletViewmodel>();
+    _walletVm.addListener(_onWalletChanged);
+    _walletVm.fetchWallet();
   }
 
   @override
   void dispose() {
     _paymentVm.removeListener(_onPaymentStateChanged);
     _paymentVm.dispose();
+    _walletVm.removeListener(_onWalletChanged);
     super.dispose();
+  }
+
+  void _onWalletChanged() {
+    final wallet = _walletVm.wallet;
+    if (!mounted || wallet == null) return;
+    context.read<SendParcelViewModel>().syncWalletBalance(wallet.balance);
   }
 
   /// Auto-selects the customer's default (or first) saved payment method
@@ -107,6 +126,8 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
     final w = MediaQuery.sizeOf(context).width;
     final sendVm = context.watch<SendParcelViewModel>();
     final sendState = sendVm.state;
+    final walletVm = context.watch<CustomerWalletViewmodel>();
+    final walletSplit = sendState.walletSplit;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
@@ -180,6 +201,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
             noRidersMessage: sendState.noRidersMessage,
             quotedPrice: sendState.quotedPrice,
             quoteCurrency: sendState.quoteCurrency,
+            walletSplit: walletSplit,
             onRetry: () => sendVm.fetchQuote(),
             w: w,
           ),
@@ -198,13 +220,41 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
             ),
           ),
           SizedBox(height: w * 0.03),
-          _PaymentMethodSection(
-            state: _paymentVm.state,
-            selectedMethod: sendState.selectedPaymentMethod,
-            onSelect: (m) =>
-                context.read<SendParcelViewModel>().selectPaymentMethod(m),
-            onAddNew: () => _addPaymentMethod(context),
-            w: w,
+          UseWalletTile(
+            wallet: walletVm.wallet,
+            isLoading: walletVm.state is CustomerWalletLoading,
+            hasError: walletVm.state is CustomerWalletError,
+            useWallet: sendState.useWallet,
+            split: walletSplit,
+            onChanged: sendVm.setUseWallet,
+            onRetry: walletVm.fetchWallet,
+          ),
+          SizedBox(height: w * 0.03),
+          if (walletSplit.coversFully)
+            Padding(
+              padding: EdgeInsets.only(bottom: w * 0.02),
+              child: Text(
+                'No mobile money needed — paid from your wallet',
+                style: TextStyle(
+                  fontSize: w * 0.03,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: walletSplit.coversFully ? 0.4 : 1,
+            child: IgnorePointer(
+              ignoring: walletSplit.coversFully,
+              child: _PaymentMethodSection(
+                state: _paymentVm.state,
+                selectedMethod: sendState.selectedPaymentMethod,
+                onSelect: (m) =>
+                    context.read<SendParcelViewModel>().selectPaymentMethod(m),
+                onAddNew: () => _addPaymentMethod(context),
+                w: w,
+              ),
+            ),
           ),
 
           SizedBox(height: w * 0.02),
@@ -681,6 +731,7 @@ class _QuoteTotalBox extends StatelessWidget {
   final String? noRidersMessage;
   final double? quotedPrice;
   final String? quoteCurrency;
+  final WalletSplit walletSplit;
   final VoidCallback onRetry;
   final double w;
 
@@ -690,6 +741,7 @@ class _QuoteTotalBox extends StatelessWidget {
     required this.noRidersMessage,
     required this.quotedPrice,
     required this.quoteCurrency,
+    required this.walletSplit,
     required this.onRetry,
     required this.w,
   });
@@ -784,7 +836,8 @@ class _QuoteTotalBox extends StatelessWidget {
     }
 
     final price = quotedPrice;
-    return Row(
+    final currency = quoteCurrency ?? 'GHS';
+    final totalRow = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
@@ -796,9 +849,7 @@ class _QuoteTotalBox extends StatelessWidget {
           ),
         ),
         Text(
-          price != null
-              ? '${quoteCurrency ?? 'GHS'} ${price.toStringAsFixed(2)}'
-              : '—',
+          formatMoney(price, currency: currency),
           style: TextStyle(
             fontSize: w * 0.05,
             fontWeight: FontWeight.w900,
@@ -807,7 +858,46 @@ class _QuoteTotalBox extends StatelessWidget {
         ),
       ],
     );
+    if (!walletSplit.usesWallet) return totalRow;
+
+    return Column(
+      children: [
+        totalRow,
+        SizedBox(height: w * 0.02),
+        _splitRow(
+          'Paid from wallet',
+          '-${formatMoney(walletSplit.walletAmount, currency: currency)}',
+          AppColors.success,
+        ),
+        _splitRow(
+          'To pay via mobile money',
+          formatMoney(walletSplit.remaining, currency: currency),
+          AppColors.textPrimary,
+        ),
+      ],
+    );
   }
+
+  Widget _splitRow(String label, String value, Color valueColor) => Padding(
+        padding: EdgeInsets.symmetric(vertical: w * 0.008),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: w * 0.035,
+                fontWeight: FontWeight.w700,
+                color: valueColor,
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 // ── Payment method section ────────────────────────────────────────────────

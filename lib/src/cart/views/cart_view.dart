@@ -10,6 +10,7 @@ import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_state.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/cart/views/widgets/cart_item_tile.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 
 class CartView extends StatefulWidget {
   const CartView({super.key});
@@ -360,17 +361,27 @@ class _CartViewState extends State<CartView> {
                 SizedBox(height: w * 0.03),
                 _SummaryRow(
                   label: 'Subtotal',
-                  value: 'GHS ${cart.subtotal.toStringAsFixed(2)}',
+                  value: formatMoney(cart.subtotal, currency: cart.currency),
                 ),
-                if (cart.deliveryFee != null)
+                if (cart.hasPromo && (cart.discount ?? 0) > 0)
                   _SummaryRow(
-                    label: 'Delivery fee',
-                    value: 'GHS ${cart.deliveryFee!.toStringAsFixed(2)}',
+                    label: 'Promo (${cart.promoCode})',
+                    value:
+                        '-${formatMoney(cart.discount, currency: cart.currency)}',
                   ),
-                if (cart.serviceFee != null && cart.serviceFee! > 0)
+                _SummaryRow(
+                  label: 'Delivery fee',
+                  value: cart.deliveryError ??
+                      (cart.deliveryFee == null
+                          ? 'Set at checkout'
+                          : formatMoney(cart.deliveryFee,
+                              currency: cart.currency)),
+                ),
+                if ((cart.serviceFee ?? 0) > 0)
                   _SummaryRow(
                     label: 'Service fee',
-                    value: 'GHS ${cart.serviceFee!.toStringAsFixed(2)}',
+                    value:
+                        formatMoney(cart.serviceFee, currency: cart.currency),
                   ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: w * 0.02),
@@ -378,7 +389,7 @@ class _CartViewState extends State<CartView> {
                 ),
                 _SummaryRow(
                   label: 'Total',
-                  value: 'GHS ${cart.total.toStringAsFixed(2)}',
+                  value: formatMoney(cart.total, currency: cart.currency),
                   isBold: true,
                 ),
               ],
@@ -397,26 +408,46 @@ class _CartViewState extends State<CartView> {
               color: AppColors.scaffold,
               border: Border(top: BorderSide(color: AppColors.border)),
             ),
-            child: ElevatedButton(
-              onPressed: vm.isMutating
-                  ? null
-                  : () {
-                      HapticFeedback.mediumImpact();
-                      context.push(AppRoutes.checkout);
-                    },
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, w * 0.13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(w * 0.035),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (cart.checkoutBlockedReason != null)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: w * 0.025),
+                    child: Text(
+                      cart.checkoutBlockedReason!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: w * 0.031,
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ElevatedButton(
+                  onPressed: vm.isMutating || !cart.canCheckout
+                      ? null
+                      : () {
+                          HapticFeedback.mediumImpact();
+                          context.push(AppRoutes.checkout);
+                        },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, w * 0.13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(w * 0.035),
+                    ),
+                  ),
+                  child: Text(
+                    cart.total == null
+                        ? 'Proceed to Checkout'
+                        : 'Proceed to Checkout · ${formatMoney(cart.total, currency: cart.currency)}',
+                    style: TextStyle(
+                      fontSize: w * 0.038,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                'Proceed to Checkout · GHS ${cart.total.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: w * 0.038,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              ],
             ),
           ),
         ],

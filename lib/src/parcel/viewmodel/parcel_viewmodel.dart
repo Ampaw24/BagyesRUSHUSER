@@ -118,16 +118,16 @@ class ParcelViewModel extends ViewModel<ParcelState> {
     );
   }
 
-  Future<ParcelQuote?> getQuote({
+  Future<List<ParcelQuote>?> getQuotes({
     required String pickupAddress,
     required double pickupLatitude,
     required double pickupLongitude,
     required List<ParcelStop> stops,
   }) async {
-    appLogger.d('ParcelViewModel.getQuote → initiated');
+    appLogger.d('ParcelViewModel.getQuotes → initiated');
     emit(const ParcelLoading());
 
-    final result = await _repository.getParcelQuote(
+    final result = await _repository.getParcelQuotes(
       pickupAddress: pickupAddress,
       pickupLatitude: pickupLatitude,
       pickupLongitude: pickupLongitude,
@@ -136,14 +136,14 @@ class ParcelViewModel extends ViewModel<ParcelState> {
 
     return result.fold(
       (failure) {
-        appLogger.w('ParcelViewModel.getQuote → error: ${failure.message}');
+        appLogger.w('ParcelViewModel.getQuotes → error: ${failure.message}');
         emit(ParcelError.fromFailure(failure));
         return null;
       },
-      (quote) {
-        appLogger.i('ParcelViewModel.getQuote → success, id=${quote.id}');
-        emit(ParcelQuoteLoaded(quote));
-        return quote;
+      (quotes) {
+        appLogger.i('ParcelViewModel.getQuotes → success, ${quotes.length}');
+        emit(ParcelQuotesLoaded(quotes));
+        return quotes;
       },
     );
   }

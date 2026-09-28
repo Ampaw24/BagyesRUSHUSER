@@ -1,83 +1,158 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
 
-/// Read-only card showing the rider the backend has matched to the current
-/// quote. There is no selection here — the backend picks the nearest
-/// available rider, not the customer.
-class AssignedRiderCard extends StatelessWidget {
-  final RiderModel rider;
+/// Selectable rider tile. Each rider carries their own quote — fee and ETA
+/// differ by where that rider currently is.
+class RiderQuoteCard extends StatelessWidget {
+  final ParcelQuote quote;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const AssignedRiderCard({super.key, required this.rider});
+  const RiderQuoteCard({
+    super.key,
+    required this.quote,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final rider = quote.rider!;
 
-    return Container(
-      padding: EdgeInsets.all(w * 0.045),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(w * 0.04),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.all(w * 0.04),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : AppColors.card,
+          borderRadius: BorderRadius.circular(w * 0.04),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1.0,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _RiderAvatar(rider: rider, w: w),
-          SizedBox(width: w * 0.04),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  rider.name,
-                  style: TextStyle(
-                    fontSize: w * 0.04,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: w * 0.018),
-                Wrap(
-                  spacing: w * 0.025,
-                  runSpacing: w * 0.012,
-                  children: [
-                    if (rider.vehicleTypeLabel != null)
-                      _MetaChip(
-                        icon: HugeIcons.strokeRoundedDeliveryTruck01,
-                        label: rider.vehicleTypeLabel!,
-                        color: AppColors.primary,
-                        w: w,
-                      ),
-                    _MetaChip(
-                      icon: HugeIcons.strokeRoundedStarCircle,
-                      label: '${rider.rating.toStringAsFixed(1)} (${rider.reviewCount})',
-                      color: AppColors.accent,
-                      w: w,
-                    ),
-                    if (rider.distanceAwayKm != null)
-                      _MetaChip(
-                        icon: HugeIcons.strokeRoundedMapsLocation01,
-                        label: '${rider.distanceAwayKm!.toStringAsFixed(1)} km away',
-                        color: AppColors.textSecondary,
-                        w: w,
-                      ),
-                  ],
-                ),
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
+          ],
+        ),
+        child: Row(
+          children: [
+            _RiderAvatar(rider: rider, w: w),
+            SizedBox(width: w * 0.035),
+            Expanded(child: _RiderDetails(rider: rider, w: w)),
+            SizedBox(width: w * 0.02),
+            _QuotePrice(quote: quote, isSelected: isSelected, w: w),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RiderDetails extends StatelessWidget {
+  final RiderModel rider;
+  final double w;
+
+  const _RiderDetails({required this.rider, required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          rider.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: w * 0.04,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: w * 0.015),
+        Wrap(
+          spacing: w * 0.025,
+          runSpacing: w * 0.012,
+          children: [
+            if (rider.vehicleTypeLabel != null)
+              _MetaChip(
+                icon: HugeIcons.strokeRoundedDeliveryTruck01,
+                label: rider.vehicleTypeLabel!,
+                color: AppColors.primary,
+                w: w,
+              ),
+            _MetaChip(
+              icon: HugeIcons.strokeRoundedStarCircle,
+              label: '${rider.rating.toStringAsFixed(1)} (${rider.reviewCount})',
+              color: AppColors.accent,
+              w: w,
+            ),
+            if (rider.distanceAwayKm != null)
+              _MetaChip(
+                icon: HugeIcons.strokeRoundedMapsLocation01,
+                label: '${rider.distanceAwayKm!.toStringAsFixed(2)} km away',
+                color: AppColors.textSecondary,
+                w: w,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _QuotePrice extends StatelessWidget {
+  final ParcelQuote quote;
+  final bool isSelected;
+  final double w;
+
+  const _QuotePrice({
+    required this.quote,
+    required this.isSelected,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '${quote.currency} ${quote.price.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: w * 0.038,
+            fontWeight: FontWeight.w800,
+            color: isSelected ? AppColors.primary : AppColors.textPrimary,
+          ),
+        ),
+        if (quote.etaMinutes != null) ...[
+          SizedBox(height: w * 0.01),
+          _MetaChip(
+            icon: HugeIcons.strokeRoundedClock01,
+            label: '${quote.etaMinutes} min',
+            color: AppColors.textSecondary,
+            w: w,
           ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -115,9 +190,9 @@ class _RiderAvatar extends StatelessWidget {
 
 // ── No rider available ───────────────────────────────────────────────────
 
-/// Placeholder shown in [AssignedRiderCard]'s place when the backend
+/// Placeholder shown in place of the [RiderQuoteCard] list when the backend
 /// couldn't match a rider (e.g. none available near the pickup point right
-/// now). Mirrors the assigned card's avatar+details shape but muted, so the
+/// now). Mirrors the rider tile's avatar+details shape but muted, so the
 /// screen still reads as "a rider will appear here" rather than collapsing
 /// into a bare error message — the way Uber/Bolt grey out the driver card
 /// while no match has been found instead of showing an alarm.

@@ -1226,6 +1226,15 @@ class _BusinessInfoCard extends StatelessWidget {
           ),
           _divider(w),
           _InfoRow(
+            icon: HugeIcons.strokeRoundedMapsLocation01,
+            label: 'Map Location',
+            value: (profile.latitude != null && profile.longitude != null)
+                ? '${profile.latitude!.toStringAsFixed(5)}, '
+                    '${profile.longitude!.toStringAsFixed(5)}'
+                : '—',
+          ),
+          _divider(w),
+          _InfoRow(
             icon: HugeIcons.strokeRoundedDocumentValidation,
             label: 'Tax ID (TIN)',
             value: profile.taxIdentificationNumber.isNotEmpty

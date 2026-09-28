@@ -7,7 +7,6 @@ import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.d
 import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 
 class OrdersViewModel extends ViewModel<OrdersState> {
   OrdersViewModel(this._repository, this._realtimeService) : super(const OrdersLoading()) {
@@ -20,6 +19,13 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   final RealtimeService _realtimeService;
   StreamSubscription<OrderStatusEvent>? _orderStatusSub;
   StreamSubscription<RiderLocationEvent>? _riderLocationSub;
+
+  /// Orders fetched one-off by id that aren't in the paged list (yet) — a
+  /// just-created parcel, or a push-notification deep link to an older
+  /// order. Kept apart from [OrdersLoaded.orders] so they never distort the
+  /// list's ordering/pagination, but still resolvable via [orderById] and
+  /// patched by realtime events.
+  final Map<String, ConsumerOrder> _standalone = {};
 
   Future<void> _loadOrders() async {
     try {
@@ -72,20 +78,20 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   }
 
   Future<ConsumerOrder> placeOrder({
-    required CartModel cart,
-    required String deliveryAddress,
-    String? deliveryInstructions,
+    required String vendorId,
     required String paymentMethod,
-    double? deliveryLat,
-    double? deliveryLng,
+    required int customerAddressId,
+    required int deliveryQuoteId,
+    required bool useWallet,
+    String? notes,
   }) async {
     final order = await _repository.placeOrder(
-      cart: cart,
-      deliveryAddress: deliveryAddress,
-      deliveryInstructions: deliveryInstructions,
+      vendorId: vendorId,
       paymentMethod: paymentMethod,
-      deliveryLat: deliveryLat,
-      deliveryLng: deliveryLng,
+      customerAddressId: customerAddressId,
+      deliveryQuoteId: deliveryQuoteId,
+      useWallet: useWallet,
+      notes: notes,
     );
 
     final current = state;
@@ -103,6 +109,10 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   }
 
   Future<void> _replaceOrder(ConsumerOrder updated) async {
+    if (_standalone.containsKey(updated.id)) {
+      _standalone[updated.id] = updated;
+      emit(state);
+    }
     final current = state;
     if (current is! OrdersLoaded) return;
     emit(OrdersLoaded(
@@ -133,22 +143,35 @@ class OrdersViewModel extends ViewModel<OrdersState> {
     }
   }
 
+  /// Refreshes the live tracking fields for [orderId]. An order that isn't
+  /// cached yet is first loaded in full — the track endpoint alone carries
+  /// no items/totals/address — and cached so the tracking screen can render
+  /// it. Throws if the order can't be loaded at all.
   Future<void> trackOrder(String orderId) async {
-    final current = state;
-    ConsumerOrder? previous;
-    if (current is OrdersLoaded) {
-      for (final o in current.orders) {
-        if (o.id == orderId) {
-          previous = o;
-          break;
-        }
-      }
-    }
+    final previous = orderById(orderId) ?? await _fetchFullOrder(orderId);
     final updated = await _repository.trackOrder(orderId, previous: previous);
-    // With no cached `previous`, the repo falls back to parsing the slim
-    // track payload directly, which carries no `id` — stamp it so
-    // `_replaceOrder` can still match this order.
-    await _replaceOrder(previous == null ? updated.copyWith(id: orderId) : updated);
+    // With no `previous`, the slim track payload carries no `id` — stamp it.
+    _upsertOrder(previous == null ? updated.copyWith(id: orderId) : updated);
+  }
+
+  /// Null when the detail endpoint doesn't serve this order — the caller
+  /// then falls back to the slim track payload.
+  Future<ConsumerOrder?> _fetchFullOrder(String orderId) async {
+    try {
+      return await _repository.getOrderById(orderId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _upsertOrder(ConsumerOrder order) {
+    final current = state;
+    if (current is OrdersLoaded && current.orders.any((o) => o.id == order.id)) {
+      _replaceOrder(order);
+      return;
+    }
+    _standalone[order.id] = order;
+    emit(state);
   }
 
   Future<Map<String, dynamic>> payOrder(
@@ -172,11 +195,12 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   /// Returns a single order by ID, or null if not found / still loading.
   ConsumerOrder? orderById(String orderId) {
     final s = state;
-    if (s is! OrdersLoaded) return null;
-    for (final o in s.orders) {
-      if (o.id == orderId) return o;
+    if (s is OrdersLoaded) {
+      for (final o in s.orders) {
+        if (o.id == orderId) return o;
+      }
     }
-    return null;
+    return _standalone[orderId];
   }
 
   /// Applies a realtime `order.status` event onto the cached order, if any

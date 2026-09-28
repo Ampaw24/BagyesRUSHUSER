@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
 import '../utils/network_utility.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
+import 'package:bagyesrushappusernew/src/customer_address/repositories/customer_address_repository.dart';
 import 'package:bagyesrushappusernew/src/cart/repositories/cart_repository.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
@@ -95,6 +96,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AuthRepository(client: sl(), cacheHelper: sl()));
   sl.registerLazySingleton(() => CartRepository(client: sl()));
   sl.registerLazySingleton(() => ConsumerOrdersRepository(client: sl()));
+  sl.registerLazySingleton(() => CustomerAddressRepository(client: sl()));
   sl.registerLazySingleton(() => OrdersRepository(client: sl()));
   sl.registerLazySingleton(() => RestaurantRepository(client: sl()));
   sl.registerLazySingleton(() => ParcelRepository(client: sl()));
@@ -175,6 +177,7 @@ Future<void> init() async {
         ordersViewModel: sl(),
         ordersRepository: sl(),
         paymentRepository: sl(),
+        addressRepository: sl(),
       ));
   sl.registerFactory(() => SearchViewModel(sl()));
   // Factory + param — one fresh instance per ReportFlowView push, matching

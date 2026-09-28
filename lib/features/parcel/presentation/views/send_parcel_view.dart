@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 import '../widgets/available_riders_step.dart';
@@ -35,6 +39,9 @@ class _SendParcelViewState extends State<SendParcelView> {
   late final SendParcelViewModel _vm;
   late SendParcelState _previousState;
 
+  /// True from parcel creation until the Paystack checkout closes.
+  bool _isLaunchingPayment = false;
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +66,7 @@ class _SendParcelViewState extends State<SendParcelView> {
 
     if (next.createdParcel != null &&
         next.createdParcel != previous.createdParcel) {
-      AppNavigator.toOrderTracking(context, next.createdParcel!.id);
+      _payThenTrack(next.createdParcel!, next);
     } else if (next.submitError != null &&
         next.submitError != previous.submitError) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,6 +74,55 @@ class _SendParcelViewState extends State<SendParcelView> {
       );
     }
     setState(() {});
+  }
+
+  /// Opens Paystack for the freshly created parcel — same flow as food
+  /// orders — then replaces this wizard with tracking whatever the outcome
+  /// (an unpaid parcel keeps its "Pay Now" button there). Skipped entirely
+  /// when the wallet already settled the full charge.
+  Future<void> _payThenTrack(Parcel parcel, SendParcelState state) async {
+    final paidByWallet = parcel.isPaid ||
+        (parcel.paymentStatus == null &&
+            parcel.amountDue == null &&
+            state.walletSplit.coversFully);
+    if (paidByWallet) {
+      _finishAndTrack(parcel.id, 'Parcel confirmed — finding you a rider.');
+      return;
+    }
+
+    setState(() => _isLaunchingPayment = true);
+    String message;
+    try {
+      final outcome = await OrderPaymentLauncher.pay(
+        context,
+        orderId: parcel.id,
+        paymentMethod: 'mobile_money',
+        savedMethod: state.selectedPaymentMethod,
+      );
+      message = outcome == OrderPaymentOutcome.completed
+          ? 'Payment successful — finding you a rider.'
+          : 'Payment not completed. Tap "Pay Now" to finish.';
+    } on OrderPaymentException catch (e) {
+      message = e.message;
+    } catch (_) {
+      message = 'Payment failed. You can retry from the tracking screen.';
+    }
+    if (!mounted) return;
+    setState(() => _isLaunchingPayment = false);
+    _finishAndTrack(parcel.id, message);
+  }
+
+  /// Refreshes wallet + orders list so both reflect the new parcel, then
+  /// hands off to tracking. The messenger is captured first — it outlives
+  /// this route, so the message shows on the tracking screen.
+  void _finishAndTrack(String parcelId, String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    context.read<CustomerWalletViewmodel>().fetchWallet();
+    context.read<OrdersViewModel>().refresh();
+    AppNavigator.goToOrderTracking(context, parcelId);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -118,7 +174,7 @@ class _SendParcelViewState extends State<SendParcelView> {
               ParcelBottomBar(
                 currentStep: state.currentStep,
                 canProceed: state.canProceed,
-                isLoading: state.isSubmitting,
+                isLoading: state.isSubmitting || _isLaunchingPayment,
                 onBack: _vm.goBack,
                 onContinue: () => _handleContinue(context, state, _vm),
               ),
@@ -261,7 +317,9 @@ class _SendParcelViewState extends State<SendParcelView> {
 
       case ParcelStep.availableRiders:
         return AvailableRidersStep(
-          rider: state.assignedRider,
+          riderQuotes: state.riderQuotes,
+          selectedRiderId: state.selectedRiderId,
+          onSelectRider: vm.selectRider,
           distanceKm: state.distanceKm,
           etaMinutes: state.quotedEtaMinutes,
           quotedPrice: state.quotedPrice,
@@ -316,7 +374,7 @@ class _SendParcelViewState extends State<SendParcelView> {
       case ParcelStep.deliveryLocation:
         return isReceive ? 'Deliver To' : 'Delivery Location';
       case ParcelStep.availableRiders:
-        return 'Your Rider';
+        return 'Choose a Rider';
       case ParcelStep.summary:
         return 'Delivery Summary';
     }

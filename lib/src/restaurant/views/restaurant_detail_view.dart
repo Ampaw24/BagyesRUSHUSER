@@ -13,6 +13,7 @@ import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
 import 'package:bagyesrushappusernew/src/restaurant/viewmodels/restaurant_detail_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/restaurant/widgets/item_addon_sheet.dart';
 import 'package:bagyesrushappusernew/src/restaurant/widgets/menu_item_card.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 
 class RestaurantDetailView extends StatefulWidget {
   final String restaurantId;
@@ -587,7 +588,7 @@ class _StatChip extends StatelessWidget {
 /// Cart floating action button with bounce animation on item add.
 class _CartFab extends StatefulWidget {
   final int totalItems;
-  final double total;
+  final double? total;
   final VoidCallback onTap;
 
   const _CartFab({
@@ -696,7 +697,7 @@ class _CartFabState extends State<_CartFab>
                   ),
                 ),
                 Text(
-                  'GHS ${widget.total.toStringAsFixed(2)}',
+                  formatMoney(widget.total),
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

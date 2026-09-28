@@ -23,7 +23,7 @@ class CartViewModel extends ViewModel<CartState> {
 
   bool get isEmpty => cart?.isEmpty ?? true;
   int get totalItems => cart?.totalItems ?? 0;
-  double get total => cart?.total ?? 0;
+  double? get total => cart?.total;
   bool get isMutating => switch (state) {
         CartLoaded(:final isMutating) => isMutating,
         _ => false,
@@ -34,6 +34,16 @@ class CartViewModel extends ViewModel<CartState> {
   /// [clearError].
   String? get errorMessage => switch (state) {
         CartLoaded(:final errorMessage) => errorMessage,
+        _ => null,
+      };
+
+  bool get isApplyingPromo => switch (state) {
+        CartLoaded(:final isApplyingPromo) => isApplyingPromo,
+        _ => false,
+      };
+
+  String? get promoError => switch (state) {
+        CartLoaded(:final promoError) => promoError,
         _ => null,
       };
 
@@ -96,22 +106,6 @@ class CartViewModel extends ViewModel<CartState> {
     final previous = state;
     final base = previous is CartLoaded ? previous.cart : CartModel.empty(vendorId);
 
-    // A plain (no notes/addons) repeat of an item the server has already
-    // confirmed exists (i.e. not still a pending optimistic `local_` id)
-    // must go through the quantity-bump endpoint — POSTing it again as a
-    // "new" item is what the backend's duplicate-item validation (422)
-    // rejects.
-    final existingIndex = notes == null && addonOptions.isEmpty
-        ? base.items.indexWhere(
-            (i) =>
-                i.menuItemId == menuItemId.toString() &&
-                i.addonOptions.isEmpty &&
-                i.notes == null &&
-                !i.id.startsWith('local_'),
-          )
-        : -1;
-    final existing = existingIndex >= 0 ? base.items[existingIndex] : null;
-
     emit(CartLoaded(
       cart: _withAddedItem(
         base,
@@ -126,18 +120,15 @@ class CartViewModel extends ViewModel<CartState> {
       isMutating: true,
     ));
 
-    final result = existing != null
-        ? await _repository.updateItem(
-            existing.id,
-            quantity: existing.quantity + quantity,
-          )
-        : await _repository.addItem(
-            vendorId: vendorId,
-            menuItemId: menuItemId,
-            quantity: quantity,
-            notes: notes,
-            addonOptionIds: addonOptionIds,
-          );
+    // The backend merges a repeat of the same item/options/notes into the
+    // existing line, so a plain POST is always correct.
+    final result = await _repository.addItem(
+      vendorId: vendorId,
+      menuItemId: menuItemId,
+      quantity: quantity,
+      notes: notes,
+      addonOptionIds: addonOptionIds,
+    );
 
     return _finishMutation(result, previous: previous, vendorId: vendorId);
   }
@@ -205,6 +196,64 @@ class CartViewModel extends ViewModel<CartState> {
 
     final result = await _repository.clearCart(vendorId);
     await _finishMutation(result, previous: previous, vendorId: vendorId);
+  }
+
+  // ─── Promo code ────────────────────────────────────────────────────────────
+
+  /// Stores [code] on the server cart; discount and totals come back from
+  /// the backend. A rejection is surfaced inline via [promoError].
+  Future<bool> applyPromoCode(String code) async {
+    final current = state;
+    final trimmed = code.trim().toUpperCase();
+    if (current is! CartLoaded || trimmed.isEmpty || current.isApplyingPromo) {
+      return false;
+    }
+
+    emit(current.copyWith(isApplyingPromo: true, clearPromoError: true));
+
+    final result = await _repository.applyPromoCode(
+      vendorId: current.cart.vendorId,
+      code: trimmed,
+    );
+
+    return result.fold(
+      (failure) {
+        appLogger.w('CartViewModel.applyPromoCode → ${failure.message}');
+        final latest = state is CartLoaded ? state as CartLoaded : current;
+        emit(latest.copyWith(isApplyingPromo: false, promoError: failure.message));
+        return false;
+      },
+      (cart) {
+        emit(CartLoaded(cart: cart));
+        return true;
+      },
+    );
+  }
+
+  Future<void> removePromoCode() async {
+    final previous = state;
+    if (previous is! CartLoaded || previous.cart.promo == null) return;
+
+    emit(CartLoaded(
+      cart: previous.cart.withoutPromo(),
+      isApplyingPromo: true,
+    ));
+
+    final result = await _repository.removePromoCode(previous.cart.vendorId);
+    result.fold(
+      (failure) => emit(previous.copyWith(
+        isApplyingPromo: false,
+        errorMessage: failure.message,
+      )),
+      (cart) => emit(CartLoaded(cart: cart)),
+    );
+  }
+
+  void clearPromoError() {
+    final s = state;
+    if (s is CartLoaded && s.promoError != null) {
+      emit(s.copyWith(clearPromoError: true));
+    }
   }
 
   Future<void> refresh() async {

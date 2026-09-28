@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 
 class CartItemTile extends StatelessWidget {
   final CartItemModel cartItem;
@@ -62,6 +63,15 @@ class CartItemTile extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
+                if (!cartItem.isAvailable)
+                  Text(
+                    'No longer available',
+                    style: TextStyle(
+                      fontSize: w * 0.029,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.error,
+                    ),
+                  ),
                 // Selected addons
                 if (cartItem.addonOptions.isNotEmpty) ...[
                   SizedBox(height: w * 0.006),
@@ -70,7 +80,8 @@ class CartItemTile extends StatelessWidget {
                       final qtyPrefix =
                           addon.quantity > 1 ? '${addon.quantity}× ' : '';
                       final priceStr = addon.additionalPrice > 0
-                          ? ' (GHS ${(addon.additionalPrice * addon.quantity).toStringAsFixed(2)})'
+                          ? ' (+${formatMoney(addon.additionalPrice)}'
+                              '${addon.quantity > 1 ? ' each' : ''})'
                           : '';
                       return Text(
                         '+ $qtyPrefix${addon.optionName}$priceStr',
@@ -114,9 +125,7 @@ class CartItemTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      cartItem.addonsUnitTotal > 0
-                          ? 'GHS ${(cartItem.price + cartItem.addonsUnitTotal).toStringAsFixed(2)} each'
-                          : 'GHS ${cartItem.price.toStringAsFixed(2)}',
+                      '${formatMoney(cartItem.price)} each',
                       style: TextStyle(
                         fontSize: w * 0.033,
                         color: AppColors.textSecondary,
@@ -136,7 +145,7 @@ class CartItemTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'GHS ${cartItem.lineTotal.toStringAsFixed(2)}',
+                      formatMoney(cartItem.lineTotal),
                       style: TextStyle(
                         fontSize: w * 0.038,
                         fontWeight: FontWeight.w700,

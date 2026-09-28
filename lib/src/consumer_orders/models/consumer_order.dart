@@ -1,6 +1,8 @@
 /// Consumer-side order domain entity.
 library;
 
+import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 
@@ -93,6 +95,8 @@ PaymentStatus _paymentStatusFromString(String? value) {
   }
 }
 
+const _lineTotalKeys = ['line_total', 'total_price', 'total'];
+
 class OrderItem {
   final String menuItemId;
   final String name;
@@ -102,24 +106,25 @@ class OrderItem {
   /// Snapshot of selected addons at order time.
   final List<SelectedAddon> addons;
 
+  /// Backend-computed line total (item + addons × quantity). Null when the
+  /// response omits it — never derived client-side.
+  final double? lineTotal;
+
   const OrderItem({
     required this.menuItemId,
     required this.name,
     required this.quantity,
     required this.unitPrice,
     this.addons = const [],
+    this.lineTotal,
   });
-
-  double get addonsUnitTotal =>
-      addons.fold(0.0, (sum, a) => sum + a.additionalPrice);
-
-  double get lineTotal => (unitPrice + addonsUnitTotal) * quantity;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
         menuItemId: json['menu_item_id']?.toString() ?? '',
         name: json['name'] as String? ?? '',
         quantity: (json['quantity'] as num?)?.toInt() ?? 1,
         unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0,
+        lineTotal: JsonUtils.firstDoubleOrNull(json, _lineTotalKeys),
         addons: ((json['options'] ?? json['addons']) as List<dynamic>?)
                 ?.map((a) => SelectedAddon.fromJson(a as Map<String, dynamic>))
                 .toList() ??
@@ -131,6 +136,7 @@ class OrderItem {
         'name': name,
         'quantity': quantity,
         'unit_price': unitPrice,
+        'line_total': lineTotal,
         'addons': addons.map((a) => a.toJson()).toList(),
       };
 }
@@ -205,6 +211,10 @@ class ConsumerOrder {
   final String? driverPhone;
   final String paymentMethod;
   final PaymentStatus paymentStatus;
+
+  /// `payment.requires_payment` — false for cash or a fully wallet-paid
+  /// order. Null when the payload omits it.
+  final bool? requiresPayment;
   final int? estimatedPrepMinutes;
 
   /// Handed to the courier at drop-off to confirm the right person is
@@ -247,6 +257,7 @@ class ConsumerOrder {
     required this.placedAt,
     required this.paymentMethod,
     this.paymentStatus = PaymentStatus.pending,
+    this.requiresPayment,
     this.deliveryInstructions,
     this.estimatedDelivery,
     this.estimatedPrepMinutes,
@@ -262,6 +273,13 @@ class ConsumerOrder {
 
   bool get isReceiveParcel => parcelDirection == 'receive';
 
+  /// Show "Pay Now". A mobile-money `pending` is not a failure — it stays
+  /// payable until the gateway settles it.
+  bool get needsPayment =>
+      status != OrderStatus.cancelled &&
+      paymentStatus != PaymentStatus.paid &&
+      (requiresPayment ?? true);
+
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
 
   /// Applies the lightweight fields returned by the tracking endpoint
@@ -274,6 +292,7 @@ class ConsumerOrder {
     String? id,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
+    bool? requiresPayment,
     int? estimatedPrepMinutes,
     DateTime? estimatedDelivery,
     String? driverName,
@@ -302,6 +321,7 @@ class ConsumerOrder {
       placedAt: placedAt,
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+      requiresPayment: requiresPayment ?? this.requiresPayment,
       estimatedDelivery: estimatedDelivery ?? this.estimatedDelivery,
       estimatedPrepMinutes: estimatedPrepMinutes ?? this.estimatedPrepMinutes,
       driverName: driverName ?? this.driverName,
@@ -326,7 +346,7 @@ class ConsumerOrder {
         ? stops.first as Map<String, dynamic>
         : null;
 
-    return ConsumerOrder(
+    final order = ConsumerOrder(
       id: json['id'].toString(),
       restaurantId:
           (vendor?['id'] ?? json['vendor_id'] ?? json['restaurant_id'])?.toString() ?? '',
@@ -372,6 +392,9 @@ class ConsumerOrder {
       paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',
       paymentStatus: _paymentStatusFromString(
           payment?['status'] as String? ?? json['payment_status'] as String?),
+      requiresPayment: payment?['requires_payment'] == null
+          ? null
+          : JsonUtils.asBool(payment!['requires_payment']),
       deliveryPin: (delivery?['pin'] ??
               json['delivery_pin'] ??
               firstStop?['delivery_pin'])
@@ -386,6 +409,16 @@ class ConsumerOrder {
           (json['arrival_distance_metres'] as num?)?.toDouble() ??
               (rider?['arrival_distance_metres'] as num?)?.toDouble(),
     );
+    if (totals != null) {
+      assert(debugCheckTotalsIdentity(
+        subtotal: order.subtotal,
+        discount: order.discount,
+        deliveryFee: order.deliveryFee,
+        serviceFee: order.serviceFee,
+        total: order.total,
+      ));
+    }
+    return order;
   }
 
   Map<String, dynamic> toJson() => {

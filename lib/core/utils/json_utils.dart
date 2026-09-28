@@ -49,6 +49,22 @@ class JsonUtils {
     return value.map((e) => asString(e)).toList();
   }
 
+  /// First of [keys] present in [json] as a number (or numeric string);
+  /// null when none is — for backend-computed amounts that must not be
+  /// replaced by a client-side fallback.
+  static double? firstDoubleOrNull(Map<String, dynamic>? json, List<String> keys) {
+    if (json == null) return null;
+    for (final key in keys) {
+      final value = json[key];
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        final parsed = double.tryParse(value);
+        if (parsed != null) return parsed;
+      }
+    }
+    return null;
+  }
+
   static DateTime? asDateTime(dynamic value) {
     if (value is! String) return null;
     return DateTime.tryParse(value);

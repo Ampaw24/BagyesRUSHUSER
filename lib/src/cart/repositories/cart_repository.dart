@@ -211,7 +211,83 @@ class CartRepository {
     }
   }
 
+  /// `POST /customer/carts/:vendorId/promo-code` — stores [code] on the
+  /// cart, which is what checkout reads. `/promo-codes/validate` only
+  /// previews and is not enough on its own.
+  ResultFuture<CartModel> applyPromoCode({
+    required String vendorId,
+    required String code,
+  }) async {
+    appLogger.d('CartRepository.applyPromoCode → vendorId=$vendorId');
+    try {
+      final response = await _client.post(
+        ApiEndpoints.customerCartPromoCode(vendorId),
+        data: {'code': code},
+      );
+
+      if ([200, 201].contains(response.statusCode)) {
+        appLogger.i('CartRepository.applyPromoCode → success');
+        return await _cartFromResponse(response.data, vendorId);
+      }
+
+      appLogger.w('CartRepository.applyPromoCode → HTTP ${response.statusCode}');
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('CartRepository.applyPromoCode → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'CartRepository',
+        methodName: 'applyPromoCode',
+      );
+    }
+  }
+
+  /// `DELETE /customer/carts/:vendorId/promo-code`
+  ResultFuture<CartModel> removePromoCode(String vendorId) async {
+    appLogger.d('CartRepository.removePromoCode → vendorId=$vendorId');
+    try {
+      final response =
+          await _client.delete(ApiEndpoints.customerCartPromoCode(vendorId));
+
+      if ([200, 201, 204].contains(response.statusCode)) {
+        appLogger.i('CartRepository.removePromoCode → success');
+        return await _cartFromResponse(response.data, vendorId);
+      }
+
+      appLogger.w(
+        'CartRepository.removePromoCode → HTTP ${response.statusCode}',
+      );
+      return NetworkUtils.handleDioResponseError(response);
+    } on DioException catch (e) {
+      appLogger.e('CartRepository.removePromoCode → DioException', error: e);
+      return NetworkUtils.handleDioException(e);
+    } catch (e, s) {
+      return NetworkUtils.handleException(
+        e,
+        s,
+        repositoryName: 'CartRepository',
+        methodName: 'removePromoCode',
+      );
+    }
+  }
+
   // ─── Private helpers ─────────────────────────────────────────────────────
+
+  /// Uses the cart embedded in a promo response when present; otherwise
+  /// re-fetches it, so a slim `{code, discount}` body never blanks the items.
+  ResultFuture<CartModel> _cartFromResponse(
+    dynamic body,
+    String vendorId,
+  ) async {
+    final data = _dataMap(body);
+    final cart = data['cart'];
+    if (cart is DataMap) return Right(CartModel.fromJson(cart));
+    if (data['items'] is List) return Right(CartModel.fromJson(data));
+    return getCart(vendorId);
+  }
 
   DataMap _dataMap(dynamic body) {
     if (body is DataMap) {

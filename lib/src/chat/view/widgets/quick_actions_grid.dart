@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 
-/// Prominent, large tappable quick-reply tiles — a two-column grid rather
-/// than a scrollable pill row, matching how Uber Eats/Bolt Food surface
-/// canned order-support replies as a small menu of actions rather than a
-/// throwaway chat suggestion strip. Rendered straight from the
-/// conversation's server-supplied `quick_replies`, never a local list.
+/// Server-supplied `quick_replies` as one horizontally scrolling row of
+/// compact chips. A single line keeps the message history visible above
+/// it — the earlier two-column tile grid grew with every reply and, with
+/// the keyboard open, left almost no room for the conversation.
 class QuickActionsGrid extends StatelessWidget {
   const QuickActionsGrid({
     super.key,
@@ -23,17 +21,18 @@ class QuickActionsGrid extends StatelessWidget {
     if (replies.isEmpty) return const SizedBox.shrink();
     final w = MediaQuery.sizeOf(context).width;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.02, w * 0.04, w * 0.015),
-      child: Wrap(
-        spacing: w * 0.025,
-        runSpacing: w * 0.025,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.02, w * 0.04, w * 0.01),
+      child: Row(
         children: [
           for (final reply in replies)
-            _QuickActionTile(
-              width: (w - w * 0.08 - w * 0.025) / 2,
-              label: reply,
-              onTap: () => onSelected(reply),
+            Padding(
+              padding: EdgeInsets.only(right: w * 0.02),
+              child: _QuickReplyChip(
+                label: reply,
+                onTap: () => onSelected(reply),
+              ),
             ),
         ],
       ),
@@ -41,64 +40,41 @@ class QuickActionsGrid extends StatelessWidget {
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
-  const _QuickActionTile({
-    required this.width,
-    required this.label,
-    required this.onTap,
-  });
+class _QuickReplyChip extends StatelessWidget {
+  const _QuickReplyChip({required this.label, required this.onTap});
 
-  final double width;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final shape = StadiumBorder(side: BorderSide(color: AppColors.border));
 
-    return SizedBox(
-      width: width,
+    return ConstrainedBox(
+      // Long replies ellipsize rather than stretching one chip past the
+      // screen edge.
+      constraints: BoxConstraints(maxWidth: w * 0.7),
       child: Material(
         color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.035),
+        shape: shape,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(w * 0.035),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.03),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(w * 0.035),
-              border: Border.all(color: AppColors.border),
+          customBorder: shape,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.035,
+              vertical: w * 0.022,
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(w * 0.017),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedBubbleChat,
-                    color: AppColors.primary,
-                    size: w * 0.036,
-                  ),
-                ),
-                SizedBox(width: w * 0.022),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: w * 0.031,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: w * 0.032,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ),

@@ -44,13 +44,15 @@ abstract class NetworkUtils {
       final topMessage = data['message']?.toString() ?? data['error']?.toString();
       title = data['title']?.toString() ?? title;
 
-      // Extract nested field-level errors (e.g. {"errors": {"phone": "..."}})
+      // Field-level errors ({"errors": {"code": ["Enter a promo code"]}}) —
+      // show the first message, per the API's error envelope contract.
       final errors = data['errors'];
       String? errorDetail;
       if (errors is Map && errors.isNotEmpty) {
-        errorDetail = errors.values
-            .map((v) => v is List ? v.join(', ') : v.toString())
-            .join('\n');
+        final first = errors.values.first;
+        errorDetail = first is List
+            ? (first.isEmpty ? null : first.first.toString())
+            : first.toString();
       }
 
       message = errorDetail ?? topMessage ?? message;

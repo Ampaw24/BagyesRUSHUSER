@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,17 +13,19 @@ import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart
 import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/promo_code_result.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
+import 'package:bagyesrushappusernew/src/checkout/views/widgets/delivery_address_section.dart';
+import 'package:bagyesrushappusernew/src/checkout/views/widgets/promo_code_section.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 
 /// Unwraps whichever [CheckoutState] variant carries a [CheckoutForm].
 CheckoutForm _formFromState(CheckoutState state) => switch (state) {
@@ -43,12 +43,8 @@ class CheckoutView extends StatefulWidget {
 }
 
 class _CheckoutViewState extends State<CheckoutView> {
-  // Address starts empty — user MUST provide an address before placing order.
-  final _addressController = TextEditingController();
   final _instructionsController = TextEditingController();
-  final _promoController = TextEditingController();
   bool _isLocatingCurrentPosition = false;
-  Timer? _quoteDebounceTimer;
 
   /// Saved reference so dispose() doesn't call context.read on an unmounted
   /// widget, and so the listener can be detached.
@@ -57,7 +53,6 @@ class _CheckoutViewState extends State<CheckoutView> {
   @override
   void initState() {
     super.initState();
-    // Sync address controller with checkout state after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final vm = context.read<CheckoutViewModel>();
@@ -65,28 +60,29 @@ class _CheckoutViewState extends State<CheckoutView> {
       vm.addListener(_onCheckoutStateChanged);
 
       final form = _formFromState(vm.state);
-      if (form.deliveryAddress.isNotEmpty) {
-        _addressController.text = form.deliveryAddress;
-      }
       if (form.deliveryInstructions.isNotEmpty) {
         _instructionsController.text = form.deliveryInstructions;
       }
 
-      // Wallet balance is display-only here (see [_WalletBalanceRow]) but
-      // must never be shown stale, so it's re-fetched every time checkout
-      // opens rather than relying on whatever this shared view model last
-      // cached from another screen.
+      final vendorId = context.read<CartViewModel>().cart?.vendorId;
+      if (vendorId != null) vm.loadAddresses(vendorId);
+
+      // Refresh the cart so its totals, wallet split and promo verdict are
+      // current, and the wallet so the toggle reflects the live balance.
+      context.read<CartViewModel>().refresh();
       context.read<CustomerWalletViewmodel>().fetchWallet();
     });
   }
 
-  /// React to success → clear the server cart, then navigate to tracking.
+  /// The backend deletes the cart when the order is created — reset local
+  /// state without re-reading it, then go to tracking.
   void _onCheckoutStateChanged() {
     if (!mounted) return;
     final next = _vm!.state;
     if (next is CheckoutSuccess) {
-      context.read<CartViewModel>().clearCart();
-      context.go(AppRoutes.trackOrder, extra: next.orderId);
+      context.read<CartViewModel>().reset();
+      context.read<CustomerWalletViewmodel>().fetchWallet();
+      context.go(AppRoutes.trackOrder, extra: next.order.id);
     } else if (next is CheckoutError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(next.message)),
@@ -97,48 +93,28 @@ class _CheckoutViewState extends State<CheckoutView> {
 
   @override
   void dispose() {
-    _quoteDebounceTimer?.cancel();
     _vm?.removeListener(_onCheckoutStateChanged);
-    _addressController.dispose();
     _instructionsController.dispose();
-    _promoController.dispose();
     super.dispose();
   }
 
-  void _applyPromoCode(CartModel cart) {
-    if (_promoController.text.trim().isEmpty) return;
-    FocusScope.of(context).unfocus();
-    context.read<CheckoutViewModel>().applyPromoCode(
-          _promoController.text,
-          vendorId: cart.vendorId,
+  Future<void> _saveAddress(String address, double lat, double lng) async {
+    final cartVm = context.read<CartViewModel>();
+    final vendorId = cartVm.cart?.vendorId;
+    if (vendorId == null) return;
+    final error = await context.read<CheckoutViewModel>().addAddress(
+          address: address,
+          latitude: lat,
+          longitude: lng,
+          vendorId: vendorId,
         );
-  }
-
-  void _removePromoCode() {
-    _promoController.clear();
-    context.read<CheckoutViewModel>().removePromoCode();
-  }
-
-  /// Requests a fresh delivery-fee quote once [address] looks complete
-  /// enough to price against (same length check as `hasValidAddress`).
-  /// Never called on checkout open — the address starts empty, and the
-  /// quote endpoint now needs a real location to compute a real fee.
-  void _requestQuoteFor(String address) {
-    _quoteDebounceTimer?.cancel();
-    if (address.trim().length < 5) return;
-    final cart = context.read<CartViewModel>().cart;
-    if (cart == null) return;
-    context.read<CheckoutViewModel>().fetchDeliveryQuote(cart.vendorId);
-  }
-
-  /// Debounced variant for the hand-typed address field, so a quote isn't
-  /// requested on every keystroke.
-  void _onAddressTyped(String address) {
-    _quoteDebounceTimer?.cancel();
-    if (address.trim().length < 5) return;
-    _quoteDebounceTimer = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) _requestQuoteFor(address);
-    });
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    // A first address may become the default, which the cart then quotes.
+    cartVm.refresh();
   }
 
   Future<void> _useCurrentLocation() async {
@@ -154,13 +130,11 @@ class _CheckoutViewState extends State<CheckoutView> {
       switch (result.status) {
         case LocationStatus.success:
           final position = result.position!;
-          _addressController.text = result.address;
-          context.read<CheckoutViewModel>().updateAddressWithCoordinates(
-                result.address,
-                latitude: position.latitude,
-                longitude: position.longitude,
-              );
-          _requestQuoteFor(result.address);
+          await _saveAddress(
+            result.address,
+            position.latitude,
+            position.longitude,
+          );
           break;
         case LocationStatus.serviceDisabled:
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -193,10 +167,12 @@ class _CheckoutViewState extends State<CheckoutView> {
   }
 
   void _openMapPicker() {
-    final form = _formFromState(context.read<CheckoutViewModel>().state);
-    final initialPosition = (form.deliveryLat != null && form.deliveryLng != null)
-        ? LatLng(form.deliveryLat!, form.deliveryLng!)
-        : null;
+    final selected =
+        _formFromState(context.read<CheckoutViewModel>().state).selectedAddress;
+    final initialPosition =
+        (selected?.latitude != null && selected?.longitude != null)
+            ? LatLng(selected!.latitude!, selected.longitude!)
+            : null;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -206,15 +182,8 @@ class _CheckoutViewState extends State<CheckoutView> {
       builder: (_) => MapLocationPickerSheet(
         title: 'Delivery Address',
         initialPosition: initialPosition,
-        onConfirm: (LatLng latLng, String address) {
-          _addressController.text = address;
-          context.read<CheckoutViewModel>().updateAddressWithCoordinates(
-                address,
-                latitude: latLng.latitude,
-                longitude: latLng.longitude,
-              );
-          _requestQuoteFor(address);
-        },
+        onConfirm: (LatLng latLng, String address) =>
+            _saveAddress(address, latLng.latitude, latLng.longitude),
       ),
     );
   }
@@ -259,39 +228,48 @@ class _CheckoutViewState extends State<CheckoutView> {
     final isPlacing = checkoutState is CheckoutPlacing;
     final form = _formFromState(checkoutState);
 
-    final hasValidAddress = form.deliveryAddress.trim().length >= 5;
-    final hasPaymentMethod = form.selectedPaymentMethod != null;
-
-    // Prefer the live quote once it's loaded; fall back to the cart's
-    // (possibly stale) embedded fee while loading, on error, or before the
-    // first fetch completes — the screen never shows a broken/empty total.
-    // A backend-returned promo `totals` breakdown (when present) outranks
-    // both, since it's the most recently authoritative source for the same
-    // figures.
-    final appliedPromo = form.appliedPromo;
-    final promoDiscount = appliedPromo?.discount ?? 0;
-    final effectiveDeliveryFee = appliedPromo?.deliveryFee ??
-        form.deliveryQuoteFee ??
-        cart?.deliveryFee ??
-        0;
-    final effectiveServiceFee = appliedPromo?.serviceFee ??
-        form.deliveryQuoteServiceFee ??
-        cart?.serviceFee ??
-        0;
-    final deliveryFeeCurrency =
-        appliedPromo?.currency ?? form.deliveryQuoteCurrency ?? 'GHS';
-    final effectiveSubtotal = appliedPromo?.subtotal ?? cart?.subtotal ?? 0;
-    final effectiveTotal = appliedPromo?.total ??
-        (effectiveSubtotal +
-            effectiveDeliveryFee +
-            effectiveServiceFee -
-            promoDiscount);
-
     if (cart == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
+
+    // Every figure is the backend's. The cart's totals are priced against
+    // the default address; for any other address only the quoted fee is
+    // known here, and the order response carries the final total.
+    final currency = cart.currency;
+    final usesCartQuote = form.usesCartQuote;
+    final deliveryFee =
+        usesCartQuote ? cart.deliveryFee : form.deliveryQuote?.fee;
+    final deliveryError = usesCartQuote ? cart.deliveryError : null;
+    final total = usesCartQuote ? cart.total : null;
+    // `wallet.applied`/`payable` are priced against the cart's (default
+    // address) total; for another address the split is settled server-side.
+    final walletSplit = WalletSplit.fromServer(
+      useWallet: form.useWallet && (walletVm.wallet?.balance ?? 0) > 0,
+      applied: usesCartQuote ? cart.wallet?.applied : null,
+      payable: usesCartQuote ? cart.wallet?.payable : null,
+      total: total,
+    );
+    final hasPaymentMethod =
+        form.selectedPaymentMethod != null || walletSplit.coversFully;
+    final hasQuote = usesCartQuote
+        ? cart.deliveryQuoteId != null
+        : form.deliveryQuote != null;
+    final blockedReason = cart.checkoutBlockedReason ??
+        (form.selectedAddress == null
+            ? 'Choose a delivery address to continue'
+            : !hasQuote && !form.isFetchingDeliveryQuote
+                ? (deliveryError ??
+                    form.deliveryQuoteError ??
+                    "Delivery isn't available to this address")
+                : !hasPaymentMethod
+                    ? 'Please select a payment method to continue'
+                    : null);
+    final canPlace = blockedReason == null &&
+        hasQuote &&
+        !isPlacing &&
+        !cartVm.isMutating;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -307,16 +285,16 @@ class _CheckoutViewState extends State<CheckoutView> {
                 // ── Step 1: Delivery address ──
                 _SectionHeader(number: '1', title: 'Delivery Address'),
                 SizedBox(height: w * 0.03),
-
-                // Address selector tile
-                _AddressSelectorTile(
-                  controller: _addressController,
-                  hasValidAddress: hasValidAddress,
-                  isLocatingCurrentPosition: _isLocatingCurrentPosition,
-                  onChanged: (v) {
-                    context.read<CheckoutViewModel>().updateAddress(v);
-                    _onAddressTyped(v);
-                  },
+                DeliveryAddressSection(
+                  status: checkoutVm.addressesStatus,
+                  addresses: checkoutVm.addresses,
+                  selected: form.selectedAddress,
+                  isBusy: checkoutVm.isSavingAddress ||
+                      _isLocatingCurrentPosition,
+                  isLocating: _isLocatingCurrentPosition,
+                  onSelect: (a) =>
+                      checkoutVm.selectAddress(a, vendorId: cart.vendorId),
+                  onRetry: () => checkoutVm.loadAddresses(cart.vendorId),
                   onUseCurrentLocation: _useCurrentLocation,
                   onPickOnMap: _openMapPicker,
                 ),
@@ -325,9 +303,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                 TextField(
                   controller: _instructionsController,
                   maxLines: 2,
-                  onChanged: (v) => context
-                      .read<CheckoutViewModel>()
-                      .updateInstructions(v),
+                  onChanged: checkoutVm.updateInstructions,
                   decoration: InputDecoration(
                     hintText: 'Delivery instructions (optional)',
                     prefixIcon: const Icon(
@@ -348,13 +324,33 @@ class _CheckoutViewState extends State<CheckoutView> {
                 // ── Step 2: Payment method ──
                 _SectionHeader(number: '2', title: 'Payment Method'),
                 SizedBox(height: w * 0.03),
-                _WalletBalanceRow(
+                UseWalletTile(
                   wallet: walletVm.wallet,
                   isLoading: walletState is CustomerWalletLoading,
                   hasError: walletState is CustomerWalletError,
+                  useWallet: form.useWallet,
+                  split: walletSplit,
+                  onChanged: checkoutVm.setUseWallet,
+                  onRetry: walletVm.fetchWallet,
                 ),
                 SizedBox(height: w * 0.03),
-                switch (checkoutVm.paymentMethodsStatus) {
+                if (walletSplit.coversFully)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: w * 0.02),
+                    child: Text(
+                      'No mobile money needed — paid from your wallet',
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: walletSplit.coversFully ? 0.4 : 1,
+                  child: IgnorePointer(
+                    ignoring: walletSplit.coversFully,
+                    child: switch (checkoutVm.paymentMethodsStatus) {
                   PaymentMethodsStatus.loading =>
                     const _PaymentMethodsLoading(),
                   PaymentMethodsStatus.error => _PaymentMethodsErrorView(
@@ -385,18 +381,23 @@ class _CheckoutViewState extends State<CheckoutView> {
                               ),
                             ],
                           ),
-                },
+                    },
+                  ),
+                ),
 
                 SizedBox(height: w * 0.055),
 
                 // ── Promo code ──
-                _PromoCodeSection(
-                  controller: _promoController,
-                  isApplying: form.isApplyingPromo,
-                  error: form.promoError,
-                  applied: appliedPromo,
-                  onApply: () => _applyPromoCode(cart),
-                  onRemove: _removePromoCode,
+                PromoCodeSection(
+                  appliedCode: cart.hasPromo ? cart.promoCode : null,
+                  description: null,
+                  discount: cart.discount,
+                  currency: currency,
+                  isApplying: cartVm.isApplyingPromo,
+                  error: cartVm.promoError ?? cart.promoError,
+                  onApply: cartVm.applyPromoCode,
+                  onRemove: cartVm.removePromoCode,
+                  onEdited: cartVm.clearPromoError,
                 ),
 
                 SizedBox(height: w * 0.055),
@@ -448,7 +449,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   ),
                                 ),
                                 Text(
-                                  'GHS ${ci.lineTotal.toStringAsFixed(2)}',
+                                  formatMoney(ci.lineTotal, currency: currency),
                                   style: TextStyle(
                                     fontSize: w * 0.033,
                                     fontWeight: FontWeight.w600,
@@ -459,38 +460,65 @@ class _CheckoutViewState extends State<CheckoutView> {
                             ),
                           )),
                       const Divider(color: AppColors.divider),
-                      _TotalRow(label: 'Subtotal', value: effectiveSubtotal),
-                      if (promoDiscount > 0)
+                      _TotalRow(
+                        label: 'Subtotal',
+                        value: cart.subtotal,
+                        currency: currency,
+                      ),
+                      if (cart.hasPromo && (cart.discount ?? 0) > 0)
                         _TotalRow(
-                          label: 'Promo Discount',
-                          value: promoDiscount,
-                          currency: deliveryFeeCurrency,
+                          label: 'Promo (${cart.promoCode})',
+                          value: cart.discount,
+                          currency: currency,
                           isDiscount: true,
                         ),
                       _DeliveryFeeRow(
                         isFetching: form.isFetchingDeliveryQuote,
-                        error: form.deliveryQuoteError,
-                        fee: effectiveDeliveryFee,
-                        currency: deliveryFeeCurrency,
-                        onRetry: () => context
-                            .read<CheckoutViewModel>()
-                            .fetchDeliveryQuote(cart.vendorId),
+                        error: deliveryError ?? form.deliveryQuoteError,
+                        fee: deliveryFee,
+                        currency: currency,
+                        onRetry: usesCartQuote
+                            ? cartVm.refresh
+                            : () => checkoutVm.fetchDeliveryQuote(cart.vendorId),
                       ),
-                      if (!form.isFetchingDeliveryQuote &&
-                          form.deliveryQuoteError == null &&
-                          effectiveServiceFee > 0)
+                      if ((cart.serviceFee ?? 0) > 0)
                         _TotalRow(
                           label: 'Service fee',
-                          value: effectiveServiceFee,
-                          currency: deliveryFeeCurrency,
+                          value: cart.serviceFee,
+                          currency: currency,
                         ),
                       SizedBox(height: w * 0.01),
                       _TotalRow(
                         label: 'Total',
-                        value: effectiveTotal,
-                        currency: deliveryFeeCurrency,
+                        value: total,
+                        currency: currency,
                         isBold: true,
                       ),
+                      if (!usesCartQuote && form.selectedAddress != null)
+                        Padding(
+                          padding: EdgeInsets.only(top: w * 0.01),
+                          child: Text(
+                            'Final total is confirmed when you place the order.',
+                            style: TextStyle(
+                              fontSize: w * 0.028,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      if (walletSplit.usesWallet) ...[
+                        _TotalRow(
+                          label: 'Paid from wallet',
+                          value: walletSplit.walletAmount,
+                          currency: currency,
+                          isDiscount: true,
+                        ),
+                        _TotalRow(
+                          label: 'To pay via mobile money',
+                          value: walletSplit.remaining,
+                          currency: currency,
+                          isBold: true,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -509,26 +537,18 @@ class _CheckoutViewState extends State<CheckoutView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Validation warnings
-                if (!hasValidAddress)
-                  const _ValidationWarning(
-                    message:
-                        'Please enter a valid delivery address to continue',
-                  )
-                else if (!hasPaymentMethod)
-                  const _ValidationWarning(
-                    message: 'Please select a payment method to continue',
-                  ),
+                if (blockedReason != null)
+                  _ValidationWarning(message: blockedReason),
                 ElevatedButton(
-                  onPressed:
-                      (isPlacing || !hasValidAddress || !hasPaymentMethod)
-                          ? null
-                          : () {
-                              HapticFeedback.mediumImpact();
-                              context
-                                  .read<CheckoutViewModel>()
-                                  .placeOrder(cart);
-                            },
+                  onPressed: canPlace
+                      ? () {
+                          HapticFeedback.mediumImpact();
+                          checkoutVm.placeOrder(
+                            cart,
+                            walletCoversTotal: walletSplit.coversFully,
+                          );
+                        }
+                      : null,
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size(double.infinity, w * 0.13),
                     shape: RoundedRectangleBorder(
@@ -545,7 +565,11 @@ class _CheckoutViewState extends State<CheckoutView> {
                           ),
                         )
                       : Text(
-                          'Place Order · $deliveryFeeCurrency ${effectiveTotal.toStringAsFixed(2)}',
+                          _placeOrderLabel(
+                            total: total,
+                            split: walletSplit,
+                            currency: currency,
+                          ),
                           style: TextStyle(
                             fontSize: w * 0.038,
                             fontWeight: FontWeight.w700,
@@ -561,158 +585,19 @@ class _CheckoutViewState extends State<CheckoutView> {
   }
 }
 
-// ─── Address Selector Tile ────────────────────────────────────────────────
-
-class _AddressSelectorTile extends StatelessWidget {
-  final TextEditingController controller;
-  final bool hasValidAddress;
-  final bool isLocatingCurrentPosition;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onUseCurrentLocation;
-  final VoidCallback onPickOnMap;
-
-  const _AddressSelectorTile({
-    required this.controller,
-    required this.hasValidAddress,
-    required this.isLocatingCurrentPosition,
-    required this.onChanged,
-    required this.onUseCurrentLocation,
-    required this.onPickOnMap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.035),
-        border: Border.all(
-          color: hasValidAddress
-              ? AppColors.success.withValues(alpha: 0.4)
-              : AppColors.border,
-          width: hasValidAddress ? 1.5 : 0.8,
-        ),
-      ),
-      child: Column(
-        children: [
-          // ── Address text field ──
-          TextField(
-            controller: controller,
-            onChanged: onChanged,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintText: 'Enter your delivery address',
-              prefixIcon: Icon(
-                Icons.location_on_rounded,
-                color: hasValidAddress ? AppColors.success : AppColors.primary,
-              ),
-              suffixIcon: hasValidAddress
-                  ? Icon(Icons.check_circle_rounded,
-                      color: AppColors.success, size: w * 0.05)
-                  : null,
-              filled: true,
-              fillColor: Colors.transparent,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: w * 0.04,
-                vertical: w * 0.04,
-              ),
-            ),
-          ),
-
-          // ── Quick actions ──
-          Container(
-            padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, w * 0.03),
-            child: Row(
-              children: [
-                _QuickAddressChip(
-                  icon: Icons.my_location_rounded,
-                  label: isLocatingCurrentPosition
-                      ? 'Locating…'
-                      : 'Use current location',
-                  isLoading: isLocatingCurrentPosition,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onUseCurrentLocation();
-                  },
-                ),
-                SizedBox(width: w * 0.02),
-                _QuickAddressChip(
-                  icon: Icons.map_rounded,
-                  label: 'Pick on map',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onPickOnMap();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+/// The amount due is `wallet.payable` when the wallet is used, otherwise the
+/// backend total — never `total − balance`.
+String _placeOrderLabel({
+  required double? total,
+  required WalletSplit split,
+  required String currency,
+}) {
+  if (total == null) return 'Place Order';
+  if (split.coversFully) {
+    return 'Pay with Wallet · ${formatMoney(total, currency: currency)}';
   }
-}
-
-class _QuickAddressChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isLoading;
-
-  const _QuickAddressChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isLoading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: w * 0.025,
-          vertical: w * 0.015,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(w * 0.02),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isLoading)
-              SizedBox(
-                width: w * 0.035,
-                height: w * 0.035,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
-                ),
-              )
-            else
-              Icon(icon, size: w * 0.035, color: AppColors.primary),
-            SizedBox(width: w * 0.015),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: w * 0.028,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  final due = split.usesWallet ? split.remaining : total;
+  return 'Place Order · ${formatMoney(due, currency: currency)}';
 }
 
 // ─── Helper widgets ───────────────────────────────────────────────────────
@@ -942,221 +827,6 @@ class _NoPaymentMethodsCard extends StatelessWidget {
   }
 }
 
-// ─── Wallet Balance ─────────────────────────────────────────────────────
-
-/// Read-only wallet balance shown for reference while picking a payment
-/// method. `GET /customer/wallet` is the only wallet endpoint confirmed so
-/// far — this checkout doesn't yet offer "pay with wallet" as a channel, so
-/// the row is informational only, never gating checkout on its own load
-/// state (a slow/failed wallet fetch shouldn't block placing an order).
-class _WalletBalanceRow extends StatelessWidget {
-  final CustomerWalletModel? wallet;
-  final bool isLoading;
-  final bool hasError;
-
-  const _WalletBalanceRow({
-    required this.wallet,
-    required this.isLoading,
-    required this.hasError,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-
-    if (wallet == null && !isLoading && !hasError) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.03),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.03),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.account_balance_wallet_outlined,
-              color: AppColors.textSecondary, size: w * 0.045),
-          SizedBox(width: w * 0.025),
-          Text(
-            'Wallet Balance',
-            style: TextStyle(
-              fontSize: w * 0.033,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          if (isLoading && wallet == null)
-            SizedBox(
-              width: w * 0.035,
-              height: w * 0.035,
-              child: const CircularProgressIndicator(strokeWidth: 2),
-            )
-          else if (wallet != null)
-            Text(
-              wallet!.formattedBalance,
-              style: TextStyle(
-                fontSize: w * 0.035,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            )
-          else if (hasError)
-            Text(
-              'Unavailable',
-              style: TextStyle(fontSize: w * 0.032, color: AppColors.error),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Promo Code ─────────────────────────────────────────────────────────
-
-/// Checkout's promo-code apply/remove UI. Every displayed number — the
-/// discount, and any updated subtotal/fees — comes straight from
-/// [applied]/[PromoCodeResult], which is whatever the backend returned from
-/// `POST /customer/promo-codes/validate`; this widget never computes a
-/// discount itself.
-class _PromoCodeSection extends StatelessWidget {
-  final TextEditingController controller;
-  final bool isApplying;
-  final String? error;
-  final PromoCodeResult? applied;
-  final VoidCallback onApply;
-  final VoidCallback onRemove;
-
-  const _PromoCodeSection({
-    required this.controller,
-    required this.isApplying,
-    required this.error,
-    required this.applied,
-    required this.onApply,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-
-    if (applied != null) {
-      final promo = applied!;
-      return Container(
-        padding: EdgeInsets.all(w * 0.035),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.local_offer_rounded,
-                color: AppColors.success, size: w * 0.05),
-            SizedBox(width: w * 0.03),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    promo.code,
-                    style: TextStyle(
-                      fontSize: w * 0.035,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  if (promo.description != null &&
-                      promo.description!.isNotEmpty)
-                    Text(
-                      promo.description!,
-                      style: TextStyle(
-                        fontSize: w * 0.03,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            TextButton(
-              onPressed: onRemove,
-              child: Text(
-                'Remove',
-                style: TextStyle(
-                  fontSize: w * 0.032,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.error,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                enabled: !isApplying,
-                textCapitalization: TextCapitalization.characters,
-                onSubmitted: (_) => onApply(),
-                decoration: InputDecoration(
-                  hintText: 'Enter promo code',
-                  prefixIcon: const Icon(
-                    Icons.local_offer_outlined,
-                    color: AppColors.textSecondary,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: w * 0.025),
-            SizedBox(
-              height: w * 0.13,
-              child: ElevatedButton(
-                onPressed: isApplying ? null : onApply,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                  ),
-                ),
-                child: isApplying
-                    ? SizedBox(
-                        width: w * 0.045,
-                        height: w * 0.045,
-                        child: const CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : const Text('Apply'),
-              ),
-            ),
-          ],
-        ),
-        if (error != null) ...[
-          SizedBox(height: w * 0.015),
-          Text(
-            error!,
-            style: TextStyle(fontSize: w * 0.03, color: AppColors.error),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _ValidationWarning extends StatelessWidget {
   final String message;
 
@@ -1190,13 +860,11 @@ class _ValidationWarning extends StatelessWidget {
 
 /// The "Delivery fee" line — shows a spinner while the live quote
 /// (`GET /customer/delivery-quote`) is loading, a Retry action if it failed,
-/// or the resolved fee otherwise. [fee] is always the effective value
-/// (quote if loaded, else the cart's own fee) so the total stays honest
-/// even while this row is mid-fetch or errored.
+/// or the quoted fee otherwise — `—` until there is an address to quote.
 class _DeliveryFeeRow extends StatelessWidget {
   final bool isFetching;
   final String? error;
-  final double fee;
+  final double? fee;
   final String currency;
   final VoidCallback onRetry;
 
@@ -1266,12 +934,12 @@ class _DeliveryFeeRow extends StatelessWidget {
 
 class _TotalRow extends StatelessWidget {
   final String label;
-  final double value;
+  final double? value;
   final bool isBold;
   final String currency;
 
   /// Renders [value] (always passed as a positive amount) with a leading
-  /// "-" and a success tint, for the promo-discount line.
+  /// "-" and a success tint, for the promo-discount and wallet lines.
   final bool isDiscount;
 
   const _TotalRow({
@@ -1301,9 +969,9 @@ class _TotalRow extends StatelessWidget {
             ),
           ),
           Text(
-            isDiscount
-                ? '-$currency ${value.toStringAsFixed(2)}'
-                : '$currency ${value.toStringAsFixed(2)}',
+            isDiscount && value != null
+                ? '-${formatMoney(value, currency: currency)}'
+                : formatMoney(value, currency: currency),
             style: TextStyle(
               fontSize: isBold ? w * 0.038 : w * 0.033,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,

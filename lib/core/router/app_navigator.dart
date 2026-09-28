@@ -103,6 +103,11 @@ abstract final class AppNavigator {
   static void toOrderTracking(BuildContext context, String orderId) =>
       context.push(AppRoutes.trackOrder, extra: orderId);
 
+  /// Replaces the stack with tracking — for leaving a completed checkout
+  /// flow, so back can't return to (and resubmit) it.
+  static void goToOrderTracking(BuildContext context, String orderId) =>
+      context.go(AppRoutes.trackOrder, extra: orderId);
+
   // ── Other ──
   static void toInviteFriend(BuildContext context) =>
       context.push(AppRoutes.inviteFriend);

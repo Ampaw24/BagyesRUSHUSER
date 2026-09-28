@@ -85,6 +85,7 @@ class ParcelRepository {
     String? pickupContactName,
     String? pickupContactPhone,
     String? pickupInstructions,
+    bool useWallet = false,
   }) async {
     appLogger.d('ParcelRepository.createParcel → initiated (${direction.apiValue})');
     try {
@@ -92,6 +93,9 @@ class ParcelRepository {
         'delivery_quote_id': deliveryQuoteId,
         'payment_method': paymentMethod,
         'payment_method_id': ?paymentMethodId,
+        // Backend debits min(wallet balance, price) and charges any
+        // remainder to the mobile-money account.
+        if (useWallet) 'use_wallet': true,
         'direction': direction.apiValue,
         'stops': stops.map((s) => s.toJson()).toList(),
         'pickup_address': pickupAddress,
@@ -163,13 +167,15 @@ class ParcelRepository {
 
   // ─── Quotes ──────────────────────────────────────────────────────────────
 
-  ResultFuture<ParcelQuote> getParcelQuote({
+  /// One quote per available rider — each carries its own fee and ETA
+  /// based on that rider's position. Empty when no rider is nearby.
+  ResultFuture<List<ParcelQuote>> getParcelQuotes({
     required String pickupAddress,
     required double pickupLatitude,
     required double pickupLongitude,
     required List<ParcelStop> stops,
   }) async {
-    appLogger.d('ParcelRepository.getParcelQuote → initiated');
+    appLogger.d('ParcelRepository.getParcelQuotes → initiated');
     try {
       final body = {
         'pickup_address': pickupAddress,
@@ -181,18 +187,24 @@ class ParcelRepository {
           await _client.post(ApiEndpoints.customerParcelQuotes, data: body);
 
       if ([200, 201].contains(response.statusCode)) {
-        final quote = ParcelQuote.fromJson(_dataMap(response));
-        appLogger.i('ParcelRepository.getParcelQuote → success');
-        return Right(quote);
+        final quotes = _dataList(response)
+            .whereType<DataMap>()
+            .map(ParcelQuote.fromJson)
+            .where((q) => q.rider != null)
+            .toList();
+        appLogger.i(
+          'ParcelRepository.getParcelQuotes → success, ${quotes.length} rider(s)',
+        );
+        return Right(quotes);
       }
 
       appLogger.w(
-        'ParcelRepository.getParcelQuote → HTTP ${response.statusCode}',
+        'ParcelRepository.getParcelQuotes → HTTP ${response.statusCode}',
       );
       return NetworkUtils.handleDioResponseError(response);
     } on DioException catch (e) {
       appLogger.e(
-        'ParcelRepository.getParcelQuote → DioException',
+        'ParcelRepository.getParcelQuotes → DioException',
         error: e,
       );
       return NetworkUtils.handleDioException(e);
@@ -201,7 +213,7 @@ class ParcelRepository {
         e,
         s,
         repositoryName: 'ParcelRepository',
-        methodName: 'getParcelQuote',
+        methodName: 'getParcelQuotes',
       );
     }
   }

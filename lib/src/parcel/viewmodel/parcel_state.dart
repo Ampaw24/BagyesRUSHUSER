@@ -34,12 +34,12 @@ final class ParcelDetailsLoaded extends ParcelState {
   List<Object?> get props => [parcel];
 }
 
-final class ParcelQuoteLoaded extends ParcelState {
-  const ParcelQuoteLoaded(this.quote);
-  final ParcelQuote quote;
+final class ParcelQuotesLoaded extends ParcelState {
+  const ParcelQuotesLoaded(this.quotes);
+  final List<ParcelQuote> quotes;
 
   @override
-  List<Object?> get props => [quote];
+  List<Object?> get props => [quotes];
 }
 
 final class ParcelCreated extends ParcelState {

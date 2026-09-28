@@ -18,7 +18,13 @@ final class CartLoading extends CartState {
 }
 
 final class CartLoaded extends CartState {
-  const CartLoaded({required this.cart, this.isMutating = false, this.errorMessage});
+  const CartLoaded({
+    required this.cart,
+    this.isMutating = false,
+    this.errorMessage,
+    this.isApplyingPromo = false,
+    this.promoError,
+  });
 
   final CartModel cart;
 
@@ -32,20 +38,31 @@ final class CartLoaded extends CartState {
   /// replacing the cart view with an error screen.
   final String? errorMessage;
 
+  /// Promo apply/remove request in flight, and its inline (not toast)
+  /// validation error — shown under the promo field at checkout.
+  final bool isApplyingPromo;
+  final String? promoError;
+
   CartLoaded copyWith({
     CartModel? cart,
     bool? isMutating,
     String? errorMessage,
     bool clearError = false,
+    bool? isApplyingPromo,
+    String? promoError,
+    bool clearPromoError = false,
   }) =>
       CartLoaded(
         cart: cart ?? this.cart,
         isMutating: isMutating ?? this.isMutating,
         errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+        isApplyingPromo: isApplyingPromo ?? this.isApplyingPromo,
+        promoError: clearPromoError ? null : (promoError ?? this.promoError),
       );
 
   @override
-  List<Object?> get props => [cart, isMutating, errorMessage];
+  List<Object?> get props =>
+      [cart, isMutating, errorMessage, isApplyingPromo, promoError];
 }
 
 /// No cart could be loaded at all yet — reserved for a *first* load failure

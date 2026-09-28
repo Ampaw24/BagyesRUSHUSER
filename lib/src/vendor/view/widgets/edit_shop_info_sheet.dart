@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../../../constant/app_theme.dart';
@@ -9,6 +10,7 @@ import '../../../../../src/home/viewmodel/home_discovery_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
 import '../../model/vendor_profile.dart';
 import '../../repository/vendor_dashboard_repository.dart';
+import 'shop_location_field.dart';
 
 class EditShopInfoSheet extends StatefulWidget {
   final VendorProfile profile;
@@ -52,6 +54,7 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
   late final TextEditingController _websiteCtrl;
   late List<String> _selectedCuisines;
   late String _currentPhone;
+  LatLng? _pinnedLatLng;
 
   @override
   void initState() {
@@ -70,6 +73,9 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
     _websiteCtrl = TextEditingController(text: p.websiteUrl ?? '');
     _selectedCuisines = List<String>.from(p.cuisineTypes);
     _currentPhone = p.phone;
+    _pinnedLatLng = (p.latitude != null && p.longitude != null)
+        ? LatLng(p.latitude!, p.longitude!)
+        : null;
   }
 
   @override
@@ -114,6 +120,8 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
       websiteUrl: _websiteCtrl.text.trim().isEmpty
           ? null
           : _websiteCtrl.text.trim(),
+      latitude: _pinnedLatLng?.latitude,
+      longitude: _pinnedLatLng?.longitude,
     );
 
     widget.onSave(updated);
@@ -262,6 +270,14 @@ class _EditShopInfoSheetState extends State<EditShopInfoSheet> {
                       w: w,
                       validator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    SizedBox(height: w * 0.035),
+                    ShopLocationField(
+                      pinned: _pinnedLatLng,
+                      onPicked: (latLng, address) => setState(() {
+                        _pinnedLatLng = latLng;
+                        if (address.isNotEmpty) _addressCtrl.text = address;
+                      }),
                     ),
                     SizedBox(height: w * 0.035),
                     _buildField(

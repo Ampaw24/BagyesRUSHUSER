@@ -237,6 +237,11 @@ abstract final class ApiEndpoints {
   static String customerCartItems(String vendorId) =>
       '$customerCarts/$vendorId/items';
 
+  /// `POST /customer/carts/:vendorId/promo-code` (apply, body `{code}`) |
+  /// `DELETE /customer/carts/:vendorId/promo-code` (remove).
+  static String customerCartPromoCode(String vendorId) =>
+      '$customerCarts/$vendorId/promo-code';
+
   static const String customerCartItemsBase = '/customer/cart-items';
 
   /// `PATCH /customer/cart-items/:id` | `DELETE /customer/cart-items/:id`
@@ -277,16 +282,12 @@ abstract final class ApiEndpoints {
   static String customerOrderVerifyPayment(String orderId) =>
       '$customerOrders/$orderId/verify-payment';
 
-  /// `GET /customer/delivery-quote` — live delivery-fee quote for a food
-  /// order. Query params: `vendor_id` (required), `address_id` (nullable).
+  /// `GET /customer/delivery-quote?vendor_id=&customer_address_id=` — only
+  /// needed for a non-default address; the cart embeds the default's quote.
   static const String customerDeliveryQuote = '/customer/delivery-quote';
 
-  /// `POST /customer/promo-codes/validate` —
-  /// `App\Http\Controllers\Api\V1\Customer\PromoCodeController@validateCode`.
-  /// Auth: Bearer, role: customer. Body: `code` (required, string, max:32),
-  /// `vendor_id` (required, integer), `delivery_quote_id` (nullable, integer).
-  static const String customerPromoCodeValidate =
-      '/customer/promo-codes/validate';
+  /// `GET /customer/addresses` | `POST /customer/addresses`
+  static const String customerAddresses = '/customer/addresses';
 
   /// `GET /categories/:id`
   static String categoryById(String id) => '/categories/$id';

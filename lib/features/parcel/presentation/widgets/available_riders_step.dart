@@ -12,12 +12,11 @@ import '../../../../core/enums/map_style_type.dart';
 import '../../../../core/services/map_style_service.dart';
 import '../../../../core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
 import 'rider_card.dart';
 
-/// Shows the rider the backend matched to this delivery — there is no list
-/// to pick from; the backend assigns the nearest available rider and
-/// prices the quote around them, mirroring how Uber/Bolt match a driver.
+/// Lists every available rider with their own fee and ETA (priced from
+/// each rider's position) and lets the customer pick one.
 ///
 /// A live map sits above the summary: pickup + stop pins connected by a
 /// dashed route that draws itself in on arrival. The route follows actual
@@ -29,7 +28,9 @@ import 'rider_card.dart';
 /// only once an order exists does [RealtimeService] start streaming a
 /// real position.
 class AvailableRidersStep extends StatefulWidget {
-  final RiderModel? rider;
+  final List<ParcelQuote> riderQuotes;
+  final String? selectedRiderId;
+  final ValueChanged<String> onSelectRider;
   final double distanceKm;
   final int? etaMinutes;
   final double? quotedPrice;
@@ -43,7 +44,9 @@ class AvailableRidersStep extends StatefulWidget {
 
   const AvailableRidersStep({
     super.key,
-    required this.rider,
+    required this.riderQuotes,
+    required this.selectedRiderId,
+    required this.onSelectRider,
     required this.distanceKm,
     required this.etaMinutes,
     required this.quotedPrice,
@@ -399,7 +402,7 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
               ),
             ),
             Text(
-              'Your Rider',
+              'Choose a Rider',
               style: TextStyle(
                 fontSize: w * 0.055,
                 fontWeight: FontWeight.w800,
@@ -511,7 +514,7 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
       return _StatusMessage(
         icon: null,
         showSpinner: true,
-        title: 'Finding a rider near you…',
+        title: 'Finding riders near you…',
         subtitle: 'This usually takes a few seconds.',
         w: w,
       );
@@ -528,14 +531,26 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
       );
     }
 
-    if (widget.rider == null) {
+    if (widget.riderQuotes.isEmpty) {
       return NoRiderAvailableCard(
         message: widget.noRidersMessage ?? 'Please try again in a moment.',
         onRetry: widget.onRetry,
       );
     }
 
-    return AssignedRiderCard(rider: widget.rider!);
+    return Column(
+      children: [
+        for (final quote in widget.riderQuotes) ...[
+          RiderQuoteCard(
+            key: ValueKey(quote.rider!.id),
+            quote: quote,
+            isSelected: quote.rider!.id == widget.selectedRiderId,
+            onTap: () => widget.onSelectRider(quote.rider!.id),
+          ),
+          SizedBox(height: w * 0.03),
+        ],
+      ],
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 
 /// Sealed states for the checkout flow.
 sealed class CheckoutState {
@@ -17,10 +18,10 @@ class CheckoutPlacing extends CheckoutState {
   const CheckoutPlacing({required this.form});
 }
 
-/// Order was placed successfully — carries the new order ID.
+/// Order was placed — carries the created order (`201` body).
 class CheckoutSuccess extends CheckoutState {
-  final String orderId;
-  const CheckoutSuccess({required this.orderId});
+  final ConsumerOrder order;
+  const CheckoutSuccess({required this.order});
 }
 
 /// Order placement failed.
