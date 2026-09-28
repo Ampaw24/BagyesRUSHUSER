@@ -12,6 +12,7 @@ import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../states/app.state.dart';
 import '../../services/auth.service.dart';
 import '../../core/widgets/custom_dialogs.dart';
+import '../../features/parcel/presentation/widgets/parcel_direction_sheet.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
 import '../../src/consumer_orders/views/consumer_orders_view.dart';
@@ -142,7 +143,7 @@ class _HomeState extends State<Home> {
                 currentIndex: _navIndex,
                 onTap: (i) {
                   if (i == _sendPackageNavIndex) {
-                    AppNavigator.toSendPackages(context);
+                    showParcelDirectionSheet(context);
                     return;
                   }
                   setState(() => _navIndex = i);

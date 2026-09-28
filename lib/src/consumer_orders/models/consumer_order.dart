@@ -135,6 +135,56 @@ class OrderItem {
       };
 }
 
+/// Receive-parcel collection block: the code the pickup contact gives the
+/// rider. Read from the track payload (`collection`) or the parcel payload
+/// (`pickup`); null when the order has no collection step.
+class OrderCollection {
+  final String? code;
+  final String? contactName;
+  final String? contactPhone;
+  final DateTime? verifiedAt;
+  final DateTime? failedAt;
+  final String? failureReason;
+
+  const OrderCollection({
+    this.code,
+    this.contactName,
+    this.contactPhone,
+    this.verifiedAt,
+    this.failedAt,
+    this.failureReason,
+  });
+
+  bool get isVerified => verifiedAt != null;
+  bool get hasFailed => failedAt != null;
+
+  static OrderCollection? fromOrderJson(Map<String, dynamic> json) {
+    final collection = json['collection'] as Map<String, dynamic>?;
+    final pickup = json['pickup'] as Map<String, dynamic>?;
+    String? str(Object? v) => v?.toString();
+    DateTime? date(Object? v) => v == null ? null : DateTime.tryParse(v.toString());
+
+    final code = str(collection?['pin'] ?? collection?['code'] ?? pickup?['code']);
+    final failedAt = date(
+        collection?['failed_at'] ?? pickup?['collection_failed_at']);
+    if ((code == null || code.isEmpty) && failedAt == null) return null;
+
+    return OrderCollection(
+      code: code,
+      contactName: str(collection?['contact_name'] ??
+          pickup?['contact_name'] ??
+          json['pickup_contact_name']),
+      contactPhone: str(collection?['contact_phone'] ??
+          pickup?['contact_phone'] ??
+          json['pickup_contact_phone']),
+      verifiedAt: date(collection?['verified_at'] ?? pickup?['code_verified_at']),
+      failedAt: failedAt,
+      failureReason: str(collection?['failure_reason'] ??
+          pickup?['collection_failure_reason']),
+    );
+  }
+}
+
 class ConsumerOrder {
   final String id;
   final String restaurantId;
@@ -158,9 +208,15 @@ class ConsumerOrder {
   final int? estimatedPrepMinutes;
 
   /// Handed to the courier at drop-off to confirm the right person is
-  /// receiving the order. Generated once by the backend at order creation
-  /// and never changes, so it isn't touched by [copyWith].
+  /// receiving the order. Generated once by the backend at order creation;
+  /// [copyWith] only fills it in when a slimmer cached copy lacked it.
   final String? deliveryPin;
+
+  /// `send` | `receive` for parcel orders, null for food orders.
+  final String? parcelDirection;
+
+  /// Receive parcels only — see [OrderCollection].
+  final OrderCollection? collection;
 
   /// When the rider's wait period at the drop-off location expires. Comes
   /// from the tracking endpoint / realtime updates, so it's part of
@@ -198,9 +254,13 @@ class ConsumerOrder {
     this.driverPhone,
     this.riderLocation,
     this.deliveryPin,
+    this.parcelDirection,
+    this.collection,
     this.waitExpiresAt,
     this.arrivalDistanceMetres,
   });
+
+  bool get isReceiveParcel => parcelDirection == 'receive';
 
   int get totalItems => items.fold(0, (sum, e) => sum + e.quantity);
 
@@ -221,6 +281,9 @@ class ConsumerOrder {
     RiderLocation? riderLocation,
     DateTime? waitExpiresAt,
     double? arrivalDistanceMetres,
+    String? deliveryPin,
+    String? parcelDirection,
+    OrderCollection? collection,
   }) {
     return ConsumerOrder(
       id: id ?? this.id,
@@ -244,7 +307,9 @@ class ConsumerOrder {
       driverName: driverName ?? this.driverName,
       driverPhone: driverPhone ?? this.driverPhone,
       riderLocation: riderLocation ?? this.riderLocation,
-      deliveryPin: deliveryPin,
+      deliveryPin: this.deliveryPin ?? deliveryPin,
+      parcelDirection: parcelDirection ?? this.parcelDirection,
+      collection: collection ?? this.collection,
       waitExpiresAt: waitExpiresAt ?? this.waitExpiresAt,
       arrivalDistanceMetres: arrivalDistanceMetres ?? this.arrivalDistanceMetres,
     );
@@ -256,6 +321,10 @@ class ConsumerOrder {
     final payment = json['payment'] as Map<String, dynamic>?;
     final totals = json['totals'] as Map<String, dynamic>?;
     final rider = json['rider'] as Map<String, dynamic>?;
+    final stops = json['stops'] as List<dynamic>?;
+    final firstStop = stops != null && stops.isNotEmpty && stops.first is Map
+        ? stops.first as Map<String, dynamic>
+        : null;
 
     return ConsumerOrder(
       id: json['id'].toString(),
@@ -303,7 +372,14 @@ class ConsumerOrder {
       paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',
       paymentStatus: _paymentStatusFromString(
           payment?['status'] as String? ?? json['payment_status'] as String?),
-      deliveryPin: delivery?['pin'] as String? ?? json['delivery_pin'] as String?,
+      deliveryPin: (delivery?['pin'] ??
+              json['delivery_pin'] ??
+              firstStop?['delivery_pin'])
+          ?.toString(),
+      parcelDirection: json['type'] == 'parcel' || json['direction'] != null
+          ? (json['direction']?.toString() ?? 'send')
+          : null,
+      collection: OrderCollection.fromOrderJson(json),
       waitExpiresAt: DateTime.tryParse(
           (json['wait_expires_at'] ?? delivery?['wait_expires_at']) as String? ?? ''),
       arrivalDistanceMetres:

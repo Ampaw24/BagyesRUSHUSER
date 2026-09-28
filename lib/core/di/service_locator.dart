@@ -10,6 +10,7 @@ import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewm
 import 'package:bagyesrushappusernew/src/orders/repositories/orders_repository.dart';
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/parcel_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
@@ -144,7 +145,9 @@ Future<void> init() async {
   // Factory (not singleton, not app-wide) — one fresh instance per
   // SendParcelView visit, matching the original `.autoDispose` semantics.
   // Owned/disposed directly by that view's State; not in ScwProviders.
-  sl.registerFactory(() => SendParcelViewModel(sl()));
+  sl.registerFactoryParam<SendParcelViewModel, ParcelDirection, void>(
+    (direction, _) => SendParcelViewModel(sl(), direction: direction),
+  );
   sl.registerFactory(() => PayoutProvidersViewModel(repository: sl()));
   sl.registerFactoryParam<PaymentViewModel, bool, void>(
     (isVendor, _) => PaymentViewModel(repository: sl(), isVendor: isVendor),

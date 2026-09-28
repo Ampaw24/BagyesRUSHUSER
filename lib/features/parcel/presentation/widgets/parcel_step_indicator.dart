@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 class ParcelStepIndicator extends StatelessWidget {
   final ParcelStep currentStep;
+  final ParcelDirection direction;
 
-  static const _labels = [
+  static const _sendLabels = [
     'Type',
     'Details',
     'Pickup',
@@ -16,7 +18,23 @@ class ParcelStepIndicator extends StatelessWidget {
     'Confirm',
   ];
 
-  const ParcelStepIndicator({super.key, required this.currentStep});
+  static const _receiveLabels = [
+    'Type',
+    'Details',
+    'Sender',
+    'Drop-off',
+    'Riders',
+    'Confirm',
+  ];
+
+  const ParcelStepIndicator({
+    super.key,
+    required this.currentStep,
+    this.direction = ParcelDirection.send,
+  });
+
+  List<String> get _labels =>
+      direction.isReceive ? _receiveLabels : _sendLabels;
 
   @override
   Widget build(BuildContext context) {

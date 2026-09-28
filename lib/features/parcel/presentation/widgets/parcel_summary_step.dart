@@ -124,7 +124,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
           SizedBox(height: w * 0.04),
 
           // ── Route visualization ──────────────────────────────────────────
-          _buildRoute(w),
+          _buildRoute(w, sendState),
 
           SizedBox(height: w * 0.04),
           _Divider(),
@@ -223,15 +223,18 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
   //   │
   //   🔵 Final stop (primary blue)
 
-  Widget _buildRoute(double w) {
+  Widget _buildRoute(double w, SendParcelState sendState) {
     final nodes = <Widget>[];
+    final isReceive = sendState.direction.isReceive;
 
     // Pickup node
     nodes.add(
       _AddressRow(
         icon: HugeIcons.strokeRoundedLocation01,
         iconColor: AppColors.success,
-        label: 'Pickup',
+        label: isReceive
+            ? 'Collect from ${sendState.senderName} · ${sendState.senderPhone}'
+            : 'Pickup',
         address: widget.pickupAddress,
         w: w,
       ),
@@ -247,9 +250,11 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
               ? HugeIcons.strokeRoundedMapsLocation01
               : HugeIcons.strokeRoundedLocation01,
           iconColor: isFinal ? AppColors.primary : AppColors.textSecondary,
-          label: widget.deliveryStops.length == 1
-              ? 'Delivery'
-              : 'Stop ${i + 1}${isFinal ? ' (Final)' : ''}',
+          label: isReceive
+              ? 'Deliver to you'
+              : widget.deliveryStops.length == 1
+                  ? 'Delivery'
+                  : 'Stop ${i + 1}${isFinal ? ' (Final)' : ''}',
           address: widget.deliveryStops[i].address,
           w: w,
         ),

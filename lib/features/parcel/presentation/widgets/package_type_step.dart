@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 
 class PackageTypeStep extends StatelessWidget {
   final String? selectedType;
   final ValueChanged<String> onTypeSelected;
+  final ParcelDirection direction;
 
   const PackageTypeStep({
     super.key,
     required this.selectedType,
     required this.onTypeSelected,
+    this.direction = ParcelDirection.send,
   });
 
   @override
@@ -21,7 +24,9 @@ class PackageTypeStep extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.04),
       children: [
         Text(
-          'What are you sending?',
+          direction.isReceive
+              ? 'What are you receiving?'
+              : 'What are you sending?',
           style: TextStyle(
             fontSize: w * 0.055,
             fontWeight: FontWeight.w800,

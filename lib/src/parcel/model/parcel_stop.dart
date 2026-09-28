@@ -20,6 +20,7 @@ class ParcelStop extends Equatable {
     this.declaredValue,
     this.weightKg,
     this.photoIds,
+    this.deliveryPin,
   });
 
   final String address;
@@ -36,6 +37,9 @@ class ParcelStop extends Equatable {
   final double? weightKg;
   final List<int>? photoIds;
 
+  /// Response-only: PIN the recipient gives the rider at this stop.
+  final String? deliveryPin;
+
   ParcelStop copyWith({
     String? address,
     double? latitude,
@@ -50,6 +54,7 @@ class ParcelStop extends Equatable {
     double? declaredValue,
     double? weightKg,
     List<int>? photoIds,
+    String? deliveryPin,
   }) {
     return ParcelStop(
       address: address ?? this.address,
@@ -65,6 +70,7 @@ class ParcelStop extends Equatable {
       declaredValue: declaredValue ?? this.declaredValue,
       weightKg: weightKg ?? this.weightKg,
       photoIds: photoIds ?? this.photoIds,
+      deliveryPin: deliveryPin ?? this.deliveryPin,
     );
   }
 
@@ -84,24 +90,26 @@ class ParcelStop extends Equatable {
       declaredValue: (json['declared_value'] as num?)?.toDouble(),
       weightKg: (json['weight_kg'] as num?)?.toDouble(),
       photoIds: rawPhotoIds?.map((e) => (e as num).toInt()).toList(),
+      deliveryPin: json['delivery_pin']?.toString(),
     );
   }
 
-  /// Full shape for `POST customer/parcels`.
+  /// Full shape for `POST customer/parcels`. Unset optional fields are
+  /// omitted so `receive` stops fall back to the customer as recipient.
   Map<String, dynamic> toJson() => {
         'address': address,
         'latitude': latitude,
         'longitude': longitude,
-        'recipient_name': recipientName,
-        'recipient_phone': recipientPhone,
-        'instructions': instructions,
-        'item_description': itemDescription,
+        'recipient_name': ?recipientName,
+        'recipient_phone': ?recipientPhone,
+        'instructions': ?instructions,
+        'item_description': ?itemDescription,
         'size': size,
-        'quantity': quantity,
-        'is_fragile': isFragile,
-        'declared_value': declaredValue,
-        'weight_kg': weightKg,
-        'photo_ids': photoIds,
+        'quantity': ?quantity,
+        'is_fragile': ?isFragile,
+        'declared_value': ?declaredValue,
+        'weight_kg': ?weightKg,
+        'photo_ids': ?photoIds,
       };
 
   /// Lighter shape for `POST customer/parcels/quotes`.
@@ -131,5 +139,6 @@ class ParcelStop extends Equatable {
         declaredValue,
         weightKg,
         photoIds,
+        deliveryPin,
       ];
 }

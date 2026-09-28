@@ -14,6 +14,12 @@ class LocationPickerStep extends StatefulWidget {
   final String selectedAddress;
   final void Function(LatLng latLng, String address) onLocationSelected;
 
+  /// Hidden when the location is someone else's (receive-flow sender).
+  final bool allowCurrentLocation;
+
+  /// Extra content rendered below the selected-address card.
+  final Widget? footer;
+
   const LocationPickerStep({
     super.key,
     required this.title,
@@ -21,6 +27,8 @@ class LocationPickerStep extends StatefulWidget {
     required this.selectedLatLng,
     required this.selectedAddress,
     required this.onLocationSelected,
+    this.allowCurrentLocation = true,
+    this.footer,
   });
 
   @override
@@ -119,15 +127,17 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
         SizedBox(height: w * 0.06),
 
         // ── Action buttons ────────────────────────────────────────────────────
-        _ActionButton(
-          icon: HugeIcons.strokeRoundedMapsLocation01,
-          label: 'Use My Current Location',
-          description: 'Detect your location automatically',
-          isLoading: _isLocating,
-          onTap: _useCurrentLocation,
-          w: w,
-        ),
-        SizedBox(height: w * 0.03),
+        if (widget.allowCurrentLocation) ...[
+          _ActionButton(
+            icon: HugeIcons.strokeRoundedMapsLocation01,
+            label: 'Use My Current Location',
+            description: 'Detect your location automatically',
+            isLoading: _isLocating,
+            onTap: _useCurrentLocation,
+            w: w,
+          ),
+          SizedBox(height: w * 0.03),
+        ],
         _ActionButton(
           icon: HugeIcons.strokeRoundedSearch01,
           label: 'Search for an Address',
@@ -145,6 +155,11 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
           latLng: widget.selectedLatLng,
           w: w,
         ),
+
+        if (widget.footer != null) ...[
+          SizedBox(height: w * 0.05),
+          widget.footer!,
+        ],
       ],
     );
   }

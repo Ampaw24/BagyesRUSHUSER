@@ -10,6 +10,7 @@ import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
 import 'package:bagyesrushappusernew/presentation/profile/profile.dart';
 import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
 import 'package:bagyesrushappusernew/features/parcel/presentation/views/send_parcel_view.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
 import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
 import 'package:bagyesrushappusernew/src/referral/views/referral_view.dart';
@@ -262,7 +263,11 @@ final GoRouter appRouter = GoRouter(
     // ── Courier / delivery ──
     GoRoute(
       path: AppRoutes.sendPackages,
-      builder: (context, state) => const SendParcelView(),
+      builder: (context, state) => SendParcelView(
+        direction: state.extra is ParcelDirection
+            ? state.extra! as ParcelDirection
+            : ParcelDirection.send,
+      ),
     ),
 
     // ── Legacy cart & payment ──

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 import '../widgets/available_riders_step.dart';
 import '../widgets/delivery_stops_step.dart';
@@ -14,9 +15,12 @@ import '../widgets/package_type_step.dart';
 import '../widgets/parcel_bottom_bar.dart';
 import '../widgets/parcel_step_indicator.dart';
 import '../widgets/parcel_summary_step.dart';
+import '../widgets/sender_contact_card.dart';
 
 class SendParcelView extends StatefulWidget {
-  const SendParcelView({super.key});
+  final ParcelDirection direction;
+
+  const SendParcelView({super.key, this.direction = ParcelDirection.send});
 
   @override
   State<SendParcelView> createState() => _SendParcelViewState();
@@ -29,12 +33,12 @@ class _SendParcelViewState extends State<SendParcelView> {
   /// disposed directly by this State, then exposed to the subtree (e.g.
   /// [ParcelSummaryStep]) via `ChangeNotifierProvider.value`.
   late final SendParcelViewModel _vm;
-  SendParcelState _previousState = const SendParcelState();
+  late SendParcelState _previousState;
 
   @override
   void initState() {
     super.initState();
-    _vm = sl<SendParcelViewModel>();
+    _vm = sl<SendParcelViewModel>(param1: widget.direction);
     _previousState = _vm.state;
     _vm.addListener(_onStateChanged);
   }
@@ -83,7 +87,10 @@ class _SendParcelViewState extends State<SendParcelView> {
             children: [
               // Step indicator is hidden on summary (map takes over)
               if (!isSummary)
-                ParcelStepIndicator(currentStep: state.currentStep),
+                ParcelStepIndicator(
+                  currentStep: state.currentStep,
+                  direction: state.direction,
+                ),
 
               // ── Step body ──────────────────────────────────────────────────
               Expanded(
@@ -160,7 +167,7 @@ class _SendParcelViewState extends State<SendParcelView> {
         ),
       ),
       title: Text(
-        _stepTitle(state.currentStep),
+        _stepTitle(state.currentStep, state.direction),
         style: TextStyle(
           fontSize: w * 0.042,
           fontWeight: FontWeight.w700,
@@ -184,6 +191,7 @@ class _SendParcelViewState extends State<SendParcelView> {
         return PackageTypeStep(
           selectedType: state.packageType,
           onTypeSelected: vm.selectPackageType,
+          direction: state.direction,
         );
 
       case ParcelStep.packageDetails:
@@ -201,16 +209,30 @@ class _SendParcelViewState extends State<SendParcelView> {
         );
 
       case ParcelStep.pickupLocation:
+        final isReceive = state.direction.isReceive;
         return LocationPickerStep(
-          title: 'Pickup Location',
-          subtitle: 'Where should the rider collect your package?',
+          title: isReceive ? "Sender's Location" : 'Pickup Location',
+          subtitle: isReceive
+              ? 'Where should the rider collect the package from?'
+              : 'Where should the rider collect your package?',
           selectedLatLng: state.pickupLatLng,
           selectedAddress: state.pickupAddress,
           onLocationSelected: vm.setPickupLocation,
+          allowCurrentLocation: !isReceive,
+          footer: isReceive
+              ? SenderContactCard(
+                  name: state.senderName,
+                  phone: state.senderPhone,
+                  instructions: state.pickupInstructions,
+                  onContactChanged: vm.setSenderContact,
+                  onInstructionsChanged: vm.setPickupInstructions,
+                )
+              : null,
         );
 
       case ParcelStep.deliveryLocation:
         return DeliveryStopsStep(
+          direction: state.direction,
           stops: state.deliveryStops,
           packageImages: state.packageImages,
           onStopUpdated: vm.updateDeliveryStop,
@@ -282,16 +304,17 @@ class _SendParcelViewState extends State<SendParcelView> {
 
   // ── Step title ────────────────────────────────────────────────────────────
 
-  String _stepTitle(ParcelStep step) {
+  String _stepTitle(ParcelStep step, ParcelDirection direction) {
+    final isReceive = direction.isReceive;
     switch (step) {
       case ParcelStep.packageType:
-        return 'Send a Package';
+        return isReceive ? 'Receive a Package' : 'Send a Package';
       case ParcelStep.packageDetails:
         return 'Package Details';
       case ParcelStep.pickupLocation:
-        return 'Pickup Location';
+        return isReceive ? "Sender's Location" : 'Pickup Location';
       case ParcelStep.deliveryLocation:
-        return 'Delivery Location';
+        return isReceive ? 'Deliver To' : 'Delivery Location';
       case ParcelStep.availableRiders:
         return 'Your Rider';
       case ParcelStep.summary:

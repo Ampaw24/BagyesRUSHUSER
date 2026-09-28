@@ -1,4 +1,7 @@
 import 'package:equatable/equatable.dart';
+
+import 'parcel_direction.dart';
+import 'parcel_pickup.dart';
 import 'parcel_stop.dart';
 
 class Parcel extends Equatable {
@@ -16,6 +19,10 @@ class Parcel extends Equatable {
     required this.trackingNumber,
     required this.createdAt,
     required this.updatedAt,
+    this.direction = ParcelDirection.send,
+    this.directionLabel,
+    this.pickup,
+    this.canCancel = false,
   });
 
   final String id;
@@ -31,6 +38,10 @@ class Parcel extends Equatable {
   final String? trackingNumber;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final ParcelDirection direction;
+  final String? directionLabel;
+  final ParcelPickup? pickup;
+  final bool canCancel;
 
   Parcel copyWith({
     String? id,
@@ -46,6 +57,10 @@ class Parcel extends Equatable {
     String? trackingNumber,
     DateTime? createdAt,
     DateTime? updatedAt,
+    ParcelDirection? direction,
+    String? directionLabel,
+    ParcelPickup? pickup,
+    bool? canCancel,
   }) {
     return Parcel(
       id: id ?? this.id,
@@ -61,19 +76,28 @@ class Parcel extends Equatable {
       trackingNumber: trackingNumber ?? this.trackingNumber,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      direction: direction ?? this.direction,
+      directionLabel: directionLabel ?? this.directionLabel,
+      pickup: pickup ?? this.pickup,
+      canCancel: canCancel ?? this.canCancel,
     );
   }
 
   factory Parcel.fromJson(Map<String, dynamic> json) {
     final rawStops = json['stops'] as List<dynamic>? ?? [];
+    final rawPickup = json['pickup'];
+    final pickup =
+        rawPickup is Map<String, dynamic> ? ParcelPickup.fromJson(rawPickup) : null;
     return Parcel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       deliveryQuoteId: (json['delivery_quote_id'] as num?)?.toInt(),
       paymentMethod: json['payment_method']?.toString() ?? '',
       paymentMethodId: (json['payment_method_id'] as num?)?.toInt(),
-      pickupAddress: json['pickup_address']?.toString() ?? '',
-      pickupContactName: json['pickup_contact_name']?.toString(),
-      pickupContactPhone: json['pickup_contact_phone']?.toString(),
+      pickupAddress: json['pickup_address']?.toString() ?? pickup?.address ?? '',
+      pickupContactName:
+          json['pickup_contact_name']?.toString() ?? pickup?.contactName,
+      pickupContactPhone:
+          json['pickup_contact_phone']?.toString() ?? pickup?.contactPhone,
       pickupInstructions: json['pickup_instructions']?.toString(),
       stops: rawStops
           .map((e) => ParcelStop.fromJson(e as Map<String, dynamic>))
@@ -82,6 +106,10 @@ class Parcel extends Equatable {
       trackingNumber: json['tracking_number']?.toString(),
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
+      direction: ParcelDirection.fromApi(json['direction']?.toString()),
+      directionLabel: json['direction_label']?.toString(),
+      pickup: pickup,
+      canCancel: json['can_cancel'] == true,
     );
   }
 
@@ -99,6 +127,8 @@ class Parcel extends Equatable {
         'tracking_number': trackingNumber,
         'created_at': createdAt?.toIso8601String(),
         'updated_at': updatedAt?.toIso8601String(),
+        'direction': direction.apiValue,
+        'can_cancel': canCancel,
       };
 
   @override
@@ -119,5 +149,9 @@ class Parcel extends Equatable {
         trackingNumber,
         createdAt,
         updatedAt,
+        direction,
+        directionLabel,
+        pickup,
+        canCancel,
       ];
 }

@@ -1,12 +1,11 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'parcel_direction.dart';
+
 /// A single delivery destination within a multi-stop parcel order.
 ///
-/// [isComplete] requires a confirmed location plus a recipient name and
-/// phone — the rider needs to know who to hand the package to and who to
-/// call at each door. `itemDescription`, `specialInstructions`, and
-/// `selectedImageIndices` stay optional, matching the pattern used by
-/// Lalamove, GrabExpress, Kwik, and Bosta.
+/// See [isCompleteFor] for the direction-specific required fields;
+/// `specialInstructions` and `selectedImageIndices` are always optional.
 class DeliveryStop {
   final String id;
   final LatLng? latLng;
@@ -51,10 +50,18 @@ class DeliveryStop {
   /// would hide those fields until they're already filled in.
   bool get hasLocation => latLng != null && address.isNotEmpty;
 
-  /// A stop is complete when it has a confirmed location and a recipient
-  /// name and phone. The other detail fields stay optional.
-  bool get isComplete =>
-      hasLocation && recipientName.isNotEmpty && recipientPhone.isNotEmpty;
+  /// A send stop is complete once it has a location, recipient name/phone
+  /// and an item description (`item_description` is always required by the
+  /// backend).
+  bool get isComplete => isCompleteFor(ParcelDirection.send);
+
+  /// Receive stops are the customer's own address, so the recipient fields
+  /// are optional (the backend defaults them to the customer).
+  bool isCompleteFor(ParcelDirection direction) {
+    final base = hasLocation && itemDescription.isNotEmpty;
+    if (direction.isReceive) return base;
+    return base && recipientName.isNotEmpty && recipientPhone.isNotEmpty;
+  }
 
   /// Returns true when any optional detail field has been filled in.
   bool get hasDetails =>

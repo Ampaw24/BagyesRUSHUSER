@@ -40,6 +40,19 @@ abstract final class PhoneUtils {
     return '+233$digits';
   }
 
+  /// Normalizes a Ghana number into the local 10-digit form.
+  /// E.g. "+233 24 123 4567" or "241234567" -> "0241234567". Numbers that
+  /// aren't recognisably Ghanaian are returned trimmed but otherwise as-is.
+  static String toLocalFormat(String phone) {
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 12 && digits.startsWith('233')) {
+      return '0${digits.substring(3)}';
+    }
+    if (digits.length == 9 && !digits.startsWith('0')) return '0$digits';
+    if (digits.length == 10 && digits.startsWith('0')) return digits;
+    return phone.trim();
+  }
+
   /// Returns true if the phone number is a valid 9-digit (without leading 0)
   /// or 10-digit (with leading 0) Ghana mobile number.
   static bool isValidGhanaPhone(String phone) {

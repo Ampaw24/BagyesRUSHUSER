@@ -9,9 +9,9 @@ import '../../constant/app_theme.dart';
 class HelpSupportView extends StatelessWidget {
   const HelpSupportView({super.key});
 
-  static const String supportEmail = 'support@bagyesrush.com';
-  static const String supportPhone = '+233 54 879 0987';
-  static const String supportWhatsapp = '+233 54 879 0987';
+  static const String supportEmail = 'support@bagyesrushdelivery.com';
+  static const String supportPhone = '+233 54 976 0079';
+  static const String supportWhatsapp = '+233 54 976 0079';
 
   Future<void> _launch(
     BuildContext context,
@@ -20,9 +20,9 @@ class HelpSupportView extends StatelessWidget {
   }) async {
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failureMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 

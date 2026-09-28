@@ -129,6 +129,9 @@ class ConsumerOrdersRepository {
       estimatedDelivery: tracked.estimatedDelivery,
       driverName: tracked.driverName,
       driverPhone: tracked.driverPhone,
+      deliveryPin: tracked.deliveryPin,
+      parcelDirection: tracked.parcelDirection,
+      collection: tracked.collection,
     );
   }
 

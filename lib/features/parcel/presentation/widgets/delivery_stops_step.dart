@@ -6,9 +6,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import '../../../../core/services/contact_picker_service.dart';
+import '../../../../core/widgets/contact_picker_button.dart';
 import '../../../../core/widgets/map_location_picker_sheet.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'parcel_form_fields.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point
@@ -24,9 +28,11 @@ import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.
 /// After location is set, each card expands inline to show item details
 /// (description, quantity, recipient name, phone, instructions) — the
 /// industry-standard fields used by Lalamove, GrabExpress, Kwik, and Bosta.
-/// Recipient name and phone are required so the rider always has someone
-/// to hand the package to and call on arrival; the rest stay optional.
+/// Send: recipient name and phone are required so the rider always has
+/// someone to hand the package to. Receive: a single stop at the customer's
+/// own address, recipient fields optional (defaults to the customer).
 class DeliveryStopsStep extends StatelessWidget {
+  final ParcelDirection direction;
   final List<DeliveryStop> stops;
   final List<File> packageImages;
   final void Function(String id, LatLng latLng, String address) onStopUpdated;
@@ -46,6 +52,7 @@ class DeliveryStopsStep extends StatelessWidget {
 
   const DeliveryStopsStep({
     super.key,
+    this.direction = ParcelDirection.send,
     required this.stops,
     required this.packageImages,
     required this.onStopUpdated,
@@ -59,8 +66,11 @@ class DeliveryStopsStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
-    final canAdd =
-        stops.isNotEmpty && stops.last.isComplete && stops.length < maxStops;
+    final isReceive = direction.isReceive;
+    final canAdd = !isReceive &&
+        stops.isNotEmpty &&
+        stops.last.isComplete &&
+        stops.length < maxStops;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.1),
@@ -69,7 +79,7 @@ class DeliveryStopsStep extends StatelessWidget {
         children: [
           // ── Header ──────────────────────────────────────────────────────────
           Text(
-            'Delivery Location',
+            isReceive ? 'Deliver To You' : 'Delivery Location',
             style: TextStyle(
               fontSize: w * 0.055,
               fontWeight: FontWeight.w800,
@@ -78,9 +88,11 @@ class DeliveryStopsStep extends StatelessWidget {
           ),
           SizedBox(height: w * 0.015),
           Text(
-            stops.length > 1
-                ? 'Managing ${stops.length} stops — one rider handles all.'
-                : 'Where should your package be delivered?',
+            isReceive
+                ? 'Where should the rider bring your package?'
+                : stops.length > 1
+                    ? 'Managing ${stops.length} stops — one rider handles all.'
+                    : 'Where should your package be delivered?',
             style: TextStyle(
               fontSize: w * 0.035,
               color: AppColors.textSecondary,
@@ -94,9 +106,10 @@ class DeliveryStopsStep extends StatelessWidget {
           for (int i = 0; i < stops.length; i++) ...[
             _StopCard(
               key: ValueKey(stops[i].id),
+              direction: direction,
               stop: stops[i],
               index: i,
-              canRemove: stops.length > 1,
+              canRemove: !isReceive && stops.length > 1,
               packageImages: packageImages,
               onLocationSet: (latLng, address) =>
                   onStopUpdated(stops[i].id, latLng, address),
@@ -129,6 +142,7 @@ class DeliveryStopsStep extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StopCard extends StatefulWidget {
+  final ParcelDirection direction;
   final DeliveryStop stop;
   final int index;
   final bool canRemove;
@@ -148,6 +162,7 @@ class _StopCard extends StatefulWidget {
 
   const _StopCard({
     super.key,
+    required this.direction,
     required this.stop,
     required this.index,
     required this.canRemove,
@@ -210,6 +225,12 @@ class _StopCardState extends State<_StopCard> {
     );
   }
 
+  void _applyContact(PickedContact contact) {
+    if (contact.name.isNotEmpty) _nameCtrl.text = contact.name;
+    if (contact.phone.isNotEmpty) _phoneCtrl.text = contact.phone;
+    _pushChanges();
+  }
+
   void _toggleImage(int index) {
     setState(() {
       if (_selectedIndices.contains(index)) {
@@ -237,7 +258,8 @@ class _StopCardState extends State<_StopCard> {
     final hasLocation = widget.stop.hasLocation;
     // Drives the "done" styling (green border/badge) — only once the stop,
     // including its required recipient info, is actually complete.
-    final isComplete = widget.stop.isComplete;
+    final isComplete = widget.stop.isCompleteFor(widget.direction);
+    final isReceive = widget.direction.isReceive;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -282,7 +304,7 @@ class _StopCardState extends State<_StopCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Stop ${widget.index + 1}',
+                          isReceive ? 'Your drop-off' : 'Stop ${widget.index + 1}',
                           style: TextStyle(
                             fontSize: w * 0.027,
                             fontWeight: FontWeight.w700,
@@ -359,6 +381,7 @@ class _StopCardState extends State<_StopCard> {
   // ── Details section ──────────────────────────────────────────────────────────
 
   Widget _buildDetailsSection(double w) {
+    final isReceive = widget.direction.isReceive;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -373,7 +396,7 @@ class _StopCardState extends State<_StopCard> {
             children: [
               // ── Photos for this stop ───────────────────────────────────────
               if (widget.packageImages.isNotEmpty) ...[
-                _DetailLabel(
+                ParcelFieldLabel(
                   icon: HugeIcons.strokeRoundedImage01,
                   label: 'Photos for this stop',
                   hint: 'tap to tag',
@@ -452,14 +475,15 @@ class _StopCardState extends State<_StopCard> {
               ],
 
               // ── Item description ───────────────────────────────────────────
-              _DetailLabel(
+              ParcelFieldLabel(
                 icon: HugeIcons.strokeRoundedDeliveryBox01,
                 label: 'Item description',
-                hint: 'optional',
+                hint: null,
+                required: true,
                 w: w,
               ),
               SizedBox(height: w * 0.02),
-              _DetailTextField(
+              ParcelTextField(
                 controller: _descCtrl,
                 focusNode: _descFocus,
                 hint: 'e.g. 2 sealed documents, 1 phone box',
@@ -477,7 +501,7 @@ class _StopCardState extends State<_StopCard> {
               Row(
                 children: [
                   Expanded(
-                    child: _DetailLabel(
+                    child: ParcelFieldLabel(
                       icon: HugeIcons.strokeRoundedPackageAdd,
                       label: 'Quantity',
                       hint: null,
@@ -496,18 +520,21 @@ class _StopCardState extends State<_StopCard> {
               SizedBox(height: w * 0.035),
 
               // ── Recipient name ─────────────────────────────────────────────
-              _DetailLabel(
+              ParcelFieldLabel(
                 icon: HugeIcons.strokeRoundedUser,
                 label: 'Recipient name',
-                hint: null,
-                required: true,
+                hint: isReceive ? 'optional' : null,
+                required: !isReceive,
+                trailing: ContactPickerButton(onPicked: _applyContact),
                 w: w,
               ),
               SizedBox(height: w * 0.02),
-              _DetailTextField(
+              ParcelTextField(
                 controller: _nameCtrl,
                 focusNode: _nameFocus,
-                hint: 'e.g. John Mensah',
+                hint: isReceive
+                    ? 'Leave blank to receive it yourself'
+                    : 'e.g. John Mensah',
                 textInputAction: TextInputAction.next,
                 onFieldSubmitted: (_) =>
                     FocusScope.of(context).requestFocus(_phoneFocus),
@@ -522,15 +549,15 @@ class _StopCardState extends State<_StopCard> {
               SizedBox(height: w * 0.035),
 
               // ── Recipient phone ────────────────────────────────────────────
-              _DetailLabel(
+              ParcelFieldLabel(
                 icon: HugeIcons.strokeRoundedCall,
                 label: 'Recipient phone',
-                hint: null,
-                required: true,
+                hint: isReceive ? 'optional' : null,
+                required: !isReceive,
                 w: w,
               ),
               SizedBox(height: w * 0.02),
-              _DetailTextField(
+              ParcelTextField(
                 controller: _phoneCtrl,
                 focusNode: _phoneFocus,
                 hint: 'e.g. +233 50 000 0000',
@@ -549,14 +576,14 @@ class _StopCardState extends State<_StopCard> {
               SizedBox(height: w * 0.035),
 
               // ── Special instructions ───────────────────────────────────────
-              _DetailLabel(
+              ParcelFieldLabel(
                 icon: HugeIcons.strokeRoundedMessage01,
                 label: 'Special instructions',
                 hint: 'optional',
                 w: w,
               ),
               SizedBox(height: w * 0.02),
-              _DetailTextField(
+              ParcelTextField(
                 controller: _instrCtrl,
                 focusNode: _instrFocus,
                 hint: 'e.g. Leave at front desk, ring bell',
@@ -586,134 +613,6 @@ class _StopCardState extends State<_StopCard> {
         onConfirm: (latLng, address) {
           widget.onLocationSet(latLng, address);
         },
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Detail section sub-widgets
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DetailLabel extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final String? hint;
-  final bool required;
-  final double w;
-
-  const _DetailLabel({
-    required this.icon,
-    required this.label,
-    required this.hint,
-    required this.w,
-    this.required = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        HugeIcon(icon: icon, color: AppColors.textSecondary, size: w * 0.038),
-        SizedBox(width: w * 0.02),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: w * 0.033,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        if (required) ...[
-          SizedBox(width: w * 0.008),
-          Text(
-            '*',
-            style: TextStyle(
-              fontSize: w * 0.033,
-              fontWeight: FontWeight.w700,
-              color: AppColors.error,
-            ),
-          ),
-        ],
-        if (hint != null) ...[
-          SizedBox(width: w * 0.015),
-          Text(
-            '($hint)',
-            style: TextStyle(fontSize: w * 0.028, color: AppColors.textHint),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _DetailTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final String hint;
-  final TextInputType keyboardType;
-  final TextInputAction textInputAction;
-  final List<TextInputFormatter>? inputFormatters;
-  final ValueChanged<String>? onFieldSubmitted;
-  final ValueChanged<String> onChanged;
-  final int? maxLength;
-  final double w;
-
-  const _DetailTextField({
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    required this.w,
-    this.focusNode,
-    this.keyboardType = TextInputType.text,
-    this.textInputAction = TextInputAction.next,
-    this.inputFormatters,
-    this.onFieldSubmitted,
-    this.maxLength,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      textInputAction: textInputAction,
-      onSubmitted: onFieldSubmitted,
-      maxLength: maxLength,
-      maxLengthEnforcement: MaxLengthEnforcement.enforced,
-      onChanged: onChanged,
-      style: TextStyle(
-        fontSize: w * 0.036,
-        color: AppColors.textPrimary,
-        fontFamily: 'Mukta',
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          fontSize: w * 0.034,
-          color: AppColors.textHint,
-          fontFamily: 'Mukta',
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: w * 0.04,
-          vertical: w * 0.032,
-        ),
-        filled: true,
-        fillColor: AppColors.scaffold,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-        ),
       ),
     );
   }

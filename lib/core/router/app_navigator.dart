@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
@@ -37,8 +38,11 @@ abstract final class AppNavigator {
       context.push(AppRoutes.customerPaymentMethods);
 
   // ── Courier ──
-  static void toSendPackages(BuildContext context) =>
-      context.push(AppRoutes.sendPackages);
+  static void toSendPackages(
+    BuildContext context, {
+    ParcelDirection direction = ParcelDirection.send,
+  }) =>
+      context.push(AppRoutes.sendPackages, extra: direction);
 
   // ── Cart & payment ──
   static void toCart(BuildContext context) => context.push(AppRoutes.cart);

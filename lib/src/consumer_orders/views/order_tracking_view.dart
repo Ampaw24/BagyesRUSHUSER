@@ -18,6 +18,7 @@ import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.d
 import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/cancel_order_reason_sheet.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_codes_panel.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
@@ -342,11 +343,8 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
             _StatusBanner(order: order),
             SizedBox(height: w * 0.05),
 
-            // ── Delivery PIN ──
-            if ((order.deliveryPin ?? '').trim().isNotEmpty) ...[
-              _DeliveryPinCard(pin: order.deliveryPin!.trim()),
-              SizedBox(height: w * 0.05),
-            ],
+            // ── Delivery PIN / parcel collection code ──
+            OrderCodesPanel(order: order),
 
             // ── Order timeline ──
             const _SectionHeader(
@@ -709,88 +707,6 @@ class _StatusBanner extends StatelessWidget {
     final remaining = eta.difference(DateTime.now());
     if (remaining.isNegative) return 'Any moment now';
     return '${remaining.inMinutes} min';
-  }
-}
-
-/// Highlighted card showing the code the courier will ask for at drop-off
-/// to confirm they're handing the order to the right person.
-class _DeliveryPinCard extends StatelessWidget {
-  final String pin;
-
-  const _DeliveryPinCard({required this.pin});
-
-  void _copyPin(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: pin));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('PIN copied'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 1),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(w * 0.04),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(w * 0.04),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.password_rounded, color: AppColors.primary, size: w * 0.07),
-          SizedBox(width: w * 0.035),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Delivery PIN',
-                  style: TextStyle(
-                    fontSize: w * 0.032,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                SizedBox(height: w * 0.008),
-                Text(
-                  'Share this with your rider to confirm delivery',
-                  style: TextStyle(
-                    fontSize: w * 0.03,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: w * 0.03),
-          GestureDetector(
-            onTap: () => _copyPin(context),
-            child: Row(
-              children: [
-                Text(
-                  pin,
-                  style: TextStyle(
-                    fontSize: w * 0.065,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: w * 0.012,
-                    color: AppColors.primary,
-                  ),
-                ),
-                SizedBox(width: w * 0.015),
-                Icon(Icons.copy_rounded, color: AppColors.primary, size: w * 0.04),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

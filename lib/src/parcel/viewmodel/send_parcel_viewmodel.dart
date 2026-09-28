@@ -3,9 +3,12 @@ import 'dart:math' show cos, sqrt, asin;
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
+import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
 import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
@@ -29,6 +32,8 @@ enum ParcelStep {
 // ── State ────────────────────────────────────────────────────────────────────
 
 class SendParcelState {
+  /// Fixed for the lifetime of the wizard — chosen on the entry sheet.
+  final ParcelDirection direction;
   final ParcelStep currentStep;
   final String? packageType; // 'document' | 'parcel'
   final List<File> packageImages;
@@ -37,8 +42,13 @@ class SendParcelState {
   final LatLng? pickupLatLng;
   final String pickupAddress;
 
+  /// Receive only: the person the rider collects from (`pickup_contact_*`).
+  final String senderName;
+  final String senderPhone;
+  final String pickupInstructions;
+
   /// One or more delivery destinations. Always has at least one entry.
-  /// Users may add up to [SendParcelViewModel.maxStops] stops.
+  /// Send allows up to [SendParcelViewModel.maxStops]; receive exactly one.
   final List<DeliveryStop> deliveryStops;
 
   /// Total route distance: pickup → stop1 → stop2 → … → stopN (km).
@@ -80,6 +90,7 @@ class SendParcelState {
   final Parcel? createdParcel;
 
   const SendParcelState({
+    this.direction = ParcelDirection.send,
     this.currentStep = ParcelStep.packageType,
     this.packageType,
     this.packageImages = const [],
@@ -87,6 +98,9 @@ class SendParcelState {
     this.weightText = '',
     this.pickupLatLng,
     this.pickupAddress = '',
+    this.senderName = '',
+    this.senderPhone = '',
+    this.pickupInstructions = '',
     this.deliveryStops = const [DeliveryStop(id: 'stop_0')],
     this.distanceKm = 0.0,
     this.fragile = false,
@@ -104,7 +118,31 @@ class SendParcelState {
     this.createdParcel,
   });
 
+  /// Receive drop-off defaults to the location fetched at app launch, so
+  /// the customer usually only has to confirm it.
+  factory SendParcelState.initial(ParcelDirection direction) {
+    if (!direction.isReceive) return const SendParcelState();
+    final cached = LocationHelper.cachedResult;
+    final position = cached?.position;
+    final stop = cached != null && cached.isSuccess && position != null
+        ? DeliveryStop(
+            id: 'stop_0',
+            latLng: LatLng(position.latitude, position.longitude),
+            address: cached.address,
+          )
+        : const DeliveryStop(id: 'stop_0');
+    return SendParcelState(direction: direction, deliveryStops: [stop]);
+  }
+
   // ── Computed ───────────────────────────────────────────────────────────────
+
+  bool get hasValidSenderContact =>
+      senderName.trim().isNotEmpty && PhoneUtils.isValidGhanaPhone(senderPhone);
+
+  bool get _stopsComplete =>
+      deliveryStops.isNotEmpty &&
+      (!direction.isReceive || deliveryStops.length == 1) &&
+      deliveryStops.every((s) => s.isCompleteFor(direction));
 
   bool get canProceed {
     switch (currentStep) {
@@ -113,11 +151,12 @@ class SendParcelState {
       case ParcelStep.packageDetails:
         return weightText.isNotEmpty;
       case ParcelStep.pickupLocation:
-        return pickupLatLng != null && pickupAddress.isNotEmpty;
+        final hasPickup = pickupLatLng != null && pickupAddress.isNotEmpty;
+        return direction.isReceive
+            ? hasPickup && hasValidSenderContact
+            : hasPickup;
       case ParcelStep.deliveryLocation:
-        // All stops must be complete; at least one must exist.
-        return deliveryStops.isNotEmpty &&
-            deliveryStops.every((s) => s.isComplete);
+        return _stopsComplete;
       case ParcelStep.availableRiders:
         return !isFetchingQuote && assignedRider != null;
       case ParcelStep.summary:
@@ -133,6 +172,9 @@ class SendParcelState {
     String? weightText,
     LatLng? pickupLatLng,
     String? pickupAddress,
+    String? senderName,
+    String? senderPhone,
+    String? pickupInstructions,
     List<DeliveryStop>? deliveryStops,
     double? distanceKm,
     bool? fragile,
@@ -150,6 +192,7 @@ class SendParcelState {
     Object? createdParcel = _unset,
   }) =>
       SendParcelState(
+        direction: direction,
         currentStep: currentStep ?? this.currentStep,
         packageType: packageType ?? this.packageType,
         packageImages: packageImages ?? this.packageImages,
@@ -157,6 +200,9 @@ class SendParcelState {
         weightText: weightText ?? this.weightText,
         pickupLatLng: pickupLatLng ?? this.pickupLatLng,
         pickupAddress: pickupAddress ?? this.pickupAddress,
+        senderName: senderName ?? this.senderName,
+        senderPhone: senderPhone ?? this.senderPhone,
+        pickupInstructions: pickupInstructions ?? this.pickupInstructions,
         deliveryStops: deliveryStops ?? this.deliveryStops,
         distanceKm: distanceKm ?? this.distanceKm,
         fragile: fragile ?? this.fragile,
@@ -195,7 +241,10 @@ class SendParcelState {
 // ── ViewModel ────────────────────────────────────────────────────────────────
 
 class SendParcelViewModel extends ViewModel<SendParcelState> {
-  SendParcelViewModel(this._repository) : super(const SendParcelState());
+  SendParcelViewModel(
+    this._repository, {
+    ParcelDirection direction = ParcelDirection.send,
+  }) : super(SendParcelState.initial(direction));
 
   final ParcelRepository _repository;
 
@@ -286,6 +335,14 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   void setPickupLocation(LatLng latLng, String address) =>
       emit(state.copyWith(pickupLatLng: latLng, pickupAddress: address));
 
+  // ── Sender contact (receive) ──────────────────────────────────────────────
+
+  void setSenderContact({required String name, required String phone}) =>
+      emit(state.copyWith(senderName: name, senderPhone: phone));
+
+  void setPickupInstructions(String instructions) =>
+      emit(state.copyWith(pickupInstructions: instructions));
+
   // ── Delivery stops ────────────────────────────────────────────────────────
 
   /// Updates the location of an existing stop identified by [id].
@@ -299,6 +356,7 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   /// Appends a blank stop. No-op when [maxStops] is already reached OR
   /// when the current last stop is not yet complete (prevents orphaned stops).
   void addDeliveryStop() {
+    if (state.direction.isReceive) return;
     if (state.deliveryStops.length >= maxStops) return;
     if (state.deliveryStops.isNotEmpty && !state.deliveryStops.last.isComplete) {
       return;
@@ -399,11 +457,8 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   /// creates the parcel using that quote's id — the price actually charged
   /// always comes from the backend, never from the client-side estimate.
   Future<bool> submitParcel() async {
-    if (state.pickupLatLng == null ||
-        state.deliveryStops.isEmpty ||
-        !state.deliveryStops.every((s) => s.isComplete)) {
-      return false;
-    }
+    if (state.pickupLatLng == null || !state._stopsComplete) return false;
+    if (state.direction.isReceive && !state.hasValidSenderContact) return false;
     final method = state.selectedPaymentMethod;
     if (method == null) {
       emit(state.copyWith(submitError: 'Please select a payment method.'));
@@ -435,8 +490,12 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
             // 'card' is likewise never offered to select from.
             paymentMethod: 'mobile_money',
             paymentMethodId: int.tryParse(method.id),
+            direction: state.direction,
             stops: stops,
             pickupAddress: state.pickupAddress,
+            pickupContactName: _nonEmpty(state.senderName),
+            pickupContactPhone: _nonEmpty(state.senderPhone),
+            pickupInstructions: _nonEmpty(state.pickupInstructions),
           );
 
           return createResult.fold(
@@ -462,6 +521,11 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  static String? _nonEmpty(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 
   String get _resolvedSize => state.packageSize.isNotEmpty
       ? state.packageSize

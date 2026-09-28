@@ -6,6 +6,7 @@ import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import '../model/parcel.dart';
+import '../model/parcel_direction.dart';
 import '../model/parcel_photo.dart';
 import '../model/parcel_quote.dart';
 import '../model/parcel_stop.dart';
@@ -78,23 +79,25 @@ class ParcelRepository {
     required int deliveryQuoteId,
     required String paymentMethod,
     int? paymentMethodId,
+    ParcelDirection direction = ParcelDirection.send,
     required List<ParcelStop> stops,
     required String pickupAddress,
     String? pickupContactName,
     String? pickupContactPhone,
     String? pickupInstructions,
   }) async {
-    appLogger.d('ParcelRepository.createParcel → initiated');
+    appLogger.d('ParcelRepository.createParcel → initiated (${direction.apiValue})');
     try {
       final body = <String, dynamic>{
         'delivery_quote_id': deliveryQuoteId,
         'payment_method': paymentMethod,
-        'payment_method_id': paymentMethodId,
+        'payment_method_id': ?paymentMethodId,
+        'direction': direction.apiValue,
         'stops': stops.map((s) => s.toJson()).toList(),
         'pickup_address': pickupAddress,
-        'pickup_contact_name': pickupContactName,
-        'pickup_contact_phone': pickupContactPhone,
-        'pickup_instructions': pickupInstructions,
+        'pickup_contact_name': ?pickupContactName,
+        'pickup_contact_phone': ?pickupContactPhone,
+        'pickup_instructions': ?pickupInstructions,
       };
       final response =
           await _client.post(ApiEndpoints.customerParcels, data: body);
