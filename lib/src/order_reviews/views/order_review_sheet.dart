@@ -15,27 +15,30 @@ import 'package:bagyesrushappusernew/src/order_reviews/widgets/review_tag_chips.
 import 'package:bagyesrushappusernew/src/order_reviews/widgets/star_rating_input.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
-import 'package:bagyesrushappusernew/src/vendor_reviews/models/review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
 
-/// Rate-and-review bottom sheet. Stars first; chips and a comment box slide
-/// in once a rating is picked, then a success state auto-closes the sheet
-/// and returns the saved [Review] (null if dismissed).
+/// Rate-and-review bottom sheet with one section per party (restaurant,
+/// rider). Stars first; chips and a comment box slide in once that party is
+/// rated. Either party alone can be submitted. A success state auto-closes
+/// the sheet and returns the saved [OrderReview] (null if dismissed).
 class OrderReviewSheet extends StatefulWidget {
   const OrderReviewSheet._({required this.target, required this.initialRating});
 
   final ReviewTarget target;
+
+  /// Pre-fills [ReviewTarget.primary]'s stars (from a tap-to-rate prompt).
   final int initialRating;
 
   static const _successHold = Duration(milliseconds: 1600);
   static const _commentCounterThreshold = 800;
 
-  static Future<Review?> show(
+  static Future<OrderReview?> show(
     BuildContext context, {
     required ReviewTarget target,
     int initialRating = 0,
   }) {
     final w = MediaQuery.sizeOf(context).width;
-    return showModalBottomSheet<Review>(
+    return showModalBottomSheet<OrderReview>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -56,13 +59,18 @@ class _OrderReviewSheetState extends State<OrderReviewSheet> {
   late final ReviewComposerViewModel _vm = sl<ReviewComposerViewModel>(
     param1: widget.target,
   );
-  final _commentController = TextEditingController();
+  late final Map<ReviewSubject, TextEditingController> _commentControllers = {
+    for (final party in widget.target.parties)
+      party.subject: TextEditingController(),
+  };
   Timer? _closeTimer;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialRating > 0) _vm.setRating(widget.initialRating);
+    if (widget.initialRating > 0) {
+      _vm.setRating(widget.target.primary.subject, widget.initialRating);
+    }
     _vm.addListener(_onStateChanged);
   }
 
@@ -72,18 +80,24 @@ class _OrderReviewSheetState extends State<OrderReviewSheet> {
     _vm
       ..removeListener(_onStateChanged)
       ..dispose();
-    _commentController.dispose();
+    for (final controller in _commentControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   void _onStateChanged() {
     final state = _vm.state;
-    // The VM trims the comment when a new chip eats into the length budget.
-    if (_commentController.text != state.comment) {
-      _commentController.value = TextEditingValue(
-        text: state.comment,
-        selection: TextSelection.collapsed(offset: state.comment.length),
-      );
+    // The VM trims a comment when a new chip eats into its length budget.
+    for (final MapEntry(key: subject, value: controller)
+        in _commentControllers.entries) {
+      final comment = state.draftFor(subject).comment;
+      if (controller.text != comment) {
+        controller.value = TextEditingValue(
+          text: comment,
+          selection: TextSelection.collapsed(offset: comment.length),
+        );
+      }
     }
     if (state.status == ReviewSubmitStatus.success && _closeTimer == null) {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -95,21 +109,20 @@ class _OrderReviewSheetState extends State<OrderReviewSheet> {
 
   /// Closes the sheet first — the report flow is a full page and shouldn't
   /// open underneath a modal.
-  void _openReport() {
-    final target = widget.target;
+  void _openReport(ReviewParty party) {
     final router = GoRouter.of(context);
     Navigator.of(context).pop();
     router.push(
       AppRoutes.reportFlow,
       extra: ReportFlowArgs(
         role: ReportRole.customer,
-        targetType: target.isRider
+        targetType: party.isRider
             ? ReportTargetType.rider
             : ReportTargetType.vendor,
-        orderId: target.orderId,
-        targetName: target.name,
-        targetImageUrl: target.imageUrl,
-        targetPhone: target.phone,
+        orderId: widget.target.orderId,
+        targetName: party.name,
+        targetImageUrl: party.imageUrl,
+        targetPhone: party.phone,
       ),
     );
   }
@@ -140,7 +153,7 @@ class _OrderReviewSheetState extends State<OrderReviewSheet> {
                     : _ReviewForm(
                         key: const ValueKey('form'),
                         state: state,
-                        commentController: _commentController,
+                        commentControllers: _commentControllers,
                         onRating: _vm.setRating,
                         onToggleTag: _vm.toggleTag,
                         onComment: _vm.setComment,
@@ -161,7 +174,7 @@ class _ReviewForm extends StatelessWidget {
   const _ReviewForm({
     super.key,
     required this.state,
-    required this.commentController,
+    required this.commentControllers,
     required this.onRating,
     required this.onToggleTag,
     required this.onComment,
@@ -171,51 +184,38 @@ class _ReviewForm extends StatelessWidget {
   });
 
   final ReviewComposerState state;
-  final TextEditingController commentController;
-  final ValueChanged<int> onRating;
-  final ValueChanged<String> onToggleTag;
-  final ValueChanged<String> onComment;
+  final Map<ReviewSubject, TextEditingController> commentControllers;
+  final void Function(ReviewSubject subject, int rating) onRating;
+  final void Function(ReviewSubject subject, String tag) onToggleTag;
+  final void Function(ReviewSubject subject, String comment) onComment;
   final VoidCallback onSubmit;
-  final VoidCallback onReport;
+  final ValueChanged<ReviewParty> onReport;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final target = state.target;
+    final vendor = target.partyFor(ReviewSubject.vendor);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SheetHeader(target: target, onClose: onClose),
-        SizedBox(height: w * 0.05),
-        StarRatingInput(
-          rating: state.rating,
-          onChanged: onRating,
-          enabled: !state.isSubmitting,
-        ),
-        if (state.hasRating) ...[
-          SizedBox(height: w * 0.06),
-          _SectionLabel(
-            isPositiveRating(state.rating)
-                ? 'What did you love?'
-                : 'What could be better?',
-          ),
-          SizedBox(height: w * 0.03),
-          ReviewTagChips(
-            tags: state.availableTags,
-            selected: state.selectedTags,
-            onToggle: onToggleTag,
-          ),
-          SizedBox(height: w * 0.05),
-          _CommentField(
-            controller: commentController,
-            maxLength: state.maxCommentLength,
+        for (final party in target.parties) ...[
+          SizedBox(height: w * 0.04),
+          _PartySection(
+            party: party,
+            draft: state.draftFor(party.subject),
+            tags: state.tagsFor(party.subject),
+            commentController: commentControllers[party.subject]!,
             enabled: !state.isSubmitting,
-            onChanged: onComment,
+            onRating: (rating) => onRating(party.subject, rating),
+            onToggleTag: (tag) => onToggleTag(party.subject, tag),
+            onComment: (comment) => onComment(party.subject, comment),
+            onReport: () => onReport(party),
           ),
-          if (state.rating <= 2) _ReportLink(target: target, onTap: onReport),
         ],
         if (state.errorMessage != null) ...[
           SizedBox(height: w * 0.03),
@@ -226,10 +226,10 @@ class _ReviewForm extends StatelessWidget {
           isSubmitting: state.isSubmitting,
           onPressed: state.canSubmit ? onSubmit : null,
         ),
-        if (!target.isRider) ...[
+        if (vendor != null) ...[
           SizedBox(height: w * 0.025),
           Text(
-            'Reviews are shown publicly on ${target.name}\'s page.',
+            'Restaurant reviews are shown publicly on ${vendor.name}\'s page.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: w * 0.029, color: AppColors.textHint),
           ),
@@ -248,6 +248,12 @@ class _SheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final primary = target.primary;
+    final subtitle = target.parties.length > 1
+        ? 'Rate the restaurant, your rider, or both.'
+        : primary.hasNamedRider
+            ? 'Rate ${primary.name}, your rider'
+            : 'Rate ${primary.name}';
 
     return Column(
       children: [
@@ -269,10 +275,8 @@ class _SheetHeader extends StatelessWidget {
             child: const Text('Not now'),
           ),
         ),
-        _ReviewAvatar(target: target),
-        SizedBox(height: w * 0.035),
         Text(
-          target.isRider ? 'How was your delivery?' : 'How was your order?',
+          target.isParcel ? 'How was your delivery?' : 'How was your order?',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: w * 0.055,
@@ -282,9 +286,7 @@ class _SheetHeader extends StatelessWidget {
         ),
         SizedBox(height: w * 0.012),
         Text(
-          target.hasNamedRider
-              ? 'Rate ${target.name}, your rider'
-              : 'Rate ${target.name}',
+          subtitle,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: w * 0.037, color: AppColors.textSecondary),
         ),
@@ -293,24 +295,141 @@ class _SheetHeader extends StatelessWidget {
   }
 }
 
-/// Vendor logo, or the rider's initial, inside a soft brand-tinted ring.
-class _ReviewAvatar extends StatelessWidget {
-  const _ReviewAvatar({required this.target});
+/// One party's rating block: who it is, their stars, and — once rated —
+/// quick-feedback chips, a comment box and (for low ratings) a report link.
+class _PartySection extends StatelessWidget {
+  const _PartySection({
+    required this.party,
+    required this.draft,
+    required this.tags,
+    required this.commentController,
+    required this.enabled,
+    required this.onRating,
+    required this.onToggleTag,
+    required this.onComment,
+    required this.onReport,
+  });
 
-  final ReviewTarget target;
+  final ReviewParty party;
+  final SubjectDraft draft;
+  final List<String> tags;
+  final TextEditingController commentController;
+  final bool enabled;
+  final ValueChanged<int> onRating;
+  final ValueChanged<String> onToggleTag;
+  final ValueChanged<String> onComment;
+  final VoidCallback onReport;
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final size = w * 0.2;
-    final hasRiderName = target.hasNamedRider;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: draft.hasRating
+            ? AppColors.primary.withValues(alpha: 0.03)
+            : AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(w * 0.045),
+        border: Border.all(
+          color: draft.hasRating
+              ? AppColors.primary.withValues(alpha: 0.2)
+              : AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _ReviewAvatar(party: party, sizeFactor: 0.12),
+              SizedBox(width: w * 0.03),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      party.isRider ? 'Your rider' : 'Restaurant',
+                      style: TextStyle(
+                        fontSize: w * 0.029,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      party.isRider && !party.hasNamedRider
+                          ? 'Rider'
+                          : party.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: w * 0.042,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: w * 0.035),
+          StarRatingInput(
+            rating: draft.rating,
+            onChanged: onRating,
+            starSizeFactor: 0.095,
+            enabled: enabled,
+          ),
+          if (draft.hasRating) ...[
+            SizedBox(height: w * 0.045),
+            _SectionLabel(
+              isPositiveRating(draft.rating)
+                  ? 'What did you love?'
+                  : 'What could be better?',
+            ),
+            SizedBox(height: w * 0.025),
+            ReviewTagChips(
+              tags: tags,
+              selected: draft.selectedTags,
+              onToggle: onToggleTag,
+            ),
+            SizedBox(height: w * 0.04),
+            _CommentField(
+              controller: commentController,
+              maxLength: draft.maxCommentLength,
+              enabled: enabled,
+              onChanged: onComment,
+            ),
+            if (draft.rating <= 2) _ReportLink(onTap: onReport),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Vendor logo, or the rider's initial, inside a soft brand-tinted ring.
+class _ReviewAvatar extends StatelessWidget {
+  const _ReviewAvatar({required this.party, required this.sizeFactor});
+
+  final ReviewParty party;
+
+  /// Diameter as a fraction of screen width.
+  final double sizeFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final size = w * sizeFactor;
+    final imageUrl = party.imageUrl;
 
     final fallback = Container(
       color: AppColors.primary,
       alignment: Alignment.center,
-      child: hasRiderName
+      child: party.hasNamedRider
           ? Text(
-              target.name[0].toUpperCase(),
+              party.name[0].toUpperCase(),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: size * 0.4,
@@ -318,16 +437,16 @@ class _ReviewAvatar extends StatelessWidget {
               ),
             )
           : Icon(
-              target.isRider
+              party.isRider
                   ? Icons.delivery_dining_rounded
                   : Icons.storefront_rounded,
               color: Colors.white,
-              size: size * 0.45,
+              size: size * 0.5,
             ),
     );
 
     return Container(
-      padding: EdgeInsets.all(w * 0.012),
+      padding: EdgeInsets.all(size * 0.06),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.primary.withValues(alpha: 0.1),
@@ -336,10 +455,10 @@ class _ReviewAvatar extends StatelessWidget {
         child: SizedBox(
           width: size,
           height: size,
-          child: target.imageUrl == null
+          child: imageUrl == null
               ? fallback
               : Image.network(
-                  target.imageUrl!,
+                  imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => fallback,
                 ),
@@ -427,9 +546,8 @@ class _CommentField extends StatelessWidget {
 }
 
 class _ReportLink extends StatelessWidget {
-  const _ReportLink({required this.target, required this.onTap});
+  const _ReportLink({required this.onTap});
 
-  final ReviewTarget target;
   final VoidCallback onTap;
 
   @override

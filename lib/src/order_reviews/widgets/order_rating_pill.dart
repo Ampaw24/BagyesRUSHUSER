@@ -8,8 +8,9 @@ import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_
 import 'package:bagyesrushappusernew/src/order_reviews/views/order_review_sheet.dart';
 
 /// Order-history pill for a delivered order: "Rate" opens the review sheet;
-/// once rated it becomes a read-only "★ 4" badge. Only this pill rebuilds
-/// when the reviews cache changes.
+/// once rated it becomes a read-only "★ 4" badge (the restaurant's rating
+/// when given, else the rider's). Only this pill rebuilds when the reviews
+/// cache changes.
 class OrderRatingPill extends StatelessWidget {
   const OrderRatingPill({super.key, required this.order});
 
@@ -18,10 +19,9 @@ class OrderRatingPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final rating = context.select<OrderReviewsViewModel, int?>(
-      (vm) => vm.reviewFor(order.id)?.rating,
+    final (isRated, rating) = context.select<OrderReviewsViewModel, (bool, int?)>(
+      (vm) => (vm.isReviewed(order.id), vm.reviewFor(order.id)?.primaryRating),
     );
-    final isRated = rating != null;
     final color = isRated ? AppColors.accent : AppColors.primary;
 
     final pill = Container(
@@ -40,7 +40,7 @@ class OrderRatingPill extends StatelessWidget {
           ),
           SizedBox(width: w * 0.01),
           Text(
-            isRated ? '$rating' : 'Rate',
+            isRated ? (rating == null ? 'Rated' : '$rating') : 'Rate',
             style: TextStyle(
               fontSize: w * 0.031,
               fontWeight: FontWeight.w700,
@@ -52,7 +52,12 @@ class OrderRatingPill extends StatelessWidget {
     );
 
     if (isRated) {
-      return Semantics(label: 'You rated this $rating stars', child: pill);
+      return Semantics(
+        label: rating == null
+            ? 'You rated this order'
+            : 'You rated this $rating stars',
+        child: pill,
+      );
     }
     return Semantics(
       button: true,

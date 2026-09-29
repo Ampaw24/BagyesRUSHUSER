@@ -5,42 +5,44 @@ import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/vendor_reviews/models/review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
 
-/// Customer-side reviews. One review per order — the backend attaches it to
-/// the vendor (food order) or the rider (parcel) based on the order id.
+/// Customer-side reviews. One review per order, rating the vendor and/or
+/// the rider in the same request.
 class OrderReviewRepository {
   const OrderReviewRepository({required Dio client}) : _client = client;
 
   final Dio _client;
 
-  /// `POST /customer/orders/:id/review`. The success shape is undocumented:
-  /// a returned review object is used as-is; a bare acknowledgement is
-  /// turned into a local [Review] from the submitted values.
-  ResultFuture<Review> submitReview({
+  /// `POST /customer/orders/:id/review` with `vendor_rating`,
+  /// `vendor_comment`, `rider_rating`, `rider_comment` — each optional. The
+  /// success shape is undocumented: a returned review carrying ratings is
+  /// used as-is; otherwise one is built from the submitted [ratings].
+  ResultFuture<OrderReview> submitReview({
     required String orderId,
-    required int rating,
-    String? comment,
+    required Map<ReviewSubject, SubjectRating> ratings,
   }) async {
-    appLogger.d('OrderReviewRepository.submitReview → order=$orderId');
+    appLogger.d(
+      'OrderReviewRepository.submitReview → order=$orderId '
+      'subjects=${ratings.keys.map((s) => s.name).join(',')}',
+    );
     try {
       final response = await _client.post(
         ApiEndpoints.customerOrderReview(orderId),
-        // An explicit `comment: null` fails `sometimes|string` validation.
-        data: {'rating': rating, 'comment': ?comment},
+        data: reviewRequestBody(ratings),
       );
 
       if ([200, 201].contains(response.statusCode)) {
         final map = _dataMap(response);
-        final review = map['rating'] != null
-            ? Review.fromJson({'order_id': orderId, ...map})
-            : Review(
-                id: map['id']?.toString() ?? '',
-                rating: rating,
-                comment: comment,
-                createdAt: DateTime.now(),
-                customerName: '',
+        final returned = OrderReview.fromJson(map, orderId: orderId);
+        final review = returned.ratings.isNotEmpty
+            ? returned
+            : OrderReview(
+                id: returned.id,
                 orderId: orderId,
+                ratings: ratings,
+                createdAt: DateTime.now(),
               );
         appLogger.i('OrderReviewRepository.submitReview → success');
         return Right(review);
@@ -67,8 +69,8 @@ class OrderReviewRepository {
   }
 
   /// `GET /customer/reviews` — used to know which orders are already rated.
-  /// Only reviews that carry an `order_id` are useful here.
-  ResultFuture<List<Review>> getMyReviews({int perPage = 50}) async {
+  /// Only reviews that carry an order id are useful here.
+  ResultFuture<List<OrderReview>> getMyReviews({int perPage = 50}) async {
     appLogger.d('OrderReviewRepository.getMyReviews → initiated');
     try {
       final response = await _client.get(
@@ -79,16 +81,8 @@ class OrderReviewRepository {
       if ([200, 201].contains(response.statusCode)) {
         final reviews = _dataList(response)
             .whereType<DataMap>()
-            // Tolerate the order arriving nested (`order: {id}`) rather
-            // than as a flat `order_id`.
-            .map(
-              (json) => Review.fromJson({
-                if (json['order'] is DataMap)
-                  'order_id': (json['order'] as DataMap)['id'],
-                ...json,
-              }),
-            )
-            .where((r) => r.orderId != null)
+            .map(OrderReview.fromJson)
+            .where((r) => r.orderId.isNotEmpty)
             .toList();
         appLogger.i(
           'OrderReviewRepository.getMyReviews → ${reviews.length} reviews',

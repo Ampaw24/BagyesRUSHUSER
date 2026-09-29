@@ -44,9 +44,11 @@ class ReviewSuccessView extends StatelessWidget {
           ),
           SizedBox(height: w * 0.015),
           Text(
-            target.isRider
-                ? 'Your rating helps ${target.name} and keeps deliveries great.'
-                : 'Your review helps ${target.name} and other customers.',
+            switch (target.partyFor(ReviewSubject.vendor)) {
+              final vendor? =>
+                'Your review helps ${vendor.name} and other customers.',
+              null => 'Your rating helps keep deliveries great.',
+            },
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: w * 0.035,

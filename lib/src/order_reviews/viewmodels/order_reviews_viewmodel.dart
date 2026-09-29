@@ -2,7 +2,8 @@ import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/repositories/order_review_repository.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_state.dart';
-import 'package:bagyesrushappusernew/src/vendor_reviews/models/review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
 
 /// App-wide cache of which orders the customer has rated — read by order
 /// history, the tracking screen and the review sheet. Keyed by order id, so
@@ -27,7 +28,7 @@ class OrderReviewsViewModel extends ViewModel<OrderReviewsState> {
           status: OrderReviewsStatus.loaded,
           // Reviews recorded this session win over the fetched list.
           byOrderId: {
-            for (final r in reviews) r.orderId!: r,
+            for (final r in reviews) r.orderId: r,
             ...state.byOrderId,
           },
         ),
@@ -35,19 +36,17 @@ class OrderReviewsViewModel extends ViewModel<OrderReviewsState> {
     );
   }
 
-  Review? reviewFor(String orderId) => state.byOrderId[orderId];
+  OrderReview? reviewFor(String orderId) => state.byOrderId[orderId];
 
   bool isReviewed(String orderId) => state.byOrderId.containsKey(orderId);
 
-  ResultFuture<Review> submitReview({
+  ResultFuture<OrderReview> submitReview({
     required String orderId,
-    required int rating,
-    String? comment,
+    required Map<ReviewSubject, SubjectRating> ratings,
   }) async {
     final result = await _repository.submitReview(
       orderId: orderId,
-      rating: rating,
-      comment: comment,
+      ratings: ratings,
     );
     result.fold((_) {}, (review) {
       emit(state.copyWith(byOrderId: {...state.byOrderId, orderId: review}));

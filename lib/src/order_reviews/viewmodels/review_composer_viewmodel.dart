@@ -30,40 +30,45 @@ class ReviewComposerViewModel extends ViewModel<ReviewComposerState> {
     super.dispose();
   }
 
-  void setRating(int rating) {
-    if (state.isSubmitting || rating == state.rating) return;
+  void setRating(ReviewSubject subject, int rating) {
+    final draft = state.draftFor(subject);
+    if (state.isSubmitting || rating == draft.rating) return;
     // Crossing the praise/complaint line swaps the chip set, so selections
     // from the other set no longer apply.
     final sentimentChanged =
-        !state.hasRating ||
-        isPositiveRating(rating) != isPositiveRating(state.rating);
-    emit(
-      state.copyWith(
+        !draft.hasRating ||
+        isPositiveRating(rating) != isPositiveRating(draft.rating);
+    _updateDraft(
+      subject,
+      draft.copyWith(
         rating: rating,
         selectedTags: sentimentChanged ? const [] : null,
-        clearError: true,
       ),
     );
   }
 
-  void toggleTag(String tag) {
+  void toggleTag(ReviewSubject subject, String tag) {
     if (state.isSubmitting) return;
-    final tags = [...state.selectedTags];
+    final draft = state.draftFor(subject);
+    final tags = [...draft.selectedTags];
     tags.contains(tag) ? tags.remove(tag) : tags.add(tag);
     // A new chip shrinks the free-text budget — trim rather than overflow.
     final max = remainingCommentLength(tags);
-    final comment = state.comment.length > max
-        ? state.comment.substring(0, max)
-        : state.comment;
-    emit(
-      state.copyWith(selectedTags: tags, comment: comment, clearError: true),
-    );
+    final comment = draft.comment.length > max
+        ? draft.comment.substring(0, max)
+        : draft.comment;
+    _updateDraft(subject, draft.copyWith(selectedTags: tags, comment: comment));
   }
 
-  void setComment(String comment) {
-    if (comment == state.comment) return;
-    emit(state.copyWith(comment: comment, clearError: true));
+  void setComment(ReviewSubject subject, String comment) {
+    final draft = state.draftFor(subject);
+    if (comment == draft.comment) return;
+    _updateDraft(subject, draft.copyWith(comment: comment));
   }
+
+  void _updateDraft(ReviewSubject subject, SubjectDraft draft) => emit(
+    state.copyWith(drafts: {...state.drafts, subject: draft}, clearError: true),
+  );
 
   Future<void> submit() async {
     if (!state.canSubmit) return;
@@ -73,8 +78,7 @@ class ReviewComposerViewModel extends ViewModel<ReviewComposerState> {
 
     final result = await _reviews.submitReview(
       orderId: state.target.orderId,
-      rating: state.rating,
-      comment: state.composedComment,
+      ratings: state.submission,
     );
 
     result.fold(

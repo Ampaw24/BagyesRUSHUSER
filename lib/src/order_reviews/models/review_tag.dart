@@ -1,6 +1,7 @@
 import 'review_target.dart';
 
-/// Backend cap on `comment` (`nullable, string, max:1000`).
+/// Backend cap on each `vendor_comment` / `rider_comment`
+/// (`nullable, string, max:1000`).
 const int maxReviewCommentLength = 1000;
 
 /// Ratings at or above this read as positive feedback.

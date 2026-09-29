@@ -7,12 +7,12 @@ import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart
 import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/views/order_review_sheet.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/widgets/star_rating_input.dart';
-import 'package:bagyesrushappusernew/src/vendor_reviews/models/review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
 import 'package:bagyesrushappusernew/src/vendor_reviews/widgets/rating_stars.dart';
 
 /// Tracking-screen card for a delivered order: tap-to-rate stars that open
-/// [OrderReviewSheet] pre-filled, or — once rated — the customer's review
-/// and any public reply from the vendor.
+/// [OrderReviewSheet] pre-filled, or — once rated — the customer's rating
+/// for each party and any public reply from the vendor.
 class RateOrderCard extends StatelessWidget {
   const RateOrderCard({super.key, required this.order});
 
@@ -20,7 +20,7 @@ class RateOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final review = context.select<OrderReviewsViewModel, Review?>(
+    final review = context.select<OrderReviewsViewModel, OrderReview?>(
       (vm) => vm.reviewFor(order.id),
     );
     final target = ReviewTarget.fromOrder(order);
@@ -59,6 +59,13 @@ class _RatePrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final primary = target.primary;
+    final rider = target.parties.length > 1
+        ? target.partyFor(ReviewSubject.rider)
+        : null;
+    final primaryName = primary.hasNamedRider
+        ? '${primary.name}, your rider'
+        : primary.name;
 
     return Container(
       width: double.infinity,
@@ -70,7 +77,7 @@ class _RatePrompt extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            target.isRider ? 'How was your delivery?' : 'How was your order?',
+            target.isParcel ? 'How was your delivery?' : 'How was your order?',
             style: TextStyle(
               fontSize: w * 0.045,
               fontWeight: FontWeight.w800,
@@ -79,9 +86,10 @@ class _RatePrompt extends StatelessWidget {
           ),
           SizedBox(height: w * 0.01),
           Text(
-            target.hasNamedRider
-                ? 'Tap a star to rate ${target.name}, your rider'
-                : 'Tap a star to rate ${target.name}',
+            rider == null
+                ? 'Tap a star to rate $primaryName'
+                : 'Tap a star to rate $primaryName — you can rate '
+                    '${rider.name} too',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: w * 0.033,
@@ -109,12 +117,17 @@ class _YourReview extends StatelessWidget {
   const _YourReview({super.key, required this.target, required this.review});
 
   final ReviewTarget target;
-  final Review review;
+  final OrderReview review;
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final comment = review.comment?.trim() ?? '';
+    final vendor = target.partyFor(ReviewSubject.vendor);
+    final rated = [
+      for (final party in target.parties)
+        if (review.ratingFor(party.subject) case final rating?)
+          (party, rating),
+    ];
 
     return Container(
       width: double.infinity,
@@ -131,39 +144,76 @@ class _YourReview extends StatelessWidget {
                 size: w * 0.05,
               ),
               SizedBox(width: w * 0.02),
-              Expanded(
-                child: Text(
-                  target.isRider
-                      ? 'You rated your rider'
-                      : 'You rated this order',
-                  style: TextStyle(
-                    fontSize: w * 0.038,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+              Text(
+                'You rated this ${target.isParcel ? 'delivery' : 'order'}',
+                style: TextStyle(
+                  fontSize: w * 0.038,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              RatingStars(rating: review.rating, size: w * 0.045),
             ],
           ),
-          if (comment.isNotEmpty) ...[
-            SizedBox(height: w * 0.025),
-            Text(
-              '“$comment”',
-              style: TextStyle(
-                fontSize: w * 0.035,
-                height: 1.4,
-                fontStyle: FontStyle.italic,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-          if (review.hasReply) ...[
+          for (final (party, rating) in rated) ...[
             SizedBox(height: w * 0.03),
-            _VendorReply(vendorName: target.name, reply: review.reply!),
+            _PartyRating(party: party, rating: rating),
+          ],
+          if (review.hasVendorReply && vendor != null) ...[
+            SizedBox(height: w * 0.03),
+            _VendorReply(vendorName: vendor.name, reply: review.vendorReply!),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _PartyRating extends StatelessWidget {
+  const _PartyRating({required this.party, required this.rating});
+
+  final ReviewParty party;
+  final SubjectRating rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final comment = rating.comment?.trim() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                party.isRider
+                    ? (party.hasNamedRider ? party.name : 'Your rider')
+                    : party.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: w * 0.034,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            RatingStars(rating: rating.rating, size: w * 0.042),
+          ],
+        ),
+        if (comment.isNotEmpty) ...[
+          SizedBox(height: w * 0.012),
+          Text(
+            '“$comment”',
+            style: TextStyle(
+              fontSize: w * 0.034,
+              height: 1.4,
+              fontStyle: FontStyle.italic,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

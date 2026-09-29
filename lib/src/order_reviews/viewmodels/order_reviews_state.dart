@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/src/vendor_reviews/models/review.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
 
 enum OrderReviewsStatus { initial, loading, loaded, error }
 
@@ -14,11 +14,11 @@ class OrderReviewsState extends Equatable {
   });
 
   final OrderReviewsStatus status;
-  final Map<String, Review> byOrderId;
+  final Map<String, OrderReview> byOrderId;
 
   OrderReviewsState copyWith({
     OrderReviewsStatus? status,
-    Map<String, Review>? byOrderId,
+    Map<String, OrderReview>? byOrderId,
   }) => OrderReviewsState(
     status: status ?? this.status,
     byOrderId: byOrderId ?? this.byOrderId,
