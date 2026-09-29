@@ -7,6 +7,7 @@ import '../../constant/app_theme.dart';
 import '../../core/common/app/current_user_provider.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
 import '../../src/auth/viewmodels/auth_viewmodel.dart';
 import '../../src/notification/viewmodel/notification_viewmodel.dart';
 import '../../states/app.state.dart';
@@ -56,6 +57,11 @@ class _HomeState extends State<Home> {
 
   void _openDrawer() => setState(() => _drawerOpen = true);
   void _closeDrawer() => setState(() => _drawerOpen = false);
+
+  void _openLegal(LegalDocument document) {
+    _closeDrawer();
+    AppNavigator.toLegal(context, document);
+  }
 
   void _handleLogout() {
     _closeDrawer();
@@ -183,7 +189,10 @@ class _HomeState extends State<Home> {
                   _closeDrawer();
                   AppNavigator.toInviteFriend(context);
                 },
-                onPrivacyPolicy: () => _closeDrawer(),
+                onPrivacyPolicy: () => _openLegal(LegalDocument.privacyPolicy),
+                onTermsConditions: () =>
+                    _openLegal(LegalDocument.termsConditions),
+                onRefundPolicy: () => _openLegal(LegalDocument.refundPolicy),
                 onHelpSupport: () {
                   _closeDrawer();
                   context.push(AppRoutes.helpSupport);

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -68,6 +70,11 @@ class _VendorHomeState extends State<VendorHome> {
 
   void _openDrawer() => setState(() => _drawerOpen = true);
   void _closeDrawer() => setState(() => _drawerOpen = false);
+
+  void _openLegal(LegalDocument document) {
+    _closeDrawer();
+    AppNavigator.toLegal(context, document);
+  }
 
   void _navigateToShopProfile() {
     _closeDrawer();
@@ -243,7 +250,10 @@ class _VendorHomeState extends State<VendorHome> {
                   _closeDrawer();
                   ChangePasswordSheet.show(context);
                 },
-                onPrivacyPolicy: () {},
+                onPrivacyPolicy: () => _openLegal(LegalDocument.privacyPolicy),
+                onTermsConditions: () =>
+                    _openLegal(LegalDocument.termsConditions),
+                onRefundPolicy: () => _openLegal(LegalDocument.refundPolicy),
                 onHelpSupport: () {
                   _closeDrawer();
                   context.push(AppRoutes.helpSupport);

@@ -21,6 +21,8 @@ class CustomerDrawer extends StatefulWidget {
   final VoidCallback? onPaymentMethods;
   final VoidCallback? onInviteFriends;
   final VoidCallback? onPrivacyPolicy;
+  final VoidCallback? onTermsConditions;
+  final VoidCallback? onRefundPolicy;
   final VoidCallback? onHelpSupport;
   final VoidCallback? onReportProblem;
   final VoidCallback? onDeleteAccount;
@@ -41,6 +43,8 @@ class CustomerDrawer extends StatefulWidget {
     this.onPaymentMethods,
     this.onInviteFriends,
     this.onPrivacyPolicy,
+    this.onTermsConditions,
+    this.onRefundPolicy,
     this.onHelpSupport,
     this.onReportProblem,
     this.onDeleteAccount,
@@ -254,18 +258,32 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 slideAnim: _staggeredSlide(6),
                               ),
                               DrawerTile(
+                                icon: HugeIcons.strokeRoundedLegalDocument01,
+                                label: 'Terms & Conditions',
+                                onTap: widget.onTermsConditions,
+                                fadeAnim: _staggeredFade(7),
+                                slideAnim: _staggeredSlide(7),
+                              ),
+                              DrawerTile(
+                                icon: HugeIcons.strokeRoundedMoneyReceive01,
+                                label: 'Refund Policy',
+                                onTap: widget.onRefundPolicy,
+                                fadeAnim: _staggeredFade(8),
+                                slideAnim: _staggeredSlide(8),
+                              ),
+                              DrawerTile(
                                 icon: HugeIcons.strokeRoundedHelpCircle,
                                 label: 'Help & Support',
                                 onTap: widget.onHelpSupport,
-                                fadeAnim: _staggeredFade(7),
-                                slideAnim: _staggeredSlide(7),
+                                fadeAnim: _staggeredFade(9),
+                                slideAnim: _staggeredSlide(9),
                               ),
                               DrawerTile(
                                 icon: HugeIcons.strokeRoundedFlag02,
                                 label: 'Report a Problem',
                                 onTap: widget.onReportProblem,
-                                fadeAnim: _staggeredFade(8),
-                                slideAnim: _staggeredSlide(8),
+                                fadeAnim: _staggeredFade(10),
+                                slideAnim: _staggeredSlide(10),
                               ),
                             ],
                           ),

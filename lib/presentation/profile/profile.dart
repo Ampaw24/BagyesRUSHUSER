@@ -5,6 +5,7 @@ import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/widgets/floating_nav_bar.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
@@ -175,7 +176,28 @@ class _ProfileState extends State<Profile> {
                       _ProfileTile(
                         icon: HugeIcons.strokeRoundedPolicy,
                         label: 'Privacy Policy',
-                        onTap: () {},
+                        onTap: () => AppNavigator.toLegal(
+                          context,
+                          LegalDocument.privacyPolicy,
+                        ),
+                        w: w,
+                      ),
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedLegalDocument01,
+                        label: 'Terms & Conditions',
+                        onTap: () => AppNavigator.toLegal(
+                          context,
+                          LegalDocument.termsConditions,
+                        ),
+                        w: w,
+                      ),
+                      _ProfileTile(
+                        icon: HugeIcons.strokeRoundedMoneyReceive01,
+                        label: 'Refund Policy',
+                        onTap: () => AppNavigator.toLegal(
+                          context,
+                          LegalDocument.refundPolicy,
+                        ),
                         w: w,
                       ),
                     ],

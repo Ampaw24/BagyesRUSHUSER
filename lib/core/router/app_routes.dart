@@ -67,6 +67,11 @@ abstract final class AppRoutes {
   static const String inviteFriend = '/invite-friend';
   static const String helpSupport = '/help-support';
 
+  // ── Legal ──
+  static const String privacyPolicy = '/legal/privacy-policy';
+  static const String termsConditions = '/legal/terms-conditions';
+  static const String refundPolicy = '/legal/refund-policy';
+
   // ── Report a problem ──
   static const String reportFlow = '/report';
   static const String myReports = '/report/history';

@@ -7,6 +7,7 @@ import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
 import 'package:bagyesrushappusernew/src/chat/view/chat_thread_sheet.dart';
+import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
 
 import 'app_routes.dart';
 
@@ -36,6 +37,10 @@ abstract final class AppNavigator {
       context.push(AppRoutes.editProfile);
   static void toCustomerPaymentMethods(BuildContext context) =>
       context.push(AppRoutes.customerPaymentMethods);
+
+  // ── Legal ──
+  static void toLegal(BuildContext context, LegalDocument document) =>
+      context.push(document.routePath);
 
   // ── Courier ──
   static void toSendPackages(

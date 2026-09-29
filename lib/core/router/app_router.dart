@@ -48,6 +48,8 @@ import 'package:bagyesrushappusernew/src/transaction/views/transaction_view.dart
 import 'package:bagyesrushappusernew/features/consumer/notifications/view/screens/consumer_notifications_screen.dart';
 import 'package:bagyesrushappusernew/src/chat/view/chat_list_view.dart';
 
+import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
+import 'package:bagyesrushappusernew/src/legal/views/legal_webview_screen.dart';
 import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -92,6 +94,9 @@ const _kycExemptRoutes = {
   AppRoutes.profile,
   AppRoutes.vendorKyc,
   AppRoutes.helpSupport,
+  AppRoutes.privacyPolicy,
+  AppRoutes.termsConditions,
+  AppRoutes.refundPolicy,
   AppRoutes.reportFlow,
   AppRoutes.myReports,
   '/report/history/:id',
@@ -338,6 +343,13 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.helpSupport,
       builder: (context, state) => const HelpSupportView(),
     ),
+
+    // ── Legal ──
+    for (final document in LegalDocument.values)
+      GoRoute(
+        path: document.routePath,
+        builder: (context, state) => LegalWebViewScreen(document: document),
+      ),
 
     // ── Report a problem ──
     GoRoute(
