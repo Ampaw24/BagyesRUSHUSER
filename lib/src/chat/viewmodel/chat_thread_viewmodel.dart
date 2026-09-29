@@ -129,10 +129,13 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
           : await _repository.getConversationForOrder(args.orderId!);
       final page = await _repository.getMessages(conversation.id);
       _nextCursor = page.nextCursor;
+      final myUserId = conversation.me?.userId;
       emit(
         ChatThreadLoaded(
           conversation: conversation,
-          messages: page.items.reversed.toList(),
+          messages: [
+            for (final m in page.items.reversed) m.resolvedFor(myUserId),
+          ],
           hasMoreOlder: page.hasMore,
         ),
       );
@@ -177,10 +180,14 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
   /// required, not decorative. Dedupes by `id`/`clientUuid`, the exact rule
   /// the old polling path used, since a push notification and this socket
   /// event can both fire for the same message.
-  void _onIncomingMessage(ChatMessage message) {
+  void _onIncomingMessage(ChatMessage incoming) {
     final current = state;
     if (current is! ChatThreadLoaded) return;
-    if (message.conversationId != current.conversation.id) return;
+    if (incoming.conversationId != current.conversation.id) return;
+    // The broadcast carries the sender's `is_mine` — see
+    // [ChatMessage.resolvedFor]. Without this, the peer's live messages
+    // render on our side of the thread.
+    final message = incoming.resolvedFor(current.conversation.me?.userId);
     final existingIds = current.messages.map((m) => m.id).toSet();
     final existingClientUuids = current.messages
         .map((m) => m.clientUuid)
@@ -232,9 +239,13 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
       _nextCursor = page.nextCursor;
       final latest = state;
       if (latest is! ChatThreadLoaded) return;
+      final myUserId = latest.conversation.me?.userId;
       emit(
         latest.copyWith(
-          messages: [...page.items.reversed, ...latest.messages],
+          messages: [
+            for (final m in page.items.reversed) m.resolvedFor(myUserId),
+            ...latest.messages,
+          ],
           hasMoreOlder: page.hasMore,
           isLoadingOlder: false,
         ),
@@ -272,7 +283,10 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
         body: body,
         clientUuid: clientUuid,
       );
-      _replaceByClientUuid(clientUuid, sent);
+      _replaceByClientUuid(
+        clientUuid,
+        sent.resolvedFor(current.conversation.me?.userId),
+      );
     } catch (e) {
       appLogger.w('ChatThreadViewModel.sendMessage → failed: $e');
       _markFailed(clientUuid);
@@ -296,7 +310,10 @@ class ChatThreadViewModel extends ViewModel<ChatThreadState> {
         body: failedMessage.body,
         clientUuid: clientUuid,
       );
-      _replaceByClientUuid(clientUuid, sent);
+      _replaceByClientUuid(
+        clientUuid,
+        sent.resolvedFor(current.conversation.me?.userId),
+      );
     } catch (e) {
       appLogger.w('ChatThreadViewModel.retry → failed: $e');
       _markFailed(clientUuid);

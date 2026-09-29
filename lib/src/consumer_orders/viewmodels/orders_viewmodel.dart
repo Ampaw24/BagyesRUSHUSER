@@ -278,11 +278,19 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   }
 
   /// Applies a realtime `rider.location` event for [orderId] onto the
-  /// cached order, if any.
+  /// cached order, if any — the position, plus the rider profile the event
+  /// carries (photo, vehicle, plate). The REST name wins when both exist.
   void applyRiderLocation(String orderId, RiderLocationEvent event) {
     final current = orderById(orderId);
     if (current == null) return;
-    _replaceOrder(current.copyWith(riderLocation: RiderLocation.fromEvent(event)));
+    final eventName = event.name.trim();
+    _replaceOrder(current.copyWith(
+      riderLocation: RiderLocation.fromEvent(event),
+      driverName: current.driverName ?? (eventName.isEmpty ? null : eventName),
+      driverPhotoUrl: event.photoUrl,
+      driverVehicleType: event.vehicleType,
+      driverPlateNumber: event.plateNumber,
+    ));
   }
 
   /// `riderLocationEvents` is a single stream shared by both the

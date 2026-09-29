@@ -121,6 +121,15 @@ class Conversation extends Equatable {
     return null;
   }
 
+  /// This session's own participant (`is_me`, server-computed from the
+  /// bearer token) — the reference for which messages are ours.
+  ConversationParticipant? get me {
+    for (final p in participants) {
+      if (p.isMe) return p;
+    }
+    return null;
+  }
+
   @override
   List<Object?> get props => [
     id,

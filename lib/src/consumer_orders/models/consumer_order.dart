@@ -229,6 +229,13 @@ class ConsumerOrder {
   final DateTime? estimatedDelivery;
   final String? driverName;
   final String? driverPhone;
+
+  /// Rider profile extras (`photo_url`, `vehicle_type`, `plate_number`).
+  /// Documented on the realtime `rider.location` event; read from the
+  /// order's `rider` object too when the backend includes them there.
+  final String? driverPhotoUrl;
+  final String? driverVehicleType;
+  final String? driverPlateNumber;
   final String paymentMethod;
   final PaymentStatus paymentStatus;
 
@@ -283,6 +290,9 @@ class ConsumerOrder {
     this.estimatedPrepMinutes,
     this.driverName,
     this.driverPhone,
+    this.driverPhotoUrl,
+    this.driverVehicleType,
+    this.driverPlateNumber,
     this.riderLocation,
     this.deliveryPin,
     this.parcelDirection,
@@ -317,6 +327,9 @@ class ConsumerOrder {
     DateTime? estimatedDelivery,
     String? driverName,
     String? driverPhone,
+    String? driverPhotoUrl,
+    String? driverVehicleType,
+    String? driverPlateNumber,
     RiderLocation? riderLocation,
     DateTime? waitExpiresAt,
     double? arrivalDistanceMetres,
@@ -346,6 +359,9 @@ class ConsumerOrder {
       estimatedPrepMinutes: estimatedPrepMinutes ?? this.estimatedPrepMinutes,
       driverName: driverName ?? this.driverName,
       driverPhone: driverPhone ?? this.driverPhone,
+      driverPhotoUrl: driverPhotoUrl ?? this.driverPhotoUrl,
+      driverVehicleType: driverVehicleType ?? this.driverVehicleType,
+      driverPlateNumber: driverPlateNumber ?? this.driverPlateNumber,
       riderLocation: riderLocation ?? this.riderLocation,
       deliveryPin: this.deliveryPin ?? deliveryPin,
       parcelDirection: parcelDirection ?? this.parcelDirection,
@@ -409,6 +425,9 @@ class ConsumerOrder {
           (json['estimated_prep_minutes'] as num?)?.toInt(),
       driverName: rider?['name'] as String? ?? json['driver_name'] as String?,
       driverPhone: rider?['phone'] as String? ?? json['driver_phone'] as String?,
+      driverPhotoUrl: JsonUtils.asStringOrNull(rider?['photo_url']),
+      driverVehicleType: JsonUtils.asStringOrNull(rider?['vehicle_type']),
+      driverPlateNumber: JsonUtils.asStringOrNull(rider?['plate_number']),
       paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',
       paymentStatus: _paymentStatusFromString(
           payment?['status'] as String? ?? json['payment_status'] as String?),

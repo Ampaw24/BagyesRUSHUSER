@@ -16,15 +16,23 @@ String _formatTime(DateTime dt) {
 /// A single chat bubble — right-aligned/primary for [ChatMessage.isMine],
 /// left-aligned/neutral otherwise. Own messages carry a small delivery
 /// indicator (sending/sent/failed) instead of a sender label.
+///
+/// Consecutive bubbles from the same side form a group: they sit close
+/// together and join with tight corners on the sender's side, and only the
+/// first bubble of a group gets the full gap above it.
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     super.key,
     required this.message,
     this.isRead = false,
+    this.isFirstInGroup = true,
+    this.isLastInGroup = true,
     this.onRetry,
   });
 
   final ChatMessage message;
+  final bool isFirstInGroup;
+  final bool isLastInGroup;
 
   /// True once the peer's `conversation.read` timestamp is at/after this
   /// (own) message's `createdAt` — swaps the sent tick for a read tick.
@@ -36,6 +44,11 @@ class MessageBubble extends StatelessWidget {
     final w = MediaQuery.sizeOf(context).width;
     final isMine = message.isMine;
     final failed = message.deliveryStatus == MessageDeliveryStatus.failed;
+    final round = Radius.circular(w * 0.045);
+    final tight = Radius.circular(w * 0.012);
+    // Sender's side: the top corner joins the bubble above within a group;
+    // the bottom corner is always tight (joined, or the group's tail).
+    final senderTop = isFirstInGroup ? round : tight;
 
     final bubble = Container(
       constraints: BoxConstraints(maxWidth: w * 0.74),
@@ -47,10 +60,10 @@ class MessageBubble extends StatelessWidget {
             ? AppColors.primary
             : AppColors.surfaceVariant,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(w * 0.04),
-          topRight: Radius.circular(w * 0.04),
-          bottomLeft: Radius.circular(isMine ? w * 0.04 : w * 0.01),
-          bottomRight: Radius.circular(isMine ? w * 0.01 : w * 0.04),
+          topLeft: isMine ? round : senderTop,
+          topRight: isMine ? senderTop : round,
+          bottomLeft: isMine ? round : tight,
+          bottomRight: isMine ? tight : round,
         ),
         border: failed ? Border.all(color: AppColors.error, width: 0.8) : null,
       ),
@@ -92,7 +105,10 @@ class MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: w * 0.008),
+        padding: EdgeInsets.only(
+          top: isFirstInGroup ? w * 0.025 : w * 0.006,
+          bottom: isLastInGroup ? w * 0.004 : 0,
+        ),
         child: failed && onRetry != null
             ? GestureDetector(onTap: onRetry, child: bubble)
             : bubble,
@@ -121,12 +137,13 @@ class _DeliveryIcon extends StatelessWidget {
           ),
         );
       case MessageDeliveryStatus.sent:
+        // One tick once the server has it, two once the peer has read it.
         return HugeIcon(
           icon: isRead
               ? HugeIcons.strokeRoundedTickDouble01
-              : HugeIcons.strokeRoundedCheckmarkCircle01,
-          size: w * 0.032,
-          color: Colors.white.withValues(alpha: isRead ? 1 : 0.85),
+              : HugeIcons.strokeRoundedTick01,
+          size: w * 0.034,
+          color: Colors.white.withValues(alpha: isRead ? 1 : 0.75),
         );
       case MessageDeliveryStatus.failed:
         return HugeIcon(

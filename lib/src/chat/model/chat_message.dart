@@ -77,13 +77,27 @@ class ChatMessage extends Equatable {
     deliveryStatus: MessageDeliveryStatus.sending,
   );
 
-  ChatMessage copyWith({MessageDeliveryStatus? deliveryStatus}) => ChatMessage(
+  /// Re-derives [isMine] from [sender] against [myUserId] — this session's
+  /// own participant id. A `message.sent` socket event is broadcast once to
+  /// every participant carrying the *sender's* `is_mine`, so the payload flag
+  /// can't be trusted there. Keeps the payload flag when either id is
+  /// unknown (e.g. an optimistic bubble, which has no sender id yet).
+  ChatMessage resolvedFor(String? myUserId) {
+    if (myUserId == null || myUserId.isEmpty || sender.id.isEmpty) return this;
+    final mine = sender.id == myUserId;
+    return mine == isMine ? this : copyWith(isMine: mine);
+  }
+
+  ChatMessage copyWith({
+    MessageDeliveryStatus? deliveryStatus,
+    bool? isMine,
+  }) => ChatMessage(
     id: id,
     conversationId: conversationId,
     type: type,
     body: body,
     sender: sender,
-    isMine: isMine,
+    isMine: isMine ?? this.isMine,
     createdAt: createdAt,
     clientUuid: clientUuid,
     deliveryStatus: deliveryStatus ?? this.deliveryStatus,

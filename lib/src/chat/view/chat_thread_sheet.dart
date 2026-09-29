@@ -7,7 +7,9 @@ import 'package:bagyesrushappusernew/core/utils/phone_launcher.dart';
 import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
 import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
 import 'package:bagyesrushappusernew/src/chat/view/widgets/chat_composer.dart';
+import 'package:bagyesrushappusernew/src/chat/view/widgets/chat_day_separator.dart';
 import 'package:bagyesrushappusernew/src/chat/view/widgets/message_bubble.dart';
+import 'package:bagyesrushappusernew/src/chat/view/widgets/message_grouping.dart';
 import 'package:bagyesrushappusernew/src/chat/view/widgets/quick_actions_grid.dart';
 import 'package:bagyesrushappusernew/src/chat/viewmodel/chat_thread_viewmodel.dart';
 
@@ -330,17 +332,32 @@ class _MessageListState extends State<_MessageList> {
             ),
           );
         }
+        // `descending` is newest-first: index + 1 is the message above.
         final message = descending[index];
+        final older = index + 1 < descending.length
+            ? descending[index + 1]
+            : null;
+        final newer = index > 0 ? descending[index - 1] : null;
+        final startsDay =
+            older == null || !isSameChatDay(older.createdAt, message.createdAt);
         final peerReadAt = widget.peerReadAt;
         final isRead = message.isMine &&
             peerReadAt != null &&
             !message.createdAt.isAfter(peerReadAt);
-        return MessageBubble(
+
+        final bubble = MessageBubble(
           message: message,
           isRead: isRead,
+          isFirstInGroup: startsDay || !isSameMessageGroup(older, message),
+          isLastInGroup: newer == null || !isSameMessageGroup(message, newer),
           onRetry: message.deliveryStatus == MessageDeliveryStatus.failed
               ? () => widget.onRetryMessage(message)
               : null,
+        );
+        if (!startsDay) return bubble;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [ChatDaySeparator(date: message.createdAt), bubble],
         );
       },
     );
