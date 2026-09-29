@@ -346,11 +346,15 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       );
 
   @override
-  Future<Either<Failure, VendorOrder>> markDelivered(String orderId) =>
+  Future<Either<Failure, VendorOrder>> markDelivered(
+    String orderId, {
+    required String deliveryPin,
+  }) =>
       _patchOrderAction(
         orderId,
         'markDelivered',
         ApiEndpoints.vendorOrderDelivered,
+        data: {'delivery_pin': deliveryPin},
       );
 
   @override

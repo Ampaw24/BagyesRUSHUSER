@@ -889,7 +889,8 @@ class _DashboardTabState extends State<_DashboardTab>
                       onMarkReady: () => notifier.markReady(order.id),
                       onMarkOutForDelivery: () =>
                           notifier.markOutForDelivery(order.id),
-                      onMarkDelivered: () => notifier.markDelivered(order.id),
+                      onMarkDelivered: (pin) =>
+                          notifier.markDelivered(order.id, deliveryPin: pin),
                       onCancel: () => _handleCancelOrder(order.id),
                     ),
                   );

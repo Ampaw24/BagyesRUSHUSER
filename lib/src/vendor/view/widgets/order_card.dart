@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../model/vendor_order.dart';
+import 'delivery_pin_sheet.dart';
 
 class OrderCard extends StatelessWidget {
   final VendorOrder order;
@@ -11,7 +12,10 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onMarkPreparing;
   final VoidCallback? onMarkReady;
   final VoidCallback? onMarkOutForDelivery;
-  final VoidCallback? onMarkDelivered;
+
+  /// Receives the customer's delivery PIN collected by [DeliveryPinSheet];
+  /// returns the backend's error message, or null once delivered.
+  final Future<String?> Function(String deliveryPin)? onMarkDelivered;
   final VoidCallback? onCancel;
   final VoidCallback? onReport;
 
@@ -422,7 +426,7 @@ class OrderCard extends StatelessWidget {
               ],
 
               // Action buttons — exactly one primary next-action per status.
-              if (showActions) ..._buildActions(w),
+              if (showActions) ..._buildActions(context, w),
             ],
           ),
         ),
@@ -430,7 +434,7 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildActions(double w) {
+  List<Widget> _buildActions(BuildContext context, double w) {
     Widget primary(String label, VoidCallback? onTap) => Row(
       children: [
         Expanded(
@@ -479,7 +483,17 @@ class OrderCard extends StatelessWidget {
         actionRow = primary('Out for Delivery', onMarkOutForDelivery);
         break;
       case OrderStatus.outForDelivery:
-        actionRow = primary('Mark Delivered', onMarkDelivered);
+        final confirmDelivery = onMarkDelivered;
+        actionRow = primary(
+          'Mark Delivered',
+          confirmDelivery == null
+              ? null
+              : () => DeliveryPinSheet.show(
+                    context,
+                    customerName: order.customerName,
+                    onSubmit: confirmDelivery,
+                  ),
+        );
         break;
       case OrderStatus.delivered:
       case OrderStatus.rejected:

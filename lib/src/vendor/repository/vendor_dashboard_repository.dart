@@ -51,7 +51,13 @@ abstract class VendorDashboardRepository {
   Future<Either<Failure, VendorOrder>> markPreparing(String orderId);
   Future<Either<Failure, VendorOrder>> markReady(String orderId);
   Future<Either<Failure, VendorOrder>> markOutForDelivery(String orderId);
-  Future<Either<Failure, VendorOrder>> markDelivered(String orderId);
+
+  /// [deliveryPin] is the customer's 4-digit delivery PIN, sent as a string
+  /// so a leading zero survives — the backend verifies it.
+  Future<Either<Failure, VendorOrder>> markDelivered(
+    String orderId, {
+    required String deliveryPin,
+  });
 
   /// `reason` is required (5-255 chars).
   Future<Either<Failure, VendorOrder>> cancelOrder(

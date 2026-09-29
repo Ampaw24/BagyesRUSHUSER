@@ -154,15 +154,17 @@ class DashboardViewModel extends ViewModel<DashboardState> {
     final result = await call();
     result.fold(
       (failure) => emit(state.copyWith(errorMessage: failure.message)),
-      (updated) {
-        final updatedList = removeFromActive
-            ? state.activeOrders.where((o) => o.id != updated.id).toList()
-            : state.activeOrders
-                .map((o) => o.id == updated.id ? updated : o)
-                .toList();
-        emit(state.copyWith(activeOrders: updatedList, errorMessage: null));
-      },
+      (updated) => _applyUpdated(updated, removeFromActive: removeFromActive),
     );
+  }
+
+  void _applyUpdated(VendorOrder updated, {required bool removeFromActive}) {
+    final updatedList = removeFromActive
+        ? state.activeOrders.where((o) => o.id != updated.id).toList()
+        : state.activeOrders
+            .map((o) => o.id == updated.id ? updated : o)
+            .toList();
+    emit(state.copyWith(activeOrders: updatedList, errorMessage: null));
   }
 
   Future<void> acceptOrder(String orderId, {int? estimatedPrepMinutes}) =>
@@ -194,9 +196,21 @@ class DashboardViewModel extends ViewModel<DashboardState> {
       orderId, () => _repository.markOutForDelivery(orderId),
       removeFromActive: true);
 
-  Future<void> markDelivered(String orderId) => _applyOrderAction(
-      orderId, () => _repository.markDelivered(orderId),
-      removeFromActive: true);
+  /// Returns the failure message for the PIN sheet to show inline (e.g. a
+  /// wrong PIN), or null on success.
+  Future<String?> markDelivered(
+    String orderId, {
+    required String deliveryPin,
+  }) async {
+    final result = await _repository.markDelivered(
+      orderId,
+      deliveryPin: deliveryPin,
+    );
+    return result.fold((failure) => failure.message, (updated) {
+      _applyUpdated(updated, removeFromActive: true);
+      return null;
+    });
+  }
 
   Future<void> cancelOrder(String orderId, {required String reason}) =>
       _applyOrderAction(

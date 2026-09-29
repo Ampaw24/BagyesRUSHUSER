@@ -85,13 +85,14 @@ class OrdersViewModel extends ViewModel<OrdersState> {
     final result = await call();
     result.fold(
       (failure) => emit(state.copyWith(errorMessage: failure.message)),
-      (updated) {
-        final updatedList = state.orders
-            .map((o) => o.id == updated.id ? updated : o)
-            .toList();
-        emit(state.copyWith(orders: updatedList, errorMessage: null));
-      },
+      _replaceOrder,
     );
+  }
+
+  void _replaceOrder(VendorOrder updated) {
+    final updatedList =
+        state.orders.map((o) => o.id == updated.id ? updated : o).toList();
+    emit(state.copyWith(orders: updatedList, errorMessage: null));
   }
 
   Future<void> accept(String orderId, {int? estimatedPrepMinutes}) => _apply(
@@ -116,8 +117,21 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   Future<void> markOutForDelivery(String orderId) =>
       _apply(orderId, () => _repository.markOutForDelivery(orderId));
 
-  Future<void> markDelivered(String orderId) =>
-      _apply(orderId, () => _repository.markDelivered(orderId));
+  /// Returns the failure message for the PIN sheet to show inline (e.g. a
+  /// wrong PIN), or null on success.
+  Future<String?> markDelivered(
+    String orderId, {
+    required String deliveryPin,
+  }) async {
+    final result = await _repository.markDelivered(
+      orderId,
+      deliveryPin: deliveryPin,
+    );
+    return result.fold((failure) => failure.message, (updated) {
+      _replaceOrder(updated);
+      return null;
+    });
+  }
 
   Future<void> cancel(String orderId, {required String reason}) => _apply(
         orderId,

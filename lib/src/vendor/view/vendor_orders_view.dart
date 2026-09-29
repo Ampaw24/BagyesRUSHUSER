@@ -261,7 +261,8 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
                         onMarkReady: () => vm.markReady(order.id),
                         onMarkOutForDelivery: () =>
                             vm.markOutForDelivery(order.id),
-                        onMarkDelivered: () => vm.markDelivered(order.id),
+                        onMarkDelivered: (pin) =>
+                            vm.markDelivered(order.id, deliveryPin: pin),
                         onCancel: () => _handleCancel(order),
                         onReport: () => ReportQuickActionSheet.show(
                           context,
