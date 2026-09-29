@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
+import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 
 class OrdersPage {
   final List<ConsumerOrder> orders;
@@ -56,21 +58,26 @@ class ConsumerOrdersRepository {
   /// `POST /customer/orders`. No prices, items or promo code — the server
   /// re-derives every amount from the live menu, takes the coupon off the
   /// cart and reads the fee from the stored quote. [useWallet] is a flag;
-  /// the server decides how much credit to spend.
+  /// the server decides how much credit to spend. The drop-off is either a
+  /// saved [customerAddressId] or an unsaved picked [location].
   Future<ConsumerOrder> placeOrder({
     required String vendorId,
     required String paymentMethod,
-    required int customerAddressId,
+    int? customerAddressId,
+    DeliveryLocation? location,
     required int deliveryQuoteId,
     required bool useWallet,
     String? notes,
   }) async {
+    assert((customerAddressId == null) != (location == null),
+        'Pass exactly one of customerAddressId or location');
     final response = await _client.post(
       ApiEndpoints.customerOrders,
       data: {
         'vendor_id': int.tryParse(vendorId) ?? vendorId,
         'payment_method': paymentMethod,
-        'customer_address_id': customerAddressId,
+        'customer_address_id': ?customerAddressId,
+        ...?location?.toJson(),
         'delivery_quote_id': deliveryQuoteId,
         'use_wallet': useWallet,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
@@ -109,7 +116,10 @@ class ConsumerOrdersRepository {
     if (previous == null) return tracked;
     return previous.copyWith(
       status: tracked.status,
-      paymentStatus: tracked.paymentStatus,
+      paymentStatus: mergePaymentStatus(
+        previous.paymentStatus,
+        paymentStatusFromJson(data),
+      ),
       requiresPayment: tracked.requiresPayment,
       estimatedPrepMinutes: tracked.estimatedPrepMinutes,
       estimatedDelivery: tracked.estimatedDelivery,
@@ -157,7 +167,9 @@ class ConsumerOrdersRepository {
     throw StateError('payOrder: exhausted retries without a result');
   }
 
-  Future<ConsumerOrder> verifyPayment(
+  /// Only whether the charge is settled is read from the response — its
+  /// shape is undocumented, so it's never trusted as a full order.
+  Future<OrderPaymentVerification> verifyPayment(
     String orderId, {
     required String reference,
   }) async {
@@ -165,20 +177,25 @@ class ConsumerOrdersRepository {
       ApiEndpoints.customerOrderVerifyPayment(orderId),
       data: {'reference': reference},
     );
-    return ConsumerOrder.fromJson(_dataMap(response));
+    return OrderPaymentVerification.fromPayload(_dataMap(response));
   }
 
-  /// `GET /customer/delivery-quote` — only needed for a non-default
-  /// address; the cart already embeds the default address's quote.
+  /// `GET /customer/delivery-quote` — only needed for a non-default saved
+  /// address or a picked [location]; the cart already embeds the default
+  /// address's quote.
   Future<DeliveryQuote> getDeliveryQuote({
     required String vendorId,
-    required int customerAddressId,
+    int? customerAddressId,
+    DeliveryLocation? location,
   }) async {
+    assert((customerAddressId == null) != (location == null),
+        'Pass exactly one of customerAddressId or location');
     final response = await _client.get(
       ApiEndpoints.customerDeliveryQuote,
       queryParameters: {
         'vendor_id': vendorId,
-        'customer_address_id': customerAddressId,
+        'customer_address_id': ?customerAddressId,
+        ...?location?.toJson(),
       },
     );
     return DeliveryQuote.fromJson(_dataMap(response));

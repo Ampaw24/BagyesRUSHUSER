@@ -95,6 +95,26 @@ PaymentStatus _paymentStatusFromString(String? value) {
   }
 }
 
+/// The payment status an order payload actually reports, or null when it
+/// carries none — unlike [ConsumerOrder.fromJson], which defaults a missing
+/// status to `pending`.
+PaymentStatus? paymentStatusFromJson(Map<String, dynamic> json) {
+  final payment = json['payment'];
+  final raw = (payment is Map ? payment['status'] : null) ?? json['payment_status'];
+  return raw == null ? null : _paymentStatusFromString(raw.toString());
+}
+
+/// Merges a freshly read payment status onto the known one. A missing value
+/// keeps the current status, and a confirmed payment never regresses to
+/// `pending` — a lagging read must not bring back "Pay Now".
+PaymentStatus mergePaymentStatus(PaymentStatus current, PaymentStatus? incoming) {
+  if (incoming == null) return current;
+  if (current == PaymentStatus.paid && incoming == PaymentStatus.pending) {
+    return current;
+  }
+  return incoming;
+}
+
 const _lineTotalKeys = ['line_total', 'total_price', 'total'];
 
 class OrderItem {

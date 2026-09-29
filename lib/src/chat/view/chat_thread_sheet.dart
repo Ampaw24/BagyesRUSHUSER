@@ -67,7 +67,7 @@ class _ChatThreadSheetBodyState extends State<_ChatThreadSheetBody> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: DraggableScrollableSheet(
-        initialChildSize: 0.86,
+        initialChildSize: 0.69,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,

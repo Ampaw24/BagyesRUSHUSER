@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../constant/app_theme.dart';
 import '../../../../../../src/notification/model/notification.model.dart';
 import '../../../../../../src/notification/viewmodel/notification_state.dart';
 import '../../../../../../src/notification/viewmodel/notification_viewmodel.dart';
-import '../widgets/consumer_notification_tile.dart';
+import '../../../../../../src/notification/view/widgets/notifications_body.dart';
+import '../../../../../../src/notification/view/widgets/notifications_header.dart';
 import 'notification_details_screen.dart';
 
 class ConsumerNotificationsScreen extends StatefulWidget {
@@ -110,6 +110,10 @@ class _ConsumerNotificationsScreenState
     );
   }
 
+  Future<void> _refresh() => _vm?.getNotifications() ?? Future.value();
+
+  int get _unreadCount => _notifications.where((n) => !n.isRead).length;
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -120,7 +124,7 @@ class _ConsumerNotificationsScreenState
         statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.scaffold,
+        backgroundColor: AppColors.surfaceVariant,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,21 +132,24 @@ class _ConsumerNotificationsScreenState
               // ── Header ──────────────────────────────────────────────
               FadeTransition(
                 opacity: _headerFade,
-                child: _NotifHeader(
+                child: NotificationsHeader(
+                  unreadCount: _isLoading ? null : _unreadCount,
                   onBack: () => Navigator.of(context).pop(),
                   onMarkAllRead: () => _vm?.markAllAsRead(),
                 ),
               ),
 
-              SizedBox(height: w * 0.04),
+              SizedBox(height: w * 0.03),
 
               // ── Notifications ────────────────────────────────────────
               Expanded(
-                child: _NotificationsTab(
+                child: NotificationsBody(
                   isLoading: _isLoading,
                   notifications: _notifications,
                   onTap: _openNotification,
                   onDelete: _deleteNotification,
+                  onRefresh: _refresh,
+                  emptySubtitle: 'Order updates and offers will appear here',
                 ),
               ),
             ],
@@ -164,176 +171,4 @@ class _ConsumerNotificationsScreenState
         ),
         transitionDuration: const Duration(milliseconds: 320),
       );
-}
-
-// ─── Header ──────────────────────────────────────────────────────────────────
-
-class _NotifHeader extends StatelessWidget {
-  final VoidCallback? onBack;
-  final VoidCallback? onMarkAllRead;
-
-  const _NotifHeader({this.onBack, this.onMarkAllRead});
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.04, w * 0.05, 0),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              padding: EdgeInsets.all(w * 0.022),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(w * 0.03),
-              ),
-              child: HugeIcon(
-                icon: HugeIcons.strokeRoundedArrowLeft02,
-                color: AppColors.textPrimary,
-                size: w * 0.055,
-              ),
-            ),
-          ),
-          SizedBox(width: w * 0.035),
-          Text(
-            'Notifications',
-            style: TextStyle(
-              fontFamily: 'Mukta',
-              fontSize: w * 0.048,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const Spacer(),
-          if (onMarkAllRead != null)
-            GestureDetector(
-              onTap: onMarkAllRead,
-              child: Text(
-                'Mark all read',
-                style: TextStyle(
-                  fontFamily: 'Mukta',
-                  fontSize: w * 0.031,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Notifications tab ───────────────────────────────────────────────────────
-
-class _NotificationsTab extends StatelessWidget {
-  final bool isLoading;
-  final List<NotificationModel> notifications;
-  final ValueChanged<NotificationModel> onTap;
-  final ValueChanged<NotificationModel> onDelete;
-
-  const _NotificationsTab({
-    super.key,
-    required this.isLoading,
-    required this.notifications,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-
-    if (isLoading && notifications.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
-    }
-    if (notifications.isEmpty) {
-      return _EmptyState(
-        icon: HugeIcons.strokeRoundedNotification01,
-        message: 'No notifications yet',
-        subtitle: 'Order updates and offers will appear here',
-      );
-    }
-
-    return ListView.separated(
-      padding: EdgeInsets.only(bottom: w * 0.06),
-      itemCount: notifications.length,
-      separatorBuilder: (_, _) => Divider(
-        height: 1,
-        thickness: 0.5,
-        indent: w * 0.18,
-        endIndent: 0,
-        color: AppColors.divider,
-      ),
-      itemBuilder: (_, i) {
-        final notif = notifications[i];
-        return ConsumerNotificationTile(
-          notification: notif,
-          onTap: () => onTap(notif),
-          onDelete: () => onDelete(notif),
-        );
-      },
-    );
-  }
-}
-
-// ─── Empty state ─────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String message;
-  final String subtitle;
-
-  const _EmptyState({
-    required this.icon,
-    required this.message,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: EdgeInsets.all(w * 0.05),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceVariant,
-              shape: BoxShape.circle,
-            ),
-            child: HugeIcon(
-              icon: icon,
-              size: w * 0.1,
-              color: AppColors.textHint,
-            ),
-          ),
-          SizedBox(height: w * 0.04),
-          Text(
-            message,
-            style: TextStyle(
-              fontFamily: 'Mukta',
-              fontSize: w * 0.042,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: w * 0.015),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontFamily: 'Mukta',
-              fontSize: w * 0.033,
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 }

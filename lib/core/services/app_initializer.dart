@@ -27,6 +27,8 @@ class AppInitializer {
     // Firebase, analytics, push notifications, location — do NOT block splash.
     // Each step is best-effort: a failure here (e.g. no APNS token yet on the
     // iOS Simulator) must not prevent the steps that follow from running.
+    // Subscribed before FCM init so a late-arriving iOS token isn't missed.
+    FcmService.onTokenRefresh.listen((_) => _registerDeviceTokenIfSessionRestored());
     try {
       await FcmService.initialize();
     } catch (e, s) {

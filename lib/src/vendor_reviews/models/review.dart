@@ -3,7 +3,9 @@ import 'package:equatable/equatable.dart';
 import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 
-/// A customer's review of a vendor, with the vendor's optional public reply.
+/// A customer's review of an order — of the vendor for food orders, of the
+/// rider for parcels — with the vendor's optional public reply. Shared by
+/// the vendor reviews screen and the customer's order_reviews feature.
 ///
 /// The backend's success shape for `GET /vendor/me/reviews` is undocumented
 /// (see `vendor-review-apis.md`), so [fromJson] tolerates several plausible

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../constant/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
@@ -85,44 +84,21 @@ class _SendParcelViewState extends State<SendParcelView> {
         (parcel.paymentStatus == null &&
             parcel.amountDue == null &&
             state.walletSplit.coversFully);
-    if (paidByWallet) {
-      _finishAndTrack(parcel.id, 'Parcel confirmed — finding you a rider.');
-      return;
-    }
+    final walletVm = context.read<CustomerWalletViewmodel>();
+    final ordersVm = context.read<OrdersViewModel>();
 
     setState(() => _isLaunchingPayment = true);
-    String message;
-    try {
-      final outcome = await OrderPaymentLauncher.pay(
-        context,
-        orderId: parcel.id,
-        paymentMethod: 'mobile_money',
-        savedMethod: state.selectedPaymentMethod,
-      );
-      message = outcome == OrderPaymentOutcome.completed
-          ? 'Payment successful — finding you a rider.'
-          : 'Payment not completed. Tap "Pay Now" to finish.';
-    } on OrderPaymentException catch (e) {
-      message = e.message;
-    } catch (_) {
-      message = 'Payment failed. You can retry from the tracking screen.';
-    }
-    if (!mounted) return;
-    setState(() => _isLaunchingPayment = false);
-    _finishAndTrack(parcel.id, message);
-  }
-
-  /// Refreshes wallet + orders list so both reflect the new parcel, then
-  /// hands off to tracking. The messenger is captured first — it outlives
-  /// this route, so the message shows on the tracking screen.
-  void _finishAndTrack(String parcelId, String message) {
-    final messenger = ScaffoldMessenger.of(context);
-    context.read<CustomerWalletViewmodel>().fetchWallet();
-    context.read<OrdersViewModel>().refresh();
-    AppNavigator.goToOrderTracking(context, parcelId);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    await OrderPaymentLauncher.payThenTrack(
+      context,
+      orderId: parcel.id,
+      requiresPayment: !paidByWallet,
+      savedMethod: state.selectedPaymentMethod,
+      settledMessage: 'Parcel confirmed — finding you a rider.',
+    );
+    // Both lists should now include the new parcel and its charge.
+    walletVm.fetchWallet();
+    ordersVm.refresh();
+    if (mounted) setState(() => _isLaunchingPayment = false);
   }
 
   @override

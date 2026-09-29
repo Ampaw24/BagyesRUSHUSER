@@ -68,6 +68,22 @@ abstract final class NotificationStyle {
     return '${diff.inDays}d ago';
   }
 
+  /// Day bucket used to section the notification list.
+  static NotificationDayGroup dayGroup(DateTime? dt) {
+    if (dt == null) return NotificationDayGroup.earlier;
+    final local = dt.toLocal();
+    final now = DateTime.now();
+    // UTC midnights so a DST shift can't turn "yesterday" into 0 days.
+    final days = DateTime.utc(now.year, now.month, now.day)
+        .difference(DateTime.utc(local.year, local.month, local.day))
+        .inDays;
+    return switch (days) {
+      <= 0 => NotificationDayGroup.today,
+      1 => NotificationDayGroup.yesterday,
+      _ => NotificationDayGroup.earlier,
+    };
+  }
+
   /// Full absolute timestamp e.g. "Aug 19, 2026 · 3:45 PM".
   static String fullTimestamp(DateTime? dt) {
     if (dt == null) return '';
@@ -78,4 +94,15 @@ abstract final class NotificationStyle {
     return '${_months[local.month - 1]} ${local.day}, ${local.year} · '
         '$hour12:$minute $period';
   }
+}
+
+/// Ordered list sections; declaration order is display order.
+enum NotificationDayGroup {
+  today('Today'),
+  yesterday('Yesterday'),
+  earlier('Earlier');
+
+  const NotificationDayGroup(this.label);
+
+  final String label;
 }

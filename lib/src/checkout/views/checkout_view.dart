@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
 import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart';
 import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
@@ -15,6 +13,8 @@ import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/checkout/views/widgets/delivery_address_section.dart';
 import 'package:bagyesrushappusernew/src/checkout/views/widgets/promo_code_section.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
+import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
@@ -32,7 +32,7 @@ CheckoutForm _formFromState(CheckoutState state) => switch (state) {
       CheckoutIdle(:final form) => form,
       CheckoutPlacing(:final form) => form,
       CheckoutError(:final form) => form,
-      _ => const CheckoutForm(),
+      CheckoutSuccess(:final form) => form,
     };
 
 class CheckoutView extends StatefulWidget {
@@ -45,6 +45,9 @@ class CheckoutView extends StatefulWidget {
 class _CheckoutViewState extends State<CheckoutView> {
   final _instructionsController = TextEditingController();
   bool _isLocatingCurrentPosition = false;
+
+  /// True from order creation until this screen hands off to tracking.
+  bool _isPaying = false;
 
   /// Saved reference so dispose() doesn't call context.read on an unmounted
   /// widget, and so the listener can be detached.
@@ -74,21 +77,38 @@ class _CheckoutViewState extends State<CheckoutView> {
     });
   }
 
-  /// The backend deletes the cart when the order is created — reset local
-  /// state without re-reading it, then go to tracking.
   void _onCheckoutStateChanged() {
     if (!mounted) return;
     final next = _vm!.state;
     if (next is CheckoutSuccess) {
-      context.read<CartViewModel>().reset();
-      context.read<CustomerWalletViewmodel>().fetchWallet();
-      context.go(AppRoutes.trackOrder, extra: next.order.id);
+      if (!_isPaying) _payThenTrack(next);
     } else if (next is CheckoutError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(next.message)),
       );
       _vm!.resetAfterError();
     }
+  }
+
+  /// Charges the order with the method picked here, then hands off to
+  /// tracking. The backend deletes the cart when the order is created; the
+  /// local copy is reset only after the hand-off, so this screen doesn't go
+  /// blank behind the payment dialog.
+  Future<void> _payThenTrack(CheckoutSuccess success) async {
+    setState(() => _isPaying = true);
+    final cartVm = context.read<CartViewModel>();
+    final walletVm = context.read<CustomerWalletViewmodel>();
+    final checkoutVm = _vm!;
+    await OrderPaymentLauncher.payThenTrack(
+      context,
+      orderId: success.order.id,
+      requiresPayment: success.requiresPayment,
+      savedMethod: success.form.selectedPaymentMethod,
+      settledMessage: 'Order placed — paid with your wallet.',
+    );
+    cartVm.reset();
+    walletVm.fetchWallet();
+    checkoutVm.resetAfterSuccess();
   }
 
   @override
@@ -98,23 +118,13 @@ class _CheckoutViewState extends State<CheckoutView> {
     super.dispose();
   }
 
-  Future<void> _saveAddress(String address, double lat, double lng) async {
-    final cartVm = context.read<CartViewModel>();
-    final vendorId = cartVm.cart?.vendorId;
+  void _selectPickedLocation(String address, double lat, double lng) {
+    final vendorId = context.read<CartViewModel>().cart?.vendorId;
     if (vendorId == null) return;
-    final error = await context.read<CheckoutViewModel>().addAddress(
-          address: address,
-          latitude: lat,
-          longitude: lng,
+    context.read<CheckoutViewModel>().selectLocation(
+          DeliveryLocation(address: address, latitude: lat, longitude: lng),
           vendorId: vendorId,
         );
-    if (!mounted) return;
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
-      return;
-    }
-    // A first address may become the default, which the cart then quotes.
-    cartVm.refresh();
   }
 
   Future<void> _useCurrentLocation() async {
@@ -130,7 +140,7 @@ class _CheckoutViewState extends State<CheckoutView> {
       switch (result.status) {
         case LocationStatus.success:
           final position = result.position!;
-          await _saveAddress(
+          _selectPickedLocation(
             result.address,
             position.latitude,
             position.longitude,
@@ -167,11 +177,13 @@ class _CheckoutViewState extends State<CheckoutView> {
   }
 
   void _openMapPicker() {
-    final selected =
-        _formFromState(context.read<CheckoutViewModel>().state).selectedAddress;
-    final initialPosition =
-        (selected?.latitude != null && selected?.longitude != null)
-            ? LatLng(selected!.latitude!, selected.longitude!)
+    final form = _formFromState(context.read<CheckoutViewModel>().state);
+    final picked = form.pickedLocation;
+    final saved = form.selectedAddress;
+    final initialPosition = picked != null
+        ? LatLng(picked.latitude, picked.longitude)
+        : (saved?.latitude != null && saved?.longitude != null)
+            ? LatLng(saved!.latitude!, saved.longitude!)
             : null;
     showModalBottomSheet(
       context: context,
@@ -183,7 +195,7 @@ class _CheckoutViewState extends State<CheckoutView> {
         title: 'Delivery Address',
         initialPosition: initialPosition,
         onConfirm: (LatLng latLng, String address) =>
-            _saveAddress(address, latLng.latitude, latLng.longitude),
+            _selectPickedLocation(address, latLng.latitude, latLng.longitude),
       ),
     );
   }
@@ -225,7 +237,9 @@ class _CheckoutViewState extends State<CheckoutView> {
     final walletVm = context.watch<CustomerWalletViewmodel>();
     final walletState = walletVm.state;
 
-    final isPlacing = checkoutState is CheckoutPlacing;
+    final isPlacing = checkoutState is CheckoutPlacing ||
+        checkoutState is CheckoutSuccess ||
+        _isPaying;
     final form = _formFromState(checkoutState);
 
     if (cart == null) {
@@ -257,7 +271,7 @@ class _CheckoutViewState extends State<CheckoutView> {
         ? cart.deliveryQuoteId != null
         : form.deliveryQuote != null;
     final blockedReason = cart.checkoutBlockedReason ??
-        (form.selectedAddress == null
+        (!form.hasDestination
             ? 'Choose a delivery address to continue'
             : !hasQuote && !form.isFetchingDeliveryQuote
                 ? (deliveryError ??
@@ -289,8 +303,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                   status: checkoutVm.addressesStatus,
                   addresses: checkoutVm.addresses,
                   selected: form.selectedAddress,
-                  isBusy: checkoutVm.isSavingAddress ||
-                      _isLocatingCurrentPosition,
+                  pickedLocation: form.pickedLocation,
                   isLocating: _isLocatingCurrentPosition,
                   onSelect: (a) =>
                       checkoutVm.selectAddress(a, vendorId: cart.vendorId),
@@ -494,7 +507,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                         currency: currency,
                         isBold: true,
                       ),
-                      if (!usesCartQuote && form.selectedAddress != null)
+                      if (!usesCartQuote && form.hasDestination)
                         Padding(
                           padding: EdgeInsets.only(top: w * 0.01),
                           child: Text(

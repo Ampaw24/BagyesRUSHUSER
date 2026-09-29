@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 
 /// Skeleton shown while an order that isn't cached yet is being fetched —
-/// mirrors the tracking layout (banner, codes, timeline, cards) so the
+/// mirrors the tracking layout (status, progress, rider, items) so the
 /// content settles in place instead of popping in from a blank screen.
 class OrderTrackingSkeleton extends StatefulWidget {
   const OrderTrackingSkeleton({super.key});
@@ -53,13 +53,11 @@ class _OrderTrackingSkeletonState extends State<OrderTrackingSkeleton>
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.06),
           children: [
-            block(w * 0.24),
-            block(w * 0.2),
-            block(w * 0.05, widthFactor: 0.4),
-            for (var i = 0; i < 4; i++) block(w * 0.07, widthFactor: 0.6),
-            block(w * 0.05, widthFactor: 0.45),
-            block(w * 0.16),
-            block(w * 0.3),
+            block(w * 0.26),
+            block(w * 0.15),
+            block(w * 0.18),
+            for (var i = 0; i < 3; i++) block(w * 0.12, widthFactor: 0.85),
+            block(w * 0.07, widthFactor: 0.5),
           ],
         ),
       ),

@@ -4,16 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
+import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 
 /// Saved delivery addresses for checkout, plus "Use current location" /
-/// "Pick on map" which save a new address and select it.
+/// "Pick on map", which select a location without saving it.
 class DeliveryAddressSection extends StatelessWidget {
   const DeliveryAddressSection({
     super.key,
     required this.status,
     required this.addresses,
     required this.selected,
-    required this.isBusy,
+    required this.pickedLocation,
     required this.isLocating,
     required this.onSelect,
     required this.onRetry,
@@ -25,8 +26,8 @@ class DeliveryAddressSection extends StatelessWidget {
   final List<CustomerAddress> addresses;
   final CustomerAddress? selected;
 
-  /// Saving a new address is in flight.
-  final bool isBusy;
+  /// Unsaved GPS / map-picked drop-off; shown selected above the saved list.
+  final DeliveryLocation? pickedLocation;
   final bool isLocating;
   final ValueChanged<CustomerAddress> onSelect;
   final VoidCallback onRetry;
@@ -36,6 +37,7 @@ class DeliveryAddressSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final picked = pickedLocation;
     final Widget list = switch (status) {
       AddressesStatus.loading => Padding(
           padding: EdgeInsets.symmetric(vertical: w * 0.04),
@@ -55,11 +57,13 @@ class DeliveryAddressSection extends StatelessWidget {
             TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
+      AddressesStatus.loaded when addresses.isEmpty && picked != null =>
+        const SizedBox.shrink(),
       AddressesStatus.loaded => addresses.isEmpty
           ? Padding(
               padding: EdgeInsets.only(bottom: w * 0.02),
               child: Text(
-                'No saved addresses yet — add one below.',
+                'No saved addresses yet — use your location or pick one on the map.',
                 style: TextStyle(
                   fontSize: w * 0.032,
                   color: AppColors.textSecondary,
@@ -69,7 +73,8 @@ class DeliveryAddressSection extends StatelessWidget {
           : Column(
               children: addresses
                   .map((a) => _AddressTile(
-                        address: a,
+                        title: _savedTitle(a),
+                        address: a.address,
                         isSelected: selected?.id == a.id,
                         onTap: () => onSelect(a),
                       ))
@@ -80,6 +85,17 @@ class DeliveryAddressSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (picked != null)
+          _AddressTile(
+            title: 'Pinned location',
+            address: picked.address.isNotEmpty
+                ? picked.address
+                : '${picked.latitude.toStringAsFixed(5)}, '
+                    '${picked.longitude.toStringAsFixed(5)}',
+            icon: Icons.push_pin_rounded,
+            isSelected: true,
+            onTap: onPickOnMap,
+          ),
         list,
         Wrap(
           spacing: w * 0.02,
@@ -89,36 +105,45 @@ class DeliveryAddressSection extends StatelessWidget {
               icon: Icons.my_location_rounded,
               label: isLocating ? 'Locating…' : 'Use current location',
               isLoading: isLocating,
-              onTap: isBusy ? null : onUseCurrentLocation,
+              onTap: onUseCurrentLocation,
             ),
             _QuickAddressChip(
               icon: Icons.map_rounded,
-              label: isBusy ? 'Saving…' : 'Pick on map',
-              isLoading: isBusy && !isLocating,
-              onTap: isBusy ? null : onPickOnMap,
+              label: 'Pick on map',
+              onTap: isLocating ? null : onPickOnMap,
             ),
           ],
         ),
       ],
     );
   }
+
+  static String? _savedTitle(CustomerAddress address) {
+    final label = address.label;
+    if (label == null || label.isEmpty) return null;
+    return address.isDefault ? '$label · Default' : label;
+  }
 }
 
 class _AddressTile extends StatelessWidget {
   const _AddressTile({
+    required this.title,
     required this.address,
     required this.isSelected,
     required this.onTap,
+    this.icon = Icons.location_on_rounded,
   });
 
-  final CustomerAddress address;
+  final String? title;
+  final String address;
   final bool isSelected;
   final VoidCallback onTap;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final label = address.label;
+    final title = this.title;
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -141,7 +166,7 @@ class _AddressTile extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              Icons.location_on_rounded,
+              icon,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
               size: w * 0.055,
             ),
@@ -150,9 +175,9 @@ class _AddressTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (label != null && label.isNotEmpty)
+                  if (title != null)
                     Text(
-                      address.isDefault ? '$label · Default' : label,
+                      title,
                       style: TextStyle(
                         fontSize: w * 0.035,
                         fontWeight: FontWeight.w700,
@@ -160,7 +185,7 @@ class _AddressTile extends StatelessWidget {
                       ),
                     ),
                   Text(
-                    address.address,
+                    address,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

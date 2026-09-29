@@ -1,28 +1,27 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/payment_confirmation_dialog.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
 import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/payment_webview_screen.dart';
 
+export 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
+
 /// An expected, already user-worded payment failure — callers show
 /// [message] as-is instead of a generic error.
 class OrderPaymentException implements Exception {
   final String message;
   const OrderPaymentException(this.message);
-}
-
-enum OrderPaymentOutcome {
-  /// The charge was submitted and verified (or the order refreshed when the
-  /// gateway returned no reference to verify against).
-  completed,
-
-  /// The customer closed the Paystack checkout before it redirected.
-  dismissed,
 }
 
 /// Runs the Paystack payment for any customer order (food or parcel) via the
@@ -68,32 +67,140 @@ class OrderPaymentLauncher {
     );
     if (!context.mounted) return OrderPaymentOutcome.dismissed;
 
-    final paymentUrl = (payResponse['authorization_url'] ??
-            payResponse['payment_url'] ??
-            payResponse['paymentUrl'])
-        ?.toString();
+    final reference =
+        (payResponse['reference'] ?? payResponse['payment_reference'])
+            ?.toString();
+    final paymentUrl =
+        (payResponse['authorization_url'] ??
+                payResponse['payment_url'] ??
+                payResponse['paymentUrl'])
+            ?.toString();
     if (paymentUrl != null && paymentUrl.isNotEmpty) {
       final leftGateway = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => PaymentWebViewScreen(paymentUrl: paymentUrl),
         ),
       );
-      if (leftGateway != true) return OrderPaymentOutcome.dismissed;
+      if (!context.mounted) return OrderPaymentOutcome.dismissed;
+      if (leftGateway != true) {
+        return _checkAfterDismissal(context, orders, orderId, reference);
+      }
     }
 
-    final reference =
-        (payResponse['reference'] ?? payResponse['payment_reference'])
-            ?.toString();
-    if (reference != null && reference.isNotEmpty) {
-      await orders.verifyPayment(orderId, reference: reference);
-    } else {
-      await orders.trackOrder(orderId);
+    final outcome = await PaymentConfirmationDialog.show(
+      context,
+      verification: _verify(orders, orderId, reference),
+    );
+    if (outcome == OrderPaymentOutcome.processing) {
+      orders.markAwaitingPaymentConfirmation(orderId);
     }
-    return OrderPaymentOutcome.completed;
+    return outcome;
+  }
+
+  /// Pays for a just-created order (skipped when nothing is due), then
+  /// replaces the checkout flow with tracking so back can't return to — and
+  /// resubmit — it. Any follow-up (payment not finished, failed, still
+  /// confirming) is shown as a snackbar on the tracking screen.
+  static Future<void> payThenTrack(
+    BuildContext context, {
+    required String orderId,
+    required bool requiresPayment,
+    PaymentMethod? savedMethod,
+    String settledMessage = 'Order confirmed.',
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    String? message = settledMessage;
+    if (requiresPayment) {
+      try {
+        final outcome = await pay(
+          context,
+          orderId: orderId,
+          paymentMethod: 'mobile_money',
+          savedMethod: savedMethod,
+        );
+        message = outcome.followUpMessage;
+      } on OrderPaymentException catch (e) {
+        message = e.message;
+      } catch (_) {
+        message = 'Payment failed. You can retry from the tracking screen.';
+      }
+    }
+    if (!context.mounted) return;
+    AppNavigator.goToOrderTracking(context, orderId);
+    if (message != null) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  /// The customer is back from the gateway: confirm with the server. A
+  /// definitive rejection (422) is surfaced as-is; a connection problem
+  /// leaves the charge unknown, so it's treated as still processing rather
+  /// than inviting a second payment.
+  static Future<bool> _verify(
+    OrdersViewModel orders,
+    String orderId,
+    String? reference,
+  ) async {
+    try {
+      if (reference != null && reference.isNotEmpty) {
+        final result = await orders.verifyPayment(
+          orderId,
+          reference: reference,
+        );
+        if (result.isFailed) {
+          throw const OrderPaymentException(
+            'Your payment didn\'t go through. Please try again.',
+          );
+        }
+        return result.isPaid;
+      }
+      await orders.trackOrder(orderId);
+      return orders.orderById(orderId)?.paymentStatus == PaymentStatus.paid;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        throw OrderPaymentException(
+          NetworkUtils.handleDioException(e).value.message,
+        );
+      }
+      return false;
+    }
+  }
+
+  /// Closing the gateway before its redirect doesn't prove nothing was paid
+  /// (e.g. closed on Paystack's own success screen) — check quietly first so
+  /// a completed charge still shows as paid instead of offering "Pay Now".
+  static Future<OrderPaymentOutcome> _checkAfterDismissal(
+    BuildContext context,
+    OrdersViewModel orders,
+    String orderId,
+    String? reference,
+  ) async {
+    if (reference == null || reference.isEmpty) {
+      return OrderPaymentOutcome.dismissed;
+    }
+    var isPaid = false;
+    try {
+      isPaid = (await orders.verifyPayment(
+        orderId,
+        reference: reference,
+      )).isPaid;
+    } catch (_) {
+      // Unpaid (or unreachable) — the customer simply closed the checkout.
+    }
+    if (!isPaid) return OrderPaymentOutcome.dismissed;
+    if (!context.mounted) return OrderPaymentOutcome.paid;
+    return PaymentConfirmationDialog.show(
+      context,
+      verification: Future.value(true),
+    );
   }
 
   static Future<PaymentMethod> _defaultSavedMethod() async {
-    final methods = await sl<PaymentRepository>().getCustomerPaymentMethods().then(
+    final methods = await sl<PaymentRepository>()
+        .getCustomerPaymentMethods()
+        .then(
           (result) => result.fold(
             (failure) => throw OrderPaymentException(failure.message),
             (methods) => methods,
@@ -140,9 +247,9 @@ class OrderPaymentLauncher {
 
     if (saved.payoutProviderId == 0) return null;
     final providers = await sl<PaymentRepository>().getPayoutProviders().then(
-          (result) =>
-              result.fold((_) => const <PayoutProviderModel>[], (list) => list),
-        );
+      (result) =>
+          result.fold((_) => const <PayoutProviderModel>[], (list) => list),
+    );
     for (final p in providers) {
       if (p.id == saved.payoutProviderId) {
         return _matchMobileMoneyProvider('${p.slug} ${p.shortName} ${p.name}');

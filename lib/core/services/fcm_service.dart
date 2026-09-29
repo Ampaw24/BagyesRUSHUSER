@@ -71,13 +71,6 @@ class FcmService {
 
     await _initLocalNotifications();
 
-    final token = await getToken();
-    appLogger.i('FCM token: $token');
-
-    _messaging.onTokenRefresh.listen((newToken) {
-      appLogger.i('FCM token refreshed: $newToken');
-    });
-
     // Neither Android nor iOS auto-display a system banner while the app is
     // in the foreground, regardless of whether the payload has a
     // `notification` block — this is the only place a foreground message
@@ -107,16 +100,36 @@ class FcmService {
     }
   }
 
+  /// Fires when FCM issues a new token — including the first one on iOS,
+  /// which often lands after [getToken] has already given up waiting on APNs.
+  static Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
+
   /// Returns the current FCM registration token for this device, or `null`
-  /// if permission hasn't been granted / the token isn't available yet.
+  /// if the token isn't available yet.
   static Future<String?> getToken() async {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      // FCM tokens on iOS depend on an APNs token being assigned first.
-      await _messaging.getAPNSToken();
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        !await _waitForApnsToken()) {
+      appLogger.w('FCM: APNs token not assigned yet — deferring to onTokenRefresh');
+      return null;
     }
-    return _messaging.getToken();
+    final token = await _messaging.getToken();
+    appLogger.i('FCM token: $token');
+    return token;
+  }
+
+  /// iOS assigns the APNs token asynchronously after launch, and
+  /// [FirebaseMessaging.getToken] throws `apns-token-not-set` until it has.
+  static Future<bool> _waitForApnsToken() async {
+    for (var attempt = 0; attempt < _apnsTokenMaxAttempts; attempt++) {
+      if (await _messaging.getAPNSToken() != null) return true;
+      await Future<void>.delayed(_apnsTokenRetryDelay);
+    }
+    return false;
   }
 }
+
+const _apnsTokenMaxAttempts = 6;
+const _apnsTokenRetryDelay = Duration(milliseconds: 500);
 
 Future<void> _initLocalNotifications() async {
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');

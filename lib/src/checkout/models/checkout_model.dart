@@ -1,5 +1,6 @@
 import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
 import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
+import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
 /// Sentinel distinguishing "leave unchanged" from "set to null" in
@@ -8,8 +9,13 @@ const _unset = Object();
 
 /// Holds the form inputs the user fills in during checkout.
 class CheckoutForm {
-  /// Saved address whose id is sent as `customer_address_id`.
+  /// Saved address whose id is sent as `customer_address_id`. Mutually
+  /// exclusive with [pickedLocation].
   final CustomerAddress? selectedAddress;
+
+  /// Unsaved GPS / map-picked drop-off, sent as coordinates instead of an
+  /// address id. Mutually exclusive with [selectedAddress].
+  final DeliveryLocation? pickedLocation;
 
   /// Sent as the order's `notes`.
   final String deliveryInstructions;
@@ -18,8 +24,9 @@ class CheckoutForm {
   /// of saved methods has loaded and one has been picked (or auto-selected).
   final PaymentMethod? selectedPaymentMethod;
 
-  /// Quote for a non-default [selectedAddress]. The default address's quote
-  /// is embedded in the cart, so this stays null for it.
+  /// Quote for a non-default [selectedAddress] or a [pickedLocation]. The
+  /// default address's quote is embedded in the cart, so this stays null
+  /// for it.
   final bool isFetchingDeliveryQuote;
   final String? deliveryQuoteError;
   final DeliveryQuote? deliveryQuote;
@@ -29,6 +36,7 @@ class CheckoutForm {
 
   const CheckoutForm({
     this.selectedAddress,
+    this.pickedLocation,
     this.deliveryInstructions = '',
     this.selectedPaymentMethod,
     this.isFetchingDeliveryQuote = false,
@@ -41,8 +49,11 @@ class CheckoutForm {
   /// address (it is the customer's default).
   bool get usesCartQuote => selectedAddress?.isDefault ?? false;
 
+  bool get hasDestination => selectedAddress != null || pickedLocation != null;
+
   CheckoutForm copyWith({
     Object? selectedAddress = _unset,
+    Object? pickedLocation = _unset,
     String? deliveryInstructions,
     PaymentMethod? selectedPaymentMethod,
     bool? isFetchingDeliveryQuote,
@@ -54,6 +65,9 @@ class CheckoutForm {
       selectedAddress: identical(selectedAddress, _unset)
           ? this.selectedAddress
           : selectedAddress as CustomerAddress?,
+      pickedLocation: identical(pickedLocation, _unset)
+          ? this.pickedLocation
+          : pickedLocation as DeliveryLocation?,
       deliveryInstructions: deliveryInstructions ?? this.deliveryInstructions,
       selectedPaymentMethod: selectedPaymentMethod ?? this.selectedPaymentMethod,
       isFetchingDeliveryQuote:

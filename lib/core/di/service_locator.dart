@@ -57,6 +57,10 @@ import '../../src/report/viewmodel/report_detail_viewmodel.dart';
 import '../../src/report/viewmodel/report_form_viewmodel.dart';
 import '../../src/report/viewmodel/report_vendors_viewmodel.dart';
 import '../../src/report/views/report_flow_args.dart';
+import '../../src/order_reviews/models/review_target.dart';
+import '../../src/order_reviews/repositories/order_review_repository.dart';
+import '../../src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
+import '../../src/order_reviews/viewmodels/review_composer_viewmodel.dart';
 import '../../src/vendor_reviews/repositories/review_repository.dart';
 import '../../src/vendor_reviews/viewmodels/reviews_viewmodel.dart';
 import '../../src/chat/repository/chat_repository.dart';
@@ -108,6 +112,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CustomerWalletRepository(client: sl()));
   sl.registerLazySingleton(() => ReportRepository(client: sl()));
   sl.registerLazySingleton(() => ReviewRepository(client: sl()));
+  sl.registerLazySingleton(() => OrderReviewRepository(client: sl()));
   sl.registerLazySingleton(() => ChatRepository(client: sl()));
   sl.registerLazySingleton(() => RealtimeRepository(client: sl()));
   sl.registerLazySingleton(() => RealtimeService(repository: sl(), authDio: sl()));
@@ -127,6 +132,17 @@ Future<void> init() async {
   // for its whole lifetime, so every screen watching orders gets live
   // updates, not just whichever tracking screen is currently open.
   sl.registerLazySingleton(() => consumer_orders.OrdersViewModel(sl(), sl()));
+  // Singleton — which orders are already rated is read by My Orders, order
+  // tracking and every review sheet, same rationale as OrdersViewModel.
+  sl.registerLazySingleton(() => OrderReviewsViewModel(sl()));
+  // Factory + param — one fresh form per review sheet, keyed by the order
+  // being rated.
+  sl.registerFactoryParam<ReviewComposerViewModel, ReviewTarget, void>(
+    (target, _) => ReviewComposerViewModel(
+      target: target,
+      reviewsViewModel: sl(),
+    ),
+  );
   // Singleton — backs the Home tab (discovery feed, promo banners, popular
   // restaurants) for the app session, same rationale as CartViewModel above.
   sl.registerLazySingleton(

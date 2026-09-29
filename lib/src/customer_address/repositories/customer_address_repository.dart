@@ -39,42 +39,4 @@ class CustomerAddressRepository {
       );
     }
   }
-
-  /// `POST /customer/addresses`
-  ResultFuture<CustomerAddress> createAddress({
-    required String address,
-    required double latitude,
-    required double longitude,
-    bool isDefault = false,
-  }) async {
-    try {
-      final response = await _client.post(
-        ApiEndpoints.customerAddresses,
-        data: {
-          'address': address,
-          'latitude': latitude,
-          'longitude': longitude,
-          if (isDefault) 'is_default': true,
-        },
-      );
-      if ([200, 201].contains(response.statusCode)) {
-        final body = response.data;
-        final data = body is DataMap && body['data'] is DataMap
-            ? body['data'] as DataMap
-            : body as DataMap;
-        return Right(CustomerAddress.fromJson(data));
-      }
-      return NetworkUtils.handleDioResponseError(response);
-    } on DioException catch (e) {
-      appLogger.e('CustomerAddressRepository.createAddress', error: e);
-      return NetworkUtils.handleDioException(e);
-    } catch (e, s) {
-      return NetworkUtils.handleException(
-        e,
-        s,
-        repositoryName: 'CustomerAddressRepository',
-        methodName: 'createAddress',
-      );
-    }
-  }
 }

@@ -8,6 +8,8 @@ import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/order_reviews/widgets/order_rating_pill.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 import 'package:bagyesrushappusernew/src/report/widgets/report_quick_action_sheet.dart';
@@ -77,6 +79,7 @@ class _PastOrdersListState extends State<_PastOrdersList> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    context.read<OrderReviewsViewModel>().ensureLoaded();
   }
 
   @override
@@ -396,6 +399,10 @@ class _OrderCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (order.status == OrderStatus.delivered) ...[
+                    OrderRatingPill(order: order),
+                    SizedBox(width: w * 0.03),
+                  ],
                   if (!order.status.isActive &&
                       order.status != OrderStatus.cancelled)
                     GestureDetector(

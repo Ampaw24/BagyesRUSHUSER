@@ -18,10 +18,18 @@ class CheckoutPlacing extends CheckoutState {
   const CheckoutPlacing({required this.form});
 }
 
-/// Order was placed — carries the created order (`201` body).
+/// Order was placed — carries the created order (`201` body), the form it
+/// was placed with (its payment method is charged next), and whether any
+/// amount is left to pay after the wallet.
 class CheckoutSuccess extends CheckoutState {
   final ConsumerOrder order;
-  const CheckoutSuccess({required this.order});
+  final CheckoutForm form;
+  final bool requiresPayment;
+  const CheckoutSuccess({
+    required this.order,
+    required this.form,
+    required this.requiresPayment,
+  });
 }
 
 /// Order placement failed.

@@ -4,9 +4,11 @@ import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
+import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 
 class OrdersViewModel extends ViewModel<OrdersState> {
   OrdersViewModel(this._repository, this._realtimeService) : super(const OrdersLoading()) {
@@ -26,6 +28,18 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   /// list's ordering/pagination, but still resolvable via [orderById] and
   /// patched by realtime events.
   final Map<String, ConsumerOrder> _standalone = {};
+
+  /// Orders the verify endpoint confirmed paid this session. [orderById]
+  /// always reports them paid, so a lagging refresh can never bring back
+  /// "Pay Now" for a charge that already went through.
+  final Set<String> _confirmedPayments = {};
+
+  /// Orders paid at the gateway but not yet confirmed by the server, with
+  /// when that started. "Pay Now" stays disabled for these until the payment
+  /// resolves or [paymentConfirmationWindow] passes, so an unconfirmed
+  /// charge can't be paid twice.
+  final Map<String, DateTime> _awaitingPayment = {};
+  static const paymentConfirmationWindow = Duration(minutes: 3);
 
   Future<void> _loadOrders() async {
     try {
@@ -80,7 +94,8 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   Future<ConsumerOrder> placeOrder({
     required String vendorId,
     required String paymentMethod,
-    required int customerAddressId,
+    int? customerAddressId,
+    DeliveryLocation? location,
     required int deliveryQuoteId,
     required bool useWallet,
     String? notes,
@@ -89,6 +104,7 @@ class OrdersViewModel extends ViewModel<OrdersState> {
       vendorId: vendorId,
       paymentMethod: paymentMethod,
       customerAddressId: customerAddressId,
+      location: location,
       deliveryQuoteId: deliveryQuoteId,
       useWallet: useWallet,
       notes: notes,
@@ -187,13 +203,58 @@ class OrdersViewModel extends ViewModel<OrdersState> {
         mobileMoneyProvider: mobileMoneyProvider,
       );
 
-  Future<void> verifyPayment(String orderId, {required String reference}) async {
-    final updated = await _repository.verifyPayment(orderId, reference: reference);
-    await _replaceOrder(updated);
+  /// Verifies a gateway charge by [reference]. A confirmed payment updates
+  /// every screen immediately, then re-syncs the order from the server in
+  /// the background. Throws on request failure.
+  Future<OrderPaymentVerification> verifyPayment(
+    String orderId, {
+    required String reference,
+  }) async {
+    final result = await _repository.verifyPayment(orderId, reference: reference);
+    if (result.isPaid) {
+      _confirmedPayments.add(orderId);
+      _awaitingPayment.remove(orderId);
+      emit(state);
+      unawaited(trackOrder(orderId).catchError((Object _) {}));
+    } else if (result.isFailed) {
+      _awaitingPayment.remove(orderId);
+    }
+    return result;
+  }
+
+  /// See [_awaitingPayment].
+  void markAwaitingPaymentConfirmation(String orderId) {
+    _awaitingPayment[orderId] = DateTime.now();
+    emit(state);
+  }
+
+  /// True while [orderId]'s payment is being confirmed — "Pay Now" must be
+  /// disabled. Clears itself once the order reports a final payment status
+  /// or the confirmation window lapses.
+  bool isAwaitingPaymentConfirmation(String orderId) {
+    final since = _awaitingPayment[orderId];
+    if (since == null) return false;
+    final status = orderById(orderId)?.paymentStatus;
+    final settled = status != null && status != PaymentStatus.pending;
+    final expired = DateTime.now().difference(since) > paymentConfirmationWindow;
+    if (settled || expired) {
+      _awaitingPayment.remove(orderId);
+      return false;
+    }
+    return true;
   }
 
   /// Returns a single order by ID, or null if not found / still loading.
   ConsumerOrder? orderById(String orderId) {
+    final order = _findOrder(orderId);
+    if (order == null || !_confirmedPayments.contains(orderId)) return order;
+    return order.copyWith(
+      paymentStatus: PaymentStatus.paid,
+      requiresPayment: false,
+    );
+  }
+
+  ConsumerOrder? _findOrder(String orderId) {
     final s = state;
     if (s is OrdersLoaded) {
       for (final o in s.orders) {

@@ -282,11 +282,19 @@ abstract final class ApiEndpoints {
   static String customerOrderVerifyPayment(String orderId) =>
       '$customerOrders/$orderId/verify-payment';
 
+  /// `POST /customer/orders/:id/review` — `{rating, comment}`. The order
+  /// decides the subject: a food order reviews the vendor, a parcel the rider.
+  static String customerOrderReview(String orderId) =>
+      '$customerOrders/$orderId/review';
+
+  /// `GET /customer/reviews` — the signed-in customer's own reviews.
+  static const String customerReviews = '/customer/reviews';
+
   /// `GET /customer/delivery-quote?vendor_id=&customer_address_id=` — only
   /// needed for a non-default address; the cart embeds the default's quote.
   static const String customerDeliveryQuote = '/customer/delivery-quote';
 
-  /// `GET /customer/addresses` | `POST /customer/addresses`
+  /// `GET /customer/addresses`
   static const String customerAddresses = '/customer/addresses';
 
   /// `GET /categories/:id`
