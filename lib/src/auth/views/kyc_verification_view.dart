@@ -313,7 +313,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
     return TextButton(
       onPressed: () async {
         await context.read<AuthViewmodel>().logout();
-        if (mounted) context.go(AppRoutes.login);
+        if (mounted) context.go(AppRoutes.onboarding);
       },
       child: Text(
         'Log out',

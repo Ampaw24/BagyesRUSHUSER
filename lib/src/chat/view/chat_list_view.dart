@@ -89,25 +89,24 @@ class _ChatListViewState extends State<ChatListView> with RouteAware {
                     separatorBuilder: (_, _) => SizedBox(height: w * 0.03),
                     itemBuilder: (context, index) {
                       final conversation = conversations[index];
+                      // The chat API never returns a phone number or photo —
+                      // borrow them from the already-cached order (if the
+                      // order list has fetched it) so the inbox gets the
+                      // same Call button and avatar as order tracking.
+                      final orderId = conversation.order?.id;
+                      final order = orderId != null
+                          ? context.read<OrdersViewModel>().orderById(orderId)
+                          : null;
                       return ConversationTile(
                         conversation: conversation,
-                        onTap: () {
-                          // The chat API never returns a phone number —
-                          // borrow it from the already-cached order (if the
-                          // order list has fetched it) so the sheet's Call
-                          // button can still work from the inbox, not just
-                          // from order tracking.
-                          final orderId = conversation.order?.id;
-                          final peerPhone = orderId != null
-                              ? context.read<OrdersViewModel>().orderById(orderId)?.driverPhone
-                              : null;
-                          AppNavigator.showChatThread(
-                            context,
-                            conversationId: conversation.id,
-                            peerName: conversation.counterpart?.name,
-                            peerPhone: peerPhone,
-                          );
-                        },
+                        photoUrl: order?.driverPhotoUrl,
+                        onTap: () => AppNavigator.showChatThread(
+                          context,
+                          conversationId: conversation.id,
+                          peerName: conversation.counterpart?.name,
+                          peerPhone: order?.driverPhone,
+                          peerPhotoUrl: order?.driverPhotoUrl,
+                        ),
                       );
                     },
                   ),

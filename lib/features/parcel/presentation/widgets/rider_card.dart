@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
 
@@ -53,7 +54,11 @@ class RiderQuoteCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _RiderAvatar(rider: rider, w: w),
+            NetworkAvatar(
+              name: rider.name,
+              photoUrl: rider.photoUrl,
+              size: w * 0.15,
+            ),
             SizedBox(width: w * 0.035),
             Expanded(child: _RiderDetails(rider: rider, w: w)),
             SizedBox(width: w * 0.02),
@@ -107,7 +112,7 @@ class _RiderDetails extends StatelessWidget {
             if (rider.distanceAwayKm != null)
               _MetaChip(
                 icon: HugeIcons.strokeRoundedMapsLocation01,
-                label: '${rider.distanceAwayKm!.toStringAsFixed(2)} km away',
+                label: '${rider.distanceAwayKm!.toStringAsFixed(1)} km away',
                 color: AppColors.textSecondary,
                 w: w,
               ),
@@ -153,37 +158,6 @@ class _QuotePrice extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-// ── Avatar ─────────────────────────────────────────────────────────────────
-
-class _RiderAvatar extends StatelessWidget {
-  final RiderModel rider;
-  final double w;
-
-  const _RiderAvatar({required this.rider, required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    final photoUrl = rider.photoUrl;
-    return CircleAvatar(
-      radius: w * 0.075,
-      backgroundColor: AppColors.primary,
-      backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-          ? NetworkImage(photoUrl)
-          : null,
-      child: photoUrl == null || photoUrl.isEmpty
-          ? Text(
-              rider.initials,
-              style: TextStyle(
-                fontSize: w * 0.042,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            )
-          : null,
     );
   }
 }

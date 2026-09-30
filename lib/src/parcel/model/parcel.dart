@@ -25,6 +25,7 @@ class Parcel extends Equatable {
     this.canCancel = false,
     this.paymentStatus,
     this.amountDue,
+    this.requiresPayment,
   });
 
   final String id;
@@ -47,12 +48,26 @@ class Parcel extends Equatable {
 
   /// Present when the backend reports it on create — lets the client skip
   /// the mobile-money step when the wallet already settled the charge.
+  /// Read from top-level keys or the nested `payment` object orders use.
   final String? paymentStatus;
   final double? amountDue;
+
+  /// `payment.requires_payment` — false once nothing is left to pay (e.g.
+  /// the wallet covered it). Null when the response omits it.
+  final bool? requiresPayment;
 
   bool get isPaid =>
       const {'paid', 'success', 'successful'}.contains(paymentStatus) ||
       (amountDue != null && amountDue! <= 0);
+
+  /// Whether a mobile-money payment is still owed, per the create response
+  /// — null when the response doesn't say either way.
+  bool? get needsPayment {
+    if (requiresPayment != null) return requiresPayment;
+    if (isPaid) return false;
+    if (amountDue != null) return amountDue! > 0;
+    return null;
+  }
 
   Parcel copyWith({
     String? id,
@@ -74,6 +89,7 @@ class Parcel extends Equatable {
     bool? canCancel,
     String? paymentStatus,
     double? amountDue,
+    bool? requiresPayment,
   }) {
     return Parcel(
       id: id ?? this.id,
@@ -95,12 +111,16 @@ class Parcel extends Equatable {
       canCancel: canCancel ?? this.canCancel,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       amountDue: amountDue ?? this.amountDue,
+      requiresPayment: requiresPayment ?? this.requiresPayment,
     );
   }
 
   factory Parcel.fromJson(Map<String, dynamic> json) {
     final rawStops = json['stops'] as List<dynamic>? ?? [];
     final rawPickup = json['pickup'];
+    final payment = json['payment'] is Map<String, dynamic>
+        ? json['payment'] as Map<String, dynamic>
+        : const <String, dynamic>{};
     final pickup =
         rawPickup is Map<String, dynamic> ? ParcelPickup.fromJson(rawPickup) : null;
     return Parcel(
@@ -125,8 +145,15 @@ class Parcel extends Equatable {
       directionLabel: json['direction_label']?.toString(),
       pickup: pickup,
       canCancel: json['can_cancel'] == true,
-      paymentStatus: json['payment_status']?.toString(),
-      amountDue: (json['amount_due'] as num?)?.toDouble(),
+      paymentStatus: (json['payment_status'] ??
+              payment['status'] ??
+              (payment['is_paid'] == true ? 'paid' : null))
+          ?.toString(),
+      amountDue:
+          ((json['amount_due'] ?? payment['amount_due']) as num?)?.toDouble(),
+      requiresPayment: payment['requires_payment'] is bool
+          ? payment['requires_payment'] as bool
+          : null,
     );
   }
 
@@ -172,5 +199,6 @@ class Parcel extends Equatable {
         canCancel,
         paymentStatus,
         amountDue,
+        requiresPayment,
       ];
 }

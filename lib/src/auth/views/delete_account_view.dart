@@ -109,7 +109,8 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
     final state = authViewModel.state;
     if (state is AccountDeleted) {
       authViewModel.resetState();
-      context.go(AppRoutes.login);
+      // Same as logout: back to the welcome screen.
+      context.go(AppRoutes.onboarding);
       CustomDialog.showSuccess(
         context: context,
         title: 'Account Deleted',

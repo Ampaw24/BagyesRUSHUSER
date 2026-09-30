@@ -10,6 +10,8 @@ class ParcelQuote extends Equatable {
     required this.pickupLongitude,
     required this.stops,
     required this.price,
+    this.deliveryFee,
+    this.serviceFee,
     required this.currency,
     required this.distanceKm,
     required this.etaMinutes,
@@ -22,7 +24,15 @@ class ParcelQuote extends Equatable {
   final double pickupLatitude;
   final double pickupLongitude;
   final List<ParcelStop> stops;
+
+  /// What the customer is charged — the backend's `total` (delivery fee +
+  /// service fee). Never computed client-side.
   final double price;
+
+  /// Breakdown of [price]: `fee` and `service_fee`. Null when the response
+  /// omits them.
+  final double? deliveryFee;
+  final double? serviceFee;
   final String currency;
   final double? distanceKm;
   final int? etaMinutes;
@@ -34,10 +44,11 @@ class ParcelQuote extends Equatable {
 
   factory ParcelQuote.fromJson(Map<String, dynamic> json) {
     final rawId = json['id'] ?? json['delivery_quote_id'];
-    final rawPrice = json['price'] ??
+    // `total` first: `fee` alone leaves out the service fee.
+    final rawPrice = json['total'] ??
+        json['price'] ??
         json['amount'] ??
         json['fee'] ??
-        json['total'] ??
         json['cost'];
     final rawStops = json['stops'] as List<dynamic>? ?? [];
     final rawRider = json['rider'];
@@ -50,6 +61,8 @@ class ParcelQuote extends Equatable {
           .map((e) => ParcelStop.fromJson(e as Map<String, dynamic>))
           .toList(),
       price: (rawPrice as num?)?.toDouble() ?? 0.0,
+      deliveryFee: (json['fee'] as num?)?.toDouble(),
+      serviceFee: (json['service_fee'] as num?)?.toDouble(),
       currency: json['currency']?.toString() ?? 'GHS',
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
       etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
@@ -66,12 +79,24 @@ class ParcelQuote extends Equatable {
         'pickup_latitude': pickupLatitude,
         'pickup_longitude': pickupLongitude,
         'stops': stops.map((s) => s.toQuoteJson()).toList(),
-        'price': price,
+        'total': price,
+        'fee': deliveryFee,
+        'service_fee': serviceFee,
         'currency': currency,
         'distance_km': distanceKm,
         'eta_minutes': etaMinutes,
         'expires_at': expiresAt?.toIso8601String(),
       };
+
+  /// Still bookable at [now], with [margin] to spare for the create call.
+  /// A quote without an expiry is never assumed valid.
+  bool isBookableAt(
+    DateTime now, {
+    Duration margin = const Duration(seconds: 30),
+  }) {
+    final expires = expiresAt;
+    return expires != null && expires.isAfter(now.add(margin));
+  }
 
   @override
   String toString() => '$id, ${stops.length} stop(s), $currency $price';
@@ -84,6 +109,8 @@ class ParcelQuote extends Equatable {
         pickupLongitude,
         stops,
         price,
+        deliveryFee,
+        serviceFee,
         currency,
         distanceKm,
         etaMinutes,

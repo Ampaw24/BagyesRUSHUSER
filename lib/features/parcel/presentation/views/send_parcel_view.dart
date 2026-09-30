@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../constant/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/utils/money_format.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
@@ -80,10 +81,10 @@ class _SendParcelViewState extends State<SendParcelView> {
   /// (an unpaid parcel keeps its "Pay Now" button there). Skipped entirely
   /// when the wallet already settled the full charge.
   Future<void> _payThenTrack(Parcel parcel, SendParcelState state) async {
-    final paidByWallet = parcel.isPaid ||
-        (parcel.paymentStatus == null &&
-            parcel.amountDue == null &&
-            state.walletSplit.coversFully);
+    // The created parcel's own payment state wins; the reviewed split is
+    // only the fallback when the response doesn't say.
+    final requiresPayment =
+        parcel.needsPayment ?? !state.walletSplit.coversFully;
     final walletVm = context.read<CustomerWalletViewmodel>();
     final ordersVm = context.read<OrdersViewModel>();
 
@@ -91,9 +92,11 @@ class _SendParcelViewState extends State<SendParcelView> {
     await OrderPaymentLauncher.payThenTrack(
       context,
       orderId: parcel.id,
-      requiresPayment: !paidByWallet,
+      requiresPayment: requiresPayment,
       savedMethod: state.selectedPaymentMethod,
-      settledMessage: 'Parcel confirmed — finding you a rider.',
+      settledMessage: state.walletSplit.usesWallet
+          ? 'Paid with your wallet — finding you a rider.'
+          : 'Parcel confirmed — finding you a rider.',
     );
     // Both lists should now include the new parcel and its charge.
     walletVm.fetchWallet();
@@ -151,6 +154,8 @@ class _SendParcelViewState extends State<SendParcelView> {
                 currentStep: state.currentStep,
                 canProceed: state.canProceed,
                 isLoading: state.isSubmitting || _isLaunchingPayment,
+                confirmLabel: _confirmLabel(state),
+                confirmIsFree: state.walletSplit.coversFully,
                 onBack: _vm.goBack,
                 onContinue: () => _handleContinue(context, state, _vm),
               ),
@@ -320,6 +325,15 @@ class _SendParcelViewState extends State<SendParcelView> {
           packageImages: state.packageImages,
         );
     }
+  }
+
+  /// "Pay GHS 18.05" — what goes to mobile money after the wallet — or
+  /// "Confirm booking" when the wallet covers it all and nothing is paid.
+  String _confirmLabel(SendParcelState state) {
+    if (state.quotedPrice == null) return 'Confirm & Pay';
+    final split = state.walletSplit;
+    if (split.coversFully) return 'Confirm booking';
+    return 'Pay ${formatMoney(split.remaining, currency: state.quoteCurrency ?? 'GHS')}';
   }
 
   // ── Continue handler ──────────────────────────────────────────────────────

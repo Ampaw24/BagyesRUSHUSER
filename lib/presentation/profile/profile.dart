@@ -5,6 +5,7 @@ import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/auth/views/widgets/guest_prompt.dart';
 import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/widgets/floating_nav_bar.dart';
 import 'package:bagyesrushappusernew/states/app.state.dart';
@@ -52,14 +53,14 @@ class _ProfileState extends State<Profile> {
       context: context,
       title: "Logout?",
       subtitle:
-          "You sure want to logout?\nYou will be returned to the login screen.",
+          "You sure want to logout?\nYou will be returned to the welcome screen.",
       onConfirm: () async {
         await context.read<AuthViewmodel>().logout();
         if (!context.mounted) return;
         final appState = context.read<AppState>();
         appState.setUser(IUser());
         appState.setPayload(ISignup());
-        context.go(AppRoutes.login);
+        context.go(AppRoutes.onboarding);
       },
       confirmText: 'Log out',
       cancelText: 'Cancel',
@@ -73,6 +74,77 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  Widget _supportSection(double w) {
+    return _SectionCard(
+      label: 'Support',
+      w: w,
+      tiles: [
+        _ProfileTile(
+          icon: HugeIcons.strokeRoundedHelpCircle,
+          label: 'Help & Support',
+          onTap: () => context.push(AppRoutes.helpSupport),
+          w: w,
+        ),
+        _ProfileTile(
+          icon: HugeIcons.strokeRoundedPolicy,
+          label: 'Privacy Policy',
+          onTap: () => AppNavigator.toLegal(
+            context,
+            LegalDocument.privacyPolicy,
+          ),
+          w: w,
+        ),
+        _ProfileTile(
+          icon: HugeIcons.strokeRoundedLegalDocument01,
+          label: 'Terms & Conditions',
+          onTap: () => AppNavigator.toLegal(
+            context,
+            LegalDocument.termsConditions,
+          ),
+          w: w,
+        ),
+        _ProfileTile(
+          icon: HugeIcons.strokeRoundedMoneyReceive01,
+          label: 'Refund Policy',
+          onTap: () => AppNavigator.toLegal(
+            context,
+            LegalDocument.refundPolicy,
+          ),
+          w: w,
+        ),
+      ],
+    );
+  }
+
+  /// A guest gets sign-in/sign-up plus the items that need no account.
+  Widget _buildGuest(double w) {
+    return Scaffold(
+      backgroundColor: AppColors.scaffold,
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          w * 0.05,
+          w * 0.04,
+          w * 0.05,
+          FloatingNavBar.reservedHeight(context) + w * 0.04,
+        ),
+        children: [
+          _ProfileTitle(w: w),
+          SizedBox(height: w * 0.06),
+          GuestPrompt(
+            icon: HugeIcons.strokeRoundedUser,
+            title: 'Welcome to bagyesRUSH',
+            message: 'Sign in or create an account to order food, send '
+                'parcels and track your deliveries.',
+            onSignIn: () => AppNavigator.toLoginForResult(context),
+            onCreateAccount: () => AppNavigator.toCreateAccount(context),
+          ),
+          SizedBox(height: w * 0.08),
+          _supportSection(w),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -80,7 +152,9 @@ class _ProfileState extends State<Profile> {
     // Watch (not read) so the avatar/name refresh immediately when
     // EditProfile's save or avatar upload updates CurrentUserProvider —
     // no need to leave and re-enter this screen to see the change.
-    final user = context.watch<CurrentUserProvider>().user;
+    final session = context.watch<CurrentUserProvider>();
+    if (!session.isAuthenticated) return _buildGuest(w);
+    final user = session.user;
     final profile =
         user?.profile is CustomerProfile ? user!.profile as CustomerProfile : null;
     final fullName = [profile?.firstName, profile?.lastName]
@@ -163,45 +237,7 @@ class _ProfileState extends State<Profile> {
                     ],
                   ),
                   SizedBox(height: w * 0.05),
-                  _SectionCard(
-                    label: 'Support',
-                    w: w,
-                    tiles: [
-                      _ProfileTile(
-                        icon: HugeIcons.strokeRoundedHelpCircle,
-                        label: 'Help & Support',
-                        onTap: () => context.push(AppRoutes.helpSupport),
-                        w: w,
-                      ),
-                      _ProfileTile(
-                        icon: HugeIcons.strokeRoundedPolicy,
-                        label: 'Privacy Policy',
-                        onTap: () => AppNavigator.toLegal(
-                          context,
-                          LegalDocument.privacyPolicy,
-                        ),
-                        w: w,
-                      ),
-                      _ProfileTile(
-                        icon: HugeIcons.strokeRoundedLegalDocument01,
-                        label: 'Terms & Conditions',
-                        onTap: () => AppNavigator.toLegal(
-                          context,
-                          LegalDocument.termsConditions,
-                        ),
-                        w: w,
-                      ),
-                      _ProfileTile(
-                        icon: HugeIcons.strokeRoundedMoneyReceive01,
-                        label: 'Refund Policy',
-                        onTap: () => AppNavigator.toLegal(
-                          context,
-                          LegalDocument.refundPolicy,
-                        ),
-                        w: w,
-                      ),
-                    ],
-                  ),
+                  _supportSection(w),
                   SizedBox(height: w * 0.05),
                   _SectionCard(
                     w: w,
@@ -255,14 +291,7 @@ class _Header extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Profile',
-                style: TextStyle(
-                  fontSize: w * 0.06,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+              _ProfileTitle(w: w),
               GestureDetector(
                 onTap: onEdit,
                 child: Container(
@@ -344,6 +373,24 @@ class _Header extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileTitle extends StatelessWidget {
+  final double w;
+
+  const _ProfileTitle({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'Profile',
+      style: TextStyle(
+        fontSize: w * 0.06,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
       ),
     );
   }

@@ -128,8 +128,8 @@ class _VendorHomeState extends State<VendorHome> {
         appState.setUser(IUser());
         appState.setPayload(ISignup());
 
-        // Navigate to login, replacing the entire stack
-        context.go(AppRoutes.login);
+        // Back to the welcome screen, replacing the entire stack
+        context.go(AppRoutes.onboarding);
       },
     );
   }

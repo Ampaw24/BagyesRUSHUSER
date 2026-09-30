@@ -160,6 +160,8 @@ class AppInitializer {
     dio.interceptors.add(DioInterceptor(
       cacheHelper: _sl<CacheHelper>(),
       dio: dio,
+      // Resolved lazily — CurrentUserProvider is registered after Dio.
+      onSessionExpired: () => _sl<CurrentUserProvider>().clearUser(),
     ));
     if (kDebugMode) {
       // requestBody/responseBody are disabled — DioInterceptor already logs

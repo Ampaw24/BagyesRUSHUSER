@@ -482,7 +482,7 @@ class _EditProfileState extends State<EditProfile> {
         if (!context.mounted) return;
         appState.setUser(IUser());
         appState.setPayload(ISignup());
-        context.go(AppRoutes.login);
+        context.go(AppRoutes.onboarding);
       },
     );
   }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
 import 'package:bagyesrushappusernew/presentation/splash_screen.dart';
 import 'package:bagyesrushappusernew/presentation/home/courier_home.dart';
@@ -74,15 +75,36 @@ const _publicRoutes = {
 };
 
 /// Public routes that stay reachable even once the user already holds a
-/// session token — unlike login/signup, these are mid-flow screens a
+/// session token — unlike signup, these are mid-flow screens a
 /// just-registered (but not yet phone-verified) or otherwise token-holding
 /// user must still be able to reach. Without this, rule 2 below bounces them
 /// to home before they ever see the OTP screen, so the auto-sent code from
 /// signup goes to waste and the user's next tap re-sends it, hitting the
 /// backend's resend cooldown.
+///
+/// Login is here because a guest's sign-in prompt pushes it on top of the
+/// screen they were using: the router re-runs this redirect the moment the
+/// login succeeds, and bouncing to home there would wipe that screen before
+/// LoginView can pop back to it. LoginView does its own post-login routing.
 const _authRoutesReachableWhileSignedIn = {
   AppRoutes.otp,
   AppRoutes.resetPassword,
+  AppRoutes.login,
+};
+
+/// Browse-only routes a guest (no session) may open — Apple guideline
+/// 5.1.1(v): browsing must not require an account. Matched against the
+/// route pattern, so `/restaurant/:id` covers every restaurant. Unlike
+/// [_publicRoutes], signed-in users aren't bounced off these, and KYC gating
+/// still applies to them.
+const _guestBrowsableRoutes = {
+  AppRoutes.home,
+  AppRoutes.restaurantDetail,
+  AppRoutes.consumerSearch,
+  AppRoutes.helpSupport,
+  AppRoutes.privacyPolicy,
+  AppRoutes.termsConditions,
+  AppRoutes.refundPolicy,
 };
 
 /// Routes exempt from KYC verification checks (user is logged in but
@@ -102,6 +124,55 @@ const _kycExemptRoutes = {
   '/report/history/:id',
 };
 
+/// The router's auth redirect rules, kept free of router/GetIt state so they
+/// can be unit-tested. [routePattern] is the matched route's path template
+/// (e.g. `/restaurant/:id`); returns null for "no redirect".
+@visibleForTesting
+String? resolveAuthRedirect({
+  required String location,
+  String? routePattern,
+  required bool hasToken,
+  User? user,
+}) {
+  final isPublicRoute = _publicRoutes.contains(location);
+  final isGuestBrowsable =
+      _guestBrowsableRoutes.contains(routePattern ?? location);
+
+  // 1. Guest on an account-only route → login. In-app entry points ask via
+  //    AuthGate first; this is the fallback for deep links/notifications.
+  if (!hasToken && !isPublicRoute && !isGuestBrowsable) {
+    return AppRoutes.login;
+  }
+
+  // 2. Authenticated user trying to access auth pages → role-based home
+  if (hasToken &&
+      isPublicRoute &&
+      location != AppRoutes.splash &&
+      !_authRoutesReachableWhileSignedIn.contains(location)) {
+    if (user != null && user.isVendor) {
+      return AppRoutes.vendorHome;
+    }
+    return AppRoutes.home;
+  }
+
+  // 3. The consumer home is guest-browsable, so nothing above stops a
+  //    vendor session from landing there — send vendors to their own home.
+  if (hasToken && location == AppRoutes.home && user != null && user.isVendor) {
+    return AppRoutes.vendorHome;
+  }
+
+  // 4. KYC gating — redirect unverified users away from protected routes
+  if (hasToken &&
+      !isPublicRoute &&
+      !_kycExemptRoutes.contains(location) &&
+      user != null &&
+      !user.phoneVerified) {
+    return AppRoutes.kycVerification;
+  }
+
+  return null; // no redirect
+}
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   observers: [appRouteObserver],
@@ -113,42 +184,15 @@ final GoRouter appRouter = GoRouter(
 
   // ── Centralized redirect guard ──────────────────────────────────────────
   redirect: (context, state) {
-    final location = state.matchedLocation;
-    final isPublicRoute = _publicRoutes.contains(location);
-    final hasToken = Cache.instance.sessionToken != null;
-
-    // 1. Unauthenticated user trying to access a protected route → login
-    if (!hasToken && !isPublicRoute) {
-      return AppRoutes.login;
-    }
-
-    // 2. Authenticated user trying to access auth pages → role-based home
-    if (hasToken &&
-        isPublicRoute &&
-        location != AppRoutes.splash &&
-        !_authRoutesReachableWhileSignedIn.contains(location)) {
-      final sl = GetIt.instance;
-      if (sl.isRegistered<CurrentUserProvider>()) {
-        final user = sl<CurrentUserProvider>().user;
-        if (user != null && user.role == 'vendor') {
-          return AppRoutes.vendorHome;
-        }
-      }
-      return AppRoutes.home;
-    }
-
-    // 3. KYC gating — redirect unverified users away from protected routes
-    if (hasToken && !isPublicRoute && !_kycExemptRoutes.contains(location)) {
-      final sl = GetIt.instance;
-      if (sl.isRegistered<CurrentUserProvider>()) {
-        final user = sl<CurrentUserProvider>().user;
-        if (user != null && !user.phoneVerified) {
-          return AppRoutes.kycVerification;
-        }
-      }
-    }
-
-    return null; // no redirect
+    final sl = GetIt.instance;
+    return resolveAuthRedirect(
+      location: state.matchedLocation,
+      routePattern: state.fullPath,
+      hasToken: Cache.instance.sessionToken != null,
+      user: sl.isRegistered<CurrentUserProvider>()
+          ? sl<CurrentUserProvider>().user
+          : null,
+    );
   },
 
   routes: [
@@ -165,7 +209,16 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.walkthrough,
       builder: (context, state) => WalkThrough(),
     ),
-    GoRoute(path: AppRoutes.login, builder: (context, state) => LoginView()),
+    GoRoute(
+      path: AppRoutes.login,
+      builder: (context, state) {
+        final extra = state.extra;
+        final returnOnSuccess = extra is Map<String, dynamic>
+            ? extra['returnOnSuccess'] as bool? ?? false
+            : false;
+        return LoginView(returnOnSuccess: returnOnSuccess);
+      },
+    ),
     GoRoute(
       path: AppRoutes.signup,
       builder: (context, state) => const SignupView(),

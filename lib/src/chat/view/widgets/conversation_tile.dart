@@ -3,14 +3,8 @@ import 'package:hugeicons/hugeicons.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
-
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty || parts.first.isEmpty) return '?';
-  final first = parts.first[0];
-  final second = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
-  return (first + second).toUpperCase();
-}
+import 'chat_avatar.dart';
+import 'chat_dimensions.dart';
 
 String conversationRelativeTime(DateTime? dt) {
   if (dt == null) return '';
@@ -21,21 +15,24 @@ String conversationRelativeTime(DateTime? dt) {
   return '${diff.inDays}d';
 }
 
-/// One row in the conversation inbox — counterpart avatar (initials), name,
-/// order context, last-message time and an unread badge.
+/// One row in the conversation inbox — counterpart avatar (photo when the
+/// cached order has one, else initials), name, order context, last-message
+/// time and an unread badge.
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
     super.key,
     required this.conversation,
     required this.onTap,
+    this.photoUrl,
   });
 
   final Conversation conversation;
   final VoidCallback onTap;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
+    final w = chatScaleWidth(context);
     final counterpart = conversation.counterpart;
     final name = counterpart?.name ?? 'Support';
     final hasUnread = conversation.unreadCount > 0;
@@ -59,22 +56,12 @@ class ConversationTile extends StatelessWidget {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Container(
-                    width: avatarSize,
-                    height: avatarSize,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _initials(name),
-                      style: TextStyle(
-                        fontSize: avatarSize * 0.36,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                  ChatAvatar(
+                    name: name,
+                    photoUrl: photoUrl,
+                    role: counterpart?.role,
+                    size: avatarSize,
+                    showRoleBadge: conversation.isOpen,
                   ),
                   if (!conversation.isOpen)
                     Positioned(

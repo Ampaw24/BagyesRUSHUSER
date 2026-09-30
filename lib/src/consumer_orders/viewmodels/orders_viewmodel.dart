@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
@@ -10,8 +12,13 @@ import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_o
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
 import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 
-class OrdersViewModel extends ViewModel<OrdersState> {
-  OrdersViewModel(this._repository, this._realtimeService) : super(const OrdersLoading()) {
+class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
+  OrdersViewModel(
+    this._repository,
+    this._realtimeService,
+    CurrentUserProvider session,
+  ) : super(const OrdersLoading()) {
+    bindSession(session);
     _loadOrders();
     _orderStatusSub = _realtimeService.orderStatusEvents.listen(applyOrderStatusEvent);
     _riderLocationSub = _realtimeService.riderLocationEvents.listen(_applyRiderLocationEvent);
@@ -41,15 +48,44 @@ class OrdersViewModel extends ViewModel<OrdersState> {
   final Map<String, DateTime> _awaitingPayment = {};
   static const paymentConfirmationWindow = Duration(minutes: 3);
 
+  /// Bumped by [onSignedOut] so a page request still in flight from the
+  /// previous account can't land in the (now cleared) list.
+  int _sessionGeneration = 0;
+
+  /// Set once the list is cleared for a new session; [ensureLoaded] then
+  /// fetches it again.
+  bool _needsLoad = false;
+
+  /// Loads the list if it was cleared by a sign-out since the last load —
+  /// the constructor's initial load covers the first session.
+  Future<void> ensureLoaded() async {
+    if (!_needsLoad) return;
+    _needsLoad = false;
+    await _loadOrders();
+  }
+
+  @override
+  void onSignedOut() {
+    _sessionGeneration++;
+    _needsLoad = true;
+    _standalone.clear();
+    _confirmedPayments.clear();
+    _awaitingPayment.clear();
+    emit(const OrdersLoading());
+  }
+
   Future<void> _loadOrders() async {
+    final generation = _sessionGeneration;
     try {
       final result = await _repository.getOrdersPaged(page: 1);
+      if (generation != _sessionGeneration) return;
       emit(OrdersLoaded(
         orders: result.orders,
         hasMore: result.hasMore,
         currentPage: result.page,
       ));
     } catch (e) {
+      if (generation != _sessionGeneration) return;
       emit(OrdersError(message: e.toString()));
     }
   }
@@ -73,14 +109,17 @@ class OrdersViewModel extends ViewModel<OrdersState> {
       currentPage: current.currentPage,
     ));
 
+    final generation = _sessionGeneration;
     try {
       final result = await _repository.getOrdersPaged(page: current.currentPage + 1);
+      if (generation != _sessionGeneration) return;
       emit(OrdersLoaded(
         orders: [...current.orders, ...result.orders],
         hasMore: result.hasMore,
         currentPage: result.page,
       ));
     } catch (_) {
+      if (generation != _sessionGeneration) return;
       // Keep existing data; clear loading flag so the user can retry by
       // scrolling again.
       emit(OrdersLoaded(

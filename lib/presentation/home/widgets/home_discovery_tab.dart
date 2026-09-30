@@ -7,6 +7,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/app_navigator.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../src/auth/views/auth_gate.dart';
 import '../../../src/home/viewmodel/home_discovery_viewmodel.dart';
 import '../../../src/restaurant/widgets/food_category_chip.dart';
 import '../../../src/restaurant/widgets/restaurant_card.dart';
@@ -140,12 +141,13 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
     final user = context.watch<CurrentUserProvider>().user;
     final hasUnreadNotifications =
         context.watch<NotificationViewmodel>().unreadCount > 0;
-    final firstName = user?.profile?.firstName ?? '';
-    final lastName = user?.profile?.lastName ?? '';
+    final profile = user?.customerProfile;
+    final firstName = profile?.firstName ?? '';
+    final lastName = profile?.lastName ?? '';
     final avatarInitials =
         '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}'
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
-    final String? avatarUrl = user?.profile?.profilePictureUrl;
+    final String? avatarUrl = profile?.profilePictureUrl;
 
     return CustomScrollView(
       controller: _scrollController,
@@ -182,7 +184,7 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Hey, ${firstName.isNotEmpty ? user?.profile?.firstName : 'there'} ',
+                            'Hey, ${firstName.isNotEmpty ? firstName : 'there'} ',
                             style: TextStyle(
                               fontSize: w * 0.04,
                               fontWeight: FontWeight.w700,
@@ -214,7 +216,11 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => context.push(AppRoutes.notifications),
+                      onTap: () => AuthGate.requireAuth(
+                        context,
+                        reason: 'Sign in to see your notifications.',
+                        action: () => context.push(AppRoutes.notifications),
+                      ),
                       child: Container(
                         padding: EdgeInsets.all(w * 0.022),
                         decoration: BoxDecoration(

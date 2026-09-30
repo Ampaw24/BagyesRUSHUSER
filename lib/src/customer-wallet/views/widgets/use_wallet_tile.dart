@@ -72,14 +72,30 @@ class UseWalletTile extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: w * 0.005),
-                _Subtitle(
-                  isLoading: isLoading && wallet == null,
-                  hasError: hasError && wallet == null,
-                  isOn: isOn,
-                  balanceLabel: formatMoney(balance, currency: currency),
-                  split: split,
-                  currency: currency,
-                  onRetry: onRetry,
+                // Crossfades as the split changes instead of snapping.
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [...previous, ?current],
+                  ),
+                  child: _Subtitle(
+                    key: ValueKey((
+                      isLoading && wallet == null,
+                      hasError && wallet == null,
+                      isOn,
+                      balance,
+                      split.walletAmount,
+                      split.remaining,
+                    )),
+                    isLoading: isLoading && wallet == null,
+                    hasError: hasError && wallet == null,
+                    isOn: isOn,
+                    balanceLabel: formatMoney(balance, currency: currency),
+                    split: split,
+                    currency: currency,
+                    onRetry: onRetry,
+                  ),
                 ),
               ],
             ),
@@ -109,6 +125,7 @@ class UseWalletTile extends StatelessWidget {
 
 class _Subtitle extends StatelessWidget {
   const _Subtitle({
+    super.key,
     required this.isLoading,
     required this.hasError,
     required this.isOn,

@@ -11,6 +11,13 @@ class ParcelBottomBar extends StatelessWidget {
   final VoidCallback onContinue;
   final bool isLoading;
 
+  /// Final-step button text — e.g. "Pay GHS 18.05", or "Confirm booking"
+  /// when the wallet covers everything and there's nothing to pay.
+  final String confirmLabel;
+
+  /// True when booking charges nothing to mobile money (wallet covers it).
+  final bool confirmIsFree;
+
   const ParcelBottomBar({
     super.key,
     required this.currentStep,
@@ -18,6 +25,8 @@ class ParcelBottomBar extends StatelessWidget {
     required this.onBack,
     required this.onContinue,
     this.isLoading = false,
+    this.confirmLabel = 'Confirm & Pay',
+    this.confirmIsFree = false,
   });
 
   bool get _isFirstStep => currentStep == ParcelStep.packageType;
@@ -49,10 +58,12 @@ class ParcelBottomBar extends StatelessWidget {
           ],
           Expanded(
             child: _ContinueButton(
-              label: _isFinalStep ? 'Confirm & Pay' : 'Continue',
-              icon: _isFinalStep
-                  ? HugeIcons.strokeRoundedCreditCard
-                  : HugeIcons.strokeRoundedArrowRight01,
+              label: _isFinalStep ? confirmLabel : 'Continue',
+              icon: !_isFinalStep
+                  ? HugeIcons.strokeRoundedArrowRight01
+                  : confirmIsFree
+                      ? HugeIcons.strokeRoundedCheckmarkCircle02
+                      : HugeIcons.strokeRoundedCreditCard,
               canProceed: canProceed && !isLoading,
               isLoading: isLoading,
               onTap: onContinue,
@@ -146,25 +157,45 @@ class _ContinueButton extends StatelessWidget {
                   ),
                 ),
               )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: w * 0.04,
-                      fontWeight: FontWeight.w700,
-                      color: canProceed ? Colors.white : AppColors.textHint,
-                      letterSpacing: 0.3,
+            // Label changes ("Pay GHS 30.40" → "Pay GHS 18.05" →
+            // "Confirm booking") roll in from below instead of snapping.
+            : AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.4),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: Row(
+                  key: ValueKey(label),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: w * 0.04,
+                          fontWeight: FontWeight.w700,
+                          color: canProceed ? Colors.white : AppColors.textHint,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                     ),
-                  ),
-                  SizedBox(width: w * 0.025),
-                  HugeIcon(
-                    icon: icon,
-                    color: canProceed ? Colors.white : AppColors.textHint,
-                    size: w * 0.045,
-                  ),
-                ],
+                    SizedBox(width: w * 0.025),
+                    HugeIcon(
+                      icon: icon,
+                      color: canProceed ? Colors.white : AppColors.textHint,
+                      size: w * 0.045,
+                    ),
+                  ],
+                ),
               ),
       ),
     );

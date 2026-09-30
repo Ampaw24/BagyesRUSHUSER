@@ -4,6 +4,7 @@ import 'dart:math' show cos, sqrt, asin;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
@@ -157,6 +158,8 @@ class SendParcelState {
 
   RiderModel? get assignedRider => selectedQuote?.rider;
   double? get quotedPrice => selectedQuote?.price;
+  double? get quotedDeliveryFee => selectedQuote?.deliveryFee;
+  double? get quotedServiceFee => selectedQuote?.serviceFee;
   String? get quoteCurrency => selectedQuote?.currency;
   int? get quotedEtaMinutes => selectedQuote?.etaMinutes;
 
@@ -165,6 +168,12 @@ class SendParcelState {
         total: quotedPrice,
         useWallet: useWallet,
       );
+
+  /// Wallet balance left once this booking's wallet share is deducted.
+  double get walletBalanceAfter =>
+      (WalletSplit.toMinorUnits(walletBalance) -
+          WalletSplit.toMinorUnits(walletSplit.walletAmount)) /
+      100;
 
   bool get hasValidSenderContact =>
       senderName.trim().isNotEmpty && PhoneUtils.isValidGhanaPhone(senderPhone);
@@ -190,7 +199,10 @@ class SendParcelState {
       case ParcelStep.availableRiders:
         return !isFetchingQuote && assignedRider != null;
       case ParcelStep.summary:
+        // Never book a price the customer hasn't seen.
         return !isSubmitting &&
+            !isFetchingQuote &&
+            quotedPrice != null &&
             (selectedPaymentMethod != null || walletSplit.coversFully);
     }
   }
@@ -440,9 +452,8 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
   // ── Backend quote ────────────────────────────────────────────────────────
 
-  /// Fetches one quote per available rider. Display-only — [submitParcel]
-  /// re-quotes right before creating the parcel, so a stale price shown
-  /// here is never what gets charged.
+  /// Fetches one quote per available rider. [submitParcel] books the
+  /// selected one while it's valid and re-quotes only once it has expired.
   Future<void> fetchQuote() async {
     if (state.pickupLatLng == null || state.deliveryStops.isEmpty) return;
 
@@ -497,9 +508,10 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
   // ── Submission ───────────────────────────────────────────────────────────
 
-  /// Uploads any tagged photos, re-quotes, then creates the parcel with the
-  /// fresh quote id for the rider the customer selected — the price charged
-  /// always comes from the backend, never from the client-side estimate.
+  /// Uploads any tagged photos, then creates the parcel against the quote
+  /// the customer reviewed (see [_quoteToBook]) — so the total and wallet
+  /// split on the summary are exactly what gets charged. The price itself
+  /// always comes from the backend, never from a client-side estimate.
   Future<bool> submitParcel() async {
     if (state.pickupLatLng == null || !state._stopsComplete) return false;
     if (state.direction.isReceive && !state.hasValidSenderContact) return false;
@@ -517,63 +529,48 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     emit(state.copyWith(isSubmitting: true, submitError: null));
 
     try {
-      final stops = await _buildStopsWithPhotos();
+      final quote = await _quoteToBook(riderId);
+      if (quote == null) return false;
 
-      final quoteResult = await _repository.getParcelQuotes(
-        pickupAddress: state.pickupAddress,
-        pickupLatitude: state.pickupLatLng!.latitude,
-        pickupLongitude: state.pickupLatLng!.longitude,
-        stops: stops,
+      final stops = await _buildStopsWithPhotos();
+      // Re-derived from the quote actually being booked (it may be a fresh,
+      // equal-or-cheaper one) so the wallet flag matches what's charged.
+      final split = WalletSplit.from(
+        balance: state.walletBalance,
+        total: quote.price,
+        useWallet: state.useWallet,
       );
 
-      return await quoteResult.fold(
+      final createResult = await _repository.createParcel(
+        deliveryQuoteId: quote.id,
+        // Customers only ever have saved mobile-money accounts (see
+        // getCustomerPaymentMethods) — mirrors the checkout flow, where
+        // 'card' is likewise never offered to select from.
+        paymentMethod: 'mobile_money',
+        // Nothing is charged to mobile money when the wallet covers it all.
+        paymentMethodId: method == null || split.coversFully
+            ? null
+            : int.tryParse(method.id),
+        useWallet: split.usesWallet,
+        direction: state.direction,
+        stops: stops,
+        pickupAddress: state.pickupAddress,
+        pickupContactName: _nonEmpty(state.senderName),
+        pickupContactPhone: _nonEmpty(state.senderPhone),
+        pickupInstructions: _nonEmpty(state.pickupInstructions),
+      );
+
+      return createResult.fold<bool>(
         (failure) {
           emit(state.copyWith(isSubmitting: false, submitError: failure.message));
+          // A rejected quote (e.g. it just expired) shouldn't be retried
+          // as-is — refresh so the next attempt books a live price.
+          fetchQuote();
           return false;
         },
-        (quotes) async {
-          final quote = _quoteForRider(quotes, riderId);
-          if (quote == null) {
-            emit(state.copyWith(
-              isSubmitting: false,
-              riderQuotes: quotes,
-              selectedRiderId: _resolveSelection(quotes),
-              submitError: quotes.isEmpty
-                  ? 'No riders are available right now. Please try again.'
-                  : 'Your selected rider is no longer available. '
-                      'Please review the updated rider and price.',
-            ));
-            return false;
-          }
-
-          final createResult = await _repository.createParcel(
-            deliveryQuoteId: quote.id,
-            // Customers only ever have saved mobile-money accounts (see
-            // getCustomerPaymentMethods) — mirrors the checkout flow, where
-            // 'card' is likewise never offered to select from.
-            paymentMethod: 'mobile_money',
-            paymentMethodId:
-                method == null ? null : int.tryParse(method.id),
-            useWallet: state.useWallet && state.walletSplit.usesWallet,
-            direction: state.direction,
-            stops: stops,
-            pickupAddress: state.pickupAddress,
-            pickupContactName: _nonEmpty(state.senderName),
-            pickupContactPhone: _nonEmpty(state.senderPhone),
-            pickupInstructions: _nonEmpty(state.pickupInstructions),
-          );
-
-          return createResult.fold(
-            (failure) {
-              emit(state.copyWith(
-                  isSubmitting: false, submitError: failure.message));
-              return false;
-            },
-            (parcel) {
-              emit(state.copyWith(isSubmitting: false, createdParcel: parcel));
-              return true;
-            },
-          );
+        (parcel) {
+          emit(state.copyWith(isSubmitting: false, createdParcel: parcel));
+          return true;
         },
       );
     } catch (_) {
@@ -583,6 +580,59 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
       ));
       return false;
     }
+  }
+
+  /// The quote to book for [riderId]: the one on screen while it's still
+  /// valid, so the reviewed total is what's charged. An expired quote is
+  /// replaced by a fresh one for the same rider — but if that rider has
+  /// gone, or the fresh price is higher, nothing is booked: the new quotes
+  /// are shown (updating the total and wallet split) and the customer
+  /// confirms again. Returns null in those cases.
+  Future<ParcelQuote?> _quoteToBook(String riderId) async {
+    final shown = state.selectedQuote;
+    if (shown != null && shown.isBookableAt(DateTime.now())) return shown;
+
+    final result = await _repository.getParcelQuotes(
+      pickupAddress: state.pickupAddress,
+      pickupLatitude: state.pickupLatLng!.latitude,
+      pickupLongitude: state.pickupLatLng!.longitude,
+      stops: _quoteStops(),
+    );
+
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(isSubmitting: false, submitError: failure.message));
+        return null;
+      },
+      (quotes) {
+        final fresh = _quoteForRider(quotes, riderId);
+        if (fresh == null) {
+          emit(state.copyWith(
+            isSubmitting: false,
+            riderQuotes: quotes,
+            selectedRiderId: _resolveSelection(quotes),
+            submitError: quotes.isEmpty
+                ? 'No riders are available right now. Please try again.'
+                : 'Your selected rider is no longer available. '
+                    'Please review the updated rider and price.',
+          ));
+          return null;
+        }
+        if (shown != null &&
+            WalletSplit.toMinorUnits(fresh.price) >
+                WalletSplit.toMinorUnits(shown.price)) {
+          emit(state.copyWith(
+            isSubmitting: false,
+            riderQuotes: quotes,
+            submitError: 'The delivery price has gone up to '
+                '${formatMoney(fresh.price, currency: fresh.currency)}. '
+                'Review the new total and confirm again.',
+          ));
+          return null;
+        }
+        return fresh;
+      },
+    );
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

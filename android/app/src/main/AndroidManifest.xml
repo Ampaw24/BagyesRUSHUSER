@@ -43,7 +43,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <meta-data android:name="com.google.android.geo.API_KEY"
-               android:value="AIzaSyAGPiHCvO7ES5wj9GMVFzHnEKOTNdiHrLo"/>
+               android:value="AIzaSyCwSay-hVJZL0JmHfbcRxOfkHsRGp5vopk"/>
     </application>
 
     <!-- Required so url_launcher can resolve mail, phone, and browser/WhatsApp

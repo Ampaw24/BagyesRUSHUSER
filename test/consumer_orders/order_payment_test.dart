@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
@@ -180,6 +181,7 @@ void main() {
       vm = OrdersViewModel(
         ConsumerOrdersRepository(client: dio),
         _FakeRealtime(),
+        CurrentUserProvider(),
       );
       await pumpEventQueue();
       expect(vm.orderById('1')?.needsPayment, isTrue);

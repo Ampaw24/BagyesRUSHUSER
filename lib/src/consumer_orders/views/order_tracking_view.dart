@@ -275,6 +275,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
         orderId: order.id,
         peerName: order.driverName,
         peerPhone: order.driverPhone,
+        peerPhotoUrl: order.driverPhotoUrl,
       );
 
   @override

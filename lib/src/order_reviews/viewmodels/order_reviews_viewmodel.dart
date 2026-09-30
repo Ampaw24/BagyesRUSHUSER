@@ -1,3 +1,5 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/repositories/order_review_repository.dart';
@@ -8,8 +10,12 @@ import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart
 /// App-wide cache of which orders the customer has rated — read by order
 /// history, the tracking screen and the review sheet. Keyed by order id, so
 /// a previous account's entries never match the next account's orders.
-class OrderReviewsViewModel extends ViewModel<OrderReviewsState> {
-  OrderReviewsViewModel(this._repository) : super(const OrderReviewsState());
+class OrderReviewsViewModel extends ViewModel<OrderReviewsState>
+    with SessionAware {
+  OrderReviewsViewModel(this._repository, CurrentUserProvider session)
+      : super(const OrderReviewsState()) {
+    bindSession(session);
+  }
 
   final OrderReviewRepository _repository;
 
@@ -35,6 +41,11 @@ class OrderReviewsViewModel extends ViewModel<OrderReviewsState> {
       ),
     );
   }
+
+  /// Back to not-loaded, so the next account's [ensureLoaded] fetches its
+  /// own reviews instead of keeping the previous account's.
+  @override
+  void onSignedOut() => emit(const OrderReviewsState());
 
   OrderReview? reviewFor(String orderId) => state.byOrderId[orderId];
 

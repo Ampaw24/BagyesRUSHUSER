@@ -11,12 +11,15 @@
 /// no phone field) — it's only ever known when the caller already had it
 /// locally (an order's cached `driverPhone`), and drives the sheet's
 /// native-dialer "Call" affordance. `null` simply hides that button.
+/// [peerPhotoUrl] works the same way (the order's rider photo) — the chat
+/// API's participants carry no avatar, so without it initials are shown.
 class ChatThreadArgs {
   const ChatThreadArgs({
     this.conversationId,
     this.orderId,
     this.peerName,
     this.peerPhone,
+    this.peerPhotoUrl,
   }) : assert(
          conversationId != null || orderId != null,
          'Provide a conversationId or an orderId',
@@ -26,4 +29,5 @@ class ChatThreadArgs {
   final String? orderId;
   final String? peerName;
   final String? peerPhone;
+  final String? peerPhotoUrl;
 }

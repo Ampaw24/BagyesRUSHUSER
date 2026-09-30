@@ -10,12 +10,19 @@ import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 final _log = appLogger;
 
 class DioInterceptor extends Interceptor {
-  DioInterceptor({required CacheHelper cacheHelper, required Dio dio})
-      : _cacheHelper = cacheHelper,
+  DioInterceptor({
+    required CacheHelper cacheHelper,
+    required Dio dio,
+    this.onSessionExpired,
+  })  : _cacheHelper = cacheHelper,
         _dio = dio;
 
   final CacheHelper _cacheHelper;
   final Dio _dio;
+
+  /// Called after a 401 that couldn't be recovered by a token refresh has
+  /// cleared the stored session, so the app can drop back to guest mode.
+  final void Function()? onSessionExpired;
 
   /// Tracks whether a token refresh is already in progress so concurrent
   /// 401s don't fire multiple refresh calls.
@@ -98,9 +105,12 @@ class DioInterceptor extends Interceptor {
     );
 
     final isAuthExcluded = _authExclusions.any((e) => path.contains(e));
+    // A guest's request carries no token, so its 401 means "needs an
+    // account", not "session expired" — nothing to refresh or clear.
+    final sentToken = err.requestOptions.headers['Authorization'] != null;
 
     // Attempt token refresh on 401 for authenticated routes
-    if (err.response?.statusCode == 401 && !isAuthExcluded) {
+    if (err.response?.statusCode == 401 && !isAuthExcluded && sentToken) {
       final didRefresh = await _tryRefreshToken();
 
       if (didRefresh) {
@@ -119,6 +129,7 @@ class DioInterceptor extends Interceptor {
 
       // Refresh failed — clear session so the UI layer can react
       await _cacheHelper.resetSession();
+      onSessionExpired?.call();
     }
 
     handler.next(err);

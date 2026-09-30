@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:bagyesrushappusernew/core/widgets/animated_money.dart';
+import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
@@ -128,6 +130,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
     final sendState = sendVm.state;
     final walletVm = context.watch<CustomerWalletViewmodel>();
     final walletSplit = sendState.walletSplit;
+    final currency = sendState.quoteCurrency ?? 'GHS';
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
@@ -200,6 +203,8 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
             quoteError: sendState.quoteError,
             noRidersMessage: sendState.noRidersMessage,
             quotedPrice: sendState.quotedPrice,
+            quotedDeliveryFee: sendState.quotedDeliveryFee,
+            quotedServiceFee: sendState.quotedServiceFee,
             quoteCurrency: sendState.quoteCurrency,
             walletSplit: walletSplit,
             onRetry: () => sendVm.fetchQuote(),
@@ -230,30 +235,67 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
             onRetry: walletVm.fetchWallet,
           ),
           SizedBox(height: w * 0.03),
-          if (walletSplit.coversFully)
-            Padding(
-              padding: EdgeInsets.only(bottom: w * 0.02),
-              child: Text(
-                'No mobile money needed — paid from your wallet',
-                style: TextStyle(
-                  fontSize: w * 0.03,
-                  color: AppColors.textSecondary,
-                ),
+          // Wallet covers it all → the mobile-money picker gives way to a
+          // confirmation; otherwise it asks only for what's left.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.topLeft,
+                children: [...previous, ?current],
               ),
-            ),
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: walletSplit.coversFully ? 0.4 : 1,
-            child: IgnorePointer(
-              ignoring: walletSplit.coversFully,
-              child: _PaymentMethodSection(
-                state: _paymentVm.state,
-                selectedMethod: sendState.selectedPaymentMethod,
-                onSelect: (m) =>
-                    context.read<SendParcelViewModel>().selectPaymentMethod(m),
-                onAddNew: () => _addPaymentMethod(context),
-                w: w,
-              ),
+              child: walletSplit.coversFully
+                  ? _WalletCoversCard(
+                      key: const ValueKey('wallet-covers'),
+                      amount: walletSplit.walletAmount,
+                      balanceAfter: sendState.walletBalanceAfter,
+                      currency: currency,
+                      w: w,
+                    )
+                  : Column(
+                      key: const ValueKey('mobile-money'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (walletSplit.usesWallet)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: w * 0.025),
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'Pay the remaining ',
+                                children: [
+                                  TextSpan(
+                                    text: formatMoney(
+                                      walletSplit.remaining,
+                                      currency: currency,
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' with mobile money'),
+                                ],
+                              ),
+                              style: TextStyle(
+                                fontSize: w * 0.033,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        _PaymentMethodSection(
+                          state: _paymentVm.state,
+                          selectedMethod: sendState.selectedPaymentMethod,
+                          onSelect: (m) => context
+                              .read<SendParcelViewModel>()
+                              .selectPaymentMethod(m),
+                          onAddNew: () => _addPaymentMethod(context),
+                          w: w,
+                        ),
+                      ],
+                    ),
             ),
           ),
 
@@ -476,6 +518,230 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
+// ── Wallet deduction ──────────────────────────────────────────────────────────
+
+/// "Wallet −GHS 12.35" then "Left to pay GHS 18.05", sliding in under the
+/// total when the wallet toggle goes on. Amounts count to each new value.
+class _WalletDeduction extends StatelessWidget {
+  final WalletSplit split;
+  final String currency;
+  final double w;
+
+  const _WalletDeduction({
+    required this.split,
+    required this.currency,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final covered = split.coversFully;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+      builder: (_, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * w * 0.03),
+          child: child,
+        ),
+      ),
+      child: Column(
+        children: [
+          SizedBox(height: w * 0.02),
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet_rounded,
+                size: w * 0.042,
+                color: AppColors.success,
+              ),
+              SizedBox(width: w * 0.02),
+              Expanded(
+                child: Text(
+                  'Wallet',
+                  style: TextStyle(
+                    fontSize: w * 0.034,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              AnimatedMoney(
+                amount: split.walletAmount,
+                currency: currency,
+                prefix: '-',
+                style: TextStyle(
+                  fontSize: w * 0.036,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+          Divider(color: AppColors.primary.withValues(alpha: 0.15)),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Left to pay',
+                  style: TextStyle(
+                    fontSize: w * 0.042,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              AnimatedMoney(
+                amount: split.remaining,
+                currency: currency,
+                style: TextStyle(
+                  fontSize: w * 0.05,
+                  fontWeight: FontWeight.w900,
+                  color: covered ? AppColors.success : AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            alignment: Alignment.topRight,
+            child: covered
+                ? Padding(
+                    padding: EdgeInsets.only(top: w * 0.015),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: _CoveredChip(w: w),
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoveredChip extends StatelessWidget {
+  final double w;
+
+  const _CoveredChip({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutBack,
+      builder: (_, t, child) => Transform.scale(
+        scale: t,
+        alignment: Alignment.centerRight,
+        child: child,
+      ),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: w * 0.025, vertical: w * 0.01),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(w),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, size: w * 0.036, color: AppColors.success),
+            SizedBox(width: w * 0.012),
+            Text(
+              'Covered by your wallet',
+              style: TextStyle(
+                fontSize: w * 0.028,
+                fontWeight: FontWeight.w700,
+                color: AppColors.success,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Replaces the mobile-money picker when the wallet pays the whole total.
+class _WalletCoversCard extends StatelessWidget {
+  final double amount;
+  final double balanceAfter;
+  final String currency;
+  final double w;
+
+  const _WalletCoversCard({
+    super.key,
+    required this.amount,
+    required this.balanceAfter,
+    required this.currency,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = w * 0.1;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(w * 0.03),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.elasticOut,
+            builder: (_, t, child) => Transform.scale(scale: t, child: child),
+            child: Container(
+              width: badge,
+              height: badge,
+              decoration: const BoxDecoration(
+                color: AppColors.success,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check_rounded, color: Colors.white, size: badge * 0.6),
+            ),
+          ),
+          SizedBox(width: w * 0.035),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Paid in full from your wallet',
+                  style: TextStyle(
+                    fontSize: w * 0.036,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: w * 0.008),
+                Text(
+                  'No mobile money payment needed. '
+                  '${formatMoney(amount, currency: currency)} will be deducted '
+                  '· Balance after: ${formatMoney(balanceAfter, currency: currency)}',
+                  style: TextStyle(
+                    fontSize: w * 0.03,
+                    height: 1.4,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Rider summary row ─────────────────────────────────────────────────────────
 
 class _RiderSummaryRow extends StatelessWidget {
@@ -488,23 +754,10 @@ class _RiderSummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: w * 0.11,
-          height: w * 0.11,
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              rider.initials,
-              style: TextStyle(
-                fontSize: w * 0.038,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
+        NetworkAvatar(
+          name: rider.name,
+          photoUrl: rider.photoUrl,
+          size: w * 0.13,
         ),
         SizedBox(width: w * 0.035),
         Expanded(
@@ -513,6 +766,8 @@ class _RiderSummaryRow extends StatelessWidget {
             children: [
               Text(
                 rider.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: w * 0.038,
                   fontWeight: FontWeight.w700,
@@ -520,7 +775,9 @@ class _RiderSummaryRow extends StatelessWidget {
                 ),
               ),
               SizedBox(height: w * 0.008),
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                runSpacing: w * 0.008,
                 children: [
                   HugeIcon(
                     icon: HugeIcons.strokeRoundedDeliveryTruck01,
@@ -543,13 +800,23 @@ class _RiderSummaryRow extends StatelessWidget {
                   ),
                   SizedBox(width: w * 0.01),
                   Text(
-                    rider.rating.toStringAsFixed(1),
+                    '${rider.rating.toStringAsFixed(1)} (${rider.reviewCount})',
                     style: TextStyle(
                       fontSize: w * 0.03,
                       color: AppColors.accent,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (rider.deliveriesCompleted > 0) ...[
+                    SizedBox(width: w * 0.025),
+                    Text(
+                      '${rider.deliveriesCompleted} deliveries',
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -730,6 +997,8 @@ class _QuoteTotalBox extends StatelessWidget {
   final String? quoteError;
   final String? noRidersMessage;
   final double? quotedPrice;
+  final double? quotedDeliveryFee;
+  final double? quotedServiceFee;
   final String? quoteCurrency;
   final WalletSplit walletSplit;
   final VoidCallback onRetry;
@@ -740,6 +1009,8 @@ class _QuoteTotalBox extends StatelessWidget {
     required this.quoteError,
     required this.noRidersMessage,
     required this.quotedPrice,
+    required this.quotedDeliveryFee,
+    required this.quotedServiceFee,
     required this.quoteCurrency,
     required this.walletSplit,
     required this.onRetry,
@@ -837,42 +1108,63 @@ class _QuoteTotalBox extends StatelessWidget {
 
     final price = quotedPrice;
     final currency = quoteCurrency ?? 'GHS';
-    final totalRow = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Total',
-          style: TextStyle(
-            fontSize: w * 0.042,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        Text(
-          formatMoney(price, currency: currency),
-          style: TextStyle(
-            fontSize: w * 0.05,
-            fontWeight: FontWeight.w900,
-            color: AppColors.primary,
-          ),
-        ),
-      ],
+    final deliveryFee = quotedDeliveryFee;
+    final serviceFee = quotedServiceFee;
+    final hasBreakdown = deliveryFee != null || serviceFee != null;
+    // With the wallet on, "Left to pay" becomes the headline figure.
+    final totalStyle = TextStyle(
+      fontSize: walletSplit.usesWallet ? w * 0.04 : w * 0.05,
+      fontWeight: FontWeight.w900,
+      color: walletSplit.usesWallet ? AppColors.textPrimary : AppColors.primary,
     );
-    if (!walletSplit.usesWallet) return totalRow;
 
     return Column(
       children: [
-        totalRow,
-        SizedBox(height: w * 0.02),
-        _splitRow(
-          'Paid from wallet',
-          '-${formatMoney(walletSplit.walletAmount, currency: currency)}',
-          AppColors.success,
+        if (deliveryFee != null)
+          _splitRow(
+            'Delivery fee',
+            formatMoney(deliveryFee, currency: currency),
+            AppColors.textPrimary,
+          ),
+        if (serviceFee != null)
+          _splitRow(
+            'Service fee',
+            formatMoney(serviceFee, currency: currency),
+            AppColors.textPrimary,
+          ),
+        if (hasBreakdown)
+          Divider(color: AppColors.primary.withValues(alpha: 0.15)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Total',
+              style: TextStyle(
+                fontSize: w * 0.042,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 250),
+              style: totalStyle,
+              child: price == null
+                  ? Text(formatMoney(null, currency: currency))
+                  : AnimatedMoney(
+                      amount: price,
+                      currency: currency,
+                      style: const TextStyle(),
+                    ),
+            ),
+          ],
         ),
-        _splitRow(
-          'To pay via mobile money',
-          formatMoney(walletSplit.remaining, currency: currency),
-          AppColors.textPrimary,
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: walletSplit.usesWallet
+              ? _WalletDeduction(split: walletSplit, currency: currency, w: w)
+              : const SizedBox(width: double.infinity),
         ),
       ],
     );

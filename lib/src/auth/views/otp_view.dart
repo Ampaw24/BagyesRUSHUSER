@@ -856,9 +856,24 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
 
     // Route unverified users back to the KYC gate; otherwise log them
     // straight into home with a success toast — no blocking confirmation.
-    final user = context.read<CurrentUserProvider>().user;
+    final session = context.read<CurrentUserProvider>();
+    final user = session.user;
     if (user != null && !user.phoneVerified) {
       context.go(AppRoutes.kycVerification);
+      return;
+    }
+
+    // Verified from login's "phone not verified" error — there's no
+    // session yet (home no longer redirects guests to login), so return to
+    // the login screen to finish signing in.
+    if (!session.isAuthenticated) {
+      AppToast.show(
+        context,
+        isSuccess: true,
+        title: 'Phone verified',
+        subtitle: 'Sign in to continue.',
+      );
+      context.canPop() ? context.pop() : context.go(AppRoutes.login);
       return;
     }
 

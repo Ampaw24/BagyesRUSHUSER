@@ -124,17 +124,17 @@ Future<void> init() async {
   );
   // Singleton (not factory) — cart is shared app-wide state (restaurant
   // detail, cart screen, checkout all read/mutate the same instance).
-  sl.registerLazySingleton(() => CartViewModel(repository: sl()));
+  sl.registerLazySingleton(() => CartViewModel(repository: sl(), session: sl()));
   // Singleton — the order list is shared app-wide state (My Orders, order
   // tracking, checkout, and the report flow's rider-target picker all
   // read/mutate the same instance), same rationale as CartViewModel above.
   // Also subscribes to RealtimeService's order-status/rider-location streams
   // for its whole lifetime, so every screen watching orders gets live
   // updates, not just whichever tracking screen is currently open.
-  sl.registerLazySingleton(() => consumer_orders.OrdersViewModel(sl(), sl()));
+  sl.registerLazySingleton(() => consumer_orders.OrdersViewModel(sl(), sl(), sl()));
   // Singleton — which orders are already rated is read by My Orders, order
   // tracking and every review sheet, same rationale as OrdersViewModel.
-  sl.registerLazySingleton(() => OrderReviewsViewModel(sl()));
+  sl.registerLazySingleton(() => OrderReviewsViewModel(sl(), sl()));
   // Factory + param — one fresh form per review sheet, keyed by the order
   // being rated.
   sl.registerFactoryParam<ReviewComposerViewModel, ReviewTarget, void>(
@@ -171,7 +171,7 @@ Future<void> init() async {
     (isVendor, _) => PaymentViewModel(repository: sl(), isVendor: isVendor),
   );
   sl.registerFactory(() => OnboardingViewModel(sl()));
-  sl.registerFactory(() => NotificationViewmodel(repository: sl()));
+  sl.registerFactory(() => NotificationViewmodel(repository: sl(), session: sl()));
   sl.registerFactory(() => VendorRegistrationViewModel(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => vendor_orders.OrdersViewModel(sl()));
   sl.registerFactory(() => DashboardViewModel(sl()));

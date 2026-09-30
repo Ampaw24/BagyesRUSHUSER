@@ -20,6 +20,27 @@ abstract final class AppNavigator {
   static void toOnboarding(BuildContext context) =>
       context.go(AppRoutes.onboarding);
   static void toLogin(BuildContext context) => context.push(AppRoutes.login);
+
+  /// Opens login on top of the current screen and resolves `true` once the
+  /// user has signed in (LoginView pops back instead of going home) — for
+  /// guest sign-in prompts that continue what the user was doing.
+  static Future<bool> toLoginForResult(BuildContext context) async {
+    final signedIn = await context.push<bool>(
+      AppRoutes.login,
+      extra: {'returnOnSuccess': true},
+    );
+    return signedIn ?? false;
+  }
+
+  /// The customer/vendor role picker that starts registration.
+  static void toCreateAccount(BuildContext context) =>
+      context.push(AppRoutes.onboarding);
+
+  /// Back from an auth screen that may be pushed (from a guest sign-in
+  /// prompt) or the stack root (e.g. after a redirect): pops when there's a
+  /// screen to return to, otherwise lands on the welcome screen.
+  static void backOrWelcome(BuildContext context) =>
+      context.canPop() ? context.pop() : context.go(AppRoutes.onboarding);
   static void toSignup(BuildContext context) => context.push(AppRoutes.signup);
   static void toWalkthrough(BuildContext context) =>
       context.push(AppRoutes.walkthrough);
@@ -151,6 +172,7 @@ abstract final class AppNavigator {
     String? orderId,
     String? peerName,
     String? peerPhone,
+    String? peerPhotoUrl,
   }) =>
       ChatThreadSheet.show(
         context,
@@ -159,6 +181,7 @@ abstract final class AppNavigator {
           orderId: orderId,
           peerName: peerName,
           peerPhone: peerPhone,
+          peerPhotoUrl: peerPhotoUrl,
         ),
       );
 }

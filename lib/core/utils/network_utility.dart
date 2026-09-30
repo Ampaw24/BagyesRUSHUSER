@@ -38,7 +38,10 @@ class NetworkUtility {
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
-          if (e.response?.statusCode == 401) {
+          // Only a request that carried a token can have an expired
+          // session — a guest's 401 must not bounce them to login.
+          final sentToken = e.requestOptions.headers['Authorization'] != null;
+          if (e.response?.statusCode == 401 && sentToken) {
             final sl = GetIt.instance;
             if (sl.isRegistered<CacheHelper>()) {
               await sl<CacheHelper>().resetSession();

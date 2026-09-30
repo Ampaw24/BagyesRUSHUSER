@@ -25,8 +25,11 @@ class CustomerDrawer extends StatefulWidget {
   final VoidCallback? onRefundPolicy;
   final VoidCallback? onHelpSupport;
   final VoidCallback? onReportProblem;
+  /// Account tiles are only shown when their callback is set — a guest
+  /// gets [onSignIn] instead of [onDeleteAccount]/[onLogout].
   final VoidCallback? onDeleteAccount;
   final VoidCallback? onLogout;
+  final VoidCallback? onSignIn;
 
   const CustomerDrawer({
     super.key,
@@ -49,6 +52,7 @@ class CustomerDrawer extends StatefulWidget {
     this.onReportProblem,
     this.onDeleteAccount,
     this.onLogout,
+    this.onSignIn,
   });
 
   @override
@@ -296,22 +300,33 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                           height: 1,
                         ),
                       ),
-                      DrawerTile(
-                        icon: HugeIcons.strokeRoundedDelete02,
-                        label: 'Delete Account',
-                        color: AppColors.warning,
-                        onTap: widget.onDeleteAccount,
-                        fadeAnim: _staggeredFade(9),
-                        slideAnim: _staggeredSlide(9),
-                      ),
-                      DrawerTile(
-                        icon: HugeIcons.strokeRoundedLogout01,
-                        label: 'Logout',
-                        color: AppColors.error,
-                        onTap: widget.onLogout,
-                        fadeAnim: _staggeredFade(10),
-                        slideAnim: _staggeredSlide(10),
-                      ),
+                      if (widget.onDeleteAccount != null)
+                        DrawerTile(
+                          icon: HugeIcons.strokeRoundedDelete02,
+                          label: 'Delete Account',
+                          color: AppColors.warning,
+                          onTap: widget.onDeleteAccount,
+                          fadeAnim: _staggeredFade(9),
+                          slideAnim: _staggeredSlide(9),
+                        ),
+                      if (widget.onLogout != null)
+                        DrawerTile(
+                          icon: HugeIcons.strokeRoundedLogout01,
+                          label: 'Logout',
+                          color: AppColors.error,
+                          onTap: widget.onLogout,
+                          fadeAnim: _staggeredFade(10),
+                          slideAnim: _staggeredSlide(10),
+                        ),
+                      if (widget.onSignIn != null)
+                        DrawerTile(
+                          icon: HugeIcons.strokeRoundedLogin01,
+                          label: 'Sign in',
+                          color: AppColors.primary,
+                          onTap: widget.onSignIn,
+                          fadeAnim: _staggeredFade(10),
+                          slideAnim: _staggeredSlide(10),
+                        ),
                       SizedBox(height: h * 0.015),
                     ],
                   ),

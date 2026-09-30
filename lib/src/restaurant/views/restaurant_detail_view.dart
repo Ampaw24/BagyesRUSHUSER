@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/src/auth/views/auth_gate.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/menu_item.dart';
@@ -77,7 +78,8 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView>
     final restaurant = _vm.state.restaurant;
     if (restaurant != null) {
       final vendorId = _vendorId(restaurant);
-      if (vendorId != null) {
+      // A guest has no cart — don't call the cart API for them.
+      if (vendorId != null && AuthGate.isSignedIn(context)) {
         final cartVm = _cartVm ?? context.read<CartViewModel>();
         if (cartVm.cart?.vendorId != vendorId) {
           cartVm.loadCart(vendorId);
@@ -108,7 +110,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView>
   /// [MenuItem.id] — both are required as `int`s by the cart endpoints.
   String? _vendorId(Restaurant restaurant) => restaurant.numericId?.toString();
 
-  Future<void> _onAddItem(Restaurant restaurant, MenuItem item) async {
+  void _onAddItem(Restaurant restaurant, MenuItem item) {
     if (!restaurant.isOpen) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -119,6 +121,15 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView>
     }
     final vendorId = _vendorId(restaurant);
     if (vendorId == null) return;
+    // A guest signs in first; the add then carries on by itself.
+    AuthGate.requireAuth(
+      context,
+      reason: 'Sign in to add items to your cart.',
+      action: () => _addItem(vendorId, item),
+    );
+  }
+
+  Future<void> _addItem(String vendorId, MenuItem item) async {
     final cartVm = context.read<CartViewModel>();
 
     final bool succeeded;

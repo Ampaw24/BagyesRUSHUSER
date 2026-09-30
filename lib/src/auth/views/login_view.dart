@@ -16,9 +16,16 @@ import '../../../core/router/router.dart';
 import '../../../core/widgets/app_logo_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/decorative_background.dart';
+import 'widgets/auth_back_button.dart';
 
 class LoginView extends StatefulWidget {
-  const LoginView({super.key});
+  const LoginView({super.key, this.returnOnSuccess = false});
+
+  /// Set when a guest sign-in prompt pushed this screen (see
+  /// AppNavigator.toLoginForResult): a customer's successful login pops back
+  /// to that screen with `true`, so their action can continue, instead of
+  /// resetting the stack to home.
+  final bool returnOnSuccess;
 
   @override
   _LoginViewState createState() => _LoginViewState();
@@ -60,15 +67,21 @@ class _LoginViewState extends State<LoginView>
     _submitting = false;
 
     if (vm.state is LoggedIn) {
-      final role = context.read<CurrentUserProvider>().user?.role;
+      final isVendor =
+          context.read<CurrentUserProvider>().user?.isVendor ?? false;
       AppToast.show(
         context,
         isSuccess: true,
         title: 'Login Successful',
         subtitle: 'Welcome back to bagyesRUSH!',
       );
-      if (role == 'vendor') {
+      if (isVendor) {
         AppNavigator.toVendorHome(context);
+      } else if (widget.returnOnSuccess) {
+        // Stop listening first — a later LoggedIn emit while the pop
+        // animates must not pop a second (underlying) screen.
+        _vm?.removeListener(_onAuthStateChanged);
+        context.pop(true);
       } else {
         AppNavigator.toHome(context);
       }
@@ -261,21 +274,7 @@ class _LoginViewState extends State<LoginView>
     final logoSize = isTablet ? sw * 0.20 : sw * 0.28;
     return Row(
       children: [
-        GestureDetector(
-          onTap: () => context.go(AppRoutes.onboarding),
-          child: Container(
-            padding: EdgeInsets.all(sw * 0.018),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(sw * 0.022),
-            ),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: (sw * 0.045).clamp(16.0, 22.0),
-              color: Colors.black87,
-            ),
-          ),
-        ),
+        const AuthBackButton(),
         SizedBox(width: sw * 0.03),
         AppLogoCard(size: logoSize),
       ],

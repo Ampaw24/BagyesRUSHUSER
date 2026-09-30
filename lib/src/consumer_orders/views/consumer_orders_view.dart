@@ -14,8 +14,21 @@ import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 import 'package:bagyesrushappusernew/src/report/widgets/report_quick_action_sheet.dart';
 
-class ConsumerOrdersView extends StatelessWidget {
+class ConsumerOrdersView extends StatefulWidget {
   const ConsumerOrdersView({super.key});
+
+  @override
+  State<ConsumerOrdersView> createState() => _ConsumerOrdersViewState();
+}
+
+class _ConsumerOrdersViewState extends State<ConsumerOrdersView> {
+  @override
+  void initState() {
+    super.initState();
+    // Re-fetches after a sign-out/sign-in within the same app run; the
+    // shared view model only loads by itself when first created.
+    context.read<OrdersViewModel>().ensureLoaded();
+  }
 
   @override
   Widget build(BuildContext context) {

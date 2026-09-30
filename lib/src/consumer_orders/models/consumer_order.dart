@@ -230,12 +230,16 @@ class ConsumerOrder {
   final String? driverName;
   final String? driverPhone;
 
-  /// Rider profile extras (`photo_url`, `vehicle_type`, `plate_number`).
-  /// Documented on the realtime `rider.location` event; read from the
-  /// order's `rider` object too when the backend includes them there.
+  /// Rider profile extras — the same fields the parcel quote's `rider`
+  /// carries (`photo_url`, `vehicle_type_label`, `rating`, `review_count`,
+  /// `deliveries_completed`) plus `plate_number` from the realtime
+  /// `rider.location` event. Each is null until the backend sends it.
   final String? driverPhotoUrl;
   final String? driverVehicleType;
   final String? driverPlateNumber;
+  final double? driverRating;
+  final int? driverReviewCount;
+  final int? driverDeliveriesCompleted;
   final String paymentMethod;
   final PaymentStatus paymentStatus;
 
@@ -293,6 +297,9 @@ class ConsumerOrder {
     this.driverPhotoUrl,
     this.driverVehicleType,
     this.driverPlateNumber,
+    this.driverRating,
+    this.driverReviewCount,
+    this.driverDeliveriesCompleted,
     this.riderLocation,
     this.deliveryPin,
     this.parcelDirection,
@@ -330,6 +337,9 @@ class ConsumerOrder {
     String? driverPhotoUrl,
     String? driverVehicleType,
     String? driverPlateNumber,
+    double? driverRating,
+    int? driverReviewCount,
+    int? driverDeliveriesCompleted,
     RiderLocation? riderLocation,
     DateTime? waitExpiresAt,
     double? arrivalDistanceMetres,
@@ -362,6 +372,10 @@ class ConsumerOrder {
       driverPhotoUrl: driverPhotoUrl ?? this.driverPhotoUrl,
       driverVehicleType: driverVehicleType ?? this.driverVehicleType,
       driverPlateNumber: driverPlateNumber ?? this.driverPlateNumber,
+      driverRating: driverRating ?? this.driverRating,
+      driverReviewCount: driverReviewCount ?? this.driverReviewCount,
+      driverDeliveriesCompleted:
+          driverDeliveriesCompleted ?? this.driverDeliveriesCompleted,
       riderLocation: riderLocation ?? this.riderLocation,
       deliveryPin: this.deliveryPin ?? deliveryPin,
       parcelDirection: parcelDirection ?? this.parcelDirection,
@@ -426,8 +440,17 @@ class ConsumerOrder {
       driverName: rider?['name'] as String? ?? json['driver_name'] as String?,
       driverPhone: rider?['phone'] as String? ?? json['driver_phone'] as String?,
       driverPhotoUrl: JsonUtils.asStringOrNull(rider?['photo_url']),
-      driverVehicleType: JsonUtils.asStringOrNull(rider?['vehicle_type']),
+      driverVehicleType: JsonUtils.asStringOrNull(
+        rider?['vehicle_type_label'] ?? rider?['vehicle_type'],
+      ),
       driverPlateNumber: JsonUtils.asStringOrNull(rider?['plate_number']),
+      driverRating: JsonUtils.firstDoubleOrNull(rider, const ['rating']),
+      driverReviewCount: rider?['review_count'] == null
+          ? null
+          : JsonUtils.asInt(rider!['review_count']),
+      driverDeliveriesCompleted: rider?['deliveries_completed'] == null
+          ? null
+          : JsonUtils.asInt(rider!['deliveries_completed']),
       paymentMethod: payment?['method'] as String? ?? json['payment_method'] as String? ?? '',
       paymentStatus: _paymentStatusFromString(
           payment?['status'] as String? ?? json['payment_status'] as String?),

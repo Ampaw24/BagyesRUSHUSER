@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/utils/phone_launcher.dart';
+import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'tracking_card.dart';
 
@@ -27,6 +28,8 @@ class TrackingRiderCard extends StatelessWidget {
     final phone = order.driverPhone?.trim() ?? '';
     final vehicle = _vehicleLabel(order.driverVehicleType);
     final plate = order.driverPlateNumber?.trim() ?? '';
+    final rating = order.driverRating;
+    final deliveries = order.driverDeliveriesCompleted ?? 0;
 
     return TrackingCard(
       child: Row(
@@ -56,6 +59,14 @@ class TrackingRiderCard extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
+                if (rating != null || deliveries > 0) ...[
+                  SizedBox(height: w * 0.008),
+                  _RiderStats(
+                    rating: rating,
+                    reviewCount: order.driverReviewCount,
+                    deliveries: deliveries,
+                  ),
+                ],
                 if (vehicle != null || plate.isNotEmpty) ...[
                   SizedBox(height: w * 0.012),
                   Wrap(
@@ -147,37 +158,13 @@ class _RiderAvatar extends StatelessWidget {
     final size = w * 0.15;
     final url = photoUrl?.trim() ?? '';
 
-    final initial = Container(
-      color: AppColors.primary.withValues(alpha: 0.1),
-      alignment: Alignment.center,
-      child: Text(
-        name.isEmpty ? '?' : name[0].toUpperCase(),
-        style: TextStyle(
-          fontSize: size * 0.4,
-          fontWeight: FontWeight.w800,
-          color: AppColors.primary,
-        ),
-      ),
-    );
-
     final avatar = Container(
       padding: EdgeInsets.all(size * 0.05),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
-      child: ClipOval(
-        child: SizedBox.square(
-          dimension: size,
-          child: url.isEmpty
-              ? initial
-              : Image.network(
-                  url,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => initial,
-                ),
-        ),
-      ),
+      child: NetworkAvatar(name: name, photoUrl: url, size: size),
     );
 
     if (url.isEmpty) return avatar;
@@ -188,6 +175,57 @@ class _RiderAvatar extends StatelessWidget {
         onTap: () => _showPhoto(context, url),
         child: avatar,
       ),
+    );
+  }
+}
+
+/// "★ 4.8 (132) · 486 deliveries".
+class _RiderStats extends StatelessWidget {
+  const _RiderStats({
+    required this.rating,
+    required this.reviewCount,
+    required this.deliveries,
+  });
+
+  final double? rating;
+  final int? reviewCount;
+  final int deliveries;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final style = TextStyle(
+      fontSize: w * 0.03,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textSecondary,
+    );
+    final rating = this.rating;
+    final reviews = reviewCount;
+
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: w * 0.015,
+      children: [
+        if (rating != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.star_rounded, size: w * 0.04, color: AppColors.accent),
+              SizedBox(width: w * 0.006),
+              Text(
+                reviews == null
+                    ? rating.toStringAsFixed(1)
+                    : '${rating.toStringAsFixed(1)} ($reviews)',
+                style: style.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        if (rating != null && deliveries > 0) Text('·', style: style),
+        if (deliveries > 0) Text('$deliveries deliveries', style: style),
+      ],
     );
   }
 }

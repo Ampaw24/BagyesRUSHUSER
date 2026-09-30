@@ -385,7 +385,7 @@ class _SignupViewState extends State<SignupView>
               if (_currentStep > 0) {
                 _previousStep();
               } else {
-                AppNavigator.toOnboarding(context);
+                AppNavigator.backOrWelcome(context);
               }
             },
           ),

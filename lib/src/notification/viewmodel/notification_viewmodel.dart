@@ -1,12 +1,19 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/notification/repository/notification_repository.dart';
 import 'package:bagyesrushappusernew/src/notification/viewmodel/notification_state.dart';
 
-class NotificationViewmodel extends ViewModel<NotificationState> {
-  NotificationViewmodel({required NotificationRepository repository})
-      : _repository = repository,
-        super(const NotificationInitial());
+class NotificationViewmodel extends ViewModel<NotificationState>
+    with SessionAware {
+  NotificationViewmodel({
+    required NotificationRepository repository,
+    required CurrentUserProvider session,
+  })  : _repository = repository,
+        super(const NotificationInitial()) {
+    bindSession(session);
+  }
 
   final NotificationRepository _repository;
 
@@ -135,4 +142,15 @@ class NotificationViewmodel extends ViewModel<NotificationState> {
   /// Resets state to [NotificationInitial] after a one-shot action has been
   /// handled.
   void resetState() => emit(const NotificationInitial());
+
+  /// A guest signing in from an already-open screen (e.g. Home) never
+  /// re-runs that screen's own initial badge fetch.
+  @override
+  void onSignedIn() => getUnreadCount();
+
+  @override
+  void onSignedOut() {
+    _unreadCount = 0;
+    emit(const NotificationInitial());
+  }
 }

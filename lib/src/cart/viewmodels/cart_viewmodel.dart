@@ -1,5 +1,7 @@
 import 'package:dartz/dartz.dart';
 
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
@@ -9,10 +11,14 @@ import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/repositories/cart_repository.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_state.dart';
 
-class CartViewModel extends ViewModel<CartState> {
-  CartViewModel({required CartRepository repository})
-      : _repository = repository,
-        super(const CartInitial());
+class CartViewModel extends ViewModel<CartState> with SessionAware {
+  CartViewModel({
+    required CartRepository repository,
+    required CurrentUserProvider session,
+  })  : _repository = repository,
+        super(const CartInitial()) {
+    bindSession(session);
+  }
 
   final CartRepository _repository;
 
@@ -264,6 +270,9 @@ class CartViewModel extends ViewModel<CartState> {
   /// Resets to [CartInitial] — call on logout so a new session doesn't
   /// briefly see the previous customer's cart.
   void reset() => emit(const CartInitial());
+
+  @override
+  void onSignedOut() => reset();
 
   /// Common tail of every mutation: on failure, rolls back to [previous]
   /// (never destroying already-good cart data over a transient mutation

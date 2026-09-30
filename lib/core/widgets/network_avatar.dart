@@ -1,0 +1,79 @@
+import 'package:flutter/material.dart';
+
+import '../../constant/app_theme.dart';
+
+/// "Kofi Asante" → "KA", "Ama" → "A", "" → "?".
+String personInitials(String name) {
+  final parts =
+      name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return '?';
+  final first = parts.first[0];
+  final second = parts.length > 1 ? parts.last[0] : '';
+  return (first + second).toUpperCase();
+}
+
+/// Circular person avatar: the photo at [photoUrl] once it has loaded, the
+/// name's initials while it loads, when there is no URL, or when the image
+/// fails (404, offline, …) — never an empty circle.
+class NetworkAvatar extends StatelessWidget {
+  const NetworkAvatar({
+    super.key,
+    required this.name,
+    required this.size,
+    this.photoUrl,
+    this.backgroundColor,
+    this.foregroundColor = AppColors.primary,
+  });
+
+  final String name;
+  final double size;
+  final String? photoUrl;
+
+  /// Initials background; defaults to a light tint of [foregroundColor].
+  final Color? backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = photoUrl?.trim() ?? '';
+    final initials = Container(
+      color: backgroundColor ?? foregroundColor.withValues(alpha: 0.12),
+      alignment: Alignment.center,
+      child: Text(
+        personInitials(name),
+        style: TextStyle(
+          fontSize: size * 0.36,
+          fontWeight: FontWeight.w700,
+          color: foregroundColor,
+        ),
+      ),
+    );
+
+    return ClipOval(
+      child: SizedBox.square(
+        dimension: size,
+        child: url.isEmpty
+            ? initials
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => initials,
+                frameBuilder: (_, image, frame, loadedSync) {
+                  if (loadedSync) return image;
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      initials,
+                      AnimatedOpacity(
+                        opacity: frame == null ? 0 : 1,
+                        duration: const Duration(milliseconds: 250),
+                        child: image,
+                      ),
+                    ],
+                  );
+                },
+              ),
+      ),
+    );
+  }
+}

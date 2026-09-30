@@ -10,6 +10,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/widgets/app_logo_card.dart';
 import '../../../core/widgets/decorative_background.dart';
+import '../../auth/views/widgets/auth_back_button.dart';
 import '../models/app_role.dart';
 import '../viewmodels/onboarding_viewmodel.dart';
 
@@ -118,6 +119,10 @@ class _OnboardingViewState extends State<OnboardingView>
     }
   }
 
+  /// True when a guest opened this from a "Create account" prompt — they
+  /// get a back arrow instead of "Continue as guest" (they already are one).
+  bool get _openedFromGuestMode => ModalRoute.of(context)?.canPop ?? false;
+
   String _ctaLabel(OnboardingViewModel viewModel) {
     final selected = viewModel.state.selectedRole;
     if (selected == null) return 'Select an option';
@@ -184,6 +189,8 @@ class _OnboardingViewState extends State<OnboardingView>
                           // Login Link
                           _buildLoginLink(size),
 
+                          if (!_openedFromGuestMode) _buildGuestLink(size),
+
                           SizedBox(height: size.height * 0.03),
                         ],
                       ),
@@ -242,9 +249,12 @@ class _OnboardingViewState extends State<OnboardingView>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (_openedFromGuestMode) ...[
+              const AuthBackButton(),
+              SizedBox(width: size.width * 0.03),
+            ],
             GestureDetector(
               onTap: () => context.go(AppRoutes.vendorHome),
               child: AppLogoCard(size: size.width * 0.22),
@@ -405,6 +415,34 @@ class _OnboardingViewState extends State<OnboardingView>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Opt-in guest mode (Apple guideline 5.1.1(v)): browse without an
+  /// account; sign-in is asked for only at account features (see AuthGate).
+  Widget _buildGuestLink(Size size) {
+    return TextButton.icon(
+      onPressed: () => context.go(AppRoutes.home),
+      iconAlignment: IconAlignment.end,
+      icon: Icon(Icons.arrow_forward_rounded, size: size.width * 0.045),
+      label: Text(
+        'Continue as guest',
+        style: TextStyle(
+          fontSize: size.width * 0.037,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.textPrimary,
+        padding: EdgeInsets.symmetric(
+          horizontal: size.width * 0.05,
+          vertical: size.width * 0.025,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(size.width * 0.06),
+          side: const BorderSide(color: AppColors.border),
         ),
       ),
     );

@@ -21,6 +21,14 @@ class User extends Equatable {
   final bool phoneVerified;
   final dynamic profile;
 
+  /// Some profile endpoints omit `role`, but a vendor's profile still
+  /// parses as a [VendorProfile] (see [User.fromJson]).
+  bool get isVendor => role == 'vendor' || profile is VendorProfile;
+
+  /// Null for vendors — only customers have a [CustomerProfile].
+  CustomerProfile? get customerProfile =>
+      profile is CustomerProfile ? profile as CustomerProfile : null;
+
   User copyWith({
     String? id,
     String? email,
