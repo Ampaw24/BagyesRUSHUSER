@@ -1,82 +1,15 @@
-import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 
-/// Serves canned JSON per `METHOD path`, so the real repository parsing and
-/// view-model merging run against realistic payloads.
-class _StubAdapter implements HttpClientAdapter {
-  final Map<String, Object> routes = {};
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    final key = '${options.method} ${options.path}';
-    final body = routes[key];
-    if (body == null) {
-      return ResponseBody.fromString(
-        '{"message":"not found"}',
-        404,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType],
-        },
-      );
-    }
-    return ResponseBody.fromString(
-      jsonEncode(body),
-      200,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-class _FakeRealtime extends Fake implements RealtimeService {
-  @override
-  Stream<OrderStatusEvent> get orderStatusEvents => const Stream.empty();
-
-  @override
-  Stream<RiderLocationEvent> get riderLocationEvents => const Stream.empty();
-}
-
-Map<String, dynamic> _fullOrder({
-  String status = 'pending',
-  String paymentStatus = 'pending',
-}) => {
-  'id': 1,
-  'status': status,
-  'vendor': {'id': 7, 'name': 'Auntie Muni', 'logo_url': ''},
-  'items': [
-    {'id': 1, 'name': 'Jollof', 'quantity': 2, 'unit_price': 25.0},
-  ],
-  'totals': {
-    'subtotal': 50.0,
-    'delivery_fee': 10.0,
-    'service_fee': 0.0,
-    'discount': 0.0,
-    'total': 60.0,
-  },
-  'delivery': {'address': 'East Legon'},
-  'payment': {'method': 'mobile_money', 'status': paymentStatus},
-  'created_at': '2026-09-29T10:00:00Z',
-};
+import 'support/order_test_support.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -114,7 +47,7 @@ void main() {
     });
 
     test('an order payload with a pending payment is not paid', () {
-      final result = OrderPaymentVerification.fromPayload(_fullOrder());
+      final result = OrderPaymentVerification.fromPayload(fullOrder());
       expect(result.isPaid, isFalse);
       expect(result.isFailed, isFalse);
     });
@@ -162,16 +95,54 @@ void main() {
     expect(OrderPaymentOutcome.paid.followUpMessage, isNull);
     expect(OrderPaymentOutcome.processing.followUpMessage, isNotNull);
     expect(OrderPaymentOutcome.dismissed.followUpMessage, isNotNull);
+    expect(OrderPaymentOutcome.failed.followUpMessage, isNotNull);
+  });
+
+  group('OrderPaymentVerification receipt details', () {
+    test('reads reference, paid time and channel from the top level', () {
+      final result = OrderPaymentVerification.fromPayload({
+        'status': 'success',
+        'reference': 'ref_1',
+        'paid_at': '2026-10-01T12:30:00Z',
+        'channel': 'mobile_money',
+      });
+      expect(result.reference, 'ref_1');
+      expect(result.paidAt, DateTime.utc(2026, 10, 1, 12, 30));
+      expect(result.channelLabel, 'mobile_money');
+    });
+
+    test('finds them inside a nested payment / transaction block', () {
+      final result = OrderPaymentVerification.fromPayload({
+        'payment': {
+          'status': 'paid',
+          'reference': 'ref_2',
+          'method_label': 'MTN Mobile Money',
+        },
+        'transaction': {'paid_at': '2026-10-01T12:30:00Z'},
+      });
+      expect(result.isPaid, isTrue);
+      expect(result.reference, 'ref_2');
+      expect(result.channelLabel, 'MTN Mobile Money');
+      expect(result.paidAt, isNotNull);
+    });
+
+    test('anything the backend omits stays null', () {
+      final result = OrderPaymentVerification.fromPayload({'status': 'success'});
+      expect(result.reference, isNull);
+      expect(result.paidAt, isNull);
+      expect(result.channelLabel, isNull);
+      expect(result.walletApplied, isNull);
+    });
   });
 
   group('OrdersViewModel payment state', () {
-    late _StubAdapter adapter;
+    late StubAdapter adapter;
     late OrdersViewModel vm;
 
     setUp(() async {
-      adapter = _StubAdapter()
+      adapter = StubAdapter()
         ..routes['GET /customer/orders'] = {
-          'data': [_fullOrder()],
+          'data': [fullOrder()],
           'meta': {'current_page': 1, 'last_page': 1, 'total': 1},
         }
         ..routes['GET /customer/orders/1/track'] = {
@@ -180,7 +151,7 @@ void main() {
       final dio = Dio()..httpClientAdapter = adapter;
       vm = OrdersViewModel(
         ConsumerOrdersRepository(client: dio),
-        _FakeRealtime(),
+        FakeRealtime(),
         CurrentUserProvider(),
       );
       await pumpEventQueue();
@@ -215,7 +186,7 @@ void main() {
         'data': {'status': 'accepted', 'payment_status': 'pending'},
       };
       adapter.routes['GET /customer/orders'] = {
-        'data': [_fullOrder(status: 'accepted')],
+        'data': [fullOrder(status: 'accepted')],
       };
       await vm.trackOrder('1');
       await vm.refresh();
@@ -228,7 +199,7 @@ void main() {
       'a track payload without payment info keeps the known status',
       () async {
         adapter.routes['GET /customer/orders'] = {
-          'data': [_fullOrder(paymentStatus: 'paid')],
+          'data': [fullOrder(paymentStatus: 'paid')],
         };
         await vm.refresh();
         expect(vm.orderById('1')?.paymentStatus, PaymentStatus.paid);

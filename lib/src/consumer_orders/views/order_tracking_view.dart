@@ -10,11 +10,12 @@ import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/views/payment_receipt_view.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/cancel_order_reason_sheet.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_codes_panel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_tracking_placeholders.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/payment_confirmation_dialog.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_card.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_header.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_live_map.dart';
@@ -195,9 +196,21 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
         nowPaid &&
         mounted &&
         ModalRoute.of(context)?.isCurrent == true) {
-      PaymentConfirmationDialog.show(context, verification: Future.value(true));
+      _openReceipt();
     }
     _wasAwaitingPayment = awaiting;
+  }
+
+  /// Shows the payment receipt for this order. Leaving it for "Home" is the
+  /// only exit that moves off this screen — "track" is already where we are.
+  Future<void> _openReceipt() async {
+    final result = await PaymentReceiptView.open(
+      context,
+      PaymentReceiptArgs(orderId: widget.orderId, knownPaid: true),
+    );
+    if (mounted && result.exit == PaymentExit.home) {
+      AppNavigator.toHome(context);
+    }
   }
 
   /// Runs the shared Paystack flow ([OrderPaymentLauncher]). Failures are
@@ -207,12 +220,16 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
     if (_isPaying) return;
     setState(() => _isPaying = true);
     try {
-      final outcome = await OrderPaymentLauncher.pay(
+      final result = await OrderPaymentLauncher.pay(
         context,
         orderId: orderId,
         paymentMethod: paymentMethod,
       );
-      final message = outcome.followUpMessage;
+      if (mounted && result.exit == PaymentExit.home) {
+        AppNavigator.toHome(context);
+        return;
+      }
+      final message = result.outcome.followUpMessage;
       if (mounted && message != null) {
         ScaffoldMessenger.of(
           context,
@@ -321,6 +338,9 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final isParcel = order.parcelDirection != null;
     final hasRider = order.driverName != null;
+    // Chat is scoped to orders still in progress — gone once the order is
+    // delivered, cancelled or refunded (as in the chat inbox).
+    final canChat = order.status.isActive;
     final shortId = order.id.split('-').last;
     final vendorName = order.restaurantName.trim();
 
@@ -336,7 +356,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                 ].join(' · '),
           actions: [
             // Once a rider is assigned, chat moves onto the rider card.
-            if (!hasRider)
+            if (canChat && !hasRider)
               TrackingCircleButton(
                 icon: Icons.chat_bubble_outline_rounded,
                 tooltip: 'Chat',
@@ -393,13 +413,18 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                 if (hasRider) ...[
                   TrackingRiderCard(
                     order: order,
-                    onChat: () => _openChat(order),
+                    onChat: canChat ? () => _openChat(order) : null,
                   ),
                   SizedBox(height: w * 0.06),
                 ],
 
                 // ── Items, total and order details ──
-                TrackingOrderSummary(order: order),
+                TrackingOrderSummary(
+                  order: order,
+                  onViewReceipt: order.paymentStatus == PaymentStatus.paid
+                      ? _openReceipt
+                      : null,
+                ),
 
                 if (order.needsPayment) ...[
                   SizedBox(height: w * 0.03),

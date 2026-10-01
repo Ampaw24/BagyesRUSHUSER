@@ -73,6 +73,9 @@ OrderStatus orderStatusFromString(String value) {
     case 'cancelled':
     case 'canceled':
     case 'rejected':
+    // A refund only follows a cancelled/rejected order — and must not fall
+    // through to `pending` below, which would show it as in progress.
+    case 'refunded':
       return OrderStatus.cancelled;
     default:
       return OrderStatus.pending;

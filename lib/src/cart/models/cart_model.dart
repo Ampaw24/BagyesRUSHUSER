@@ -150,6 +150,17 @@ class CartModel {
   String? get promoCode => promo?.code;
   String? get promoError => promo?.applied == false ? promo?.error : null;
 
+  /// The one client-side money figure: [total] is priced for the default
+  /// address only, so another address's total is estimated from the
+  /// backend identity (see [debugCheckTotalsIdentity]) and its quoted
+  /// [deliveryFee]. The backend still prices the order on creation.
+  double? estimatedTotalWith(double deliveryFee) {
+    if (subtotal == null) return null;
+    final estimate =
+        subtotal! - (discount ?? 0) + deliveryFee + (serviceFee ?? 0);
+    return (estimate * 100).round() / 100;
+  }
+
   /// User-facing reason for [canCheckout] being false.
   String? get checkoutBlockedReason {
     if (canCheckout) return null;

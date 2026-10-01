@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
+import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
@@ -259,6 +262,36 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
       _awaitingPayment.remove(orderId);
     }
     return result;
+  }
+
+  /// Asks the server where a payment stands — by [reference] when known,
+  /// otherwise from the order's own payment status. Never throws: a definitive
+  /// rejection (422) is reported as failed with the server's wording, and any
+  /// other problem leaves the charge unknown (still pending) rather than
+  /// inviting a second payment.
+  Future<OrderPaymentVerification> checkPayment(
+    String orderId, {
+    String? reference,
+  }) async {
+    try {
+      if (reference != null && reference.isNotEmpty) {
+        return await verifyPayment(orderId, reference: reference);
+      }
+      await trackOrder(orderId);
+      final status = orderById(orderId)?.paymentStatus;
+      return OrderPaymentVerification(
+        isPaid: status == PaymentStatus.paid,
+        isFailed: status == PaymentStatus.failed,
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 422) return const OrderPaymentVerification();
+      return OrderPaymentVerification(
+        isFailed: true,
+        message: NetworkUtils.handleDioException(e).value.message,
+      );
+    } catch (_) {
+      return const OrderPaymentVerification();
+    }
   }
 
   /// See [_awaitingPayment].

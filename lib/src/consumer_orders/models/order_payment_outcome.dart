@@ -8,16 +8,39 @@ enum OrderPaymentOutcome {
   /// charge.
   processing,
 
+  /// The gateway or server reported the charge as failed.
+  failed,
+
   /// The customer closed the checkout without paying.
   dismissed;
 
-  /// Snackbar copy to show once the flow ends; null when the confirmation
-  /// dialog has already told the customer.
+  /// Snackbar copy to show once the flow ends; null when the receipt has
+  /// already told the customer.
   String? get followUpMessage => switch (this) {
     OrderPaymentOutcome.paid => null,
     OrderPaymentOutcome.processing =>
       'We\'re confirming your payment — your order will update shortly.',
+    OrderPaymentOutcome.failed ||
     OrderPaymentOutcome.dismissed =>
       'Payment not completed. Tap "Pay Now" to finish.',
   };
+}
+
+/// Where the customer asked to go when leaving the payment receipt.
+enum PaymentExit {
+  /// The order's tracking screen — the default, also for back/close.
+  track,
+  home,
+
+  /// Failed payments only: start the payment again.
+  retry,
+}
+
+/// What [OrderPaymentLauncher.pay] reports back: how the payment ended and
+/// where the customer wants to go next.
+class OrderPaymentResult {
+  const OrderPaymentResult(this.outcome, [this.exit = PaymentExit.track]);
+
+  final OrderPaymentOutcome outcome;
+  final PaymentExit exit;
 }

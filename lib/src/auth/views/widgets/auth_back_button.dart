@@ -6,13 +6,16 @@ import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 /// screen the user came from — e.g. a guest's sign-in prompt — or to the
 /// welcome screen when there's nothing to pop.
 class AuthBackButton extends StatelessWidget {
-  const AuthBackButton({super.key});
+  const AuthBackButton({super.key, this.onPressed});
+
+  /// Overrides the default pop-or-welcome behaviour.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.sizeOf(context).width;
     return GestureDetector(
-      onTap: () => AppNavigator.backOrWelcome(context),
+      onTap: onPressed ?? () => AppNavigator.backOrWelcome(context),
       child: Container(
         padding: EdgeInsets.all(sw * 0.018),
         decoration: BoxDecoration(

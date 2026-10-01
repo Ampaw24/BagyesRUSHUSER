@@ -38,6 +38,22 @@ if (keystorePropertiesFile.exists()) {
     }
 }
 
+def dotEnv = [:]
+def dotEnvFile = rootProject.file('../.env')
+if (dotEnvFile.exists()) {
+    dotEnvFile.eachLine('UTF-8') { line ->
+        def trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('#') || !trimmed.contains('=')) return
+        def (key, value) = trimmed.split('=', 2)*.trim()
+        dotEnv[key] = value.replaceAll(/^["']|["']$/, '')
+    }
+}
+
+def googleMapsApiKey = dotEnv['G_CLIENTID_ANDROID']
+if (!googleMapsApiKey) {
+    throw new GradleException("G_CLIENTID_ANDROID (Google Maps API key) is missing from .env")
+}
+
 android {
     namespace "com.bagye.bagyesrush2"
     compileSdk 36
@@ -53,6 +69,7 @@ android {
         targetSdk 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        manifestPlaceholders += [googleMapsApiKey: googleMapsApiKey]
     }
 
     signingConfigs {

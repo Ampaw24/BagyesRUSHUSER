@@ -177,6 +177,11 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
+  /// Back from login always lands on the welcome screen — wherever login
+  /// was opened from — so a signed-out user can pick log in, register or
+  /// guest mode from there.
+  void _backToWelcome() => AppNavigator.toOnboarding(context);
+
   void _showErrorDialog(BuildContext context, String title, String message) {
     CustomDialog.showError(context: context, title: title, subtitle: message);
   }
@@ -200,70 +205,78 @@ class _LoginViewState extends State<LoginView>
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final keyboardVisible = keyboardHeight > 0;
 
-    return Scaffold(
-      backgroundColor: kDecorativeBackgroundColor,
-      body: DecorativeBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isTablet = constraints.maxWidth > 600;
-              final horizontalPadding = isTablet
-                  ? constraints.maxWidth * 0.15
-                  : constraints.maxWidth * 0.06;
+    // Also routes the system back gesture/button to the welcome screen
+    // instead of popping to the previous route.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _backToWelcome();
+      },
+      child: Scaffold(
+        backgroundColor: kDecorativeBackgroundColor,
+        body: DecorativeBackground(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isTablet = constraints.maxWidth > 600;
+                final horizontalPadding = isTablet
+                    ? constraints.maxWidth * 0.15
+                    : constraints.maxWidth * 0.06;
 
-              final sw = constraints.maxWidth;
-              final sh = constraints.maxHeight;
+                final sw = constraints.maxWidth;
+                final sh = constraints.maxHeight;
 
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: sh),
-                  child: IntrinsicHeight(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: EdgeInsets.only(
-                              top: keyboardVisible ? sh * 0.012 : sh * 0.04,
-                            ),
-                            child: FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: SlideTransition(
-                                position: _slideAnimation,
-                                child: _buildLogoSection(sw, isTablet),
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: sh),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: EdgeInsets.only(
+                                top: keyboardVisible ? sh * 0.012 : sh * 0.04,
+                              ),
+                              child: FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: SlideTransition(
+                                  position: _slideAnimation,
+                                  child: _buildLogoSection(sw, isTablet),
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(height: sh * 0.025),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildHeaderSection(sw),
-                                SizedBox(height: sh * 0.060),
-                                _buildPhoneInputSection(loading, sw),
-                                SizedBox(height: sh * 0.025),
-                                _buildPasswordInputSection(loading, sw),
-                                SizedBox(height: sh * 0.070),
-                                _buildLoginButton(context, loading, sw, sh),
-                                const Spacer(),
-                                _buildSignUpLink(sw, sh),
-                              ],
+                            SizedBox(height: sh * 0.025),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildHeaderSection(sw),
+                                  SizedBox(height: sh * 0.060),
+                                  _buildPhoneInputSection(loading, sw),
+                                  SizedBox(height: sh * 0.025),
+                                  _buildPasswordInputSection(loading, sw),
+                                  SizedBox(height: sh * 0.070),
+                                  _buildLoginButton(context, loading, sw, sh),
+                                  const Spacer(),
+                                  _buildSignUpLink(sw, sh),
+                                ],
+                              ),
                             ),
-                          ),
-                          SizedBox(height: sh * 0.015),
-                        ],
+                            SizedBox(height: sh * 0.015),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -274,7 +287,7 @@ class _LoginViewState extends State<LoginView>
     final logoSize = isTablet ? sw * 0.20 : sw * 0.28;
     return Row(
       children: [
-        const AuthBackButton(),
+        AuthBackButton(onPressed: _backToWelcome),
         SizedBox(width: sw * 0.03),
         AppLogoCard(size: logoSize),
       ],

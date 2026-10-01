@@ -7,9 +7,16 @@ import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.d
 /// Items + total, with "View order details" expanding the fee breakdown,
 /// delivery address and payment status.
 class TrackingOrderSummary extends StatefulWidget {
-  const TrackingOrderSummary({super.key, required this.order});
+  const TrackingOrderSummary({
+    super.key,
+    required this.order,
+    this.onViewReceipt,
+  });
 
   final ConsumerOrder order;
+
+  /// Offered once the order is paid; null hides the action.
+  final VoidCallback? onViewReceipt;
 
   @override
   State<TrackingOrderSummary> createState() => _TrackingOrderSummaryState();
@@ -61,6 +68,21 @@ class _TrackingOrderSummaryState extends State<TrackingOrderSummary> {
               : const SizedBox(width: double.infinity),
         ),
         SizedBox(height: w * 0.02),
+        if (widget.onViewReceipt != null)
+          Center(
+            child: TextButton.icon(
+              onPressed: widget.onViewReceipt,
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              icon: Icon(Icons.receipt_long_rounded, size: w * 0.045),
+              label: Text(
+                'View payment receipt',
+                style: TextStyle(
+                  fontSize: w * 0.036,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         Center(
           child: TextButton(
             onPressed: () => setState(() => _expanded = !_expanded),

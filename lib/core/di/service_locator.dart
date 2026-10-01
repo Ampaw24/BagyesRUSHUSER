@@ -8,6 +8,8 @@ import 'package:bagyesrushappusernew/src/cart/repositories/cart_repository.dart'
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart' as consumer_orders;
+import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/payment_receipt_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/orders/repositories/orders_repository.dart';
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
@@ -132,6 +134,11 @@ Future<void> init() async {
   // for its whole lifetime, so every screen watching orders gets live
   // updates, not just whichever tracking screen is currently open.
   sl.registerLazySingleton(() => consumer_orders.OrdersViewModel(sl(), sl(), sl()));
+  // Factory + param — one fresh receipt per payment, keyed by the order and
+  // the gateway reference it was paid with.
+  sl.registerFactoryParam<PaymentReceiptViewModel, PaymentReceiptArgs, void>(
+    (args, _) => PaymentReceiptViewModel(args, sl(), sl()),
+  );
   // Singleton — which orders are already rated is read by My Orders, order
   // tracking and every review sheet, same rationale as OrdersViewModel.
   sl.registerLazySingleton(() => OrderReviewsViewModel(sl(), sl()));

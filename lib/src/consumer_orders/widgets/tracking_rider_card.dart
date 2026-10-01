@@ -15,11 +15,13 @@ class TrackingRiderCard extends StatelessWidget {
   const TrackingRiderCard({
     super.key,
     required this.order,
-    required this.onChat,
+    this.onChat,
   });
 
   final ConsumerOrder order;
-  final VoidCallback onChat;
+
+  /// Null hides the chat button — for an order no longer in progress.
+  final VoidCallback? onChat;
 
   @override
   Widget build(BuildContext context) {
@@ -82,19 +84,21 @@ class TrackingRiderCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: w * 0.02),
-          TrackingCircleButton(
-            icon: Icons.chat_bubble_outline_rounded,
-            tooltip: 'Chat',
-            background: AppColors.success.withValues(alpha: 0.1),
-            foreground: AppColors.success,
-            bordered: false,
-            sizeFactor: 0.12,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onChat();
-            },
-          ),
+          if (onChat case final onChat?) ...[
+            SizedBox(width: w * 0.02),
+            TrackingCircleButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              tooltip: 'Chat',
+              background: AppColors.success.withValues(alpha: 0.1),
+              foreground: AppColors.success,
+              bordered: false,
+              sizeFactor: 0.12,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onChat();
+              },
+            ),
+          ],
           if (phone.isNotEmpty) ...[
             SizedBox(width: w * 0.025),
             TrackingCircleButton(

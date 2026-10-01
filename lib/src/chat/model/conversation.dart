@@ -55,7 +55,13 @@ class ConversationOrderSummary extends Equatable {
         statusLabel: JsonUtils.asString(json['status_label']),
       );
 
-  static const _terminalStatuses = {'delivered', 'cancelled', 'canceled', 'rejected'};
+  static const _terminalStatuses = {
+    'delivered',
+    'cancelled',
+    'canceled',
+    'rejected',
+    'refunded',
+  };
 
   /// Coarse "order still in progress" signal, mirroring `OrderStatus.isActive`
   /// in the consumer-orders feature. Kept as a small self-contained check

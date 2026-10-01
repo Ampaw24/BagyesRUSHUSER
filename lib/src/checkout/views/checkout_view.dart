@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
+import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart';
 import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
 import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
@@ -20,6 +21,7 @@ import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wal
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
+import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
@@ -225,6 +227,46 @@ class _CheckoutViewState extends State<CheckoutView> {
     final vm = context.read<CheckoutViewModel>();
     vm.refreshPaymentMethods();
     vm.selectPaymentMethod(result);
+  }
+
+  /// Shows the amount due before the order is created — placing it starts
+  /// payment straight away, so Cancel leaves the customer free to edit.
+  /// For a non-default address ([total] is null) the amount and wallet split
+  /// shown are estimates; the backend settles both on creation.
+  void _confirmAndPlaceOrder({
+    required CartModel cart,
+    required double? total,
+    required double? deliveryFee,
+    required WalletSplit split,
+  }) {
+    final checkoutVm = context.read<CheckoutViewModel>();
+    final isEstimate = total == null;
+    final amount = total ??
+        (deliveryFee == null ? null : cart.estimatedTotalWith(deliveryFee));
+    final shownSplit = isEstimate
+        ? WalletSplit.from(
+            balance:
+                context.read<CustomerWalletViewmodel>().wallet?.balance ?? 0,
+            total: amount,
+            useWallet: _formFromState(checkoutVm.state).useWallet,
+          )
+        : split;
+    CustomDialog.showConfirmation(
+      context: context,
+      title: 'Confirm Payment',
+      subtitle: _paymentConfirmationMessage(
+        total: amount,
+        split: shownSplit,
+        currency: cart.currency,
+        isEstimate: isEstimate,
+      ),
+      confirmText:
+          shownSplit.coversFully ? 'Pay with Wallet' : 'Proceed to Payment',
+      onConfirm: () => checkoutVm.placeOrder(
+        cart,
+        walletCoversTotal: split.coversFully,
+      ),
+    );
   }
 
   @override
@@ -556,9 +598,11 @@ class _CheckoutViewState extends State<CheckoutView> {
                   onPressed: canPlace
                       ? () {
                           HapticFeedback.mediumImpact();
-                          checkoutVm.placeOrder(
-                            cart,
-                            walletCoversTotal: walletSplit.coversFully,
+                          _confirmAndPlaceOrder(
+                            cart: cart,
+                            total: total,
+                            deliveryFee: deliveryFee,
+                            split: walletSplit,
                           );
                         }
                       : null,
@@ -611,6 +655,34 @@ String _placeOrderLabel({
   }
   final due = split.usesWallet ? split.remaining : total;
   return 'Place Order · ${formatMoney(due, currency: currency)}';
+}
+
+/// [isEstimate] marks a client-side total for a non-default address; [total]
+/// is null only when not even an estimate could be made.
+String _paymentConfirmationMessage({
+  required double? total,
+  required WalletSplit split,
+  required String currency,
+  required bool isEstimate,
+}) {
+  if (total == null) {
+    return 'Your final total, including delivery to this address, is '
+        'confirmed when the order is placed.';
+  }
+  final formatted = formatMoney(total, currency: currency);
+  final amount = isEstimate ? 'an estimated $formatted' : formatted;
+  final message = split.coversFully
+      ? 'You are about to pay $amount from your wallet balance.'
+      : split.usesWallet
+          ? 'You are about to pay $amount — '
+              '${formatMoney(split.walletAmount, currency: currency)} from '
+              'your wallet and '
+              '${formatMoney(split.remaining, currency: currency)} via '
+              'mobile money.'
+          : 'You are about to pay $amount for this order.';
+  return isEstimate
+      ? '$message The final amount is confirmed when the order is placed.'
+      : message;
 }
 
 // ─── Helper widgets ───────────────────────────────────────────────────────
