@@ -3,6 +3,40 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 
+/// Only Paystack's own hosted-checkout domains may be loaded/navigated to.
+/// Everything else (including the merchant's own callback host once the
+/// charge completes) is treated as "left the gateway" rather than followed,
+/// so a compromised or malformed `authorization_url` can never point this
+/// WebView at an arbitrary site.
+const _trustedGatewayHosts = {'checkout.paystack.com', 'standard.paystack.co'};
+
+/// What to do with a navigation request made inside the checkout page.
+enum GatewayNavigation {
+  /// Follow it.
+  allow,
+
+  /// Refuse it (non-https, or otherwise unsafe).
+  block,
+
+  /// The page left the gateway for the merchant's callback — the charge is
+  /// done; close the checkout and verify.
+  complete,
+}
+
+@visibleForTesting
+GatewayNavigation decideGatewayNavigation(
+  Uri? uri, {
+  required bool isMainFrame,
+}) {
+  // Stops scheme hijacking (tel:, intent:, javascript:) and cleartext http
+  // downgrades from ever being followed.
+  if (uri == null || uri.scheme != 'https') return GatewayNavigation.block;
+  if (_trustedGatewayHosts.contains(uri.host)) return GatewayNavigation.allow;
+  // Only the top-level page leaving the gateway means the charge is done —
+  // an embedded frame (bank/3-D Secure, analytics) loading elsewhere isn't.
+  return isMainFrame ? GatewayNavigation.complete : GatewayNavigation.allow;
+}
+
 /// Hosts the Paystack-hosted checkout page returned by
 /// `PaymentGatewayRepository.initializePayment`. Pops `true` once the page
 /// navigates away from the gateway's own domain (Paystack redirects to the
@@ -24,15 +58,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   bool _isLoading = true;
   String? _loadError;
 
-  /// Only Paystack's own hosted-checkout domains may be loaded/navigated to.
-  /// Everything else (including the merchant's own callback host once the
-  /// charge completes) is treated as "left the gateway" rather than followed,
-  /// so a compromised or malformed `authorization_url` can never point this
-  /// WebView at an arbitrary site.
-  static const _trustedGatewayHosts = {
-    'checkout.paystack.com',
-    'standard.paystack.co',
-  };
+  /// Set once the checkout has been closed with "left the gateway", so a
+  /// second navigation event can't pop the screen underneath as well.
+  bool _completed = false;
 
   bool get _isInvalidStartUrl =>
       _startUri.scheme != 'https' || !_trustedGatewayHosts.contains(_startUri.host);
@@ -76,19 +104,20 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
             });
           },
           onNavigationRequest: (request) {
-            final uri = Uri.tryParse(request.url);
-            // Block anything that isn't a plain https:// navigation — stops
-            // scheme hijacking (tel:, intent:, javascript:) and cleartext
-            // http downgrades from ever being followed.
-            if (uri == null || uri.scheme != 'https') {
-              return NavigationDecision.prevent;
+            if (_completed) return NavigationDecision.prevent;
+            switch (decideGatewayNavigation(
+              Uri.tryParse(request.url),
+              isMainFrame: request.isMainFrame,
+            )) {
+              case GatewayNavigation.allow:
+                return NavigationDecision.navigate;
+              case GatewayNavigation.block:
+                return NavigationDecision.prevent;
+              case GatewayNavigation.complete:
+                _completed = true;
+                if (mounted) Navigator.of(context).pop(true);
+                return NavigationDecision.prevent;
             }
-            final leftGateway = !_trustedGatewayHosts.contains(uri.host);
-            if (leftGateway) {
-              Navigator.of(context).pop(true);
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
           },
         ),
       )

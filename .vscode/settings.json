@@ -1,3 +1,5 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "dart.flutterRunAdditionalArgs": ["--dart-define-from-file=env/app.json"],
+    "dart.flutterTestAdditionalArgs": ["--dart-define-from-file=env/app.json"]
 }

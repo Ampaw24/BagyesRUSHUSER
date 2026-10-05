@@ -17,62 +17,6 @@ class PaymentViewmodel extends ViewModel<PaymentState> {
   PaymentWallet? _wallet;
   PaymentWallet? get wallet => _wallet;
 
-  Future<void> initializePayment({
-    required double amount,
-    String currency = 'GHS',
-    required PaymentChannel paymentMethod,
-    MobileMoneyProvider? mobileMoneyProvider,
-    String? phone,
-    required String email,
-    required String orderId,
-    Map<String, dynamic>? metadata,
-  }) async {
-    appLogger.d('PaymentViewmodel.initializePayment → orderId=$orderId');
-    emit(const PaymentLoading());
-
-    final result = await _repository.initializePayment(
-      amount: amount,
-      currency: currency,
-      paymentMethod: paymentMethod,
-      mobileMoneyProvider: mobileMoneyProvider,
-      phone: phone,
-      email: email,
-      orderId: orderId,
-      metadata: metadata,
-    );
-
-    result.fold(
-      (failure) {
-        appLogger.w('PaymentViewmodel.initializePayment → error: ${failure.message}');
-        emit(PaymentError.fromFailure(failure));
-      },
-      (data) {
-        appLogger.i(
-          'PaymentViewmodel.initializePayment → success ref=${data.reference}',
-        );
-        emit(PaymentInitializeSuccess(data));
-      },
-    );
-  }
-
-  Future<void> verifyPayment(String reference) async {
-    appLogger.d('PaymentViewmodel.verifyPayment → reference=$reference');
-    emit(const PaymentLoading());
-
-    final result = await _repository.verifyPayment(reference);
-
-    result.fold(
-      (failure) {
-        appLogger.w('PaymentViewmodel.verifyPayment → error: ${failure.message}');
-        emit(PaymentError.fromFailure(failure));
-      },
-      (data) {
-        appLogger.i('PaymentViewmodel.verifyPayment → status=${data.status}');
-        emit(PaymentVerifySuccess(data));
-      },
-    );
-  }
-
   Future<void> getWallet() async {
     appLogger.d('PaymentViewmodel.getWallet → initiated');
     emit(const PaymentLoading());

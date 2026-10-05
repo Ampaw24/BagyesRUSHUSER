@@ -13,7 +13,6 @@ import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
 import 'package:bagyesrushappusernew/features/parcel/presentation/views/send_parcel_view.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
 import 'package:bagyesrushappusernew/presentation/courier/route_map.dart';
-import 'package:bagyesrushappusernew/presentation/payment/payment.dart';
 import 'package:bagyesrushappusernew/src/referral/views/referral_view.dart';
 import 'package:bagyesrushappusernew/presentation/help_support/help_support_view.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
@@ -329,7 +328,6 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // ── Legacy cart & payment ──
-    GoRoute(path: AppRoutes.payment, builder: (context, state) => Payment()),
 
     // ── Route map (receives coordinates via query params) ──
     GoRoute(

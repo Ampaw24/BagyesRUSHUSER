@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+dir="$(cd "$(dirname "$0")" && pwd)"
+if ! git diff --cached -U0 --diff-filter=AM | "$dir/check-secrets"; then
+  echo "✗ commit blocked: remove the secret above and load it from env/app.json instead." >&2
+  exit 1
+fi

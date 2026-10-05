@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "bagyesRUSH (debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": ["--dart-define-from-file=env/app.json"]
+    },
+    {
+      "name": "bagyesRUSH (profile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": ["--dart-define-from-file=env/app.json"]
+    },
+    {
+      "name": "bagyesRUSH (release)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": ["--dart-define-from-file=env/app.json"]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/active_poller.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import 'widgets/vendor_header.dart';
 import 'widgets/store_toggle_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import 'widgets/new_order_banner.dart';
+import 'widgets/accept_order_dialog.dart';
 import 'widgets/order_card.dart';
 import 'widgets/order_reason_sheet.dart';
 import 'widgets/floating_nav_bar.dart';
@@ -30,13 +32,11 @@ import 'vendor_orders_view.dart';
 import 'vendor_menu_view.dart';
 import 'vendor_earnings_view.dart';
 import '../model/vendor_order.dart';
-import '../../auth/viewmodels/auth_viewmodel.dart';
 import '../../auth/views/change_password_sheet.dart';
 import '../../notification/viewmodel/notification_viewmodel.dart';
-import '../../../states/app.state.dart';
-import '../../../services/auth.service.dart' show ISignup;
 import '../../../core/widgets/custom_dialogs.dart';
 import '../../../core/utils/location_helper.dart';
+import '../../auth/views/logout_action.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -109,29 +109,7 @@ class _VendorHomeState extends State<VendorHome> {
 
   void _handleLogout() {
     _closeDrawer();
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Logout',
-      subtitle: 'Are you sure you want to log out?',
-      confirmText: 'Logout',
-      cancelText: 'Cancel',
-      onConfirm: () async {
-        if (!mounted) return;
-
-        // Clear MVVM auth session
-        await context.read<AuthViewmodel>().logout();
-
-        if (!mounted) return;
-
-        // Clear legacy AppState user data
-        final appState = context.read<AppState>();
-        appState.setUser(IUser());
-        appState.setPayload(ISignup());
-
-        // Back to the welcome screen, replacing the entire stack
-        context.go(AppRoutes.onboarding);
-      },
-    );
+    confirmLogout(context);
   }
 
   @override
@@ -170,6 +148,7 @@ class _VendorHomeState extends State<VendorHome> {
                 index: _navIndex,
                 children: [
                   _DashboardTab(
+                    isActive: _navIndex == 0,
                     vendorProfile: vendorProfile,
                     initials: initials,
                     onDrawerTap: _openDrawer,
@@ -275,12 +254,16 @@ class _VendorHomeState extends State<VendorHome> {
 // ─── Dashboard tab (index 0) ────────────────────────────────────────────
 
 class _DashboardTab extends StatefulWidget {
+  /// Whether this tab is the one on screen — the [IndexedStack] keeps it
+  /// alive while hidden, so it has to be told.
+  final bool isActive;
   final VendorProfile? vendorProfile;
   final String initials;
   final VoidCallback? onDrawerTap;
   final VoidCallback? onViewAllOrders;
   final VoidCallback? onAvatarTap;
   const _DashboardTab({
+    required this.isActive,
     this.vendorProfile,
     required this.initials,
     this.onDrawerTap,
@@ -292,8 +275,7 @@ class _DashboardTab extends StatefulWidget {
   State<_DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends State<_DashboardTab>
-    with WidgetsBindingObserver {
+class _DashboardTabState extends State<_DashboardTab> {
   // Vendors need to see incoming orders promptly without manually pulling
   // to refresh — matches the interval the app already uses elsewhere for
   // order-related polling (see the consumer order-tracking screen's
@@ -302,7 +284,12 @@ class _DashboardTabState extends State<_DashboardTab>
 
   String? _currentLocation;
   bool _isTogglingStore = false;
-  Timer? _pollTimer;
+
+  // Polls only while this tab is on screen and the app is in the foreground.
+  late final _poller = ActivePoller(
+    interval: _pollInterval,
+    onPoll: () => _dashboardVm?.loadDashboard(),
+  );
 
   // Saved reference so dispose() doesn't call context.read on an unmounted
   // widget, and so we can compare against the previous state to show the
@@ -313,7 +300,6 @@ class _DashboardTabState extends State<_DashboardTab>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _fetchLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -330,34 +316,21 @@ class _DashboardTabState extends State<_DashboardTab>
         vm.seedStoreOpen(widget.vendorProfile!.isOpenNow);
       }
       vm.loadDashboard();
-      _startPolling();
+      _poller.attach(active: widget.isActive);
     });
   }
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _pollTimer?.cancel();
-    _dashboardVm?.removeListener(_onDashboardStateChanged);
-    super.dispose();
+  void didUpdateWidget(covariant _DashboardTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _poller.setActive(widget.isActive);
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _startPolling();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      _pollTimer?.cancel();
-    }
-  }
-
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(
-      _pollInterval,
-      (_) => _dashboardVm?.loadDashboard(),
-    );
+  void dispose() {
+    _poller.dispose();
+    _dashboardVm?.removeListener(_onDashboardStateChanged);
+    super.dispose();
   }
 
   void _onDashboardStateChanged() {
@@ -376,34 +349,16 @@ class _DashboardTabState extends State<_DashboardTab>
   }
 
   Future<void> _fetchLocation() async {
-    // Prefer the fix AppInitializer already acquired at app launch (before
-    // login) over fetching a fresh one here.
-    final cached = LocationHelper.cachedResult;
-    final result = (cached != null && cached.isSuccess)
-        ? cached
-        : await LocationHelper.getCurrentLocation();
+    final result = await LocationHelper.current();
     if (mounted) {
       setState(() => _currentLocation = result.address);
     }
   }
 
-  Future<void> _handleAcceptOrder(String orderId) async {
-    final controller = TextEditingController();
-    await CustomDialog.showConfirmation(
-      context: context,
-      title: 'Accept Order',
-      subtitle: 'Optionally set an estimated preparation time (minutes).',
-      confirmText: 'Accept',
-      content: TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          hintText: 'e.g. 15',
-          border: OutlineInputBorder(),
-        ),
-      ),
-      onConfirm: () async {
-        final minutes = int.tryParse(controller.text.trim());
+  Future<void> _handleAcceptOrder(String orderId) {
+    return showAcceptOrderDialog(
+      context,
+      onAccept: (minutes) async {
         final vm = context.read<DashboardViewModel>();
         await vm.acceptOrder(orderId, estimatedPrepMinutes: minutes);
         if (!mounted || vm.state.errorMessage != null) return;

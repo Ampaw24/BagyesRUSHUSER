@@ -53,3 +53,7 @@ app.*.map.json
 
 # Markdown docs
 *.md
+
+# Build-time secrets/config (see env/app.example.json) — never commit
+/env/*.json
+!/env/app.example.json

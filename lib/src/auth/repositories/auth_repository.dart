@@ -836,21 +836,23 @@ class AuthRepository {
     }
   }
 
-  /// Logs the user out by invalidating the server session first (while the
-  /// token is still available), then clearing all local state.
+  /// Logs the user out by deregistering this device and invalidating the
+  /// server session (while the token is still valid), then clearing all
+  /// local state.
   ResultFuture<void> logout() async {
     appLogger.d('AuthRepository.logout → clearing session');
     try {
-      // Notify server before clearing local tokens so the auth header is sent
-      try {
-        await _client.post(ApiEndpoints.logout);
-      } catch (_) {
-        // Server logout is best-effort — always clear local session
-      }
+      // Device first: once /logout revokes the token, this call would 401
+      // and needlessly kick off a token refresh.
       try {
         await _client.delete(ApiEndpoints.deviceToken);
       } catch (_) {
-        // Device token deregistration is best-effort too
+        // Device token deregistration is best-effort
+      }
+      try {
+        await _client.post(ApiEndpoints.logout);
+      } catch (_) {
+        // Server logout is best-effort too — always clear local session
       }
       await _cacheHelper.resetSession();
       appLogger.i('AuthRepository.logout → session cleared');

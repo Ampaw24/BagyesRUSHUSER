@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>GMSApiKey</key>
+	<string></string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -28,10 +30,6 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>BagyesRUSH needs camera access to take photos for your profile and orders.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>BagyesRUSH needs your location in the background to track active deliveries.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>BagyesRUSH needs your location in the background to track active deliveries.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>BagyesRUSH needs your location to show nearby services and track deliveries.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -51,8 +49,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

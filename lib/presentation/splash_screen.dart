@@ -26,6 +26,10 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+  /// The logo animation (1.5s) plus a brief hold.
+  static const _minimumDisplay = Duration(seconds: 2);
+  static const _maxValidationWait = Duration(seconds: 4);
+
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -78,14 +82,19 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateToNextScreen() async {
     final authViewmodel = context.read<AuthViewmodel>();
 
-    // Show the branded splash for at least 4 seconds, but also wait for the
-    // launch-time session validation kicked off by `restoreSession()` — its
-    // own bounded timeout keeps this from hanging, and its outcome may
-    // correct `authState` from LoggedIn to LoggedOut before we read it below,
-    // so a stale/unreachable token never gets routed to Home.
+    // Show the branded splash for its animation plus a short hold, and wait
+    // (bounded) for the launch-time session validation kicked off by
+    // `restoreSession()` — its outcome may correct `authState` from LoggedIn
+    // to LoggedOut before we read it below, so a rejected token never gets
+    // routed to Home. If validation is slow we route on the cached session
+    // and let it finish in the background (an unreachable backend never
+    // logs the user out; a 401 later does, via the router).
     await Future.wait([
-      Future.delayed(const Duration(seconds: 4)),
-      authViewmodel.sessionValidation,
+      Future.delayed(_minimumDisplay),
+      authViewmodel.sessionValidation.timeout(
+        _maxValidationWait,
+        onTimeout: () {},
+      ),
     ]);
 
     if (!mounted) return;
@@ -179,7 +188,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          Config.SPLASH_TEXT,
+                          Config.splashText,
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           style: TextStyle(

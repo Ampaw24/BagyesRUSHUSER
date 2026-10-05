@@ -21,6 +21,11 @@ class _ConsumerSearchViewState extends State<ConsumerSearchView> {
   @override
   void initState() {
     super.initState();
+    // The view model outlives the screen — show an empty search, not the
+    // previous visit's results.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SearchViewModel>().clear();
+    });
     _controller.addListener(() {
       context.read<SearchViewModel>().search(_controller.text);
     });

@@ -245,13 +245,31 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
         mobileMoneyProvider: mobileMoneyProvider,
       );
 
+  /// In-flight verifications by `orderId|reference`, so overlapping checks
+  /// (dismissal check, receipt screen, its poll) share one request.
+  final _verifying = <String, Future<OrderPaymentVerification>>{};
+
   /// Verifies a gateway charge by [reference]. A confirmed payment updates
   /// every screen immediately, then re-syncs the order from the server in
   /// the background. Throws on request failure.
   Future<OrderPaymentVerification> verifyPayment(
     String orderId, {
     required String reference,
-  }) async {
+  }) {
+    final key = '$orderId|$reference';
+    // Block body on purpose: `remove` returns this very future, and
+    // whenComplete would wait on it forever.
+    return _verifying[key] ??= _verifyPayment(orderId, reference).whenComplete(
+      () {
+        _verifying.remove(key);
+      },
+    );
+  }
+
+  Future<OrderPaymentVerification> _verifyPayment(
+    String orderId,
+    String reference,
+  ) async {
     final result = await _repository.verifyPayment(orderId, reference: reference);
     if (result.isPaid) {
       _confirmedPayments.add(orderId);

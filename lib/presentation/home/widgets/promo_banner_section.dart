@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -112,6 +113,12 @@ class PromoBannerSection extends StatelessWidget {
                               Image.network(
                                 banner.imagePath!,
                                 fit: BoxFit.cover,
+                                cacheWidth: coverCacheWidth(
+                                  context,
+                                  width: w * 0.9,
+                                  height: w * 0.48,
+                                  maxAspect: 3,
+                                ),
                                 errorBuilder: (context, error, stackTrace) =>
                                     const DecoratedBox(
                                   decoration: BoxDecoration(

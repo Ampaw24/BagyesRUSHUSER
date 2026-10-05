@@ -71,6 +71,10 @@ void main() {
         expect(_guest(route), AppRoutes.login, reason: route);
       }
     });
+
+    test('a just-logged-out user stays on login', () {
+      expect(_guest(AppRoutes.login), isNull);
+    });
   });
 
   group('signed in', () {

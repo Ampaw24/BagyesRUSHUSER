@@ -168,7 +168,7 @@ class AuthViewmodel extends ViewModel<AuthState> {
         // Mirrors the device-token call above — a fresh login connects its
         // own realtime session rather than waiting for AppInitializer's
         // Phase-3 restored-session check.
-        unawaited(_realtimeService.connect());
+        unawaited(_connectRealtime());
       },
     );
   }
@@ -357,6 +357,12 @@ class AuthViewmodel extends ViewModel<AuthState> {
         }
         appLogger.i('AuthViewmodel.verifyOtp → OTPVerified');
         emit(const OTPVerified());
+        // Completing signup is when the new account's session starts (login
+        // does the same) — null during forgot-password, which has no session.
+        if (user != null) {
+          unawaited(registerDeviceToken());
+          unawaited(_connectRealtime());
+        }
       },
     );
   }
@@ -452,9 +458,10 @@ class AuthViewmodel extends ViewModel<AuthState> {
   /// pull-to-refresh use), a failure is non-fatal (e.g. poor connectivity)
   /// — the user stays logged in and the profile is retried on next relevant
   /// screen. When [isSessionRestore] is true (only [restoreSession] passes
-  /// this), a failure instead means app-launch couldn't confirm the cached
-  /// token is still valid, so the session is cleared locally and the state
-  /// corrected to [LoggedOut].
+  /// this), a 401/403 means the backend rejected the cached token, so the
+  /// session is cleared locally and the state corrected to [LoggedOut]. Any
+  /// other failure (offline, timeout, 5xx) keeps the session — opening the
+  /// app without signal must not log the user out.
   ///
   /// [timeout] overrides the request's connect/receive timeout — see
   /// [AuthRepository.getUserDetails].
@@ -486,10 +493,17 @@ class AuthViewmodel extends ViewModel<AuthState> {
           'profile fetch failed: ${failure.message}',
         );
         if (!isSessionRestore) return;
+        if (failure.statusCode != 401 && failure.statusCode != 403) {
+          appLogger.w(
+            'AuthViewmodel._fetchProfileInBackground → '
+            'session restore unconfirmed (${failure.statusCode}), keeping session',
+          );
+          return;
+        }
 
         appLogger.w(
           'AuthViewmodel._fetchProfileInBackground → '
-          'session restore could not be validated, clearing session',
+          'session token rejected, clearing session',
         );
         await _repository.clearLocalSession();
         _currentUserProvider.clearUser();
@@ -561,6 +575,9 @@ class AuthViewmodel extends ViewModel<AuthState> {
   /// signs in next.
   Future<void> registerDeviceToken() async {
     try {
+      // First time after sign-in this shows the system dialog; afterwards
+      // it just reads the customer's earlier choice.
+      await FcmService.requestPermission();
       final token = await FcmService.getToken();
       if (token == null) {
         appLogger.w('AuthViewmodel.registerDeviceToken → no FCM token available');
@@ -756,16 +773,9 @@ class AuthViewmodel extends ViewModel<AuthState> {
 
     final result = await _repository.logout();
 
-    // Awaited (unlike the connect() call in login()) so no socket survives
-    // into the next login authenticating against a now-invalid token.
-    await _realtimeService.disconnect();
-
     // Always clear local state — the repository already wipes secure storage
     // and the in-memory Cache regardless of the server response.
-    _currentUserProvider.clearUser();
-    _otpResponse = null;
-    _pendingSignupData = null;
-    _pendingPhone = null;
+    await _clearSessionState();
 
     result.fold(
       (failure) {
@@ -802,13 +812,40 @@ class AuthViewmodel extends ViewModel<AuthState> {
       },
       (_) async {
         appLogger.i('AuthViewmodel.deleteAccount → account deleted');
-        await _realtimeService.disconnect();
-        _currentUserProvider.clearUser();
-        _otpResponse = null;
-        _pendingSignupData = null;
-        _pendingPhone = null;
+        await _clearSessionState();
         emit(const AccountDeleted());
       },
     );
+  }
+
+  /// Ends a session the backend rejected (token refresh failed — see
+  /// `DioInterceptor`); local storage is already wiped by then. Returns
+  /// false when there was no session left to end, so a burst of late 401s
+  /// only routes to login once.
+  Future<bool> handleSessionExpired() async {
+    if (state is LoggedOut && _currentUserProvider.user == null) return false;
+    appLogger.w('AuthViewmodel.handleSessionExpired → session ended');
+    await _clearSessionState();
+    emit(const LoggedOut());
+    return true;
+  }
+
+  /// Awaits the realtime disconnect (unlike the connect() in [login]) so no
+  /// socket survives into the next login authenticating against a
+  /// now-invalid token.
+  Future<void> _clearSessionState() async {
+    await _realtimeService.disconnect();
+    _currentUserProvider.clearUser();
+    _otpResponse = null;
+    _pendingSignupData = null;
+    _pendingPhone = null;
+  }
+
+  Future<void> _connectRealtime() async {
+    try {
+      await _realtimeService.connect();
+    } catch (_) {
+      // Already logged by RealtimeService; subscribers reconnect lazily.
+    }
   }
 }

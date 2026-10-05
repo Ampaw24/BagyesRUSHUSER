@@ -50,8 +50,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-/// Handles FCM setup: permission request, local-notification display, and
-/// device token retrieval.
+/// Handles FCM setup: local-notification display, the notification permission
+/// request, and device token retrieval.
 class FcmService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
@@ -61,14 +61,9 @@ class FcmService {
   /// auth-based routing.
   static String? pendingOrderId;
 
+  /// Wires message handling. Never prompts — the permission is requested
+  /// separately by [requestPermission], once the customer has signed in.
   static Future<void> initialize() async {
-    final settings = await _messaging.requestPermission();
-
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      appLogger.w('FCM: notification permission denied');
-      return;
-    }
-
     await _initLocalNotifications();
 
     // Neither Android nor iOS auto-display a system banner while the app is
@@ -98,6 +93,18 @@ class FcmService {
       );
       pendingOrderId = _orderIdFrom(initialMessage);
     }
+  }
+
+  /// Asks the OS for notification permission — the system dialog shows only
+  /// while the choice is still undecided, so this is safe to call repeatedly.
+  /// Returns whether notifications are allowed.
+  static Future<bool> requestPermission() async {
+    final settings = await _messaging.requestPermission();
+    final allowed =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+    if (!allowed) appLogger.w('FCM: notification permission not granted');
+    return allowed;
   }
 
   /// Fires when FCM issues a new token — including the first one on iOS,
@@ -133,7 +140,12 @@ const _apnsTokenRetryDelay = Duration(milliseconds: 500);
 
 Future<void> _initLocalNotifications() async {
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const iosInit = DarwinInitializationSettings();
+  // Permission is requested by FcmService.requestPermission, not at init.
+  const iosInit = DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+  );
   await _localNotifications.initialize(
     settings: const InitializationSettings(android: androidInit, iOS: iosInit),
   );

@@ -1,35 +1,35 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+/// Build-time configuration, injected with
+/// `--dart-define-from-file=env/app.json` (see `env/app.example.json`).
+///
+/// Nothing here is bundled as an asset, so no key ships as a readable file.
+/// This is the only place that reads `String.fromEnvironment`.
 class Config {
   Config._();
-  static final String mapsApiKey =
-      dotenv.env['GMAPCODE'] ?? ''; //Goofle Maps API Key
 
-  static final String baseUrl = dotenv.env['DEV_BASE_URL'] ?? '';
-  static final String googleNearbyUrl =
-      dotenv.env['GOOGLE_NEARBY_URL'] ?? ''; // Google Nearby Search URL
-  static final String wsUrl = dotenv.env['WS_BASE_URL'] ?? ''; // WebSocket URL
+  /// API root including the version prefix, e.g. `https://host/api/v1`.
+  static const String baseUrl = String.fromEnvironment('API_BASE_URL');
 
-  static final String appVersion =
-      dotenv.env['APPVERSION'] ?? '1.0.0'; // App Version
+  /// Web-service key for Places / Geocoding / Directions REST calls.
+  static const String mapsApiKey = String.fromEnvironment('PLACES_API_KEY');
 
-  // Android OAuth Client ID - Used for Android platform authentication
-  static final String googleSignInClientId =
-      dotenv.env['G_CLIENTID_ANDROID'] ?? '';
-
-  // Web OAuth Client ID - Used for server-side token validation (serverClientId)
-  // This MUST be different from the Android client ID
-  static final String googleSignInClientIdWEB =
-      dotenv.env['G_CLIENTID_WEB'] ?? '';
-
-  static final String googleSignInClientIdIOS =
-      dotenv.env['G_CLIENTID_IOS'] ?? '';
+  static const String splashText = String.fromEnvironment('SPLASH_TEXT');
 
   static const String defaultCountryCode = '+233';
-  static final String SPLASH_TEXT = dotenv.env['SPLASH_TEXT'] ?? '';
 
   // Central Accra — map-center fallback when no device location or search
   // bias is available yet.
   static const double defaultMapCenterLat = 5.6037;
   static const double defaultMapCenterLng = -0.1870;
+
+  /// Throws if the app was launched without its build-time config, so a
+  /// missing `--dart-define-from-file` fails loudly instead of as a
+  /// confusing network error on the first request.
+  static void validate() {
+    if (baseUrl.isEmpty) {
+      throw StateError(
+        'API_BASE_URL is not set. Run with '
+        '--dart-define-from-file=env/app.json (copy env/app.example.json).',
+      );
+    }
+  }
 }

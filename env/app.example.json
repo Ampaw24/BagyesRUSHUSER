@@ -1,0 +1,7 @@
+{
+  "API_BASE_URL": "https://your-host/api/v1",
+  "PLACES_API_KEY": "replace-me",
+  "MAPS_ANDROID_KEY": "replace-me",
+  "MAPS_IOS_KEY": "replace-me",
+  "SPLASH_TEXT": "replace-me"
+}

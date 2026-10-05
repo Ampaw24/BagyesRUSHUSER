@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/constant/config.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
@@ -22,7 +23,7 @@ const _kAlreadyExistsPatterns = [
 ];
 
 /// ViewModel for managing the vendor registration wizard flow
-class VendorRegistrationViewModel extends ChangeNotifier {
+class VendorRegistrationViewModel extends ChangeNotifier with SessionAware {
   final HomeRepository _homeRepository;
   final StepValidator _validator;
   final AuthViewmodel _authViewmodel;
@@ -38,6 +39,7 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     this._currentUserProvider,
   ) {
     _authViewmodel.addListener(_onAuthStateChanged);
+    bindSession(_currentUserProvider);
   }
 
   @override
@@ -346,4 +348,9 @@ class VendorRegistrationViewModel extends ChangeNotifier {
     _state = const VendorRegistrationState();
     notifyListeners();
   }
+
+  /// Drops a finished registration's business details on logout (see
+  /// [SessionAware]) so the next vendor to register starts blank.
+  @override
+  void onSignedOut() => reset();
 }

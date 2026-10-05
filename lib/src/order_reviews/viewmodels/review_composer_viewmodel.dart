@@ -15,21 +15,6 @@ class ReviewComposerViewModel extends ViewModel<ReviewComposerState> {
 
   final OrderReviewsViewModel _reviews;
 
-  /// The sheet may be dismissed mid-submit; the review is still recorded by
-  /// [OrderReviewsViewModel], but this form must not notify once disposed.
-  bool _disposed = false;
-
-  @override
-  void emit(ReviewComposerState newState) {
-    if (!_disposed) super.emit(newState);
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
-
   void setRating(ReviewSubject subject, int rating) {
     final draft = state.draftFor(subject);
     if (state.isSubmitting || rating == draft.rating) return;

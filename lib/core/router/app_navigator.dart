@@ -72,8 +72,6 @@ abstract final class AppNavigator {
 
   // ── Cart & payment ──
   static void toCart(BuildContext context) => context.push(AppRoutes.cart);
-  static void toPayment(BuildContext context) =>
-      context.push(AppRoutes.payment);
 
   // ── Orders ──
   static void toTrackOrder(BuildContext context) =>

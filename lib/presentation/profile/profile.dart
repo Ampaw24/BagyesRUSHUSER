@@ -1,18 +1,16 @@
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/router/router.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/views/widgets/guest_prompt.dart';
 import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/widgets/floating_nav_bar.dart';
-import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:bagyesrushappusernew/src/auth/views/logout_action.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -46,25 +44,6 @@ class _ProfileState extends State<Profile> {
     final parts = fullName.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
     return parts.take(2).map((p) => p[0]).join().toUpperCase();
-  }
-
-  void _confirmLogout(BuildContext context) {
-    CustomDialog.showConfirmation(
-      context: context,
-      title: "Logout?",
-      subtitle:
-          "You sure want to logout?\nYou will be returned to the welcome screen.",
-      onConfirm: () async {
-        await context.read<AuthViewmodel>().logout();
-        if (!context.mounted) return;
-        final appState = context.read<AppState>();
-        appState.setUser(IUser());
-        appState.setPayload(ISignup());
-        context.go(AppRoutes.onboarding);
-      },
-      confirmText: 'Log out',
-      cancelText: 'Cancel',
-    );
   }
 
   Future<void> _navigateToEditProfile() async {
@@ -246,7 +225,7 @@ class _ProfileState extends State<Profile> {
                         icon: HugeIcons.strokeRoundedDoor01,
                         label: 'Log Out',
                         color: AppColors.error,
-                        onTap: () => _confirmLogout(context),
+                        onTap: () => confirmLogout(context),
                         w: w,
                       ),
                     ],

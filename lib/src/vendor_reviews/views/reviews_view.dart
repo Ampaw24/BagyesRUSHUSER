@@ -22,6 +22,9 @@ class _ReviewsViewState extends State<ReviewsView> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ReviewsViewModel>().refresh();
+    });
   }
 
   @override

@@ -1,14 +1,26 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import '../repositories/transaction_repository.dart';
 import 'transaction_state.dart';
 
-class TransactionViewmodel extends ViewModel<TransactionState> {
-  TransactionViewmodel({required TransactionRepository repository})
-    : _repository = repository,
-      super(const TransactionInitial());
+class TransactionViewmodel extends ViewModel<TransactionState> with SessionAware {
+  TransactionViewmodel({
+    required TransactionRepository repository,
+    required CurrentUserProvider session,
+  })  : _repository = repository,
+        super(const TransactionInitial()) {
+    bindSession(session);
+  }
 
   final TransactionRepository _repository;
+
+  void reset() => emit(const TransactionInitial());
+
+  /// Drops the previous account's data on logout (see [SessionAware]).
+  @override
+  void onSignedOut() => reset();
 
   Future<void> fetchTransactions({bool loadMore = false}) async {
     final currentState = state;

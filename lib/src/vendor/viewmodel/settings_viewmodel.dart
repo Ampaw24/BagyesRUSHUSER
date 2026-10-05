@@ -1,3 +1,5 @@
+import '../../../core/common/app/current_user_provider.dart';
+import '../../../core/common/app/session_aware.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../model/vendor_profile.dart';
@@ -37,10 +39,19 @@ class SettingsState extends Equatable {
       [status, profile, errorMessage, uploadingDocumentType];
 }
 
-class SettingsViewModel extends ViewModel<SettingsState> {
+class SettingsViewModel extends ViewModel<SettingsState> with SessionAware {
   final VendorDashboardRepository _repository;
 
-  SettingsViewModel(this._repository) : super(const SettingsState());
+  SettingsViewModel(this._repository, CurrentUserProvider session)
+      : super(const SettingsState()) {
+    bindSession(session);
+  }
+
+  void reset() => emit(const SettingsState());
+
+  /// Drops the previous account's data on logout (see [SessionAware]).
+  @override
+  void onSignedOut() => reset();
 
   Future<void> loadProfile() async {
     emit(state.copyWith(status: SettingsStatus.loading));

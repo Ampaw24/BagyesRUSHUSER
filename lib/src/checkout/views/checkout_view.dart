@@ -71,6 +71,7 @@ class _CheckoutViewState extends State<CheckoutView> {
 
       final vendorId = context.read<CartViewModel>().cart?.vendorId;
       if (vendorId != null) vm.loadAddresses(vendorId);
+      vm.refreshPaymentMethods();
 
       // Refresh the cart so its totals, wallet split and promo verdict are
       // current, and the wallet so the toggle reflects the live balance.

@@ -1,3 +1,5 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import '../models/vendor_wallet_model.dart';
@@ -6,10 +8,14 @@ import '../models/vendor_withdrawal_model.dart';
 import '../repositories/vendor_wallet_repository.dart';
 import 'vendor_wallet_state.dart';
 
-class VendorWalletViewmodel extends ViewModel<VendorWalletState> {
-  VendorWalletViewmodel({required VendorWalletRepository repository})
-    : _repository = repository,
-      super(const VendorWalletInitial());
+class VendorWalletViewmodel extends ViewModel<VendorWalletState> with SessionAware {
+  VendorWalletViewmodel({
+    required VendorWalletRepository repository,
+    required CurrentUserProvider session,
+  })  : _repository = repository,
+        super(const VendorWalletInitial()) {
+    bindSession(session);
+  }
 
   final VendorWalletRepository _repository;
 
@@ -23,6 +29,17 @@ class VendorWalletViewmodel extends ViewModel<VendorWalletState> {
 
   VendorWithdrawalListResult? _withdrawalsResult;
   VendorWithdrawalListResult? get withdrawalsResult => _withdrawalsResult;
+
+  void reset() {
+    _wallet = null;
+    _transactionsResult = null;
+    _withdrawalsResult = null;
+    emit(const VendorWalletInitial());
+  }
+
+  /// Drops the previous account's data on logout (see [SessionAware]).
+  @override
+  void onSignedOut() => reset();
 
   Future<void> fetchWallet() async {
     appLogger.d('VendorWalletViewmodel.fetchWallet → initiated');

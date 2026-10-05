@@ -216,15 +216,11 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
   /// Runs the shared Paystack flow ([OrderPaymentLauncher]). Failures are
   /// surfaced with a manual "Retry" rather than retried automatically, since
   /// a charge may already have been initiated.
-  Future<void> _payNow(String orderId, String paymentMethod) async {
+  Future<void> _payNow(String orderId) async {
     if (_isPaying) return;
     setState(() => _isPaying = true);
     try {
-      final result = await OrderPaymentLauncher.pay(
-        context,
-        orderId: orderId,
-        paymentMethod: paymentMethod,
-      );
+      final result = await OrderPaymentLauncher.pay(context, orderId: orderId);
       if (mounted && result.exit == PaymentExit.home) {
         AppNavigator.toHome(context);
         return;
@@ -245,7 +241,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
           content: Text(message),
           action: SnackBarAction(
             label: 'Retry',
-            onPressed: () => _payNow(orderId, paymentMethod),
+            onPressed: () => _payNow(orderId),
           ),
         ),
       );
@@ -431,7 +427,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                   _PayNowButton(
                     isPaying: _isPaying,
                     isConfirming: isConfirmingPayment,
-                    onPressed: () => _payNow(order.id, order.paymentMethod),
+                    onPressed: () => _payNow(order.id),
                   ),
                 ],
 

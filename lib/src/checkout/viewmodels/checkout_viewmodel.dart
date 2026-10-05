@@ -1,3 +1,5 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:dio/dio.dart';
 
 import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
@@ -19,19 +21,34 @@ enum AddressesStatus { loading, error, loaded }
 
 // ─── Checkout ViewModel ────────────────────────────────────────────────────
 
-class CheckoutViewModel extends ViewModel<CheckoutState> {
+class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
   CheckoutViewModel({
     required OrdersViewModel ordersViewModel,
     required ConsumerOrdersRepository ordersRepository,
     required PaymentRepository paymentRepository,
     required CustomerAddressRepository addressRepository,
+    required CurrentUserProvider session,
   })  : _ordersViewModel = ordersViewModel,
         _ordersRepository = ordersRepository,
         _paymentRepository = paymentRepository,
         _addressRepository = addressRepository,
         super(const CheckoutIdle(form: CheckoutForm())) {
-    _loadPaymentMethods();
+    bindSession(session);
   }
+
+  /// Drops the previous account's saved payment methods, addresses and
+  /// half-filled form on logout (see [SessionAware]) — the checkout screen
+  /// reloads them on entry.
+  void reset() {
+    _paymentMethods = const [];
+    _paymentMethodsStatus = PaymentMethodsStatus.loading;
+    _addresses = const [];
+    _addressesStatus = AddressesStatus.loading;
+    emit(const CheckoutIdle(form: CheckoutForm()));
+  }
+
+  @override
+  void onSignedOut() => reset();
 
   final OrdersViewModel _ordersViewModel;
   final ConsumerOrdersRepository _ordersRepository;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -71,15 +70,13 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
   }
 
   Future<void> _fetchLocation() async {
-    // Prefer the fix AppInitializer already acquired at app launch (before
-    // login) over acquiring a fresh one here.
-    Position? position = LocationHelper.cachedResult?.position;
+    var result = LocationHelper.cachedResult;
 
-    if (position == null) {
+    if (result == null || !result.isSuccess) {
       // Paint an optimistic address instantly from the device's last cached
       // fix (if any) while a fresh GPS fix is acquired below — a cold GPS
       // start can otherwise leave the header stuck/blank for the full
-      // getCurrentLocation timeout.
+      // timeout.
       final lastKnown = await LocationHelper.getLastKnownPosition();
       if (lastKnown != null && mounted) {
         final cachedAddress = await PlacesService.reverseGeocode(
@@ -91,44 +88,22 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
         }
       }
 
-      // Resolve the address via Google's Geocoding API — the same technique
-      // validated at app start (AppInitializer._fetchStartupLocation) — since
-      // it has denser address coverage than the native platform geocoder
-      // that LocationHelper uses by default. Give the fresh fix extra time
-      // since a cold GPS start can exceed getCurrentLocation's 10s default.
-      final result = await LocationHelper.getCurrentLocation(
-        resolveAddress: false,
+      // Give the fresh fix extra time — a cold GPS start can exceed the
+      // 10s default.
+      result = await LocationHelper.current(
         timeLimit: const Duration(seconds: 20),
       );
-      position = result.position;
 
-      if (position == null) {
+      if (!result.isSuccess) {
         // Fresh fix failed/timed out. If we already painted a cached address
         // above, keep it rather than overwriting with "Location unavailable".
         if (_currentLocation != null) return;
-        if (mounted) setState(() => _currentLocation = result.address);
+        if (mounted) setState(() => _currentLocation = result!.address);
         return;
       }
     }
 
-    var address = LocationHelper.resolveAddress(
-      null,
-      latitude: position.latitude,
-      longitude: position.longitude,
-    ); // coordinate-string fallback
-    final googleAddress = await PlacesService.reverseGeocode(
-      position.latitude,
-      position.longitude,
-    );
-    if (googleAddress != null && googleAddress.isNotEmpty) {
-      address = googleAddress;
-    }
-
-    if (mounted) {
-      setState(() {
-        _currentLocation = address;
-      });
-    }
+    if (mounted) setState(() => _currentLocation = result!.address);
   }
 
   @override

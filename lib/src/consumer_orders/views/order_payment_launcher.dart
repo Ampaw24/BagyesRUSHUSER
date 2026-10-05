@@ -35,6 +35,10 @@ class OrderPaymentException implements Exception {
 class OrderPaymentLauncher {
   const OrderPaymentLauncher._();
 
+  /// Mobile money is the only method the app can charge; the backend's
+  /// `payment_method` for [OrdersViewModel.payOrder].
+  static const _paymentMethod = 'mobile_money';
+
   /// Pays [orderId] with [savedMethod], or the customer's default saved
   /// mobile money method when none is given. Once the customer is back from
   /// the gateway the payment is checked and shown as a receipt; the result
@@ -42,15 +46,8 @@ class OrderPaymentLauncher {
   static Future<OrderPaymentResult> pay(
     BuildContext context, {
     required String orderId,
-    required String paymentMethod,
     PaymentMethod? savedMethod,
   }) async {
-    if (paymentMethod != 'mobile_money') {
-      throw const OrderPaymentException(
-        'This payment method isn\'t supported yet. Please contact support.',
-      );
-    }
-
     final saved = savedMethod ?? await _defaultSavedMethod();
     final provider = await _resolveMobileMoneyProvider(saved);
     if (provider == null) {
@@ -63,7 +60,7 @@ class OrderPaymentLauncher {
     final orders = context.read<OrdersViewModel>();
     final payResponse = await orders.payOrder(
       orderId,
-      paymentMethod: paymentMethod,
+      paymentMethod: _paymentMethod,
       phone: saved.phoneNumber,
       mobileMoneyProvider: provider.apiValue,
     );
@@ -111,12 +108,7 @@ class OrderPaymentLauncher {
       orders.markAwaitingPaymentConfirmation(orderId);
     }
     if (result.exit == PaymentExit.retry && context.mounted) {
-      return pay(
-        context,
-        orderId: orderId,
-        paymentMethod: paymentMethod,
-        savedMethod: savedMethod,
-      );
+      return pay(context, orderId: orderId, savedMethod: savedMethod);
     }
     return result;
   }
@@ -143,7 +135,6 @@ class OrderPaymentLauncher {
         final result = await pay(
           context,
           orderId: orderId,
-          paymentMethod: 'mobile_money',
           savedMethod: savedMethod,
         );
         message = result.outcome.followUpMessage;

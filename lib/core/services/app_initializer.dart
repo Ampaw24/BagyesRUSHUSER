@@ -6,13 +6,13 @@ import 'package:get_it/get_it.dart';
 import 'package:bagyesrushappusernew/constant/baseurl.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
+import 'package:bagyesrushappusernew/core/router/app_router.dart' show appRouter;
+import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
 import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
-import 'package:bagyesrushappusernew/core/services/places_service.dart';
 import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
 import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 
@@ -24,7 +24,9 @@ class AppInitializer {
   }
 
   static Future<void> initializeRemaining() async {
-    // Firebase, analytics, push notifications, location — do NOT block splash.
+    // Push-notification wiring and restored-session registration — do NOT
+    // block splash. No permission prompts here: notifications are asked for
+    // after login/signup, location when a screen first needs it.
     // Each step is best-effort: a failure here (e.g. no APNS token yet on the
     // iOS Simulator) must not prevent the steps that follow from running.
     // Subscribed before FCM init so a late-arriving iOS token isn't missed.
@@ -34,8 +36,6 @@ class AppInitializer {
     } catch (e, s) {
       appLogger.e('[AppInitializer] FcmService.initialize failed', error: e, stackTrace: s);
     }
-    await LocationHelper.ensurePermission();
-    await _fetchStartupLocation();
     await _registerDeviceTokenIfSessionRestored();
     await _connectRealtimeIfSessionRestored();
   }
@@ -66,34 +66,6 @@ class AppInitializer {
         appLogger.e('[AppInitializer] RealtimeService.connect failed', error: e, stackTrace: s);
       }
     }
-  }
-
-  /// Fetches the device's location once at app launch — before login and
-  /// well before any home screen mounts — and caches it on [LocationHelper]
-  /// so the customer and vendor home screens can reuse the same fix instead
-  /// of each acquiring their own.
-  static Future<void> _fetchStartupLocation() async {
-    final result = await LocationHelper.getCurrentLocation();
-    LocationHelper.cachedResult = result;
-    final position = result.position;
-    appLogger.i(
-      '[AppInitializer] Startup location — status: ${result.status.name}, '
-      'address: ${result.address}, '
-      'lat: ${position?.latitude}, lng: ${position?.longitude}',
-    );
-
-    if (position == null) return;
-
-    // Cross-check against Google's own Geocoding API — the native platform
-    // geocoder above can have thin address coverage in some regions.
-    final googleAddress = await PlacesService.reverseGeocode(
-      position.latitude,
-      position.longitude,
-    );
-    appLogger.i(
-      '[AppInitializer] Google reverse-geocoded address: '
-      '${googleAddress ?? 'unavailable'}',
-    );
   }
 
   static Future<void> _initCriticalServices() async {
@@ -148,6 +120,13 @@ class AppInitializer {
     await _sl<AuthViewmodel>().restoreSession();
   }
 
+  /// Every role lands on login once the backend rejects the session.
+  static Future<void> _onSessionExpired() async {
+    if (await _sl<AuthViewmodel>().handleSessionExpired()) {
+      appRouter.go(AppRoutes.login);
+    }
+  }
+
   static Dio _configureDio() {
     final dio = Dio(
       BaseOptions(
@@ -160,8 +139,8 @@ class AppInitializer {
     dio.interceptors.add(DioInterceptor(
       cacheHelper: _sl<CacheHelper>(),
       dio: dio,
-      // Resolved lazily — CurrentUserProvider is registered after Dio.
-      onSessionExpired: () => _sl<CurrentUserProvider>().clearUser(),
+      // Resolved lazily — AuthViewmodel is registered after Dio.
+      onSessionExpired: _onSessionExpired,
     ));
     if (kDebugMode) {
       // requestBody/responseBody are disabled — DioInterceptor already logs

@@ -121,6 +121,11 @@ class RealtimeService {
   StreamSubscription<void>? _establishedSub;
   Completer<void>? _connecting;
 
+  /// Bumped by [disconnect] — a connect attempt still awaiting its config
+  /// when the session ends sees a newer generation and abandons itself, so
+  /// no socket opens after logout.
+  int _generation = 0;
+
   final _activeChannels = <String, _TrackedChannel>{};
 
   final _orderStatusController = StreamController<OrderStatusEvent>.broadcast();
@@ -173,7 +178,12 @@ class RealtimeService {
   }
 
   Future<void> _doConnect() async {
+    final generation = _generation;
     final config = await _repository.getConfig();
+    if (generation != _generation) {
+      appLogger.w('[RealtimeService] connect abandoned — disconnected meanwhile');
+      return;
+    }
     _config = config;
     _authDelegate = _DioChannelAuthorizationDelegate(
       dio: _authDio,
@@ -210,13 +220,21 @@ class RealtimeService {
     });
 
     _client = client;
-    await client.connect();
+    try {
+      await client.connect();
+    } catch (_) {
+      // Leave no half-open client behind, or every later connect() would
+      // return early on `_client != null` and never retry.
+      if (identical(_client, client)) await disconnect();
+      rethrow;
+    }
   }
 
   /// Unsubscribes every channel, disconnects, and drops the cached config —
   /// a subsequent `connect()` fetches fresh config and reconnects from
   /// scratch, so no socket survives into the next login on a stale token.
   Future<void> disconnect() async {
+    _generation++;
     for (final tracked in _activeChannels.values) {
       for (final sub in tracked.subscriptions) {
         sub.cancel();

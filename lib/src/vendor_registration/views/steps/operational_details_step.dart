@@ -83,73 +83,11 @@ class _OperationalDetailsStepState extends State<OperationalDetailsStep> {
   }
 
   Future<void> _showAddCustomCuisineSheet() async {
-    final controller = TextEditingController();
-    final size = MediaQuery.of(context).size;
-
     final result = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            size.width * 0.06,
-            size.height * 0.015,
-            size.width * 0.06,
-            size.height * 0.03,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: size.width * 0.1,
-                  height: size.height * 0.005,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              SizedBox(height: size.height * 0.02),
-              Text(
-                'What else do you cook?',
-                style: TextStyle(
-                  fontSize: size.width * 0.045,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: size.height * 0.015),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Waakye, Shawarma',
-                ),
-                onSubmitted: (value) => Navigator.pop(sheetContext, value),
-              ),
-              SizedBox(height: size.height * 0.02),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(sheetContext, controller.text),
-                  child: const Text('Add'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) => const _CustomCuisineSheet(),
     );
 
     final cuisine = result?.trim().toLowerCase();
@@ -489,6 +427,91 @@ class _FetchErrorTile extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet asking for an extra cuisine. Owns its [TextEditingController]
+/// so it is disposed with the sheet, after the dismiss animation.
+class _CustomCuisineSheet extends StatefulWidget {
+  const _CustomCuisineSheet();
+
+  @override
+  State<_CustomCuisineSheet> createState() => _CustomCuisineSheetState();
+}
+
+class _CustomCuisineSheetState extends State<_CustomCuisineSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(
+          size.width * 0.06,
+          size.height * 0.015,
+          size.width * 0.06,
+          size.height * 0.03,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: size.width * 0.1,
+                height: size.height * 0.005,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            SizedBox(height: size.height * 0.02),
+            Text(
+              'What else do you cook?',
+              style: TextStyle(
+                fontSize: size.width * 0.045,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: size.height * 0.015),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                hintText: 'e.g. Waakye, Shawarma',
+              ),
+              onSubmitted: (value) => Navigator.pop(context, value),
+            ),
+            SizedBox(height: size.height * 0.02),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context, _controller.text),
+                child: const Text('Add'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

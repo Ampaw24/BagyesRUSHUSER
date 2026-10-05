@@ -4,14 +4,12 @@ import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/services/auth.service.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
 import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
 import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
 import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
 import 'package:bagyesrushappusernew/src/referral/widgets/referral_code_card.dart';
-import 'package:bagyesrushappusernew/states/app.state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +17,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:bagyesrushappusernew/src/auth/views/logout_action.dart';
 
 class EditProfile extends StatefulWidget {
   @override
@@ -392,7 +391,7 @@ class _EditProfileState extends State<EditProfile> {
                       icon: HugeIcons.strokeRoundedLogout01,
                       iconColor: AppColors.textSecondary,
                       label: 'Log Out',
-                      onTap: () => _confirmLogout(context),
+                      onTap: () => confirmLogout(context),
                     ),
                     _FieldDivider(w: w),
                     _ActionRow(
@@ -463,27 +462,6 @@ class _EditProfileState extends State<EditProfile> {
           ),
         ],
       ),
-    );
-  }
-
-  void _confirmLogout(BuildContext context) {
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Log Out',
-      subtitle: 'Are you sure you want to log out?',
-      confirmText: 'Log Out',
-      cancelText: 'Cancel',
-      onConfirm: () async {
-        final authViewModel = context.read<AuthViewmodel>();
-        final appState = context.read<AppState>();
-
-        await authViewModel.logout();
-
-        if (!context.mounted) return;
-        appState.setUser(IUser());
-        appState.setPayload(ISignup());
-        context.go(AppRoutes.onboarding);
-      },
     );
   }
 

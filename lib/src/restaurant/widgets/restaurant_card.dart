@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
@@ -269,6 +270,7 @@ class _CoverImage extends StatelessWidget {
                 : Image.network(
                     restaurant.imageUrl,
                     fit: BoxFit.cover,
+                    cacheWidth: fullWidthCacheWidth(context),
                     errorBuilder: (_, _, _) => Container(
                       color: AppColors.shimmerBase,
                       child: const Icon(Icons.restaurant,

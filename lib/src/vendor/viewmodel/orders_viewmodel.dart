@@ -1,3 +1,5 @@
+import '../../../core/common/app/current_user_provider.dart';
+import '../../../core/common/app/session_aware.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/errors/failure.dart';
@@ -39,10 +41,19 @@ class OrdersState extends Equatable {
   List<Object?> get props => [status, orders, activeFilter, errorMessage];
 }
 
-class OrdersViewModel extends ViewModel<OrdersState> {
+class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   final VendorDashboardRepository _repository;
 
-  OrdersViewModel(this._repository) : super(const OrdersState());
+  OrdersViewModel(this._repository, CurrentUserProvider session)
+      : super(const OrdersState()) {
+    bindSession(session);
+  }
+
+  void reset() => emit(const OrdersState());
+
+  /// Drops the previous account's data on logout (see [SessionAware]).
+  @override
+  void onSignedOut() => reset();
 
   Future<void> loadOrders({
     String? status,

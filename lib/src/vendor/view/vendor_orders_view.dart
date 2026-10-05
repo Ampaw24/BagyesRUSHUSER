@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
-import '../../../core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 import 'package:bagyesrushappusernew/src/report/widgets/report_quick_action_sheet.dart';
 import '../model/vendor_order.dart';
 import '../viewmodel/orders_viewmodel.dart';
+import 'widgets/accept_order_dialog.dart';
 import 'widgets/order_card.dart';
 import 'widgets/order_reason_sheet.dart';
 
@@ -54,28 +54,13 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
     });
   }
 
-  Future<void> _handleAccept(VendorOrder order) async {
-    final controller = TextEditingController();
-    await CustomDialog.showConfirmation(
-      context: context,
-      title: 'Accept Order',
-      subtitle: 'Optionally set an estimated preparation time (minutes).',
-      confirmText: 'Accept',
-      content: TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          hintText: 'e.g. 15',
-          border: OutlineInputBorder(),
-        ),
+  Future<void> _handleAccept(VendorOrder order) {
+    return showAcceptOrderDialog(
+      context,
+      onAccept: (minutes) => context.read<OrdersViewModel>().accept(
+        order.id,
+        estimatedPrepMinutes: minutes,
       ),
-      onConfirm: () {
-        final minutes = int.tryParse(controller.text.trim());
-        context.read<OrdersViewModel>().accept(
-          order.id,
-          estimatedPrepMinutes: minutes,
-        );
-      },
     );
   }
 

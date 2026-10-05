@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Scans only commits not already on a remote, so history that is already
+# published (and revoked) doesn't block pushes.
+dir="$(cd "$(dirname "$0")" && pwd)"
+zero=0000000000000000000000000000000000000000
+while read -r _ local_sha _ _; do
+  [ "$local_sha" = "$zero" ] && continue
+  if ! git log -p -U0 --format= "$local_sha" --not --remotes | "$dir/check-secrets"; then
+    echo "✗ push blocked: a commit being pushed contains a secret (see above)." >&2
+    exit 1
+  fi
+done

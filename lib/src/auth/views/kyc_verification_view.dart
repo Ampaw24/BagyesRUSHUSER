@@ -11,6 +11,7 @@ import '../../../core/widgets/custom_dialogs.dart';
 import '../models/otp_purpose.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import 'logout_action.dart';
 
 class KycVerificationView extends StatefulWidget {
   const KycVerificationView({super.key});
@@ -311,10 +312,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
 
   Widget _buildLogoutLink(double sw) {
     return TextButton(
-      onPressed: () async {
-        await context.read<AuthViewmodel>().logout();
-        if (mounted) context.go(AppRoutes.onboarding);
-      },
+      onPressed: () => performLogout(context),
       child: Text(
         'Log out',
         style: TextStyle(

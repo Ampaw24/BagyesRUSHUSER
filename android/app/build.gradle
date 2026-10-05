@@ -38,21 +38,17 @@ if (keystorePropertiesFile.exists()) {
     }
 }
 
-def dotEnv = [:]
-def dotEnvFile = rootProject.file('../.env')
-if (dotEnvFile.exists()) {
-    dotEnvFile.eachLine('UTF-8') { line ->
-        def trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith('#') || !trimmed.contains('=')) return
-        def (key, value) = trimmed.split('=', 2)*.trim()
-        dotEnv[key] = value.replaceAll(/^["']|["']$/, '')
+// Build-time values come from `--dart-define-from-file=env/app.json`; Flutter
+// hands them to Gradle as the base64 "dart-defines" project property.
+def dartDefines = [:]
+if (project.hasProperty('dart-defines')) {
+    project.property('dart-defines').split(',').each { entry ->
+        def pair = new String(entry.decodeBase64(), 'UTF-8').split('=', 2)
+        if (pair.length == 2) dartDefines[pair[0]] = pair[1]
     }
 }
 
-def googleMapsApiKey = dotEnv['G_CLIENTID_ANDROID']
-if (!googleMapsApiKey) {
-    throw new GradleException("G_CLIENTID_ANDROID (Google Maps API key) is missing from .env")
-}
+def googleMapsApiKey = dartDefines['MAPS_ANDROID_KEY'] ?: ''
 
 android {
     namespace "com.bagye.bagyesrush2"
@@ -85,7 +81,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 
@@ -106,4 +102,17 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+}
+
+// A release must never ship unsigned-by-us or without a working Maps key.
+gradle.taskGraph.whenReady { graph ->
+    def building = graph.allTasks.any { it.project == project && it.name ==~ /(assemble|bundle|package).*Release/ }
+    if (building && !keystorePropertiesFile.exists()) {
+        throw new GradleException("android/key.properties is missing — refusing to sign a release with the debug key.")
+    }
+    if (!googleMapsApiKey) {
+        def message = "MAPS_ANDROID_KEY is not set — build with --dart-define-from-file=env/app.json."
+        if (building) throw new GradleException(message)
+        logger.warn("WARNING: " + message + " Google Maps will not render.")
+    }
 }

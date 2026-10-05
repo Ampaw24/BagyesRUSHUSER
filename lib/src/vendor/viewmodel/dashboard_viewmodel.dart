@@ -1,3 +1,5 @@
+import '../../../core/common/app/current_user_provider.dart';
+import '../../../core/common/app/session_aware.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
@@ -73,10 +75,19 @@ class DashboardState extends Equatable {
 
 // ── ViewModel ────────────────────────────────────────────────────────────
 
-class DashboardViewModel extends ViewModel<DashboardState> {
-  DashboardViewModel(this._repository) : super(const DashboardState());
+class DashboardViewModel extends ViewModel<DashboardState> with SessionAware {
+  DashboardViewModel(this._repository, CurrentUserProvider session)
+      : super(const DashboardState()) {
+    bindSession(session);
+  }
 
   final VendorDashboardRepository _repository;
+
+  void reset() => emit(const DashboardState());
+
+  /// Drops the previous account's data on logout (see [SessionAware]).
+  @override
+  void onSignedOut() => reset();
 
   Future<void> loadDashboard() async {
     emit(state.copyWith(status: DashboardStatus.loading));

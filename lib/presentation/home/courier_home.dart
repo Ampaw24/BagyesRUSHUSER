@@ -8,12 +8,9 @@ import '../../core/common/app/current_user_provider.dart';
 import '../../core/router/app_navigator.dart';
 import '../../core/router/app_routes.dart';
 import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
-import '../../src/auth/viewmodels/auth_viewmodel.dart';
 import '../../src/auth/views/auth_gate.dart';
 import '../../src/auth/views/widgets/guest_prompt.dart';
 import '../../src/notification/viewmodel/notification_viewmodel.dart';
-import '../../states/app.state.dart';
-import '../../services/auth.service.dart';
 import '../../core/widgets/custom_dialogs.dart';
 import '../../features/parcel/presentation/widgets/parcel_direction_sheet.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
@@ -22,6 +19,7 @@ import '../../src/consumer_orders/views/consumer_orders_view.dart';
 import '../profile/profile.dart';
 import 'widgets/home_discovery_tab.dart';
 import 'widgets/customer_drawer.dart';
+import '../../src/auth/views/logout_action.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -103,26 +101,7 @@ class _HomeState extends State<Home> {
 
   void _handleLogout() {
     _closeDrawer();
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Logout',
-      subtitle: 'Are you sure you want to log out?',
-      confirmText: 'Logout',
-      cancelText: 'Cancel',
-      onConfirm: () async {
-        if (!mounted) return;
-
-        await context.read<AuthViewmodel>().logout();
-
-        if (!mounted) return;
-
-        final appState = context.read<AppState>();
-        appState.setUser(IUser());
-        appState.setPayload(ISignup());
-
-        context.go(AppRoutes.onboarding);
-      },
-    );
+    confirmLogout(context);
   }
 
   void _showDeleteAccountDialog() {

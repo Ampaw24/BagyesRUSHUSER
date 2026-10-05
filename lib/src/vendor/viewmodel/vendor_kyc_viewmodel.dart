@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../../payment/model/payout_provider_model.dart';
@@ -126,7 +127,7 @@ class VendorKycState extends Equatable {
       ];
 }
 
-class VendorKycViewModel extends ViewModel<VendorKycState> {
+class VendorKycViewModel extends ViewModel<VendorKycState> with SessionAware {
   final VendorDashboardRepository _dashboardRepository;
   final CurrentUserProvider _currentUserProvider;
 
@@ -135,7 +136,9 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
     required CurrentUserProvider currentUserProvider,
   })  : _dashboardRepository = dashboardRepository,
         _currentUserProvider = currentUserProvider,
-        super(const VendorKycState());
+        super(const VendorKycState()) {
+    bindSession(currentUserProvider);
+  }
 
   void setBusinessCertPath(String? path) => emit(state.copyWith(
         businessCertPath: path,
@@ -363,4 +366,8 @@ class VendorKycViewModel extends ViewModel<VendorKycState> {
   void reset() {
     emit(const VendorKycState());
   }
+
+  /// Drops the previous account's data on logout (see [SessionAware]).
+  @override
+  void onSignedOut() => reset();
 }

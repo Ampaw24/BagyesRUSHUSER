@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' show cos, sqrt, asin;
 
@@ -135,8 +136,9 @@ class SendParcelState {
     this.createdParcel,
   });
 
-  /// Receive drop-off defaults to the location fetched at app launch, so
-  /// the customer usually only has to confirm it.
+  /// Receive drop-off defaults to the already-cached location, so the
+  /// customer usually only has to confirm it ([SendParcelViewModel] fetches
+  /// one when none is cached).
   factory SendParcelState.initial(ParcelDirection direction) {
     if (!direction.isReceive) return const SendParcelState();
     final cached = LocationHelper.cachedResult;
@@ -281,7 +283,26 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   SendParcelViewModel(
     this._repository, {
     ParcelDirection direction = ParcelDirection.send,
-  }) : super(SendParcelState.initial(direction));
+  }) : super(SendParcelState.initial(direction)) {
+    if (direction.isReceive && !state.deliveryStops.first.hasLocation) {
+      unawaited(_prefillDropOff());
+    }
+  }
+
+  /// Receive drop-off defaults to where the customer is — acquired now when
+  /// no fix was cached yet. Skipped if they've already picked a stop.
+  Future<void> _prefillDropOff() async {
+    final result = await LocationHelper.current();
+    final position = result.position;
+    if (isDisposed || !result.isSuccess || position == null) return;
+    final stops = state.deliveryStops;
+    if (stops.length != 1 || stops.first.hasLocation) return;
+    updateDeliveryStop(
+      stops.first.id,
+      LatLng(position.latitude, position.longitude),
+      result.address,
+    );
+  }
 
   final ParcelRepository _repository;
 

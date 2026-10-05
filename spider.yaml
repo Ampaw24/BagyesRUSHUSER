@@ -30,14 +30,7 @@ groups:
     class_name: IconAssets
     types: [ .png, .jpg, .jpeg, .svg, .webp ]
 
-  - path: assets/payment_icon
-    class_name: PaymentIcons
-    types: [ .png, .jpg, .jpeg, .svg, .webp ]
-
   - path: assets/restaurant
     class_name: RestaurantAssets
     types: [ .png, .jpg, .jpeg, .svg, .webp ]
 
-  - path: assets/grocery
-    class_name: GroceryAssets
-    types: [ .png, .jpg, .jpeg, .svg, .webp ]

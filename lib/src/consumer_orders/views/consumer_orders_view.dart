@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -311,6 +312,11 @@ class _OrderCard extends StatelessWidget {
                       child: Image.network(
                         order.restaurantImageUrl,
                         fit: BoxFit.cover,
+                        cacheWidth: coverCacheWidth(
+                          context,
+                          width: w * 0.155,
+                          height: w * 0.155,
+                        ),
                         errorBuilder: (_, _, _) => Container(
                           color: AppColors.shimmerBase,
                           child: const Icon(

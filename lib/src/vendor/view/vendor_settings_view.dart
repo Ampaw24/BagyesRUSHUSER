@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../viewmodel/settings_viewmodel.dart';
+import '../../auth/views/logout_action.dart';
 
 class VendorSettingsView extends StatefulWidget {
   const VendorSettingsView({super.key});
@@ -223,7 +224,7 @@ class _VendorSettingsViewState extends State<VendorSettingsView> {
                     title: 'Log Out',
                     subtitle: 'Sign out of your account',
                     titleColor: AppColors.error,
-                    onTap: () {},
+                    onTap: () => confirmLogout(context),
                   ),
                 ],
               ),

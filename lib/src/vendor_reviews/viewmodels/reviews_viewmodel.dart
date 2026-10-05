@@ -1,14 +1,23 @@
+import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
 import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
 import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
 import '../models/review.dart';
 import '../repositories/review_repository.dart';
 import 'reviews_state.dart';
 
-class ReviewsViewModel extends ViewModel<ReviewsState> {
-  ReviewsViewModel(this._repository) : super(const ReviewsState.initial()) {
-    loadSummary();
-    loadReviews();
+class ReviewsViewModel extends ViewModel<ReviewsState> with SessionAware {
+  ReviewsViewModel(this._repository, CurrentUserProvider session)
+      : super(const ReviewsState.initial()) {
+    bindSession(session);
   }
+
+  /// Drops the previous vendor's reviews on logout (see [SessionAware]); the
+  /// reviews screen reloads on entry.
+  void reset() => emit(const ReviewsState.initial());
+
+  @override
+  void onSignedOut() => reset();
 
   final ReviewRepository _repository;
 

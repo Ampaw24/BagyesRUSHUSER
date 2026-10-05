@@ -18,6 +18,8 @@ const _screens = {
   'portrait phone': Size(360, 640),
   'small phone': Size(320, 568),
   'landscape phone': Size(640, 360),
+  'short wide window': Size(1024, 320),
+  'very short window': Size(1024, 220),
   'tablet': Size(800, 1280),
 };
 

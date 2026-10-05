@@ -4,16 +4,22 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'core/di/service_locator.dart' as di;     
+import 'constant/config.dart';
+import 'core/widgets/config_error_app.dart';
+import 'core/di/service_locator.dart' as di;
 import 'core/services/app_initializer.dart';
 import 'core/services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    Config.validate();
+  } on StateError catch (e) {
+    runApp(ConfigErrorApp(message: e.message));
+    return;
+  }
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   // Phase 1 — legacy vendor/onboarding services

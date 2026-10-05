@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
 import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
@@ -14,28 +15,61 @@ class DioInterceptor extends Interceptor {
     required CacheHelper cacheHelper,
     required Dio dio,
     this.onSessionExpired,
+    @visibleForTesting Dio? refreshClient,
   })  : _cacheHelper = cacheHelper,
-        _dio = dio;
+        _dio = dio,
+        _refreshClient = refreshClient;
 
   final CacheHelper _cacheHelper;
   final Dio _dio;
 
+  /// Sends the refresh call outside this interceptor (no recursion); built
+  /// from [_dio]'s options unless injected.
+  final Dio? _refreshClient;
+
   /// Called after a 401 that couldn't be recovered by a token refresh has
-  /// cleared the stored session, so the app can drop back to guest mode.
+  /// cleared the stored session, so the app can end the session and route
+  /// to login.
   final void Function()? onSessionExpired;
 
   /// Tracks whether a token refresh is already in progress so concurrent
   /// 401s don't fire multiple refresh calls.
   Completer<bool>? _refreshCompleter;
 
-  static const _authExclusions = [
-    'signup',
-    'login',
-    'forgot-password',
-    'otp/send',
-    'otp/verify',
-    'refresh-token',
-  ];
+  /// Shared by every request that fails while the session is being torn
+  /// down, so [onSessionExpired] fires once rather than once per 401.
+  Future<void>? _sessionExpiry;
+
+  /// Marks a request already replayed after a 401, so a second 401 on the
+  /// replay ends the session instead of looping refresh → retry forever.
+  static const _retriedKey = 'auth_retried';
+
+  /// Public endpoints: never sent a bearer token, and a 401 from them means
+  /// bad credentials — not an expired session to refresh.
+  static const _publicPaths = {
+    ApiEndpoints.login,
+    ApiEndpoints.signup,
+    ApiEndpoints.refreshToken,
+    ApiEndpoints.passwordForgot,
+    ApiEndpoints.forgotPassword,
+  };
+
+  /// Endpoints whose request/response bodies carry credentials, OTPs or
+  /// tokens — logged as `{REDACTED}`. Superset of [_publicPaths]: some of
+  /// these (password change, account delete) still need the bearer token.
+  static const _sensitivePaths = {
+    ..._publicPaths,
+    ApiEndpoints.phoneSendCode,
+    ApiEndpoints.phoneVerify,
+    ApiEndpoints.passwordChange,
+    ApiEndpoints.accountDelete,
+  };
+
+  static bool _matches(String path, Set<String> paths) =>
+      paths.any((p) => path == p || path.endsWith(p));
+
+  @visibleForTesting
+  static bool isSensitivePath(String path) => _matches(path, _sensitivePaths);
 
   @override
   Future<void> onRequest(
@@ -44,14 +78,12 @@ class DioInterceptor extends Interceptor {
   ) async {
     options.headers.addAll({
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'X-Platform': 'mobile',
     });
 
     final path = options.path;
-    final isAuth = _authExclusions.any((e) => path.contains(e));
-    final needsToken = !isAuth;
-
-    if (needsToken) {
+    if (!_matches(path, _publicPaths)) {
       final token = Cache.instance.sessionToken;
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
@@ -60,9 +92,8 @@ class DioInterceptor extends Interceptor {
 
     final safeHeaders = Map<String, dynamic>.from(options.headers)
       ..remove('Authorization');
-
-    // Redact body for auth-sensitive endpoints
-    final logBody = isAuth ? '{REDACTED}' : (options.data ?? 'none');
+    final logBody =
+        _matches(path, _sensitivePaths) ? '{REDACTED}' : (options.data ?? 'none');
 
     _log.d(
       '[REQUEST] ${options.method} ${options.uri}\n'
@@ -77,8 +108,8 @@ class DioInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     final path = response.requestOptions.path;
-    final isAuth = _authExclusions.any((e) => path.contains(e));
-    final logData = isAuth ? '{REDACTED}' : response.data;
+    final logData =
+        _matches(path, _sensitivePaths) ? '{REDACTED}' : response.data;
 
     _log.d(
       '[RESPONSE] ${response.statusCode} ${response.requestOptions.uri}\n'
@@ -92,47 +123,66 @@ class DioInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final path = err.requestOptions.path;
-    final isAuth = _authExclusions.any((e) => path.contains(e));
-    final logResponse = isAuth ? '{REDACTED}' : err.response?.data;
+    final options = err.requestOptions;
+    final path = options.path;
+    final logResponse =
+        _matches(path, _sensitivePaths) ? '{REDACTED}' : err.response?.data;
 
     _log.e(
-      '[ERROR] ${err.type.name} ${err.requestOptions.uri}\n'
+      '[ERROR] ${err.type.name} ${options.uri}\n'
       'Status: ${err.response?.statusCode}\n'
       'Message: ${err.message}\n'
       'Response: $logResponse',
       error: err,
     );
 
-    final isAuthExcluded = _authExclusions.any((e) => path.contains(e));
     // A guest's request carries no token, so its 401 means "needs an
     // account", not "session expired" — nothing to refresh or clear.
-    final sentToken = err.requestOptions.headers['Authorization'] != null;
-
-    // Attempt token refresh on 401 for authenticated routes
-    if (err.response?.statusCode == 401 && !isAuthExcluded && sentToken) {
-      final didRefresh = await _tryRefreshToken();
-
-      if (didRefresh) {
-        // Retry the original request with the new token
-        try {
-          final opts = err.requestOptions;
-          opts.headers['Authorization'] =
-              'Bearer ${Cache.instance.sessionToken}';
-
-          final response = await _dio.fetch(opts);
-          return handler.resolve(response);
-        } on DioException catch (retryErr) {
-          return handler.next(retryErr);
-        }
-      }
-
-      // Refresh failed — clear session so the UI layer can react
-      await _cacheHelper.resetSession();
-      onSessionExpired?.call();
+    final sentAuth = options.headers['Authorization'] as String?;
+    if (err.response?.statusCode != 401 ||
+        sentAuth == null ||
+        _matches(path, _publicPaths)) {
+      return handler.next(err);
     }
 
-    handler.next(err);
+    // Another request already ended this session — nothing left to recover.
+    final currentToken = Cache.instance.sessionToken;
+    if (currentToken == null) return handler.next(err);
+
+    if (options.extra[_retriedKey] == true) {
+      await _expireSession();
+      return handler.next(err);
+    }
+
+    // The token was rotated by a refresh that finished after this request
+    // was sent — replay with the current token instead of refreshing again.
+    final tokenIsCurrent = sentAuth == 'Bearer $currentToken';
+    if (tokenIsCurrent && !await _tryRefreshToken()) {
+      await _expireSession();
+      return handler.next(err);
+    }
+
+    try {
+      options
+        ..extra[_retriedKey] = true
+        ..headers['Authorization'] = 'Bearer ${Cache.instance.sessionToken}';
+      return handler.resolve(await _dio.fetch(options));
+    } on DioException catch (retryErr) {
+      return handler.next(retryErr);
+    }
+  }
+
+  Future<void> _expireSession() async {
+    // Torn down already by an earlier 401 whose expiry has finished.
+    if (_sessionExpiry == null && Cache.instance.sessionToken == null) return;
+    return _sessionExpiry ??= () async {
+      try {
+        await _cacheHelper.resetSession();
+        onSessionExpired?.call();
+      } finally {
+        _sessionExpiry = null;
+      }
+    }();
   }
 
   /// Attempts to refresh the access token using the stored refresh token.
@@ -157,12 +207,12 @@ class DioInterceptor extends Interceptor {
 
       _log.d('[TOKEN REFRESH] Attempting token refresh…');
 
-      // Use a fresh Dio instance to avoid interceptor recursion
-      final freshDio = Dio(BaseOptions(
+      final freshDio = _refreshClient ?? Dio(BaseOptions(
         baseUrl: _dio.options.baseUrl,
         connectTimeout: _dio.options.connectTimeout,
         receiveTimeout: _dio.options.receiveTimeout,
         contentType: 'application/json',
+        headers: {'Accept': 'application/json'},
       ));
 
       final response = await freshDio.post(

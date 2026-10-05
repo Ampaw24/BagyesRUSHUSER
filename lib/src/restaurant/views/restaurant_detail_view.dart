@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -280,6 +281,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView>
                       : Image.network(
                           restaurant.imageUrl,
                           fit: BoxFit.cover,
+                          cacheWidth: fullWidthCacheWidth(context),
                           errorBuilder: (_, _, _) => Container(
                             color: AppColors.shimmerBase,
                           ),

@@ -140,10 +140,14 @@ class _PaymentReceiptViewState extends State<PaymentReceiptView> {
                 constraints.maxWidth,
                 _maxContentWidth,
               );
-              // Everything below sizes itself off the width it's given.
+              // Everything below sizes itself off the width it's given. Capped
+              // by the height too, so the pinned top bar and actions can't
+              // crowd out the receipt in a short window (portrait phones
+              // are taller than wide, so they're unaffected).
+              final scale = math.min(contentWidth, constraints.maxHeight);
               return MediaQuery(
                 data: mediaQuery.copyWith(
-                  size: Size(contentWidth, mediaQuery.size.height),
+                  size: Size(scale, mediaQuery.size.height),
                 ),
                 child: Center(
                   child: SizedBox(

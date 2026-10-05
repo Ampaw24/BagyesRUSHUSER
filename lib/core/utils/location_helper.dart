@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/places_service.dart';
@@ -38,21 +39,46 @@ class LocationResult {
 class LocationHelper {
   static const _unavailableAddress = 'Location unavailable';
 
-  /// Populated once by [AppInitializer] at app launch — before login and
-  /// well before any home screen mounts. Screens should read this first and
-  /// only fall back to a fresh [getCurrentLocation] call if it's unset, so
-  /// the GPS fix isn't re-acquired on every screen mount.
+  /// The last successful fix obtained through [current]. Read it for an
+  /// instant paint; call [current] to get one when it's unset.
   static LocationResult? cachedResult;
+
+  static Future<LocationResult>? _pendingCurrent;
+
+  /// How [current] gets a fresh fix — replaceable in tests, which have no
+  /// GPS to ask.
+  @visibleForTesting
+  static Future<LocationResult> Function(Duration timeLimit) acquire =
+      (timeLimit) => getCurrentLocation(timeLimit: timeLimit);
+
+  /// The device's location — the cached fix when there is one, otherwise a
+  /// fresh one (asking for permission on first need), cached for the next
+  /// caller. Concurrent callers share one acquisition and one reverse
+  /// geocode. A failed attempt isn't cached, so the next call retries.
+  static Future<LocationResult> current({
+    Duration timeLimit = const Duration(seconds: 10),
+  }) {
+    final cached = cachedResult;
+    if (cached != null && cached.isSuccess) return Future.value(cached);
+    return _pendingCurrent ??= acquire(timeLimit)
+        .then((result) {
+          if (result.isSuccess) cachedResult = result;
+          return result;
+        })
+        .whenComplete(() {
+          _pendingCurrent = null;
+        });
+  }
 
   // Android/iOS only track one in-flight permission request at a time; a
   // second concurrent `requestPermission()` call never resolves instead of
   // erroring. Callers share this in-flight future so the launch-time
-  // request (AppInitializer) and a screen's own request can't collide.
+  // requests from two screens can't collide.
   static Future<LocationPermission>? _pendingPermissionRequest;
 
-  /// Checks/requests the OS location permission. Call once at app launch
-  /// (e.g. from [AppInitializer.initializeRemaining]) so the system prompt
-  /// appears before login instead of when a home screen first mounts.
+  /// Checks/requests the OS location permission. [getCurrentLocation] calls
+  /// this itself, so the system prompt appears the first time a screen
+  /// actually needs the location — never at app launch.
   static Future<LocationPermission> ensurePermission() {
     return _pendingPermissionRequest ??= _requestPermission().whenComplete(
       () => _pendingPermissionRequest = null,

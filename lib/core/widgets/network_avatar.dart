@@ -1,3 +1,4 @@
+import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 
 import '../../constant/app_theme.dart';
@@ -57,6 +58,11 @@ class NetworkAvatar extends StatelessWidget {
             : Image.network(
                 url,
                 fit: BoxFit.cover,
+                cacheWidth: coverCacheWidth(
+                  context,
+                  width: size,
+                  height: size,
+                ),
                 errorBuilder: (_, _, _) => initials,
                 frameBuilder: (_, image, frame, loadedSync) {
                   if (loadedSync) return image;
