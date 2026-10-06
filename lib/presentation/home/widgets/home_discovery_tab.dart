@@ -106,6 +106,15 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
     if (mounted) setState(() => _currentLocation = result!.address);
   }
 
+  /// Reloads the home data and, when signed in, the unread-notification badge.
+  Future<void> _refresh() {
+    final signedIn = context.read<CurrentUserProvider>().isAuthenticated;
+    return Future.wait([
+      context.read<HomeDiscoveryViewModel>().refresh(),
+      if (signedIn) context.read<NotificationViewmodel>().getUnreadCount(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
@@ -124,8 +133,10 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
         '${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}';
     final String? avatarUrl = profile?.profilePictureUrl;
 
-    return CustomScrollView(
+    final scrollView = CustomScrollView(
       controller: _scrollController,
+      // Lets a short page still be pulled down to refresh.
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         // ── Fixed header ──
         SliverToBoxAdapter(
@@ -416,6 +427,12 @@ class _HomeDiscoveryTabState extends State<HomeDiscoveryTab> {
               : SizedBox(height: h * 0.12),
         ),
       ],
+    );
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _refresh,
+      child: scrollView,
     );
   }
 

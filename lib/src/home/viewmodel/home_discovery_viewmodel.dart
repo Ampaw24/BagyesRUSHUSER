@@ -112,15 +112,22 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
     super.dispose();
   }
 
-  Future<void> _loadCategories() async {
+  /// The `keepOnError` / `silent` flags are for [refresh]: a pull-to-refresh
+  /// that fails must leave what's already on screen alone.
+  Future<void> _loadCategories({bool keepOnError = false}) async {
     final result = await _homeRepository.getCategories();
     result.fold(
       // Fallback to the static list on error, mirroring the original
       // provider's `(_) => FoodCategory.all` behavior.
-      (_) => emit(state.copyWith(
-        categoriesStatus: CategoriesStatus.error,
-        categories: FoodCategory.all,
-      )),
+      (_) {
+        if (keepOnError && state.categoriesStatus == CategoriesStatus.loaded) {
+          return;
+        }
+        emit(state.copyWith(
+          categoriesStatus: CategoriesStatus.error,
+          categories: FoodCategory.all,
+        ));
+      },
       (categories) {
         final apiChips = categories
             .expand((c) => c.categories)
@@ -145,10 +152,13 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
     );
   }
 
-  Future<void> _loadBanners() async {
+  Future<void> _loadBanners({bool keepOnError = false}) async {
     final result = await _homeRepository.getHomePageBanners();
     result.fold(
-      (_) => emit(state.copyWith(bannersStatus: BannersStatus.error)),
+      (_) {
+        if (keepOnError && state.bannersStatus == BannersStatus.loaded) return;
+        emit(state.copyWith(bannersStatus: BannersStatus.error));
+      },
       (banners) => emit(state.copyWith(
         bannersStatus: BannersStatus.loaded,
         banners: banners,
@@ -156,8 +166,8 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
     );
   }
 
-  Future<void> _loadNearby() async {
-    emit(state.copyWith(nearbyStatus: NearbyStatus.loading));
+  Future<void> _loadNearby({bool silent = false}) async {
+    if (!silent) emit(state.copyWith(nearbyStatus: NearbyStatus.loading));
     try {
       final restaurants = await _restaurantRepository.getNearbyRestaurants();
       emit(state.copyWith(
@@ -165,6 +175,7 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
         nearbyRestaurants: restaurants,
       ));
     } catch (_) {
+      if (silent && state.nearbyStatus == NearbyStatus.loaded) return;
       emit(state.copyWith(nearbyStatus: NearbyStatus.error));
     }
   }
@@ -172,8 +183,9 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
   Future<void> _loadVendorList({
     required String category,
     required int page,
+    bool silent = false,
   }) async {
-    if (page == 1) {
+    if (page == 1 && !silent) {
       emit(state.copyWith(vendorListStatus: VendorListStatus.loading));
     }
     try {
@@ -181,6 +193,8 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
         category: category,
         page: page,
       );
+      // The category changed while this was in flight — its list is stale.
+      if (category != state.selectedCategory) return;
       emit(state.copyWith(
         vendorListStatus: VendorListStatus.loaded,
         restaurants: page == 1
@@ -192,6 +206,7 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
       ));
     } catch (_) {
       if (page == 1) {
+        if (silent && state.vendorListStatus == VendorListStatus.loaded) return;
         emit(state.copyWith(vendorListStatus: VendorListStatus.error));
       } else {
         // Keep existing data; clear loading flag so the user can retry by
@@ -226,6 +241,20 @@ class HomeDiscoveryViewModel extends ViewModel<HomeDiscoveryState> {
       page: state.currentPage + 1,
     );
   }
+
+  /// Pull-to-refresh: reloads everything on the home screen. Content already
+  /// shown stays put (no shimmer) until the fresh data replaces it, and a
+  /// failed reload leaves it untouched.
+  Future<void> refresh() => Future.wait([
+        _loadCategories(keepOnError: true),
+        _loadBanners(keepOnError: true),
+        _loadNearby(silent: true),
+        _loadVendorList(
+          category: state.selectedCategory,
+          page: 1,
+          silent: true,
+        ),
+      ]);
 
   /// Retries the first page after an error.
   Future<void> retryVendorList() =>

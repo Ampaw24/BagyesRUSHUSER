@@ -898,6 +898,7 @@ class _InfoPill extends StatelessWidget {
     required this.label,
     required this.w,
     this.showDot = false,
+    // ignore: unused_element_parameter
     this.muted = false,
   });
 

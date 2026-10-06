@@ -34,9 +34,10 @@ void main() {
   setUp(() {
     acquisitions = 0;
     LocationHelper.cachedResult = null;
+    // Answers immediately: a real-time delay here would race the fixed
+    // number of event-queue turns the tests pump.
     LocationHelper.acquire = (_) async {
       acquisitions++;
-      await Future<void>.delayed(const Duration(milliseconds: 10));
       return _fix();
     };
   });

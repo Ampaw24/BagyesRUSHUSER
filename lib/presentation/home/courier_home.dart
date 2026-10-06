@@ -212,10 +212,6 @@ class _HomeState extends State<Home> {
                   'Sign in to see your transactions.',
                   () => context.push(AppRoutes.wallet),
                 ),
-                onPaymentMethods: () => _openForAccount(
-                  'Sign in to manage your payment methods.',
-                  () => context.push(AppRoutes.customerPaymentMethods),
-                ),
                 onInviteFriends: () => _openForAccount(
                   'Sign in to get your referral code.',
                   () => AppNavigator.toInviteFriend(context),

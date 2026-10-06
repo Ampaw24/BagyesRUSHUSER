@@ -18,7 +18,6 @@ class CustomerDrawer extends StatefulWidget {
   final VoidCallback? onOrders;
   final VoidCallback? onNotifications;
   final VoidCallback? onTransactions;
-  final VoidCallback? onPaymentMethods;
   final VoidCallback? onInviteFriends;
   final VoidCallback? onPrivacyPolicy;
   final VoidCallback? onTermsConditions;
@@ -43,7 +42,6 @@ class CustomerDrawer extends StatefulWidget {
     this.onOrders,
     this.onNotifications,
     this.onTransactions,
-    this.onPaymentMethods,
     this.onInviteFriends,
     this.onPrivacyPolicy,
     this.onTermsConditions,
@@ -239,13 +237,6 @@ class _CustomerDrawerState extends State<CustomerDrawer>
                                 onTap: widget.onTransactions,
                                 fadeAnim: _staggeredFade(3),
                                 slideAnim: _staggeredSlide(3),
-                              ),
-                              DrawerTile(
-                                icon: HugeIcons.strokeRoundedCreditCard,
-                                label: 'Payment Methods',
-                                onTap: widget.onPaymentMethods,
-                                fadeAnim: _staggeredFade(4),
-                                slideAnim: _staggeredSlide(4),
                               ),
                               DrawerTile(
                                 icon: HugeIcons.strokeRoundedMoneyBag01,

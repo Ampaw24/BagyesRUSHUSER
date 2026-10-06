@@ -81,7 +81,7 @@ void main() {
   });
 
   group('Parcel summary with the wallet', () {
-    test('a covering wallet needs no mobile-money method to confirm', () {
+    test('a covering wallet can confirm', () {
       final state = _summary(walletBalance: 50, useWallet: true);
       expect(state.walletSplit.coversFully, isTrue);
       expect(state.walletSplit.remaining, 0);
@@ -89,12 +89,14 @@ void main() {
       expect(state.canProceed, isTrue);
     });
 
-    test('a partial wallet leaves the exact remainder and needs a method', () {
+    test('a partial wallet leaves the exact remainder for Paystack, and '
+        'confirming needs no payment method', () {
       final state = _summary(walletBalance: 12.35, useWallet: true);
       expect(state.walletSplit.walletAmount, 12.35);
       expect(state.walletSplit.remaining, 18.05);
       expect(state.walletBalanceAfter, 0);
-      expect(state.canProceed, isFalse);
+      // The remainder is paid on Paystack's page — nothing to pick here.
+      expect(state.canProceed, isTrue);
     });
 
     test('wallet off charges the full total', () {

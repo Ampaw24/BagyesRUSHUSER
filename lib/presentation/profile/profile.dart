@@ -187,13 +187,6 @@ class _ProfileState extends State<Profile> {
                         onTap: _navigateToEditProfile,
                         w: w,
                       ),
-                      _ProfileTile(
-                        icon: HugeIcons.strokeRoundedCreditCard,
-                        label: 'Payment Methods',
-                        onTap: () =>
-                            context.push(AppRoutes.customerPaymentMethods),
-                        w: w,
-                      ),
                     ],
                   ),
                   SizedBox(height: w * 0.05),

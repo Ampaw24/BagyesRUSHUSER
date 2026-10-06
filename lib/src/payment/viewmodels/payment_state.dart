@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 
 import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_init_result.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_transaction.dart';
 import 'package:bagyesrushappusernew/src/payment/models/payment_verification_result.dart';
@@ -51,14 +50,6 @@ final class PaymentTopUpSuccess extends PaymentState {
 
   @override
   List<Object?> get props => [result];
-}
-
-final class PaymentWithdrawSuccess extends PaymentState {
-  const PaymentWithdrawSuccess(this.data);
-  final DataMap data;
-
-  @override
-  List<Object?> get props => [data];
 }
 
 final class PaymentHistoryLoaded extends PaymentState {

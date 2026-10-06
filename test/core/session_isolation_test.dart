@@ -21,8 +21,6 @@ import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_state.dart'
     as menu_orders;
 import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart'
     as menu_orders;
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
-import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
 import 'package:bagyesrushappusernew/src/orders/repositories/orders_repository.dart';
 import 'package:bagyesrushappusernew/src/transaction/repositories/transaction_repository.dart';
 import 'package:bagyesrushappusernew/src/transaction/viewmodels/transaction_state.dart';
@@ -52,12 +50,6 @@ class _MenuOrders extends Fake implements OrdersRepository {}
 class _VendorRepo extends Fake implements VendorDashboardRepository {}
 
 class _ReviewRepo extends Fake implements ReviewRepository {}
-
-class _Payments extends Fake implements PaymentRepository {
-  @override
-  ResultFuture<List<PaymentMethod>> getCustomerPaymentMethods() async =>
-      const Right([]);
-}
 
 class _Addresses extends Fake implements CustomerAddressRepository {
   @override
@@ -174,27 +166,21 @@ void main() {
     expect(vm.state, isA<TransactionInitial>());
   });
 
-  test('checkout drops saved methods, addresses and the half-filled form',
-      () async {
+  test('checkout drops saved addresses and the half-filled form', () async {
     final vm = CheckoutViewModel(
       ordersViewModel: _Consumer(),
       ordersRepository: _Orders(),
-      paymentRepository: _Payments(),
       addressRepository: _Addresses(),
       session: session,
     );
-    await vm.refreshPaymentMethods();
     await vm.loadAddresses('vendor-1');
     vm.emit(const CheckoutIdle(
       form: CheckoutForm(deliveryInstructions: 'Leave at the gate'),
     ));
-    expect(vm.paymentMethodsStatus, PaymentMethodsStatus.loaded);
     expect(vm.addressesStatus, AddressesStatus.loaded);
 
     signOut();
 
-    expect(vm.paymentMethodsStatus, PaymentMethodsStatus.loading);
-    expect(vm.paymentMethods, isEmpty);
     expect(vm.addressesStatus, AddressesStatus.loading);
     expect(vm.addresses, isEmpty);
     expect(

@@ -1,37 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/widgets/app_toast.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:bagyesrushappusernew/core/widgets/inline_message.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_state.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/models/withdraw_eligibility.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
 
-/// Bottom sheet collecting the mobile-money destination for a wallet
-/// withdrawal — `POST /payments/wallet/withdraw` takes the destination
-/// inline per-request rather than a preset payout method, so this is a
-/// self-contained form (amount, network, phone, account name).
+/// The most the backend accepts in one withdrawal (`max:1000000`).
+const maxWithdrawalAmount = 1000000.0;
+
+/// The least it accepts (`min:1`) — the wallet's own minimum can be higher.
+const _backendMinimumAmount = 1.0;
+
+/// Bottom sheet for requesting a wallet withdrawal — `POST
+/// /customer/withdrawals` takes only the amount; the server sends it to the
+/// payout details on the customer's account (set via the add-payout flow).
 ///
-/// Owns a screen-scoped [PaymentViewmodel] instance of its own (fetched via
-/// `sl()`, not the shared app-root one) so an in-flight withdraw never
-/// flickers the transaction screen's wallet card, which reads the shared
-/// instance. Returns `true` via [Navigator.pop] on a confirmed withdrawal so
-/// the caller knows to refresh the balance.
+/// Pops `true` once the request is accepted so the caller can refresh the
+/// balance and the withdrawals list.
 class WithdrawSheet extends StatefulWidget {
-  const WithdrawSheet({super.key, required this.wallet});
+  const WithdrawSheet({super.key, required this.wallet, this.onAddPayoutMethod});
 
   final CustomerWalletModel wallet;
 
-  static Future<bool?> show(BuildContext context, {required CustomerWalletModel wallet}) {
+  /// Offered when the account has no payout details: the sheet closes and
+  /// this opens the add flow. Leave null to show the notice without a button.
+  final VoidCallback? onAddPayoutMethod;
+
+  static Future<bool?> show(
+    BuildContext context, {
+    required CustomerWalletModel wallet,
+    VoidCallback? onAddPayoutMethod,
+  }) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => WithdrawSheet(wallet: wallet),
+      builder: (_) => WithdrawSheet(
+        wallet: wallet,
+        onAddPayoutMethod: onAddPayoutMethod,
+      ),
     );
   }
 
@@ -40,94 +51,85 @@ class WithdrawSheet extends StatefulWidget {
 }
 
 class _WithdrawSheetState extends State<WithdrawSheet> {
-  late final PaymentViewmodel _vm;
   final _amountController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _accountNameController = TextEditingController();
-  MobileMoneyProvider? _provider;
   bool _submitted = false;
+  String? _serverError;
 
-  @override
-  void initState() {
-    super.initState();
-    _vm = sl<PaymentViewmodel>();
-    _vm.addListener(_onVmChanged);
-
-    final user = sl<CurrentUserProvider>().user;
-    _phoneController.text = user?.phone ?? '';
-    final profile = user?.profile;
-    if (profile is CustomerProfile) {
-      _accountNameController.text = '${profile.firstName} ${profile.lastName}'.trim();
-    }
-  }
+  CustomerWalletModel get _wallet => widget.wallet;
 
   @override
   void dispose() {
-    _vm.removeListener(_onVmChanged);
-    _vm.dispose();
     _amountController.dispose();
-    _phoneController.dispose();
-    _accountNameController.dispose();
     super.dispose();
   }
 
-  void _onVmChanged() {
-    if (!mounted) return;
-    final state = _vm.state;
-    if (state is PaymentWithdrawSuccess) {
-      AppToast.show(
-        context,
-        isSuccess: true,
-        title: 'Withdrawal requested',
-        subtitle: 'Your funds are on the way to your mobile money wallet.',
-      );
-      Navigator.of(context).pop(true);
-      return;
-    }
-    setState(() {});
-  }
-
-  String? get _validationError {
-    final amount = double.tryParse(_amountController.text.trim());
+  /// Stops a request the API would refuse outright (`amount` numeric,
+  /// min:1, max:1000000). Everything else — the wallet's own minimum, how
+  /// much is withdrawable — is left to the server, which words its own
+  /// refusal; see [_amountHint] for the heads-up shown meanwhile.
+  String? get _amountError {
+    final text = _amountController.text.trim();
+    if (text.isEmpty) return _submitted ? 'Enter an amount' : null;
+    final amount = double.tryParse(text);
     if (amount == null || amount <= 0) return 'Enter a valid amount';
-    if (amount > widget.wallet.withdrawable) {
-      return 'Amount exceeds your withdrawable balance';
+    if (amount < _backendMinimumAmount) {
+      return 'Minimum withdrawal is ${formatMoney(_backendMinimumAmount, currency: _wallet.currency)}';
     }
-    if (amount < widget.wallet.minimumWithdrawal) {
-      return 'Minimum withdrawal is ${widget.wallet.currency} '
-          '${widget.wallet.minimumWithdrawal.toStringAsFixed(2)}';
+    if (amount > maxWithdrawalAmount) {
+      return 'Maximum withdrawal is ${formatMoney(maxWithdrawalAmount, currency: _wallet.currency)}';
     }
-    if (_provider == null) return 'Select a mobile money network';
-    if (_phoneController.text.trim().isEmpty) return 'Enter a phone number';
-    if (_accountNameController.text.trim().isEmpty) return 'Enter the account name';
     return null;
   }
 
-  void _applyPercentage(double fraction) {
-    final amount = widget.wallet.withdrawable * fraction;
-    _amountController.text = amount.toStringAsFixed(2);
-    setState(() {});
+  /// A non-blocking heads-up when the amount is outside what the wallet says
+  /// is withdrawable — the request can still be sent and the server decides.
+  String? get _amountHint {
+    final amount = double.tryParse(_amountController.text.trim());
+    if (amount == null || _amountError != null) return null;
+    if (amount > _wallet.withdrawable) {
+      return 'That\'s more than your withdrawable balance '
+          '(${_wallet.formattedWithdrawable}) — it may be declined.';
+    }
+    if (amount < _wallet.minimumWithdrawal) {
+      return 'Below the minimum of '
+          '${formatMoney(_wallet.minimumWithdrawal, currency: _wallet.currency)} — it may be declined.';
+    }
+    return null;
   }
 
-  void _submit() {
-    final error = _validationError;
-    setState(() => _submitted = true);
-    if (error != null) return;
+  void _applyFraction(double fraction) {
+    _amountController.text = (_wallet.withdrawable * fraction).toStringAsFixed(2);
+    setState(() => _serverError = null);
+  }
 
-    _vm.withdrawFromWallet(
-      amount: double.parse(_amountController.text.trim()),
-      mobileMoneyProvider: _provider!,
-      phone: _phoneController.text.trim(),
-      accountName: _accountNameController.text.trim(),
-    );
+  void _addPayoutMethod() {
+    Navigator.of(context).pop();
+    widget.onAddPayoutMethod?.call();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitted = true);
+    if (_amountController.text.trim().isEmpty || _amountError != null) return;
+
+    final vm = context.read<CustomerWithdrawalsViewModel>();
+    final error = await vm.request(double.parse(_amountController.text.trim()));
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() => _serverError = error);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final isLoading = _vm.state is PaymentLoading;
-    final error = _vm.state is PaymentError ? (_vm.state as PaymentError).message : null;
-    final showValidation = _submitted ? _validationError : null;
+    final state = context.watch<CustomerWithdrawalsViewModel>().state;
+    final amountError = _amountError;
+    final amountHint = _amountHint;
+    final notice = _wallet.withdrawBlock;
+    final canSubmit = !state.isRequesting;
+    final amount = double.tryParse(_amountController.text.trim());
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -155,7 +157,7 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
               ),
               SizedBox(height: w * 0.04),
               Text(
-                'Withdraw to mobile money',
+                'Withdraw funds',
                 style: TextStyle(
                   fontSize: w * 0.045,
                   fontWeight: FontWeight.w700,
@@ -164,9 +166,37 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
               ),
               SizedBox(height: w * 0.01),
               Text(
-                'Available to withdraw: ${widget.wallet.formattedWithdrawable}',
+                'Available to withdraw: ${_wallet.formattedWithdrawable}',
                 style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
               ),
+              if (notice != null) ...[
+                SizedBox(height: w * 0.03),
+                InlineMessage(
+                  message: _wallet.blockMessage(notice),
+                  kind: InlineMessageKind.notice,
+                ),
+                if (notice == WithdrawBlock.noPayoutDetails &&
+                    widget.onAddPayoutMethod != null) ...[
+                  SizedBox(height: w * 0.025),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _addPayoutMethod,
+                      icon: Icon(Icons.add_card_rounded, size: w * 0.05),
+                      label: const Text('Add payout method'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                        padding: EdgeInsets.symmetric(vertical: w * 0.032),
+                        textStyle: TextStyle(fontSize: w * 0.036, fontWeight: FontWeight.w700),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(w * 0.035),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
               SizedBox(height: w * 0.05),
 
               _FieldLabel('Amount', w: w),
@@ -175,10 +205,10 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(() => _serverError = null),
                 style: TextStyle(fontSize: w * 0.045, fontWeight: FontWeight.w700),
                 decoration: InputDecoration(
-                  prefixText: '${widget.wallet.currency} ',
+                  prefixText: '${_wallet.currency} ',
                   hintText: '0.00',
                   filled: true,
                   fillColor: AppColors.surfaceVariant,
@@ -192,103 +222,51 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
               SizedBox(height: w * 0.025),
               Row(
                 children: [
-                  for (final pct in [0.25, 0.5, 1.0])
+                  for (final fraction in [0.25, 0.5, 1.0])
                     Padding(
                       padding: EdgeInsets.only(right: w * 0.02),
                       child: _PercentChip(
-                        label: pct == 1.0 ? 'Max' : '${(pct * 100).round()}%',
-                        onTap: widget.wallet.withdrawable > 0
-                            ? () => _applyPercentage(pct)
-                            : null,
+                        label: fraction == 1.0 ? 'Max' : '${(fraction * 100).round()}%',
+                        onTap: _wallet.withdrawable > 0 ? () => _applyFraction(fraction) : null,
                         w: w,
                       ),
                     ),
+                  Expanded(
+                    child: Text(
+                      'Min ${formatMoney(_wallet.minimumWithdrawal, currency: _wallet.currency)}',
+                      textAlign: TextAlign.end,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: w * 0.029, color: AppColors.textHint),
+                    ),
+                  ),
                 ],
               ),
-              SizedBox(height: w * 0.05),
-
-              _FieldLabel('Mobile money network', w: w),
-              SizedBox(height: w * 0.02),
-              Wrap(
-                spacing: w * 0.025,
-                runSpacing: w * 0.025,
-                children: MobileMoneyProvider.values.map((provider) {
-                  final selected = _provider == provider;
-                  return GestureDetector(
-                    onTap: () => setState(() => _provider = provider),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.025),
-                      decoration: BoxDecoration(
-                        color: selected ? AppColors.primary : Colors.white,
-                        borderRadius: BorderRadius.circular(w * 0.06),
-                        border: Border.all(
-                          color: selected ? AppColors.primary : AppColors.border,
-                        ),
-                      ),
-                      child: Text(
-                        _providerLabel(provider),
-                        style: TextStyle(
-                          fontSize: w * 0.033,
-                          fontWeight: FontWeight.w600,
-                          color: selected ? Colors.white : AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              SizedBox(height: w * 0.05),
-
-              _FieldLabel('Mobile money number', w: w),
-              SizedBox(height: w * 0.02),
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: 'e.g. 024XXXXXXX',
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.035),
-                ),
-              ),
-              SizedBox(height: w * 0.05),
-
-              _FieldLabel('Account name', w: w),
-              SizedBox(height: w * 0.02),
-              TextField(
-                controller: _accountNameController,
-                textCapitalization: TextCapitalization.words,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: 'Name on the mobile money account',
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(w * 0.03),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.035),
-                ),
-              ),
-
-              if (showValidation != null || error != null) ...[
-                SizedBox(height: w * 0.03),
+              if (amountError != null) ...[
+                SizedBox(height: w * 0.02),
                 Text(
-                  error ?? showValidation!,
+                  amountError,
                   style: TextStyle(fontSize: w * 0.032, color: AppColors.error),
                 ),
+              ] else if (amountHint != null) ...[
+                SizedBox(height: w * 0.02),
+                Text(
+                  amountHint,
+                  style: TextStyle(fontSize: w * 0.032, color: AppColors.warning),
+                ),
+              ],
+              SizedBox(height: w * 0.05),
+
+              if (_serverError != null) ...[
+                SizedBox(height: w * 0.03),
+                InlineMessage(message: _serverError!),
               ],
 
               SizedBox(height: w * 0.06),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : _submit,
+                  onPressed: canSubmit ? _submit : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -297,7 +275,7 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
                       borderRadius: BorderRadius.circular(w * 0.035),
                     ),
                   ),
-                  child: isLoading
+                  child: state.isRequesting
                       ? SizedBox(
                           width: w * 0.05,
                           height: w * 0.05,
@@ -307,7 +285,9 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
                           ),
                         )
                       : Text(
-                          'Withdraw',
+                          amount != null && amount > 0 && _amountError == null
+                              ? 'Withdraw ${formatMoney(amount, currency: _wallet.currency)}'
+                              : 'Withdraw',
                           style: TextStyle(fontSize: w * 0.038, fontWeight: FontWeight.w700),
                         ),
                 ),
@@ -318,12 +298,6 @@ class _WithdrawSheetState extends State<WithdrawSheet> {
       ),
     );
   }
-
-  String _providerLabel(MobileMoneyProvider provider) => switch (provider) {
-        MobileMoneyProvider.mtn => 'MTN MoMo',
-        MobileMoneyProvider.vodafone => 'Vodafone Cash',
-        MobileMoneyProvider.airtelTigo => 'AirtelTigo Money',
-      };
 }
 
 class _FieldLabel extends StatelessWidget {

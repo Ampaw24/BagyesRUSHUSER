@@ -12,10 +12,6 @@ import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewm
 import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
 import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
 import 'package:bagyesrushappusernew/src/customer_address/repositories/customer_address_repository.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
-import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
-
-enum PaymentMethodsStatus { loading, error, loaded }
 
 enum AddressesStatus { loading, error, loaded }
 
@@ -25,23 +21,18 @@ class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
   CheckoutViewModel({
     required OrdersViewModel ordersViewModel,
     required ConsumerOrdersRepository ordersRepository,
-    required PaymentRepository paymentRepository,
     required CustomerAddressRepository addressRepository,
     required CurrentUserProvider session,
   })  : _ordersViewModel = ordersViewModel,
         _ordersRepository = ordersRepository,
-        _paymentRepository = paymentRepository,
         _addressRepository = addressRepository,
         super(const CheckoutIdle(form: CheckoutForm())) {
     bindSession(session);
   }
 
-  /// Drops the previous account's saved payment methods, addresses and
-  /// half-filled form on logout (see [SessionAware]) — the checkout screen
-  /// reloads them on entry.
+  /// Drops the previous account's addresses and half-filled form on logout
+  /// (see [SessionAware]) — the checkout screen reloads them on entry.
   void reset() {
-    _paymentMethods = const [];
-    _paymentMethodsStatus = PaymentMethodsStatus.loading;
     _addresses = const [];
     _addressesStatus = AddressesStatus.loading;
     emit(const CheckoutIdle(form: CheckoutForm()));
@@ -52,48 +43,7 @@ class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
 
   final OrdersViewModel _ordersViewModel;
   final ConsumerOrdersRepository _ordersRepository;
-  final PaymentRepository _paymentRepository;
   final CustomerAddressRepository _addressRepository;
-
-  // ─── Payment methods (orthogonal to the CheckoutState phase above) ───────
-
-  PaymentMethodsStatus _paymentMethodsStatus = PaymentMethodsStatus.loading;
-  List<PaymentMethod> _paymentMethods = const [];
-  PaymentMethodsStatus get paymentMethodsStatus => _paymentMethodsStatus;
-  List<PaymentMethod> get paymentMethods => _paymentMethods;
-
-  /// The customer's saved mobile-money payment methods, for the checkout
-  /// payment-method picker. Reuses the same [PaymentRepository] the
-  /// Profile → Payment Methods screen uses.
-  Future<void> _loadPaymentMethods() async {
-    _paymentMethodsStatus = PaymentMethodsStatus.loading;
-    notifyListeners();
-
-    final result = await _paymentRepository.getCustomerPaymentMethods();
-    result.fold(
-      (failure) {
-        _paymentMethodsStatus = PaymentMethodsStatus.error;
-        notifyListeners();
-      },
-      (methods) {
-        _paymentMethods = methods;
-        _paymentMethodsStatus = PaymentMethodsStatus.loaded;
-        notifyListeners();
-
-        // Auto-select the customer's default (or first) saved payment method
-        // once the list loads, so they aren't forced to tap it explicitly.
-        if (methods.isNotEmpty && _currentForm.selectedPaymentMethod == null) {
-          final defaultMethod = methods.firstWhere(
-            (m) => m.isDefault,
-            orElse: () => methods.first,
-          );
-          selectPaymentMethod(defaultMethod);
-        }
-      },
-    );
-  }
-
-  Future<void> refreshPaymentMethods() => _loadPaymentMethods();
 
   // ─── Checkout form / submission state machine ─────────────────────────────
 
@@ -176,17 +126,12 @@ class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
         form: _currentForm.copyWith(deliveryInstructions: instructions)));
   }
 
-  void selectPaymentMethod(PaymentMethod method) {
-    emit(CheckoutIdle(
-        form: _currentForm.copyWith(selectedPaymentMethod: method)));
-  }
-
   void setUseWallet(bool value) {
     emit(CheckoutIdle(form: _currentForm.copyWith(useWallet: value)));
   }
 
-  /// [walletCoversTotal] — the cart's `wallet.payable` is zero, so no
-  /// mobile-money account is needed.
+  /// [walletCoversTotal] — the cart's `wallet.payable` is zero, so nothing
+  /// is left to pay through Paystack.
   Future<void> placeOrder(
     CartModel cart, {
     bool walletCoversTotal = false,
@@ -195,15 +140,13 @@ class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
     final form = _currentForm;
     final quoteId =
         form.usesCartQuote ? cart.deliveryQuoteId : form.deliveryQuote?.id;
-    final needsMethod = !(form.useWallet && walletCoversTotal);
+    final needsPayment = !(form.useWallet && walletCoversTotal);
 
     final problem = !form.hasDestination
         ? 'Please choose a delivery address'
         : quoteId == null
             ? (cart.deliveryError ?? "Delivery isn't available to this address")
-            : (form.selectedPaymentMethod == null && needsMethod)
-                ? 'Please select a payment method'
-                : null;
+            : null;
     if (problem != null) {
       emit(CheckoutError(form: form, message: problem));
       return;
@@ -213,8 +156,8 @@ class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
     try {
       final order = await _ordersViewModel.placeOrder(
         vendorId: cart.vendorId,
-        // Checkout only offers saved mobile-money accounts; the backend enum
-        // is `card` | `mobile_money` | cash.
+        // Paystack's page is where the customer picks how to pay; the
+        // backend enum is `card` | `mobile_money` | cash.
         paymentMethod: 'mobile_money',
         customerAddressId: form.selectedAddress?.id,
         location: form.selectedAddress == null ? form.pickedLocation : null,
@@ -225,7 +168,7 @@ class CheckoutViewModel extends ViewModel<CheckoutState> with SessionAware {
       emit(CheckoutSuccess(
         order: order,
         form: form,
-        requiresPayment: needsMethod && order.needsPayment,
+        requiresPayment: needsPayment && order.needsPayment,
       ));
     } on DioException catch (e) {
       emit(CheckoutError(

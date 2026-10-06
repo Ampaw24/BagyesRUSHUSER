@@ -56,8 +56,6 @@ abstract final class AppNavigator {
       context.push(AppRoutes.profile);
   static void toEditProfile(BuildContext context) =>
       context.push(AppRoutes.editProfile);
-  static void toCustomerPaymentMethods(BuildContext context) =>
-      context.push(AppRoutes.customerPaymentMethods);
 
   // ── Legal ──
   static void toLegal(BuildContext context, LegalDocument document) =>

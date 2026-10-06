@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:bagyesrushappusernew/core/di/service_locator.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/payout_setup_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/views/add_payout_method_view.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/core/singletons/cache.dart';
 import 'package:bagyesrushappusernew/presentation/splash_screen.dart';
@@ -34,8 +38,6 @@ import 'package:bagyesrushappusernew/src/vendor/view/vendor_kyc_view.dart';
 import 'package:bagyesrushappusernew/src/vendor/view/vendor_payout_view.dart';
 import 'package:bagyesrushappusernew/src/vendor_reviews/views/reviews_view.dart';
 import 'package:bagyesrushappusernew/features/vendor_payment_methods/views/screens/payment_methods_screen.dart';
-import 'package:bagyesrushappusernew/features/consumer/payment_methods/views/screens/payment_methods_screen.dart'
-    as consumer_payment_methods;
 import 'package:bagyesrushappusernew/src/vendor-wallet/views/vendor_wallet_view.dart';
 
 // ── Consumer feature screens ──
@@ -303,6 +305,13 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // ── Profile ──
+    GoRoute(
+      path: AppRoutes.addPayoutMethod,
+      builder: (context, state) => ChangeNotifierProvider(
+        create: (_) => sl<PayoutSetupViewModel>(),
+        child: const AddPayoutMethodView(),
+      ),
+    ),
     GoRoute(path: AppRoutes.profile, builder: (context, state) => Profile()),
     GoRoute(
       path: AppRoutes.editProfile,
@@ -311,11 +320,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.deleteAccount,
       builder: (context, state) => const DeleteAccountView(),
-    ),
-    GoRoute(
-      path: AppRoutes.customerPaymentMethods,
-      builder: (context, state) =>
-          const consumer_payment_methods.PaymentMethodsScreen(),
     ),
     // ── Courier / delivery ──
     GoRoute(

@@ -203,6 +203,20 @@ abstract final class ApiEndpoints {
   /// and payout eligibility flags. Restricted to role: customer.
   static const String customerWallet = '/customer/wallet';
 
+  /// `PUT /customer/wallet/payout-method` — body `{ payout_provider_id }`
+  /// (required, integer); withdrawals are paid to the account's verified
+  /// phone number on that network.
+  static const String customerWalletPayoutMethod = '/customer/wallet/payout-method';
+
+  /// `GET /customer/withdrawals` (the customer's withdrawal requests) |
+  /// `POST /customer/withdrawals` (body `{ amount }` — required, numeric,
+  /// min:1, max:1000000; the destination is the saved payout method).
+  static const String customerWithdrawals = '/customer/withdrawals';
+
+  /// `PATCH /customer/withdrawals/:id/cancel` — no body.
+  static String customerWithdrawalCancel(String id) =>
+      '$customerWithdrawals/$id/cancel';
+
   // ─── Payments (Paystack) ───────────────────────────────────────────────────
   /// `POST /payments/initialize` — start a Paystack charge (mobile money or card).
   static const String paymentsInitialize = '/payments/initialize';
@@ -216,8 +230,6 @@ abstract final class ApiEndpoints {
   /// `POST /payments/wallet/topup` — top up wallet via Paystack.
   static const String paymentsWalletTopup = '/payments/wallet/topup';
 
-  /// `POST /payments/wallet/withdraw` — withdraw wallet funds to mobile money.
-  static const String paymentsWalletWithdraw = '/payments/wallet/withdraw';
 
   /// `GET /payments/history` — paginated wallet transaction history.
   static const String paymentsHistory = '/payments/history';

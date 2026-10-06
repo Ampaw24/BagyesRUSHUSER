@@ -5,7 +5,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
 import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart';
@@ -20,14 +19,10 @@ import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dar
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
-import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
 import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
 import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
 import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:bagyesrushappusernew/src/payment/views/widgets/paystack_note.dart';
 
 /// Unwraps whichever [CheckoutState] variant carries a [CheckoutForm].
 CheckoutForm _formFromState(CheckoutState state) => switch (state) {
@@ -71,7 +66,6 @@ class _CheckoutViewState extends State<CheckoutView> {
 
       final vendorId = context.read<CartViewModel>().cart?.vendorId;
       if (vendorId != null) vm.loadAddresses(vendorId);
-      vm.refreshPaymentMethods();
 
       // Refresh the cart so its totals, wallet split and promo verdict are
       // current, and the wallet so the toggle reflects the live balance.
@@ -93,8 +87,8 @@ class _CheckoutViewState extends State<CheckoutView> {
     }
   }
 
-  /// Charges the order with the method picked here, then hands off to
-  /// tracking. The backend deletes the cart when the order is created; the
+  /// Pays the order through Paystack (which handles the payment method),
+  /// then hands off to tracking. The backend deletes the cart when the order is created; the
   /// local copy is reset only after the hand-off, so this screen doesn't go
   /// blank behind the payment dialog.
   Future<void> _payThenTrack(CheckoutSuccess success) async {
@@ -106,7 +100,6 @@ class _CheckoutViewState extends State<CheckoutView> {
       context,
       orderId: success.order.id,
       requiresPayment: success.requiresPayment,
-      savedMethod: success.form.selectedPaymentMethod,
       settledMessage: 'Order placed — paid with your wallet.',
     );
     cartVm.reset();
@@ -203,33 +196,6 @@ class _CheckoutViewState extends State<CheckoutView> {
     );
   }
 
-  /// Pushes the existing "Add Payment Method" screen (the same one used
-  /// from Profile → Payment Methods), providing it the `ChangeNotifier`s it
-  /// expects since checkout's widget tree doesn't already have them. On
-  /// success it pops back here with the newly-created method, which is then
-  /// selected and the saved-methods list is refreshed.
-  Future<void> _addPaymentMethod(BuildContext context) async {
-    final result = await Navigator.of(context).push<PaymentMethod>(
-      MaterialPageRoute(
-        builder: (_) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider<PaymentViewModel>(
-              create: (_) => sl<PaymentViewModel>(param1: false),
-            ),
-            ChangeNotifierProvider<PayoutProvidersViewModel>(
-              create: (_) => sl<PayoutProvidersViewModel>(),
-            ),
-          ],
-          child: const AddPaymentMethodScreen(),
-        ),
-      ),
-    );
-    if (!mounted || result == null) return;
-    final vm = context.read<CheckoutViewModel>();
-    vm.refreshPaymentMethods();
-    vm.selectPaymentMethod(result);
-  }
-
   /// Shows the amount due before the order is created — placing it starts
   /// payment straight away, so Cancel leaves the customer free to edit.
   /// For a non-default address ([total] is null) the amount and wallet split
@@ -308,8 +274,6 @@ class _CheckoutViewState extends State<CheckoutView> {
       payable: usesCartQuote ? cart.wallet?.payable : null,
       total: total,
     );
-    final hasPaymentMethod =
-        form.selectedPaymentMethod != null || walletSplit.coversFully;
     final hasQuote = usesCartQuote
         ? cart.deliveryQuoteId != null
         : form.deliveryQuote != null;
@@ -320,9 +284,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                 ? (deliveryError ??
                     form.deliveryQuoteError ??
                     "Delivery isn't available to this address")
-                : !hasPaymentMethod
-                    ? 'Please select a payment method to continue'
-                    : null);
+                : null);
     final canPlace = blockedReason == null &&
         hasQuote &&
         !isPlacing &&
@@ -377,8 +339,8 @@ class _CheckoutViewState extends State<CheckoutView> {
 
                 SizedBox(height: w * 0.055),
 
-                // ── Step 2: Payment method ──
-                _SectionHeader(number: '2', title: 'Payment Method'),
+                // ── Step 2: Payment ──
+                _SectionHeader(number: '2', title: 'Payment'),
                 SizedBox(height: w * 0.03),
                 UseWalletTile(
                   wallet: walletVm.wallet,
@@ -390,56 +352,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                   onRetry: walletVm.fetchWallet,
                 ),
                 SizedBox(height: w * 0.03),
-                if (walletSplit.coversFully)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: w * 0.02),
-                    child: Text(
-                      'No mobile money needed — paid from your wallet',
-                      style: TextStyle(
-                        fontSize: w * 0.03,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: walletSplit.coversFully ? 0.4 : 1,
-                  child: IgnorePointer(
-                    ignoring: walletSplit.coversFully,
-                    child: switch (checkoutVm.paymentMethodsStatus) {
-                  PaymentMethodsStatus.loading =>
-                    const _PaymentMethodsLoading(),
-                  PaymentMethodsStatus.error => _PaymentMethodsErrorView(
-                      onRetry: () => checkoutVm.refreshPaymentMethods(),
-                    ),
-                  PaymentMethodsStatus.loaded =>
-                    checkoutVm.paymentMethods.isEmpty
-                        ? _NoPaymentMethodsCard(
-                            onAdd: () => _addPaymentMethod(context),
-                          )
-                        : Column(
-                            children: [
-                              ...checkoutVm.paymentMethods.map((m) => _PaymentOption(
-                                    method: m,
-                                    isSelected:
-                                        form.selectedPaymentMethod?.id ==
-                                            m.id,
-                                    onTap: () {
-                                      HapticFeedback.selectionClick();
-                                      context
-                                          .read<CheckoutViewModel>()
-                                          .selectPaymentMethod(m);
-                                    },
-                                  )),
-                              SizedBox(height: w * 0.02),
-                              _AddPaymentMethodButton(
-                                onTap: () => _addPaymentMethod(context),
-                              ),
-                            ],
-                          ),
-                    },
-                  ),
-                ),
+                PaystackNote(walletCoversFully: walletSplit.coversFully),
 
                 SizedBox(height: w * 0.055),
 
@@ -679,7 +592,7 @@ String _paymentConfirmationMessage({
               '${formatMoney(split.walletAmount, currency: currency)} from '
               'your wallet and '
               '${formatMoney(split.remaining, currency: currency)} via '
-              'mobile money.'
+              'Paystack.'
           : 'You are about to pay $amount for this order.';
   return isEstimate
       ? '$message The final amount is confirmed when the order is placed.'
@@ -726,189 +639,6 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PaymentOption extends StatelessWidget {
-  final PaymentMethod method;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _PaymentOption({
-    required this.method,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    final provider = method.provider;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: EdgeInsets.only(bottom: w * 0.025),
-        padding: EdgeInsets.all(w * 0.04),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.07)
-              : AppColors.card,
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 1.5 : 0.8,
-          ),
-        ),
-        child: Row(
-          children: [
-            provider != null
-                ? PayoutProviderAvatar(provider: provider, size: w * 0.09)
-                : Icon(Icons.phone_android_rounded,
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
-                    size: w * 0.055),
-            SizedBox(width: w * 0.03),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    method.displayTitle,
-                    style: TextStyle(
-                      fontSize: w * 0.037,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    '${provider?.isBank == true ? 'Bank Account' : 'Mobile Money'} • ${method.maskedPhone}',
-                    style: TextStyle(
-                      fontSize: w * 0.03,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AddPaymentMethodButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _AddPaymentMethodButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: const Icon(Icons.add),
-      label: const Text('Add Payment Method'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        side: const BorderSide(color: AppColors.primary),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-        ),
-        minimumSize: Size(double.infinity, w * 0.12),
-      ),
-    );
-  }
-}
-
-class _PaymentMethodsLoading extends StatelessWidget {
-  const _PaymentMethodsLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: w * 0.06),
-      child: const Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-class _PaymentMethodsErrorView extends StatelessWidget {
-  final VoidCallback onRetry;
-
-  const _PaymentMethodsErrorView({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return Container(
-      padding: EdgeInsets.all(w * 0.04),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline_rounded,
-              color: AppColors.error, size: w * 0.055),
-          SizedBox(width: w * 0.03),
-          Expanded(
-            child: Text(
-              'Could not load your payment methods',
-              style:
-                  TextStyle(fontSize: w * 0.034, color: AppColors.textPrimary),
-            ),
-          ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
-    );
-  }
-}
-
-class _NoPaymentMethodsCard extends StatelessWidget {
-  final VoidCallback onAdd;
-
-  const _NoPaymentMethodsCard({required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    return Container(
-      padding: EdgeInsets.all(w * 0.05),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.account_balance_wallet_outlined,
-              size: w * 0.09, color: AppColors.textSecondary),
-          SizedBox(height: w * 0.025),
-          Text(
-            'No payment method added yet',
-            style: TextStyle(
-              fontSize: w * 0.036,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: w * 0.02),
-          _AddPaymentMethodButton(onTap: onAdd),
-        ],
-      ),
     );
   }
 }

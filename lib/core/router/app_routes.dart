@@ -19,12 +19,12 @@ abstract final class AppRoutes {
   static const String home = '/home';
   static const String notifications = '/notifications';
   static const String wallet = '/wallet';
+  static const String addPayoutMethod = '/wallet/payout-method';
 
   // ── Profile ──
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
   static const String deleteAccount = '/profile/delete-account';
-  static const String customerPaymentMethods = '/profile/payment-methods';
 
   // ── Courier / delivery ──
   static const String sendPackages = '/send-packages';

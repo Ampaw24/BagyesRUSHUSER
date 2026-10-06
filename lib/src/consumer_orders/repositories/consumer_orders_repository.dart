@@ -145,21 +145,17 @@ class ConsumerOrdersRepository {
   static const _payOrderMaxAttempts = 3;
   static const _payOrderRetryDelay = Duration(milliseconds: 500);
 
+  /// `POST customer/orders/:id/pay` — initialises the Paystack payment
+  /// (returns `reference` and `authorization_url`).
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
-    String? phone,
-    String? mobileMoneyProvider,
   }) async {
     for (var attempt = 1; attempt <= _payOrderMaxAttempts; attempt++) {
       try {
         final response = await _client.post(
           ApiEndpoints.customerOrderPay(orderId),
-          data: {
-            'payment_method': paymentMethod,
-            if (phone != null) 'phone': phone,
-            if (mobileMoneyProvider != null) 'mobile_money_provider': mobileMoneyProvider,
-          },
+          data: {'payment_method': paymentMethod},
         );
         return _dataMap(response);
       } on DioException catch (e) {

@@ -64,36 +64,6 @@ class PaymentViewmodel extends ViewModel<PaymentState> {
     );
   }
 
-  Future<void> withdrawFromWallet({
-    required double amount,
-    required MobileMoneyProvider mobileMoneyProvider,
-    required String phone,
-    required String accountName,
-  }) async {
-    appLogger.d('PaymentViewmodel.withdrawFromWallet → amount=$amount');
-    emit(const PaymentLoading());
-
-    final result = await _repository.withdrawFromWallet(
-      amount: amount,
-      mobileMoneyProvider: mobileMoneyProvider,
-      phone: phone,
-      accountName: accountName,
-    );
-
-    result.fold(
-      (failure) {
-        appLogger.w(
-          'PaymentViewmodel.withdrawFromWallet → error: ${failure.message}',
-        );
-        emit(PaymentError.fromFailure(failure));
-      },
-      (data) {
-        appLogger.i('PaymentViewmodel.withdrawFromWallet → success');
-        emit(PaymentWithdrawSuccess(data));
-      },
-    );
-  }
-
   Future<void> getTransactionHistory({
     int page = 1,
     int limit = 20,

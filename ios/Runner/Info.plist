@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>BagyesRUSH needs camera access to take photos for your profile and orders.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>BagyesRUSH uses your location to show restaurants near you and to set your delivery address. It is only used while the app is open.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>BagyesRUSH needs your location to show nearby services and track deliveries.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

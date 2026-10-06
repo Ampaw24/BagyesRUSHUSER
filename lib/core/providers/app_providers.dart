@@ -9,6 +9,7 @@ import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.da
 import 'package:bagyesrushappusernew/src/transaction/viewmodels/transaction_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
 
 final _sl = GetIt.instance;
 
@@ -34,6 +35,9 @@ class AppProviders {
         ),
         ChangeNotifierProvider<CustomerWalletViewmodel>(
           create: (_) => _sl<CustomerWalletViewmodel>(),
+        ),
+        ChangeNotifierProvider<CustomerWithdrawalsViewModel>(
+          create: (_) => _sl<CustomerWithdrawalsViewModel>(),
         ),
       ];
 }

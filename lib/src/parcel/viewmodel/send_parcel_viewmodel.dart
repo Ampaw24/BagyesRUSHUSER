@@ -16,7 +16,6 @@ import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
 import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
 /// Sentinel used by [SendParcelState.copyWith] to distinguish "leave
 /// unchanged" from "explicitly set to null" for nullable fields.
@@ -96,9 +95,8 @@ class SendParcelState {
   final String? selectedRiderId;
 
   // ── Payment + submission ────────────────────────────────────────────────
-  final PaymentMethod? selectedPaymentMethod;
 
-  /// Pay from wallet first; any remainder goes to [selectedPaymentMethod].
+  /// Pay from wallet first; any remainder is paid through Paystack.
   final bool useWallet;
 
   /// Last known wallet balance, synced from `CustomerWalletViewmodel`.
@@ -128,7 +126,6 @@ class SendParcelState {
     this.noRidersMessage,
     this.riderQuotes = const [],
     this.selectedRiderId,
-    this.selectedPaymentMethod,
     this.useWallet = false,
     this.walletBalance = 0,
     this.isSubmitting = false,
@@ -204,8 +201,7 @@ class SendParcelState {
         // Never book a price the customer hasn't seen.
         return !isSubmitting &&
             !isFetchingQuote &&
-            quotedPrice != null &&
-            (selectedPaymentMethod != null || walletSplit.coversFully);
+            quotedPrice != null;
     }
   }
 
@@ -229,7 +225,6 @@ class SendParcelState {
     Object? noRidersMessage = _unset,
     List<ParcelQuote>? riderQuotes,
     Object? selectedRiderId = _unset,
-    Object? selectedPaymentMethod = _unset,
     bool? useWallet,
     double? walletBalance,
     bool? isSubmitting,
@@ -262,9 +257,6 @@ class SendParcelState {
         selectedRiderId: identical(selectedRiderId, _unset)
             ? this.selectedRiderId
             : selectedRiderId as String?,
-        selectedPaymentMethod: identical(selectedPaymentMethod, _unset)
-            ? this.selectedPaymentMethod
-            : selectedPaymentMethod as PaymentMethod?,
         useWallet: useWallet ?? this.useWallet,
         walletBalance: walletBalance ?? this.walletBalance,
         isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -458,10 +450,7 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     emit(state.copyWith(deliveryStops: stops));
   }
 
-  // ── Payment method ────────────────────────────────────────────────────────
-
-  void selectPaymentMethod(PaymentMethod method) =>
-      emit(state.copyWith(selectedPaymentMethod: method, submitError: null));
+  // ── Payment ───────────────────────────────────────────────────────────────
 
   void setUseWallet(bool value) =>
       emit(state.copyWith(useWallet: value, submitError: null));
@@ -541,12 +530,6 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
       emit(state.copyWith(submitError: 'Please select a rider.'));
       return false;
     }
-    final method = state.selectedPaymentMethod;
-    if (method == null && !state.walletSplit.coversFully) {
-      emit(state.copyWith(submitError: 'Please select a payment method.'));
-      return false;
-    }
-
     emit(state.copyWith(isSubmitting: true, submitError: null));
 
     try {
@@ -564,14 +547,9 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
       final createResult = await _repository.createParcel(
         deliveryQuoteId: quote.id,
-        // Customers only ever have saved mobile-money accounts (see
-        // getCustomerPaymentMethods) — mirrors the checkout flow, where
-        // 'card' is likewise never offered to select from.
+        // Paystack's page is where the customer picks how to pay (no saved
+        // method id is sent); the backend enum is `card` | `mobile_money`.
         paymentMethod: 'mobile_money',
-        // Nothing is charged to mobile money when the wallet covers it all.
-        paymentMethodId: method == null || split.coversFully
-            ? null
-            : int.tryParse(method.id),
         useWallet: split.usesWallet,
         direction: state.direction,
         stops: stops,

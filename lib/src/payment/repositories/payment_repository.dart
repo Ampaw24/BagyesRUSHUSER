@@ -227,61 +227,6 @@ class PaymentGatewayRepository {
       );
     }
   }
-
-  ResultFuture<DataMap> withdrawFromWallet({
-    required double amount,
-    required MobileMoneyProvider mobileMoneyProvider,
-    required String phone,
-    required String accountName,
-  }) async {
-    appLogger.d('PaymentGatewayRepository.withdrawFromWallet → amount=$amount');
-    try {
-      final response = await _client.post(
-        ApiEndpoints.paymentsWalletWithdraw,
-        data: {
-          'amount': amount,
-          'mobileMoneyProvider': mobileMoneyProvider.apiValue,
-          'phone': phone,
-          'accountName': accountName,
-        },
-      );
-
-      appLogger.d(
-        'PaymentGatewayRepository.withdrawFromWallet → RAW RESPONSE\n'
-        '  status : ${response.statusCode}',
-      );
-
-      if ([200, 201].contains(response.statusCode)) {
-        final payload =
-            (response.data as DataMap)['data'] as DataMap? ??
-            response.data as DataMap;
-        appLogger.i('PaymentGatewayRepository.withdrawFromWallet → success');
-        return Right(payload);
-      }
-
-      appLogger.w(
-        'PaymentGatewayRepository.withdrawFromWallet → HTTP ${response.statusCode}',
-      );
-      return NetworkUtils.handleDioResponseError(response);
-    } on DioException catch (e) {
-      appLogger.e(
-        'PaymentGatewayRepository.withdrawFromWallet → DioException\n'
-        '  type   : ${e.type}\n'
-        '  status : ${e.response?.statusCode}\n'
-        '  data   : ${e.response?.data}',
-        error: e,
-      );
-      return NetworkUtils.handleDioException(e);
-    } catch (e, s) {
-      return NetworkUtils.handleException(
-        e,
-        s,
-        repositoryName: 'PaymentGatewayRepository',
-        methodName: 'withdrawFromWallet',
-      );
-    }
-  }
-
   ResultFuture<PaymentHistoryResult> getTransactionHistory({
     int page = 1,
     int limit = 20,

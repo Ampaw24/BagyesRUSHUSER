@@ -93,7 +93,6 @@ class _SendParcelViewState extends State<SendParcelView> {
       context,
       orderId: parcel.id,
       requiresPayment: requiresPayment,
-      savedMethod: state.selectedPaymentMethod,
       settledMessage: state.walletSplit.usesWallet
           ? 'Paid with your wallet — finding you a rider.'
           : 'Parcel confirmed — finding you a rider.',

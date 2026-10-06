@@ -1,3 +1,5 @@
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/payout_setup_viewmodel.dart';
+import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../services/secure_storage_service.dart';
@@ -157,6 +159,10 @@ Future<void> init() async {
   sl.registerFactory(() => TransactionViewmodel(repository: sl(), session: sl()));
   sl.registerFactory(() => VendorWalletViewmodel(repository: sl(), session: sl()));
   sl.registerFactory(() => CustomerWalletViewmodel(repository: sl(), session: sl()));
+  sl.registerFactory(
+    () => CustomerWithdrawalsViewModel(repository: sl(), session: sl()),
+  );
+  sl.registerFactory(() => PayoutSetupViewModel(repository: sl()));
   // Factory (not singleton, not app-wide) — one fresh instance per
   // SendParcelView visit, matching the original `.autoDispose` semantics.
   // Owned/disposed directly by that view's State; not in ScwProviders.
@@ -200,7 +206,6 @@ Future<void> init() async {
   sl.registerFactory(() => CheckoutViewModel(
         ordersViewModel: sl(),
         ordersRepository: sl(),
-        paymentRepository: sl(),
         addressRepository: sl(),
         session: sl(),
       ));

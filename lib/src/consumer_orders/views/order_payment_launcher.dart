@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/views/payment_receipt_view.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
-import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
 import 'package:bagyesrushappusernew/src/payment/views/screens/payment_webview_screen.dart';
 
 export 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
@@ -35,34 +30,23 @@ class OrderPaymentException implements Exception {
 class OrderPaymentLauncher {
   const OrderPaymentLauncher._();
 
-  /// Mobile money is the only method the app can charge; the backend's
-  /// `payment_method` for [OrdersViewModel.payOrder].
+  /// The backend's `payment_method` for [OrdersViewModel.payOrder]. Nothing
+  /// else is sent: Paystack's hosted page is where the customer picks how to
+  /// pay, so no saved number or network is looked up or forwarded.
   static const _paymentMethod = 'mobile_money';
 
-  /// Pays [orderId] with [savedMethod], or the customer's default saved
-  /// mobile money method when none is given. Once the customer is back from
-  /// the gateway the payment is checked and shown as a receipt; the result
-  /// says how it ended and where the customer asked to go next.
+  /// Starts the Paystack payment for [orderId]: `POST customer/orders/:id/pay`
+  /// → hosted checkout → once the customer is back from the gateway the
+  /// payment is checked and shown as a receipt. The result says how it ended
+  /// and where the customer asked to go next.
   static Future<OrderPaymentResult> pay(
     BuildContext context, {
     required String orderId,
-    PaymentMethod? savedMethod,
   }) async {
-    final saved = savedMethod ?? await _defaultSavedMethod();
-    final provider = await _resolveMobileMoneyProvider(saved);
-    if (provider == null) {
-      throw OrderPaymentException(
-        'Couldn\'t match "${saved.displayTitle}" to a supported mobile money network.',
-      );
-    }
-    if (!context.mounted) return _dismissed;
-
     final orders = context.read<OrdersViewModel>();
     final payResponse = await orders.payOrder(
       orderId,
       paymentMethod: _paymentMethod,
-      phone: saved.phoneNumber,
-      mobileMoneyProvider: provider.apiValue,
     );
     if (!context.mounted) return _dismissed;
 
@@ -108,7 +92,7 @@ class OrderPaymentLauncher {
       orders.markAwaitingPaymentConfirmation(orderId);
     }
     if (result.exit == PaymentExit.retry && context.mounted) {
-      return pay(context, orderId: orderId, savedMethod: savedMethod);
+      return pay(context, orderId: orderId);
     }
     return result;
   }
@@ -124,7 +108,6 @@ class OrderPaymentLauncher {
     BuildContext context, {
     required String orderId,
     required bool requiresPayment,
-    PaymentMethod? savedMethod,
     String settledMessage = 'Order confirmed.',
   }) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -132,11 +115,7 @@ class OrderPaymentLauncher {
     var exit = PaymentExit.track;
     if (requiresPayment) {
       try {
-        final result = await pay(
-          context,
-          orderId: orderId,
-          savedMethod: savedMethod,
-        );
+        final result = await pay(context, orderId: orderId);
         message = result.outcome.followUpMessage;
         exit = result.exit;
       } on OrderPaymentException catch (e) {
@@ -172,66 +151,5 @@ class OrderPaymentLauncher {
     if (reference == null || reference.isEmpty) return null;
     final check = await orders.checkPayment(orderId, reference: reference);
     return check.isPending ? null : check;
-  }
-
-  static Future<PaymentMethod> _defaultSavedMethod() async {
-    final methods = await sl<PaymentRepository>()
-        .getCustomerPaymentMethods()
-        .then(
-          (result) => result.fold(
-            (failure) => throw OrderPaymentException(failure.message),
-            (methods) => methods,
-          ),
-        );
-    if (methods.isEmpty) {
-      throw const OrderPaymentException(
-        'No saved mobile money number. Add one under Payment Methods first.',
-      );
-    }
-    return methods.firstWhere((m) => m.isDefault, orElse: () => methods.first);
-  }
-
-  /// Matches free text (a provider's slug/name, or a saved method's label
-  /// like "MTN 0987") against the gateway's [MobileMoneyProvider] enum.
-  static MobileMoneyProvider? _matchMobileMoneyProvider(String text) {
-    final needle = text.toLowerCase();
-    for (final p in MobileMoneyProvider.values) {
-      if (needle.contains(p.apiValue)) return p;
-    }
-    if (needle.contains('airtel') || needle.contains('tigo')) {
-      return MobileMoneyProvider.airtelTigo;
-    }
-    return null;
-  }
-
-  /// The customer payment-methods list doesn't always embed the full
-  /// `payout_provider` object (only `payout_provider_id`), so this tries the
-  /// embedded provider, then the method's own label, then — only if neither
-  /// matched — the payout provider catalog.
-  static Future<MobileMoneyProvider?> _resolveMobileMoneyProvider(
-    PaymentMethod saved,
-  ) async {
-    final provider = saved.provider;
-    if (provider != null) {
-      final match = _matchMobileMoneyProvider(
-        '${provider.slug} ${provider.shortName} ${provider.name}',
-      );
-      if (match != null) return match;
-    }
-
-    final byLabel = _matchMobileMoneyProvider(saved.label ?? '');
-    if (byLabel != null) return byLabel;
-
-    if (saved.payoutProviderId == 0) return null;
-    final providers = await sl<PaymentRepository>().getPayoutProviders().then(
-      (result) =>
-          result.fold((_) => const <PayoutProviderModel>[], (list) => list),
-    );
-    for (final p in providers) {
-      if (p.id == saved.payoutProviderId) {
-        return _matchMobileMoneyProvider('${p.slug} ${p.shortName} ${p.name}');
-      }
-    }
-    return null;
   }
 }

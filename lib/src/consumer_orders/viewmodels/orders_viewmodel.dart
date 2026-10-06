@@ -235,15 +235,8 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
-    String? phone,
-    String? mobileMoneyProvider,
   }) =>
-      _repository.payOrder(
-        orderId,
-        paymentMethod: paymentMethod,
-        phone: phone,
-        mobileMoneyProvider: mobileMoneyProvider,
-      );
+      _repository.payOrder(orderId, paymentMethod: paymentMethod);
 
   /// In-flight verifications by `orderId|reference`, so overlapping checks
   /// (dismissal check, receipt screen, its poll) share one request.

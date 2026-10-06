@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
 
 /// Hero wallet card for the customer transaction screen — refunds and
@@ -261,7 +262,9 @@ class _WalletBalanceCardState extends State<WalletBalanceCard>
                           child: Text(
                             showError
                                 ? "Couldn't load your wallet balance."
-                                : 'Refunds & order credits collect here.',
+                                : (wallet != null && wallet.pendingWithdrawal > 0)
+                                    ? '${formatMoney(wallet.pendingWithdrawal, currency: wallet.currency)} withdrawal pending'
+                                    : 'Refunds & order credits collect here.',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -275,7 +278,9 @@ class _WalletBalanceCardState extends State<WalletBalanceCard>
                         showError
                             ? _RetryPill(onTap: widget.onRetry)
                             : _WithdrawButton(
-                                enabled: wallet?.canWithdraw ?? false,
+                                // Live as soon as the wallet has loaded — the sheet
+                                // and the server decide what can be withdrawn.
+                                enabled: wallet != null,
                                 onTap: widget.onWithdraw,
                               ),
                       ],
@@ -328,14 +333,12 @@ class _WithdrawButtonState extends State<_WithdrawButton>
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     return GestureDetector(
-      onTapDown: widget.enabled ? (_) => _ctrl.forward() : null,
-      onTapUp: widget.enabled
-          ? (_) {
-              _ctrl.reverse();
-              widget.onTap();
-            }
-          : null,
-      onTapCancel: widget.enabled ? () => _ctrl.reverse() : null,
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(
         scale: _scale,
         child: Container(

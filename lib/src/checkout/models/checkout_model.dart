@@ -1,7 +1,6 @@
 import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
 import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
 import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
 
 /// Sentinel distinguishing "leave unchanged" from "set to null" in
 /// [CheckoutForm.copyWith] for genuinely-nullable fields.
@@ -20,10 +19,6 @@ class CheckoutForm {
   /// Sent as the order's `notes`.
   final String deliveryInstructions;
 
-  /// The customer's chosen saved payment method. Null until the async list
-  /// of saved methods has loaded and one has been picked (or auto-selected).
-  final PaymentMethod? selectedPaymentMethod;
-
   /// Quote for a non-default [selectedAddress] or a [pickedLocation]. The
   /// default address's quote is embedded in the cart, so this stays null
   /// for it.
@@ -38,7 +33,6 @@ class CheckoutForm {
     this.selectedAddress,
     this.pickedLocation,
     this.deliveryInstructions = '',
-    this.selectedPaymentMethod,
     this.isFetchingDeliveryQuote = false,
     this.deliveryQuoteError,
     this.deliveryQuote,
@@ -55,7 +49,6 @@ class CheckoutForm {
     Object? selectedAddress = _unset,
     Object? pickedLocation = _unset,
     String? deliveryInstructions,
-    PaymentMethod? selectedPaymentMethod,
     bool? isFetchingDeliveryQuote,
     Object? deliveryQuoteError = _unset,
     Object? deliveryQuote = _unset,
@@ -69,7 +62,6 @@ class CheckoutForm {
           ? this.pickedLocation
           : pickedLocation as DeliveryLocation?,
       deliveryInstructions: deliveryInstructions ?? this.deliveryInstructions,
-      selectedPaymentMethod: selectedPaymentMethod ?? this.selectedPaymentMethod,
       isFetchingDeliveryQuote:
           isFetchingDeliveryQuote ?? this.isFetchingDeliveryQuote,
       deliveryQuoteError: identical(deliveryQuoteError, _unset)

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
 import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 import 'package:bagyesrushappusernew/core/widgets/animated_money.dart';
 import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
@@ -12,12 +11,7 @@ import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dar
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
-import 'package:bagyesrushappusernew/src/payment/views/screens/add_payment_method_screen.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payment_method.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_state.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payment_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
+import 'package:bagyesrushappusernew/src/payment/views/widgets/paystack_note.dart';
 
 import '../../../../constant/app_theme.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
@@ -51,16 +45,11 @@ class ParcelSummaryStep extends StatefulWidget {
 }
 
 class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
-  late final PaymentViewModel _paymentVm;
   late final CustomerWalletViewmodel _walletVm;
 
   @override
   void initState() {
     super.initState();
-    _paymentVm = sl<PaymentViewModel>(param1: false);
-    _paymentVm.addListener(_onPaymentStateChanged);
-    _paymentVm.loadPaymentMethods();
-
     // Fresh balance every time — the wallet split must never be previewed
     // against a balance another screen cached earlier.
     _walletVm = context.read<CustomerWalletViewmodel>();
@@ -70,8 +59,6 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
 
   @override
   void dispose() {
-    _paymentVm.removeListener(_onPaymentStateChanged);
-    _paymentVm.dispose();
     _walletVm.removeListener(_onWalletChanged);
     super.dispose();
   }
@@ -80,47 +67,6 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
     final wallet = _walletVm.wallet;
     if (!mounted || wallet == null) return;
     context.read<SendParcelViewModel>().syncWalletBalance(wallet.balance);
-  }
-
-  /// Auto-selects the customer's default (or first) saved payment method
-  /// once the list loads, so they aren't forced to tap it explicitly.
-  void _onPaymentStateChanged() {
-    if (!mounted) return;
-    final state = _paymentVm.state;
-    if (state is PaymentMethodsLoaded && state.methods.isNotEmpty) {
-      final sendVm = context.read<SendParcelViewModel>();
-      if (sendVm.state.selectedPaymentMethod == null) {
-        final defaultMethod = state.methods
-            .firstWhere((m) => m.isDefault, orElse: () => state.methods.first);
-        sendVm.selectPaymentMethod(defaultMethod);
-      }
-    }
-    setState(() {});
-  }
-
-  /// Pushes the shared "Add Payment Method" screen (Profile → Payment
-  /// Methods / Checkout use the same one), then selects the newly-created
-  /// method and refreshes the saved-methods list.
-  Future<void> _addPaymentMethod(BuildContext context) async {
-    final result = await Navigator.of(context).push<PaymentMethod>(
-      MaterialPageRoute(
-        builder: (_) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider<PaymentViewModel>(
-              create: (_) => sl<PaymentViewModel>(param1: false),
-            ),
-            ChangeNotifierProvider<PayoutProvidersViewModel>(
-              create: (_) => sl<PayoutProvidersViewModel>(),
-            ),
-          ],
-          child: const AddPaymentMethodScreen(),
-        ),
-      ),
-    );
-    if (result == null) return;
-    _paymentVm.loadPaymentMethods();
-    if (!mounted) return;
-    this.context.read<SendParcelViewModel>().selectPaymentMethod(result);
   }
 
   @override
@@ -215,9 +161,9 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
           _Divider(),
           SizedBox(height: w * 0.05),
 
-          // ── Payment method ──────────────────────────────────────────────
+          // ── Payment ─────────────────────────────────────────────────────
           Text(
-            'Payment Method',
+            'Payment',
             style: TextStyle(
               fontSize: w * 0.042,
               fontWeight: FontWeight.w800,
@@ -235,8 +181,8 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
             onRetry: walletVm.fetchWallet,
           ),
           SizedBox(height: w * 0.03),
-          // Wallet covers it all → the mobile-money picker gives way to a
-          // confirmation; otherwise it asks only for what's left.
+          // Wallet covers it all → a confirmation; otherwise Paystack takes
+          // what's left.
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
@@ -256,7 +202,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
                       w: w,
                     )
                   : Column(
-                      key: const ValueKey('mobile-money'),
+                      key: const ValueKey('paystack'),
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (walletSplit.usesWallet)
@@ -276,7 +222,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
                                       color: AppColors.textPrimary,
                                     ),
                                   ),
-                                  const TextSpan(text: ' with mobile money'),
+                                  const TextSpan(text: ' on Paystack'),
                                 ],
                               ),
                               style: TextStyle(
@@ -285,15 +231,7 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
                               ),
                             ),
                           ),
-                        _PaymentMethodSection(
-                          state: _paymentVm.state,
-                          selectedMethod: sendState.selectedPaymentMethod,
-                          onSelect: (m) => context
-                              .read<SendParcelViewModel>()
-                              .selectPaymentMethod(m),
-                          onAddNew: () => _addPaymentMethod(context),
-                          w: w,
-                        ),
+                        const PaystackNote(),
                       ],
                     ),
             ),
@@ -1190,184 +1128,4 @@ class _QuoteTotalBox extends StatelessWidget {
           ],
         ),
       );
-}
-
-// ── Payment method section ────────────────────────────────────────────────
-
-class _PaymentMethodSection extends StatelessWidget {
-  final PaymentState state;
-  final PaymentMethod? selectedMethod;
-  final ValueChanged<PaymentMethod> onSelect;
-  final VoidCallback onAddNew;
-  final double w;
-
-  const _PaymentMethodSection({
-    required this.state,
-    required this.selectedMethod,
-    required this.onSelect,
-    required this.onAddNew,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (state is PaymentInitial || state is PaymentLoading) {
-      return Padding(
-        padding: EdgeInsets.symmetric(vertical: w * 0.04),
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (state is PaymentError) {
-      return Text(
-        'Failed to load payment methods.',
-        style: TextStyle(fontSize: w * 0.034, color: AppColors.error),
-      );
-    }
-
-    final methods =
-        state is PaymentMethodsLoaded ? (state as PaymentMethodsLoaded).methods : const <PaymentMethod>[];
-
-    return Column(
-      children: [
-        for (final method in methods) ...[
-          _PaymentMethodTile(
-            method: method,
-            isSelected: selectedMethod?.id == method.id,
-            onTap: () => onSelect(method),
-            w: w,
-          ),
-          SizedBox(height: w * 0.025),
-        ],
-        _AddPaymentMethodTile(onTap: onAddNew, w: w),
-      ],
-    );
-  }
-}
-
-class _PaymentMethodTile extends StatelessWidget {
-  final PaymentMethod method;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final double w;
-
-  const _PaymentMethodTile({
-    required this.method,
-    required this.isSelected,
-    required this.onTap,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = method.provider;
-    final providerName = provider?.name;
-    // `displayTitle` falls back to the provider name when there's no custom
-    // label, so only show it as a separate line when it adds information
-    // beyond the title (i.e. the title is a custom label like "My MoMo").
-    final showProviderLine =
-        providerName != null && providerName != method.displayTitle;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(w * 0.035),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            provider != null
-                ? PayoutProviderAvatar(provider: provider, size: w * 0.09)
-                : Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                    size: w * 0.055,
-                  ),
-            SizedBox(width: w * 0.03),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    method.displayTitle,
-                    style: TextStyle(
-                      fontSize: w * 0.036,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  if (showProviderLine)
-                    Text(
-                      providerName,
-                      style: TextStyle(
-                        fontSize: w * 0.03,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  Text(
-                    method.maskedPhone,
-                    style: TextStyle(
-                      fontSize: w * 0.03,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_off_rounded,
-              color: isSelected ? AppColors.primary : AppColors.textHint,
-              size: w * 0.055,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AddPaymentMethodTile extends StatelessWidget {
-  final VoidCallback onTap;
-  final double w;
-
-  const _AddPaymentMethodTile({required this.onTap, required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: w * 0.035, horizontal: w * 0.035),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.add_circle_outline_rounded,
-                color: AppColors.primary, size: w * 0.05),
-            SizedBox(width: w * 0.025),
-            Text(
-              'Add payment method',
-              style: TextStyle(
-                fontSize: w * 0.034,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

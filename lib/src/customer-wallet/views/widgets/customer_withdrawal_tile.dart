@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/core/utils/relative_time.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import '../../models/vendor_withdrawal_model.dart';
 
-class VendorWithdrawalTile extends StatelessWidget {
-  const VendorWithdrawalTile({
+import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:bagyesrushappusernew/core/utils/relative_time.dart';
+import '../../models/customer_withdrawal_model.dart';
+
+class CustomerWithdrawalTile extends StatelessWidget {
+  const CustomerWithdrawalTile({
     super.key,
     required this.withdrawal,
-    required this.currency,
     this.onCancel,
+    this.isCancelling = false,
   });
 
-  final VendorWithdrawalModel withdrawal;
-  final String currency;
+  final CustomerWithdrawalModel withdrawal;
 
-  /// Non-null only when [withdrawal] is still pending — renders a
-  /// "Cancel request" affordance.
+  /// Called by the "Cancel request" button, which only a still-pending
+  /// request shows.
   final VoidCallback? onCancel;
+
+  /// This request's cancellation is in flight.
+  final bool isCancelling;
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final statusColor = _statusColor(withdrawal.status);
+    final createdAt = withdrawal.createdAt;
+    final canCancel = withdrawal.isCancellable && onCancel != null;
 
     return Container(
       margin: EdgeInsets.only(bottom: w * 0.03),
@@ -72,7 +78,7 @@ class VendorWithdrawalTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(w * 0.5),
                       ),
                       child: Text(
-                        _statusLabel(withdrawal.status),
+                        withdrawal.displayStatus,
                         style: TextStyle(
                           fontSize: w * 0.028,
                           fontWeight: FontWeight.w600,
@@ -88,48 +94,61 @@ class VendorWithdrawalTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '-$currency ${withdrawal.amount.toStringAsFixed(2)}',
+                    '-${formatMoney(withdrawal.amount, currency: withdrawal.currency)}',
                     style: TextStyle(
                       fontSize: w * 0.038,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: withdrawal.status == CustomerWithdrawalStatus.cancelled
+                          ? AppColors.textHint
+                          : AppColors.textPrimary,
+                      decoration: withdrawal.status == CustomerWithdrawalStatus.cancelled
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
-                  SizedBox(height: w * 0.008),
-                  Text(
-                    relativeTimeLabel(withdrawal.createdAt),
-                    style: TextStyle(
-                      fontSize: w * 0.028,
-                      color: AppColors.textHint,
+                  if (createdAt != null) ...[
+                    SizedBox(height: w * 0.008),
+                    Text(
+                      relativeTimeLabel(createdAt),
+                      style: TextStyle(fontSize: w * 0.028, color: AppColors.textHint),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],
           ),
-          if (onCancel != null) ...[
+          if (canCancel) ...[
             SizedBox(height: w * 0.02),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onCancel,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: w * 0.03,
-                    vertical: w * 0.01,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  'Cancel request',
-                  style: TextStyle(
-                    fontSize: w * 0.032,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.error,
-                  ),
-                ),
-              ),
+              child: isCancelling
+                  ? SizedBox(
+                      width: w * 0.045,
+                      height: w * 0.045,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.error,
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: onCancel,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: w * 0.03,
+                          vertical: w * 0.01,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Cancel request',
+                        style: TextStyle(
+                          fontSize: w * 0.032,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ],
@@ -137,19 +156,12 @@ class VendorWithdrawalTile extends StatelessWidget {
     );
   }
 
-  Color _statusColor(VendorWithdrawalStatus status) => switch (status) {
-    VendorWithdrawalStatus.completed => AppColors.success,
-    VendorWithdrawalStatus.failed => AppColors.error,
-    VendorWithdrawalStatus.cancelled => AppColors.textHint,
-    VendorWithdrawalStatus.processing => AppColors.info,
-    VendorWithdrawalStatus.pending => AppColors.warning,
-  };
-
-  String _statusLabel(VendorWithdrawalStatus status) => switch (status) {
-    VendorWithdrawalStatus.completed => 'Completed',
-    VendorWithdrawalStatus.failed => 'Failed',
-    VendorWithdrawalStatus.cancelled => 'Cancelled',
-    VendorWithdrawalStatus.processing => 'Processing',
-    VendorWithdrawalStatus.pending => 'Pending',
+  Color _statusColor(CustomerWithdrawalStatus status) => switch (status) {
+    CustomerWithdrawalStatus.completed => AppColors.success,
+    CustomerWithdrawalStatus.failed => AppColors.error,
+    CustomerWithdrawalStatus.cancelled => AppColors.textHint,
+    CustomerWithdrawalStatus.processing => AppColors.info,
+    CustomerWithdrawalStatus.pending => AppColors.warning,
+    CustomerWithdrawalStatus.unknown => AppColors.textSecondary,
   };
 }
