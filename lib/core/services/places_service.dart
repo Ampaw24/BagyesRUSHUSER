@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../constant/config.dart';
@@ -14,7 +15,7 @@ class PlacePrediction {
 }
 
 /// Holds both the resolved coordinates and the human-readable address
-/// returned by the Places Details API.
+/// returned by the Places API (New) place-details call.
 class PlaceDetail {
   final LatLng latLng;
   final String formattedAddress;
@@ -27,20 +28,39 @@ class PlaceDetail {
 class PlacesService {
   PlacesService._();
 
-  static final _dio = Dio(BaseOptions(
+  static Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 8),
     receiveTimeout: const Duration(seconds: 8),
   ));
 
-  static const _autocompleteUrl =
-      'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-  static const _detailsUrl =
-      'https://maps.googleapis.com/maps/api/place/details/json';
+  @visibleForTesting
+  static set httpClient(Dio dio) => _dio = dio;
+
+  // Places API (New). The legacy `/maps/api/place/*` endpoints can't be
+  // enabled on newer Google Cloud projects. Geocoding is not part of that
+  // deprecation and keeps its own endpoint.
+  static const _autocompleteUrl = 'https://places.googleapis.com/v1/places:autocomplete';
+  static const _detailsUrl = 'https://places.googleapis.com/v1/places';
   static const _geocodeUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
 
   // Default location bias: central Accra
   static const _defaultBias =
       LatLng(Config.defaultMapCenterLat, Config.defaultMapCenterLng);
+
+  /// Logs a failed call with Google's own error message (e.g. API not
+  /// enabled, key restricted) rather than only the HTTP status.
+  static void _logHttpError(String call, DioException e, StackTrace s) {
+    final body = e.response?.data;
+    String? detail;
+    if (body is Map && body['error'] is Map) {
+      detail = (body['error'] as Map)['message']?.toString();
+    }
+    appLogger.e(
+      '[Places] $call network error${detail == null ? '' : ' — $detail'}',
+      error: e,
+      stackTrace: s,
+    );
+  }
 
   /// Returns up to 7 autocomplete predictions for [input].
   ///
@@ -55,16 +75,24 @@ class PlacesService {
     final bias = locationBias ?? _defaultBias;
 
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
+      final response = await _dio.post<Map<String, dynamic>>(
         _autocompleteUrl,
-        queryParameters: {
+        options: Options(headers: {'X-Goog-Api-Key': Config.mapsApiKey}),
+        data: {
           'input': input,
-          'key': Config.mapsApiKey,
-          // Soft bias — prefers nearby but does NOT exclude other regions.
-          'location': '${bias.latitude},${bias.longitude}',
-          'radius': '100000',
-          'language': 'en',
-          // No 'components' filter so streets, areas and landmarks all appear.
+          'languageCode': 'en',
+          // Soft bias — prefers nearby but does NOT exclude other regions
+          // (no included-type or region filter, so streets, areas and
+          // landmarks all appear). 50 km is the API's maximum radius.
+          'locationBias': {
+            'circle': {
+              'center': {
+                'latitude': bias.latitude,
+                'longitude': bias.longitude,
+              },
+              'radius': 50000.0,
+            },
+          },
         },
       );
 
@@ -74,24 +102,19 @@ class PlacesService {
         return [];
       }
 
-      final status = data['status'] as String?;
-      if (status != 'OK') {
-        appLogger.w(
-          '[Places] autocomplete status: $status '
-          '— error: ${data['error_message'] ?? 'none'}',
-        );
-        return [];
-      }
-
-      final predictions = data['predictions'] as List<dynamic>;
-      return predictions.take(7).map((p) {
-        return PlacePrediction(
-          placeId: p['place_id'] as String,
-          description: p['description'] as String,
-        );
-      }).toList();
+      // An empty result is `{}` — no `suggestions` key — not an error.
+      final suggestions = data['suggestions'] as List<dynamic>? ?? const [];
+      return suggestions
+          .map((s) => (s as Map<String, dynamic>)['placePrediction'])
+          .whereType<Map<String, dynamic>>()
+          .take(7)
+          .map((p) => PlacePrediction(
+                placeId: p['placeId'] as String,
+                description: (p['text'] as Map<String, dynamic>)['text'] as String,
+              ))
+          .toList();
     } on DioException catch (e, s) {
-      appLogger.e('[Places] autocomplete network error', error: e, stackTrace: s);
+      _logHttpError('autocomplete', e, s);
       return [];
     } catch (e, s) {
       appLogger.e('[Places] autocomplete unexpected error', error: e, stackTrace: s);
@@ -104,16 +127,13 @@ class PlacesService {
   static Future<PlaceDetail?> fetchPlaceDetail(String placeId) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        _detailsUrl,
-        queryParameters: {
-          'place_id': placeId,
-          // Request geometry, the formatted address and the display name so
-          // we can show a rich, accurate address without relying on reverse
-          // geocoding after the user selects a suggestion.
-          'fields': 'geometry,formatted_address,name',
-          'key': Config.mapsApiKey,
-          'language': 'en',
-        },
+        '$_detailsUrl/$placeId',
+        queryParameters: {'languageCode': 'en'},
+        options: Options(headers: {
+          'X-Goog-Api-Key': Config.mapsApiKey,
+          // Only the fields we use — the field mask also sets the billing SKU.
+          'X-Goog-FieldMask': 'location,formattedAddress,displayName',
+        }),
       );
 
       final data = response.data;
@@ -122,33 +142,27 @@ class PlacesService {
         return null;
       }
 
-      final status = data['status'] as String?;
-      if (status != 'OK') {
-        appLogger.w(
-          '[Places] fetchPlaceDetail status: $status '
-          '— error: ${data['error_message'] ?? 'none'}',
-        );
+      final location = data['location'] as Map<String, dynamic>?;
+      if (location == null) {
+        appLogger.w('[Places] fetchPlaceDetail: no location in response');
         return null;
       }
 
-      final result = data['result'] as Map<String, dynamic>;
-      final location =
-          result['geometry']['location'] as Map<String, dynamic>;
-
       final latLng = LatLng(
-        (location['lat'] as num).toDouble(),
-        (location['lng'] as num).toDouble(),
+        (location['latitude'] as num).toDouble(),
+        (location['longitude'] as num).toDouble(),
       );
 
       // Prefer the full formatted address; fall back to the place name.
       final formattedAddress =
-          (result['formatted_address'] as String?)?.trim() ??
-          (result['name'] as String?)?.trim() ??
+          (data['formattedAddress'] as String?)?.trim() ??
+          ((data['displayName'] as Map<String, dynamic>?)?['text'] as String?)
+              ?.trim() ??
           '';
 
       return PlaceDetail(latLng: latLng, formattedAddress: formattedAddress);
     } on DioException catch (e, s) {
-      appLogger.e('[Places] fetchPlaceDetail network error', error: e, stackTrace: s);
+      _logHttpError('fetchPlaceDetail', e, s);
       return null;
     } catch (e, s) {
       appLogger.e('[Places] fetchPlaceDetail unexpected error', error: e, stackTrace: s);
