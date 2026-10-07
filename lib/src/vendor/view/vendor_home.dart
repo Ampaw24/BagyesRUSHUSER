@@ -16,6 +16,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../model/vendor_profile.dart';
 import '../viewmodel/dashboard_viewmodel.dart';
+import '../viewmodel/orders_viewmodel.dart';
 import 'widgets/vendor_header.dart';
 import 'widgets/store_toggle_card.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -155,7 +156,7 @@ class _VendorHomeState extends State<VendorHome> {
                     onViewAllOrders: () => setState(() => _navIndex = 1),
                     onAvatarTap: _navigateToShopProfile,
                   ),
-                  const VendorOrdersView(),
+                  VendorOrdersView(isActive: _navIndex == 1),
                   const VendorMenuView(),
                   const VendorEarningsView(),
                 ],
@@ -360,8 +361,16 @@ class _DashboardTabState extends State<_DashboardTab> {
       context,
       onAccept: (minutes) async {
         final vm = context.read<DashboardViewModel>();
-        await vm.acceptOrder(orderId, estimatedPrepMinutes: minutes);
-        if (!mounted || vm.state.errorMessage != null) return;
+        final ordersVm = context.read<OrdersViewModel>();
+        final accepted = await vm.acceptOrder(
+          orderId,
+          estimatedPrepMinutes: minutes,
+        );
+        if (!mounted || accepted == null) return;
+        // Show the accepted order on the Orders tab straight away; switching
+        // to the tab then refreshes it in the background (see
+        // VendorOrdersView.isActive) to pick up the server's full list.
+        ordersVm.upsertOrder(accepted);
         widget.onViewAllOrders?.call();
       },
     );

@@ -157,15 +157,23 @@ class DashboardViewModel extends ViewModel<DashboardState> with SessionAware {
     emit(state.copyWith(storeOpen: isOpen));
   }
 
-  Future<void> _applyOrderAction(
+  /// Returns the updated order on success, null on failure (the failure is
+  /// surfaced through [DashboardState.errorMessage]).
+  Future<VendorOrder?> _applyOrderAction(
     String orderId,
     Future<Either<Failure, VendorOrder>> Function() call, {
     bool removeFromActive = false,
   }) async {
     final result = await call();
-    result.fold(
-      (failure) => emit(state.copyWith(errorMessage: failure.message)),
-      (updated) => _applyUpdated(updated, removeFromActive: removeFromActive),
+    return result.fold(
+      (failure) {
+        emit(state.copyWith(errorMessage: failure.message));
+        return null;
+      },
+      (updated) {
+        _applyUpdated(updated, removeFromActive: removeFromActive);
+        return updated;
+      },
     );
   }
 
@@ -178,7 +186,12 @@ class DashboardViewModel extends ViewModel<DashboardState> with SessionAware {
     emit(state.copyWith(activeOrders: updatedList, errorMessage: null));
   }
 
-  Future<void> acceptOrder(String orderId, {int? estimatedPrepMinutes}) =>
+  /// Returns the accepted order (null on failure) so the caller can hand it
+  /// to the Orders tab immediately.
+  Future<VendorOrder?> acceptOrder(
+    String orderId, {
+    int? estimatedPrepMinutes,
+  }) =>
       _applyOrderAction(
         orderId,
         () => _repository.acceptOrder(

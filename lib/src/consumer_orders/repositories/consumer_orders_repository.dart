@@ -94,6 +94,15 @@ class ConsumerOrdersRepository {
     return ConsumerOrder.fromJson(_dataMap(response));
   }
 
+  /// `PATCH customer/parcels/:id/cancel`. The response is a parcel payload,
+  /// not an order, so nothing is parsed from it — callers re-read the order.
+  Future<void> cancelParcel(String parcelId, {required String reason}) async {
+    await _client.patch(
+      ApiEndpoints.customerParcelCancel(parcelId),
+      data: {'reason': reason},
+    );
+  }
+
   Future<ConsumerOrder> reorder(String orderId) async {
     final response = await _client.post(
       ApiEndpoints.customerOrderReorder(orderId),
@@ -134,6 +143,12 @@ class ConsumerOrdersRepository {
       deliveryPin: tracked.deliveryPin,
       parcelDirection: tracked.parcelDirection,
       collection: tracked.collection,
+      pickupAddress: tracked.pickupAddress,
+      pickupContactName: tracked.pickupContactName,
+      stops: tracked.stops.isEmpty ? null : tracked.stops,
+      trackingNumber: tracked.trackingNumber,
+      statusTimes: tracked.statusTimes,
+      cancellable: tracked.cancellable,
     );
   }
 

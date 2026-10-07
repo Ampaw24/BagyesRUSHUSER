@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('assets assets test', () {
     expect(File(Assets.bagyesLogo).existsSync(), isTrue);
+    expect(File(Assets.deliveryBoxParcel).existsSync(), isTrue);
     expect(File(Assets.deliveryMarker).existsSync(), isTrue);
     expect(File(Assets.mapmarker).existsSync(), isTrue);
     expect(File(Assets.pickupMarker).existsSync(), isTrue);

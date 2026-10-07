@@ -175,12 +175,21 @@ class _AddEditMenuViewState extends State<AddEditMenuView> {
   /// Also stamps `display_order` from each group's/option's current position
   /// in the list, since there's no dedicated reorder UI — list order *is*
   /// display order.
+  ///
+  /// Selection limits are clamped to the group's option count so the
+  /// customer sheet never shows "choose up to 5" over three checkboxes.
   List<Map<String, dynamic>> _buildAddonGroupsPayload() {
     return _addonGroups.asMap().entries.map((groupEntry) {
-      final json = Map<String, dynamic>.from(groupEntry.value.toJson());
+      final group = groupEntry.value;
+      final json = Map<String, dynamic>.from(group.toJson());
       if ((json['id'] as String).startsWith('grp_')) json.remove('id');
       json['display_order'] = groupEntry.key;
-      json['options'] = (json['options'] as List).asMap().entries.map((optEntry) {
+      final optionCount = group.options.isEmpty ? 1 : group.options.length;
+      json['max_selections'] = group.maxSelections.clamp(1, optionCount);
+      json['min_selections'] = group.isRequired ? 1 : 0;
+      json['options'] = (json['options'] as List).asMap().entries.map((
+        optEntry,
+      ) {
         final optJson = Map<String, dynamic>.from(optEntry.value as Map);
         if ((optJson['id'] as String).startsWith('opt_')) {
           optJson.remove('id');
@@ -772,13 +781,21 @@ class _AddonGroupEditorState extends State<_AddonGroupEditor> {
   bool _expanded = true;
 
   void _addOption() {
+    final group = widget.group;
     final newOption = AddonOption(
       id: 'opt_${DateTime.now().millisecondsSinceEpoch}',
       name: '',
       additionalPrice: 0,
     );
+    // A multi-select group already allowing every option ("Any") keeps
+    // allowing every option once a new one is added.
+    final allowsAll =
+        group.maxSelections > 1 && group.maxSelections >= group.options.length;
     widget.onChanged(
-      widget.group.copyWith(options: [...widget.group.options, newOption]),
+      group.copyWith(
+        options: [...group.options, newOption],
+        maxSelections: allowsAll ? group.options.length + 1 : null,
+      ),
     );
   }
 
@@ -791,7 +808,15 @@ class _AddonGroupEditorState extends State<_AddonGroupEditor> {
   void _removeOption(int index) {
     final options = List<AddonOption>.from(widget.group.options)
       ..removeAt(index);
-    widget.onChanged(widget.group.copyWith(options: options));
+    final limit = options.isEmpty ? 1 : options.length;
+    widget.onChanged(
+      widget.group.copyWith(
+        options: options,
+        maxSelections: widget.group.maxSelections > 1
+            ? widget.group.maxSelections.clamp(2, limit < 2 ? 2 : limit)
+            : null,
+      ),
+    );
   }
 
   @override
@@ -846,9 +871,7 @@ class _AddonGroupEditorState extends State<_AddonGroupEditor> {
                             if (widget.group.isRequired)
                               SizedBox(width: w * 0.015),
                             _GroupBadge(
-                              label: widget.group.maxSelections == 1
-                                  ? 'Single choice'
-                                  : 'Up to ${widget.group.maxSelections}',
+                              label: _selectionBadgeLabel(widget.group),
                               color: AppColors.textSecondary,
                               w: w,
                             ),
@@ -886,6 +909,36 @@ class _AddonGroupEditorState extends State<_AddonGroupEditor> {
           ),
 
           if (_expanded) ...[
+            Divider(height: 1, color: AppColors.border),
+
+            // Selection rules — how the customer picks from this group
+            Padding(
+              padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.03, w * 0.04, 0),
+              child: Column(
+                children: [
+                  _SelectionTypePicker(
+                    maxSelections: widget.group.maxSelections,
+                    optionCount: widget.group.options.length,
+                    onChanged: (v) => widget.onChanged(
+                      widget.group.copyWith(maxSelections: v),
+                    ),
+                    w: w,
+                  ),
+                  SizedBox(height: w * 0.025),
+                  _RequiredToggleCard(
+                    value: widget.group.isRequired,
+                    onChanged: (v) => widget.onChanged(
+                      widget.group.copyWith(
+                        isRequired: v,
+                        minSelections: v ? 1 : 0,
+                      ),
+                    ),
+                    w: w,
+                  ),
+                  SizedBox(height: w * 0.02),
+                ],
+              ),
+            ),
             Divider(height: 1, color: AppColors.border),
 
             // Option rows
@@ -1113,11 +1166,21 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
   }
 
   void _addOptionDraft() {
-    setState(() => _options.add(_OptionDraft(name: '')));
+    setState(() {
+      final allowsAll = _maxSelections > 1 && _maxSelections >= _options.length;
+      _options.add(_OptionDraft(name: ''));
+      if (allowsAll) _maxSelections = _options.length;
+    });
   }
 
   void _removeOptionDraft(int index) {
-    setState(() => _options.removeAt(index));
+    setState(() {
+      _options.removeAt(index);
+      if (_maxSelections > 1) {
+        final limit = _options.length < 2 ? 2 : _options.length;
+        _maxSelections = _maxSelections.clamp(2, limit);
+      }
+    });
   }
 
   void _submit() {
@@ -1156,7 +1219,12 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
         name: name,
         isRequired: _isRequired,
         minSelections: _isRequired ? 1 : 0,
-        maxSelections: _maxSelections,
+        maxSelections: _maxSelections > 1
+            ? _maxSelections.clamp(
+                2,
+                optionNames.length < 2 ? 2 : optionNames.length,
+              )
+            : 1,
         options: optionNames
             .asMap()
             .entries
@@ -1253,45 +1321,19 @@ class _AddAddonGroupSheetState extends State<_AddAddonGroupSheet> {
                   ),
                   SizedBox(height: w * 0.05),
 
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _SectionLabel(label: 'Max Selections', w: w),
-                            SizedBox(height: w * 0.02),
-                            _PrepTimeStepper(
-                              value: _maxSelections,
-                              step: 1,
-                              minValue: 1,
-                              unit: '',
-                              onChanged: (v) =>
-                                  setState(() => _maxSelections = v),
-                              w: w,
-                              width: double.infinity,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: w * 0.04),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _SectionLabel(label: 'Required', w: w),
-                            SizedBox(height: w * 0.02),
-                            _RequiredToggleCard(
-                              value: _isRequired,
-                              onChanged: (v) =>
-                                  setState(() => _isRequired = v),
-                              w: w,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  _SectionLabel(label: 'How customers pick', w: w),
+                  SizedBox(height: w * 0.02),
+                  _SelectionTypePicker(
+                    maxSelections: _maxSelections,
+                    optionCount: _options.length,
+                    onChanged: (v) => setState(() => _maxSelections = v),
+                    w: w,
+                  ),
+                  SizedBox(height: w * 0.03),
+                  _RequiredToggleCard(
+                    value: _isRequired,
+                    onChanged: (v) => setState(() => _isRequired = v),
+                    w: w,
                   ),
                   SizedBox(height: w * 0.05),
 
@@ -1782,7 +1824,6 @@ class _PrepTimeStepper extends StatelessWidget {
   final int step;
   final int minValue;
   final String unit;
-  final double? width;
 
   const _PrepTimeStepper({
     required this.value,
@@ -1791,13 +1832,11 @@ class _PrepTimeStepper extends StatelessWidget {
     this.step = 5,
     this.minValue = 5,
     this.unit = 'm',
-    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
       height: w * 0.13,
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
@@ -1924,9 +1963,196 @@ class _ToggleRow extends StatelessWidget {
   }
 }
 
-/// Compact required/optional switch card used inside [_AddAddonGroupSheet],
-/// sized to sit side-by-side with the Max Selections stepper without
-/// wrapping its label or subtitle awkwardly.
+String _selectionBadgeLabel(AddonGroup group) {
+  if (group.maxSelections <= 1) return 'Single choice';
+  if (group.maxSelections >= group.options.length) return 'Multiple · any';
+  return 'Up to ${group.maxSelections}';
+}
+
+/// Lets the vendor choose how customers pick from an addon group, matching
+/// the customer sheet: "Single choice" renders as radio buttons (pick one),
+/// "Multiple choice" as checkboxes with an optional cap.
+class _SelectionTypePicker extends StatelessWidget {
+  final int maxSelections;
+  final int optionCount;
+  final ValueChanged<int> onChanged;
+  final double w;
+
+  const _SelectionTypePicker({
+    required this.maxSelections,
+    required this.optionCount,
+    required this.onChanged,
+    required this.w,
+  });
+
+  bool get _isMultiple => maxSelections > 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final upper = optionCount < 2 ? 2 : optionCount;
+    final allowsAll = maxSelections >= optionCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _SelectionTypeCard(
+                icon: Icons.radio_button_checked_rounded,
+                title: 'Single choice',
+                subtitle: 'Customer picks one',
+                selected: !_isMultiple,
+                onTap: () => onChanged(1),
+                w: w,
+              ),
+            ),
+            SizedBox(width: w * 0.03),
+            Expanded(
+              child: _SelectionTypeCard(
+                icon: Icons.check_box_rounded,
+                title: 'Multiple choice',
+                subtitle: 'Customer ticks several',
+                selected: _isMultiple,
+                onTap: () => onChanged(upper),
+                w: w,
+              ),
+            ),
+          ],
+        ),
+        if (_isMultiple) ...[
+          SizedBox(height: w * 0.025),
+          Container(
+            height: w * 0.12,
+            padding: EdgeInsets.only(left: w * 0.035),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(w * 0.03),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Most they can tick',
+                    style: TextStyle(
+                      fontSize: w * 0.032,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                _StepBtn(
+                  icon: Icons.remove,
+                  onTap: () {
+                    final current = allowsAll ? upper : maxSelections;
+                    if (current > 2) onChanged(current - 1);
+                  },
+                  w: w,
+                ),
+                SizedBox(
+                  width: w * 0.12,
+                  child: Text(
+                    allowsAll ? 'Any' : '$maxSelections',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: w * 0.036,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                _StepBtn(
+                  icon: Icons.add,
+                  onTap: () {
+                    if (maxSelections < upper) onChanged(maxSelections + 1);
+                  },
+                  w: w,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SelectionTypeCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+  final double w;
+
+  const _SelectionTypeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+    required this.w,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.all(w * 0.03),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.07)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(w * 0.03),
+          border: Border.all(
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : AppColors.border,
+            width: selected ? 1.3 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: w * 0.055,
+              color: selected ? AppColors.primary : AppColors.textHint,
+            ),
+            SizedBox(width: w * 0.02),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: w * 0.031,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: w * 0.026,
+                      color: selected ? AppColors.primary : AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact required/optional switch card used for addon groups in both
+/// [_AddAddonGroupSheet] and [_AddonGroupEditor].
 class _RequiredToggleCard extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -2227,7 +2453,11 @@ class _AddonGroupNameOption extends StatelessWidget {
               ),
             ),
             if (selected)
-              Icon(Icons.check_rounded, size: w * 0.045, color: AppColors.primary),
+              Icon(
+                Icons.check_rounded,
+                size: w * 0.045,
+                color: AppColors.primary,
+              ),
           ],
         ),
       ),

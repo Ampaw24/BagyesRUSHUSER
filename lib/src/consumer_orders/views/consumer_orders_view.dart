@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
+import 'package:bagyesrushappusernew/resources/resources.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
@@ -276,9 +278,29 @@ class _OrderCard extends StatelessWidget {
     required this.onReport,
   });
 
+  /// "Parcel delivery · Send" / "· Receive" — a parcel has no vendor name.
+  String get _title {
+    if (!order.isParcel) return order.restaurantName;
+    return 'Parcel delivery · ${order.isReceiveParcel ? 'Receive' : 'Send'}';
+  }
+
+  /// Item count for food; for a parcel, where it went (or how many stops).
+  String get _subtitle {
+    final total = 'GHS ${order.total.toStringAsFixed(2)}';
+    if (!order.isParcel) {
+      return '${order.totalItems} item${order.totalItems > 1 ? 's' : ''} · $total';
+    }
+    final stops = order.stops;
+    if (stops.length > 1) return '${stops.length} drop-offs · $total';
+    final dest = (stops.isEmpty ? order.deliveryAddress : stops.first.address)
+        .trim();
+    return dest.isEmpty ? total : 'To $dest · $total';
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final thumb = w * 0.155;
 
     return GestureDetector(
       onTap: onTap,
@@ -307,24 +329,28 @@ class _OrderCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(w * 0.025),
                     child: SizedBox(
-                      width: w * 0.155,
-                      height: w * 0.155,
-                      child: Image.network(
-                        order.restaurantImageUrl,
-                        fit: BoxFit.cover,
-                        cacheWidth: coverCacheWidth(
-                          context,
-                          width: w * 0.155,
-                          height: w * 0.155,
-                        ),
-                        errorBuilder: (_, _, _) => Container(
-                          color: AppColors.shimmerBase,
-                          child: const Icon(
-                            Icons.restaurant,
-                            color: AppColors.textHint,
-                          ),
-                        ),
-                      ),
+                      width: thumb,
+                      height: thumb,
+                      child: order.isParcel
+                          ? Image.asset(
+                              Assets.deliveryBoxParcel,
+                              fit: BoxFit.cover,
+                              cacheWidth: coverCacheWidth(
+                                context,
+                                width: thumb,
+                                height: thumb,
+                              ),
+                            )
+                          // Logo when the vendor has one; their initials
+                          // (e.g. "FK") on a name-keyed tint otherwise.
+                          : NetworkAvatar(
+                              name: order.restaurantName,
+                              photoUrl: order.restaurantImageUrl,
+                              size: thumb,
+                              foregroundColor:
+                                  nameTintColor(order.restaurantName),
+                              borderRadius: BorderRadius.zero,
+                            ),
                     ),
                   ),
                   SizedBox(width: w * 0.03),
@@ -333,7 +359,9 @@ class _OrderCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.restaurantName,
+                          _title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: w * 0.04,
                             fontWeight: FontWeight.w700,
@@ -342,7 +370,9 @@ class _OrderCard extends StatelessWidget {
                         ),
                         SizedBox(height: w * 0.008),
                         Text(
-                          '${order.totalItems} item${order.totalItems > 1 ? 's' : ''} · GHS ${order.total.toStringAsFixed(2)}',
+                          _subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: w * 0.032,
                             color: AppColors.textSecondary,
@@ -422,8 +452,11 @@ class _OrderCard extends StatelessWidget {
                     OrderRatingPill(order: order),
                     SizedBox(width: w * 0.03),
                   ],
-                  if (!order.status.isActive &&
-                      order.status != OrderStatus.cancelled)
+                  // Reorder rebuilds a food cart; it has no parcel meaning.
+                  if (!order.isParcel &&
+                      !order.status.isActive &&
+                      !order.status.isCancelledOrDeclined &&
+                      order.status != OrderStatus.refunded)
                     GestureDetector(
                       onTap: onReorder,
                       child: Text(
@@ -449,7 +482,10 @@ class _OrderCard extends StatelessWidget {
       case OrderStatus.delivered:
         return AppColors.success;
       case OrderStatus.cancelled:
+      case OrderStatus.rejected:
         return AppColors.error;
+      case OrderStatus.refunded:
+        return AppColors.warning;
       case OrderStatus.onTheWay:
       case OrderStatus.pickedUp:
         return AppColors.info;

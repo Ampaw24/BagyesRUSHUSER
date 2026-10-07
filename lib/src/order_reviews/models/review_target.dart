@@ -53,7 +53,7 @@ class ReviewTarget extends Equatable {
   final bool isParcel;
 
   factory ReviewTarget.fromOrder(ConsumerOrder order) {
-    final isParcel = order.parcelDirection != null;
+    final isParcel = order.isParcel;
     final vendor = order.restaurantName.trim();
     final rider = order.driverName?.trim() ?? '';
 

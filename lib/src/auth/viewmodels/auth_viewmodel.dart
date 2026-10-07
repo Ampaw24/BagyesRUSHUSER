@@ -678,22 +678,27 @@ class AuthViewmodel extends ViewModel<AuthState> {
   /// returned user onto the cached one (see [_mergeUser]) and updates
   /// [CurrentUserProvider] on success (so the new avatar shows up everywhere
   /// it's displayed immediately), then emits [AvatarUploaded].
-  Future<void> uploadAvatar(String filePath) async {
+  ///
+  /// Also returns the result so the caller doesn't have to infer success
+  /// from the shared [state], which other in-flight requests may overwrite.
+  ResultFuture<User> uploadAvatar(String filePath) async {
     appLogger.d('AuthViewmodel.uploadAvatar → path=$filePath');
     emit(const AvatarUploading());
 
     final result = await _repository.uploadAvatar(filePath);
 
-    result.fold(
+    return result.fold(
       (failure) {
         appLogger.w('AuthViewmodel.uploadAvatar → error: ${failure.message}');
         emit(AuthError.fromFailure(failure));
+        return Left(failure);
       },
       (user) {
         final merged = _mergeUser(_currentUserProvider.user, user);
         appLogger.i('AuthViewmodel.uploadAvatar → success id=${merged.id}');
         _currentUserProvider.setUser(merged);
         emit(AvatarUploaded(merged));
+        return Right(merged);
       },
     );
   }
@@ -726,14 +731,66 @@ class AuthViewmodel extends ViewModel<AuthState> {
     return result.fold(
       (failure) {
         appLogger.w('AuthViewmodel.updateProfile → error: ${failure.message}');
+        if (failure is AddressNotSavedFailure) {
+          // The rest of the request went through — reflect it, but keep the
+          // server's address rather than the one it rejected.
+          final current = _mergeUser(_currentUserProvider.user, failure.user);
+          final profile = current.profile;
+          _currentUserProvider.setUser(_applySubmittedProfile(
+            current,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            phone: phone,
+            address: profile is CustomerProfile ? profile.address : null,
+          ));
+        }
         return Left(failure);
       },
       (user) {
-        final merged = _mergeUser(_currentUserProvider.user, user);
+        final merged = _applySubmittedProfile(
+          _mergeUser(_currentUserProvider.user, user),
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          phone: phone,
+          address: address,
+        );
         appLogger.i('AuthViewmodel.updateProfile → success id=${merged.id}');
         _currentUserProvider.setUser(merged);
         return Right(merged);
       },
+    );
+  }
+
+  /// [_mergeUser] treats an empty value as "not echoed back" and keeps the
+  /// cached one — right for avatar uploads, wrong here, where an empty
+  /// last name or address is a deliberate edit and `PUT customer/me`
+  /// responds with a bare profile that carries no email/phone at all. The
+  /// request succeeded, so the values we submitted are the source of truth.
+  User _applySubmittedProfile(
+    User merged, {
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    String? address,
+  }) {
+    final profile = merged.profile;
+    return User(
+      id: merged.id,
+      email: email.isNotEmpty ? email : merged.email,
+      phone: phone.isNotEmpty ? phone : merged.phone,
+      role: merged.role,
+      status: merged.status,
+      phoneVerified: merged.phoneVerified,
+      profile: profile is CustomerProfile
+          ? profile.copyWith(
+              firstName: firstName,
+              lastName: lastName,
+              address: address,
+            )
+          : profile,
     );
   }
 

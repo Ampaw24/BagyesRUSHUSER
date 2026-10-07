@@ -16,11 +16,14 @@ import 'package:bagyesrushappusernew/src/consumer_orders/views/payment_receipt_v
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/cancel_order_reason_sheet.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_codes_panel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_tracking_placeholders.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/parcel_route_card.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/parcel_tracking_timeline.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_card.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_header.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_live_map.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_order_summary.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_progress_stepper.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_reveal.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_rider_card.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_status_hero.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
@@ -332,7 +335,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
   Widget _buildTracking(ConsumerOrder order, bool isConfirmingPayment) {
     final w = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final isParcel = order.parcelDirection != null;
+    final isParcel = order.isParcel;
     final hasRider = order.driverName != null;
     // Chat is scoped to orders still in progress — gone once the order is
     // delivered, cancelled or refunded (as in the chat inbox).
@@ -340,12 +343,26 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
     final shortId = order.id.split('-').last;
     final vendorName = order.restaurantName.trim();
 
+    // Parcel sections ease in one after another. Keyed so a section that
+    // appears later (e.g. the rider card once one is assigned) animates on
+    // its own instead of replaying its neighbours.
+    Widget reveal(String name, int index, Widget child) => isParcel
+        ? TrackingReveal(
+            key: ValueKey('reveal-$name'),
+            delay: TrackingReveal.stagger(index),
+            child: child,
+          )
+        : child;
+
     return Column(
       children: [
         TrackingHeader(
           title: isParcel ? 'Track parcel' : 'Track order',
           subtitle: isParcel
-              ? 'Parcel #$shortId'
+              ? [
+                  'Parcel #$shortId',
+                  order.isReceiveParcel ? 'Receive' : 'Send',
+                ].join(' · ')
               : [
                   'Order #$shortId',
                   if (vendorName.isNotEmpty) vendorName,
@@ -381,45 +398,75 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                 ],
 
                 // ── Status headline ──
-                TrackingStatusHero(
-                  order: order,
-                  isConfirmingPayment: isConfirmingPayment,
+                reveal(
+                  'hero',
+                  0,
+                  TrackingStatusHero(
+                    order: order,
+                    isConfirmingPayment: isConfirmingPayment,
+                  ),
                 ),
                 SizedBox(height: w * 0.07),
 
                 // ── Progress ──
-                if (order.status != OrderStatus.cancelled) ...[
-                  TrackingProgressStepper(
-                    status: order.status,
-                    isParcel: isParcel,
-                  ),
-                  SizedBox(height: w * 0.07),
+                // Parcels get a courier-style timeline; the food stepper's
+                // "Preparing food" step means nothing for a package. The
+                // timeline also shows how a parcel ended (cancelled,
+                // declined, refunded); a food order's stepper just hides.
+                if (isParcel ||
+                    (!order.status.isCancelledOrDeclined &&
+                        order.status != OrderStatus.refunded)) ...[
+                  if (isParcel) ...[
+                    SizedBox(height: w * 0.01),
+                    reveal('timeline', 1, ParcelTrackingTimeline(order: order)),
+                    SizedBox(height: w * 0.05),
+                  ] else ...[
+                    TrackingProgressStepper(
+                      status: order.status,
+                      isParcel: false,
+                    ),
+                    SizedBox(height: w * 0.07),
+                  ],
                 ],
 
                 // ── Rate & review (once delivered) ──
                 if (order.status == OrderStatus.delivered) ...[
-                  RateOrderCard(order: order),
+                  reveal('rate', 2, RateOrderCard(order: order)),
                   SizedBox(height: w * 0.05),
                 ],
 
                 // ── Delivery PIN / parcel collection code ──
-                OrderCodesPanel(order: order),
+                reveal('codes', 2, OrderCodesPanel(order: order)),
 
                 // ── Rider ──
                 if (hasRider) ...[
-                  TrackingRiderCard(
-                    order: order,
-                    onChat: canChat ? () => _openChat(order) : null,
+                  reveal(
+                    'rider',
+                    3,
+                    TrackingRiderCard(
+                      order: order,
+                      onChat: canChat ? () => _openChat(order) : null,
+                    ),
                   ),
+                  SizedBox(height: w * (isParcel ? 0.05 : 0.06)),
+                ],
+
+                // ── Pickup → drop-off route and package (parcels) ──
+                if (isParcel) ...[
+                  reveal('route', 4, ParcelRouteCard(order: order)),
                   SizedBox(height: w * 0.06),
                 ],
 
                 // ── Items, total and order details ──
-                TrackingOrderSummary(
-                  order: order,
-                  onViewReceipt: order.paymentStatus == PaymentStatus.paid
-                      ? _openReceipt
-                      : null,
+                reveal(
+                  'summary',
+                  5,
+                  TrackingOrderSummary(
+                    order: order,
+                    onViewReceipt: order.paymentStatus == PaymentStatus.paid
+                        ? _openReceipt
+                        : null,
+                  ),
                 ),
 
                 if (order.needsPayment) ...[
@@ -431,9 +478,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                   ),
                 ],
 
-                if (order.status == OrderStatus.pending ||
-                    order.status == OrderStatus.accepted ||
-                    order.status == OrderStatus.preparing) ...[
+                if (order.canCancel) ...[
                   SizedBox(height: w * 0.03),
                   _CancelOrderButton(
                     isCancelling: _isCancelling,

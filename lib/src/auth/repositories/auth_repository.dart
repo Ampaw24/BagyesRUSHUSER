@@ -11,6 +11,21 @@ import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
 import 'package:bagyesrushappusernew/src/auth/models/user.dart';
 import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
 
+/// `PUT customer/me` answered 200 but kept its previous address — every
+/// other field in the request was saved. Carries the returned [user] so the
+/// caller can still apply those.
+class AddressNotSavedFailure extends Failure {
+  const AddressNotSavedFailure(this.user)
+      : super(
+          title: 'Address Not Saved',
+          message: "Your other details were saved, but we couldn't update "
+              'your address. Please try again.',
+          statusCode: 422,
+        );
+
+  final User user;
+}
+
 class AuthRepository {
   const AuthRepository({required Dio client, required CacheHelper cacheHelper})
     : _client = client,
@@ -18,6 +33,15 @@ class AuthRepository {
 
   final Dio _client;
   final CacheHelper _cacheHelper;
+
+  /// Account roles this app can sign in.
+  static const _appRoles = {'customer', 'vendor'};
+
+  static const _invalidCredentials = ServerFailure(
+    title: 'Login Failed',
+    message: 'Incorrect phone number or password. Please try again.',
+    statusCode: 401,
+  );
 
   Future<void> _cacheTokens(DataMap payload) async {
     final token =
@@ -289,9 +313,26 @@ class AuthRepository {
             response.data as DataMap;
 
         final userJson = payload['user'] as DataMap? ?? payload;
-        final user = User.fromJson(userJson);
-        appLogger.d('AuthRepository.login → user=${user.toJson()}');
-        appLogger.d('AuthRepository.login → payload=${user.id}');
+        final parsed = User.fromJson(userJson);
+        appLogger.d('AuthRepository.login → user=${parsed.toJson()}');
+        appLogger.d('AuthRepository.login → payload=${parsed.id}');
+
+        // This app only serves customers and vendors. Any other account
+        // (rider, admin, ...) is turned away *before* its tokens are cached
+        // — otherwise the next launch would restore that session anyway —
+        // with the same message as bad credentials, so the screen doesn't
+        // reveal which roles exist.
+        final role = parsed.role.trim().toLowerCase();
+        if (!_appRoles.contains(role)) {
+          appLogger.w(
+            'AuthRepository.login → rejected unsupported role '
+            '"${parsed.role}" id=${parsed.id}',
+          );
+          return const Left(_invalidCredentials);
+        }
+        // Normalized so role checks elsewhere (`role == 'vendor'`) hold even
+        // if the backend's casing drifts.
+        final user = parsed.copyWith(role: role);
 
         await _cacheTokens(payload);
         await _cacheHelper.cacheUserId(user.id);
@@ -683,14 +724,17 @@ class AuthRepository {
           'first_name': firstName,
           'last_name': lastName,
           'email': email,
-          'phone': phone,
+          // Right after a cold start the cached user is a placeholder with no
+          // phone until the profile fetch lands — never send that blank.
+          if (phone.isNotEmpty) 'phone': phone,
           ...?address == null ? null : {'address': address},
         },
       );
 
       appLogger.d(
         'AuthRepository.updateProfile → RAW RESPONSE\n'
-        '  status : ${response.statusCode}',
+        '  status : ${response.statusCode}\n'
+        '  data   : ${response.data}',
       );
 
       if ([200, 201].contains(response.statusCode)) {
@@ -698,6 +742,22 @@ class AuthRepository {
             (response.data as DataMap)['data'] as DataMap? ??
             response.data as DataMap;
         final user = User.fromJson(payload);
+
+        // A 200 doesn't guarantee every field stuck — if the server echoes
+        // back a different address than we sent, it ignored ours. Report
+        // that instead of a success the next profile refresh would quietly
+        // undo.
+        final echoed = _echoedAddress(payload);
+        if (address != null &&
+            echoed != null &&
+            _normalizeAddress(echoed) != _normalizeAddress(address)) {
+          appLogger.w(
+            'AuthRepository.updateProfile → address not saved: '
+            'sent "$address", server has "$echoed"',
+          );
+          return Left(AddressNotSavedFailure(user));
+        }
+
         appLogger.i('AuthRepository.updateProfile → success id=${user.id}');
         return Right(user);
       }
@@ -722,11 +782,49 @@ class AuthRepository {
     }
   }
 
+  /// The `address` in an update response — on the profile document itself
+  /// or nested under `profile` / `user.profile` — or null when the response
+  /// doesn't include one (absent, as opposed to empty, says nothing about
+  /// whether it was saved).
+  String? _echoedAddress(DataMap payload) {
+    final user = payload['user'];
+    final candidates = [
+      payload['profile'],
+      if (user is DataMap) user['profile'],
+      payload,
+    ];
+    for (final candidate in candidates) {
+      if (candidate is DataMap && candidate.containsKey('address')) {
+        return candidate['address']?.toString() ?? '';
+      }
+    }
+    return null;
+  }
+
+  static String _normalizeAddress(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+  /// Picked photos can come back with an extension-less temp path, in which
+  /// case dio sends no content type and some backends reject the part.
+  DioMediaType _imageMediaType(String path) {
+    final ext = path.contains('.') ? path.split('.').last.toLowerCase() : '';
+    return switch (ext) {
+      'png' => DioMediaType('image', 'png'),
+      'webp' => DioMediaType('image', 'webp'),
+      'heic' => DioMediaType('image', 'heic'),
+      _ => DioMediaType('image', 'jpeg'),
+    };
+  }
+
   ResultFuture<User> uploadAvatar(String filePath) async {
     appLogger.d('AuthRepository.uploadAvatar → path=$filePath');
     try {
       final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(filePath),
+        'image': await MultipartFile.fromFile(
+          filePath,
+          filename: filePath.split(RegExp(r'[/\\]')).last,
+          contentType: _imageMediaType(filePath),
+        ),
       });
       final response = await _client.post(
         ApiEndpoints.customerAvatar,

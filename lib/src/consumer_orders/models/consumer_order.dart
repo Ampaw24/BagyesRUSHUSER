@@ -4,6 +4,7 @@ library;
 import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
 import 'package:bagyesrushappusernew/core/utils/money_format.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
+import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
 import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
 
 enum OrderStatus {
@@ -15,6 +16,13 @@ enum OrderStatus {
   onTheWay,
   delivered,
   cancelled,
+
+  /// Declined before pickup (e.g. no rider could be found) — not something
+  /// the customer did, so it reads differently from [cancelled].
+  rejected,
+
+  /// Money returned after a [delivered], [cancelled] or [rejected] order.
+  refunded,
 }
 
 extension OrderStatusX on OrderStatus {
@@ -36,11 +44,22 @@ extension OrderStatusX on OrderStatus {
         return 'Delivered';
       case OrderStatus.cancelled:
         return 'Cancelled';
+      case OrderStatus.rejected:
+        return 'Declined';
+      case OrderStatus.refunded:
+        return 'Refunded';
     }
   }
 
+  /// Cancelled by the customer or declined by us — the order never ran its
+  /// course. (A refund after delivery is a separate story, see [refunded].)
+  bool get isCancelledOrDeclined =>
+      this == OrderStatus.cancelled || this == OrderStatus.rejected;
+
   bool get isActive =>
-      this != OrderStatus.delivered && this != OrderStatus.cancelled;
+      this != OrderStatus.delivered &&
+      !isCancelledOrDeclined &&
+      this != OrderStatus.refunded;
 }
 
 /// Maps the backend's status string to [OrderStatus]. Falls back to
@@ -72,11 +91,14 @@ OrderStatus orderStatusFromString(String value) {
       return OrderStatus.delivered;
     case 'cancelled':
     case 'canceled':
-    case 'rejected':
-    // A refund only follows a cancelled/rejected order — and must not fall
-    // through to `pending` below, which would show it as in progress.
-    case 'refunded':
       return OrderStatus.cancelled;
+    case 'rejected':
+      return OrderStatus.rejected;
+    // Kept distinct (not folded into `cancelled`): a delivered order can be
+    // refunded too, and it must not fall through to `pending` below, which
+    // would show it as in progress.
+    case 'refunded':
+      return OrderStatus.refunded;
     default:
       return OrderStatus.pending;
   }
@@ -214,6 +236,69 @@ class OrderCollection {
   }
 }
 
+/// Whether an order payload describes a parcel delivery rather than a food
+/// order. Payloads differ between the orders, parcels and track endpoints,
+/// so an explicit type flag or a send / receive direction is enough; drop-off
+/// `stops`, a `pickup` block or an explicitly empty `items` list count only
+/// when no vendor is attached, since a food order never lacks one. (The slim
+/// track payload has no `items` key at all, so it isn't caught by this.)
+bool _isParcelPayload(Map<String, dynamic> json) {
+  for (final key in const ['type', 'order_type', 'kind', 'service_type']) {
+    final value = json[key]?.toString().toLowerCase();
+    if (value != null && value.contains('parcel')) return true;
+  }
+  if (json['is_parcel'] == true || json['direction'] != null) return true;
+  final hasVendor = json['vendor'] is Map ||
+      json['vendor_id'] != null ||
+      json['restaurant_id'] != null;
+  if (hasVendor) return false;
+  final stops = json['stops'];
+  final items = json['items'];
+  return (stops is List && stops.isNotEmpty) ||
+      (items is List && items.isEmpty) ||
+      json['pickup'] is Map ||
+      json['pickup_address'] != null;
+}
+
+/// When each status was reached, from a `timeline` / `status_history` list
+/// (`{status, at}` entries) and/or flat `<status>_at` timestamps. Statuses
+/// the payload doesn't date are simply absent.
+Map<OrderStatus, DateTime> _statusTimesFromJson(Map<String, dynamic> json) {
+  final times = <OrderStatus, DateTime>{};
+  DateTime? date(Object? v) =>
+      v == null ? null : DateTime.tryParse(v.toString())?.toLocal();
+
+  final history = json['timeline'] ?? json['status_history'] ?? json['events'];
+  if (history is List) {
+    for (final entry in history.whereType<Map>()) {
+      final raw = entry['status'] ?? entry['to_status'] ?? entry['event'];
+      final at = date(entry['at'] ??
+          entry['created_at'] ??
+          entry['timestamp'] ??
+          entry['occurred_at']);
+      if (raw == null || at == null) continue;
+      times.putIfAbsent(orderStatusFromString(raw.toString()), () => at);
+    }
+  }
+
+  const flatKeys = {
+    'accepted_at': OrderStatus.accepted,
+    'rider_assigned_at': OrderStatus.accepted,
+    'assigned_at': OrderStatus.accepted,
+    'picked_up_at': OrderStatus.pickedUp,
+    'out_for_delivery_at': OrderStatus.onTheWay,
+    'delivered_at': OrderStatus.delivered,
+    'cancelled_at': OrderStatus.cancelled,
+    'rejected_at': OrderStatus.rejected,
+    'refunded_at': OrderStatus.refunded,
+  };
+  for (final entry in flatKeys.entries) {
+    final at = date(json[entry.key]);
+    if (at != null) times.putIfAbsent(entry.value, () => at);
+  }
+  return times;
+}
+
 class ConsumerOrder {
   final String id;
   final String restaurantId;
@@ -262,6 +347,25 @@ class ConsumerOrder {
   /// Receive parcels only — see [OrderCollection].
   final OrderCollection? collection;
 
+  /// Parcel orders only: where the rider collects the package, and from
+  /// whom. Null for food orders or when the payload omits it.
+  final String? pickupAddress;
+  final String? pickupContactName;
+
+  /// Parcel orders only: each drop-off with its recipient and package.
+  final List<ParcelStop> stops;
+
+  /// Human-facing parcel reference, when the backend has one.
+  final String? trackingNumber;
+
+  /// When each status was reached, when the backend reports it.
+  final Map<OrderStatus, DateTime> statusTimes;
+
+  /// The backend's own verdict on whether the customer may cancel right now
+  /// (`can_cancel`); null when the payload doesn't say, in which case the
+  /// status decides — see [canCancel].
+  final bool? cancellable;
+
   /// When the rider's wait period at the drop-off location expires. Comes
   /// from the tracking endpoint / realtime updates, so it's part of
   /// [copyWith] like the other live tracking fields below.
@@ -307,16 +411,42 @@ class ConsumerOrder {
     this.deliveryPin,
     this.parcelDirection,
     this.collection,
+    this.pickupAddress,
+    this.pickupContactName,
+    this.stops = const [],
+    this.trackingNumber,
+    this.statusTimes = const {},
+    this.cancellable,
     this.waitExpiresAt,
     this.arrivalDistanceMetres,
   });
+
+  bool get isParcel => parcelDirection != null;
+
+  /// Whether to offer "Cancel". The backend's `can_cancel` wins when sent;
+  /// otherwise its transition table decides — a parcel can be cancelled
+  /// until it's delivered (including while out for delivery), food only
+  /// until the kitchen has finished it.
+  bool get canCancel {
+    final backend = cancellable;
+    if (backend != null) return backend;
+    if (isParcel) {
+      return status == OrderStatus.pending ||
+          status == OrderStatus.accepted ||
+          status == OrderStatus.onTheWay;
+    }
+    return status == OrderStatus.pending ||
+        status == OrderStatus.accepted ||
+        status == OrderStatus.preparing;
+  }
 
   bool get isReceiveParcel => parcelDirection == 'receive';
 
   /// Show "Pay Now". A mobile-money `pending` is not a failure — it stays
   /// payable until the gateway settles it.
   bool get needsPayment =>
-      status != OrderStatus.cancelled &&
+      !status.isCancelledOrDeclined &&
+      status != OrderStatus.refunded &&
       paymentStatus != PaymentStatus.paid &&
       (requiresPayment ?? true);
 
@@ -349,6 +479,12 @@ class ConsumerOrder {
     String? deliveryPin,
     String? parcelDirection,
     OrderCollection? collection,
+    String? pickupAddress,
+    String? pickupContactName,
+    List<ParcelStop>? stops,
+    String? trackingNumber,
+    Map<OrderStatus, DateTime>? statusTimes,
+    bool? cancellable,
   }) {
     return ConsumerOrder(
       id: id ?? this.id,
@@ -383,6 +519,15 @@ class ConsumerOrder {
       deliveryPin: this.deliveryPin ?? deliveryPin,
       parcelDirection: parcelDirection ?? this.parcelDirection,
       collection: collection ?? this.collection,
+      pickupAddress: pickupAddress ?? this.pickupAddress,
+      pickupContactName: pickupContactName ?? this.pickupContactName,
+      stops: stops ?? this.stops,
+      trackingNumber: trackingNumber ?? this.trackingNumber,
+      // Later reports add to what's known rather than replacing it.
+      statusTimes: statusTimes == null
+          ? this.statusTimes
+          : {...this.statusTimes, ...statusTimes},
+      cancellable: cancellable ?? this.cancellable,
       waitExpiresAt: waitExpiresAt ?? this.waitExpiresAt,
       arrivalDistanceMetres: arrivalDistanceMetres ?? this.arrivalDistanceMetres,
     );
@@ -398,6 +543,8 @@ class ConsumerOrder {
     final firstStop = stops != null && stops.isNotEmpty && stops.first is Map
         ? stops.first as Map<String, dynamic>
         : null;
+    final pickup = json['pickup'] as Map<String, dynamic>?;
+    final isParcel = _isParcelPayload(json);
 
     final order = ConsumerOrder(
       id: json['id'].toString(),
@@ -464,10 +611,23 @@ class ConsumerOrder {
               json['delivery_pin'] ??
               firstStop?['delivery_pin'])
           ?.toString(),
-      parcelDirection: json['type'] == 'parcel' || json['direction'] != null
-          ? (json['direction']?.toString() ?? 'send')
-          : null,
+      parcelDirection:
+          isParcel ? (json['direction']?.toString() ?? 'send') : null,
       collection: OrderCollection.fromOrderJson(json),
+      pickupAddress: JsonUtils.asStringOrNull(
+          json['pickup_address'] ?? pickup?['address']),
+      pickupContactName: JsonUtils.asStringOrNull(
+          json['pickup_contact_name'] ?? pickup?['contact_name']),
+      stops: stops
+              ?.whereType<Map<String, dynamic>>()
+              .map(ParcelStop.fromJson)
+              .toList() ??
+          const [],
+      trackingNumber: JsonUtils.asStringOrNull(json['tracking_number']),
+      statusTimes: _statusTimesFromJson(json),
+      cancellable: json['can_cancel'] is bool
+          ? json['can_cancel'] as bool
+          : null,
       waitExpiresAt: DateTime.tryParse(
           (json['wait_expires_at'] ?? delivery?['wait_expires_at']) as String? ?? ''),
       arrivalDistanceMetres:

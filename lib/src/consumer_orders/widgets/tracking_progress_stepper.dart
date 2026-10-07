@@ -37,7 +37,9 @@ class TrackingProgressStepper extends StatelessWidget {
     // Furthest step reached — tolerates statuses a flow skips (e.g. a
     // parcel reported as `ready`).
     final reached = switch (status) {
-      OrderStatus.cancelled => -1,
+      OrderStatus.cancelled ||
+      OrderStatus.rejected ||
+      OrderStatus.refunded => -1,
       OrderStatus.delivered => steps.length,
       _ => steps.lastIndexWhere((s) => s.$1.index <= status.index),
     };

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
+import '../../../core/utils/active_poller.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 import 'package:bagyesrushappusernew/src/report/widgets/report_quick_action_sheet.dart';
@@ -13,7 +14,13 @@ import 'widgets/order_card.dart';
 import 'widgets/order_reason_sheet.dart';
 
 class VendorOrdersView extends StatefulWidget {
-  const VendorOrdersView({super.key});
+  /// Whether this tab is the one on screen — VendorHome's [IndexedStack]
+  /// keeps it alive while hidden, so it has to be told. Becoming active
+  /// refreshes the list, so an order accepted from the dashboard (or one
+  /// that arrived meanwhile) shows without a manual pull-to-refresh.
+  final bool isActive;
+
+  const VendorOrdersView({super.key, this.isActive = true});
 
   @override
   State<VendorOrdersView> createState() => _VendorOrdersViewState();
@@ -22,23 +29,58 @@ class VendorOrdersView extends StatefulWidget {
 class _VendorOrdersViewState extends State<VendorOrdersView> {
   static const _searchDebounce = Duration(milliseconds: 350);
 
+  // Same cadence as the dashboard's poll, so order status changes made
+  // elsewhere (customer cancels, rider picks up) show up without a pull.
+  static const _pollInterval = Duration(seconds: 15);
+
   OrderStatus? _activeFilter;
   final _searchController = TextEditingController();
   Timer? _searchDebounceTimer;
 
+  // Polls only while this tab is on screen and the app is in the
+  // foreground; showing the tab again polls immediately.
+  late final _poller = ActivePoller(
+    interval: _pollInterval,
+    onPoll: _backgroundRefresh,
+  );
+
   @override
   void initState() {
     super.initState();
+    _poller.attach(active: widget.isActive);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<OrdersViewModel>().loadOrders();
+      if (!mounted) return;
+      context.read<OrdersViewModel>().loadOrders(search: _searchQuery);
     });
   }
 
   @override
+  void didUpdateWidget(covariant VendorOrdersView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _poller.setActive(widget.isActive);
+  }
+
+  @override
   void dispose() {
+    _poller.dispose();
     _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  String? get _searchQuery {
+    final query = _searchController.text.trim();
+    return query.isEmpty ? null : query;
+  }
+
+  /// Refreshes without a spinner and keeps the current search, so the
+  /// list updates in place. Skipped while a foreground load (first load,
+  /// search, pull-to-refresh) is already fetching.
+  void _backgroundRefresh() {
+    if (!mounted) return;
+    final vm = context.read<OrdersViewModel>();
+    if (vm.state.status == OrdersStatus.loading) return;
+    vm.loadOrders(search: _searchQuery, silent: true);
   }
 
   void _setFilter(OrderStatus? status) {
@@ -48,9 +90,8 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
   void _onSearchChanged(String query) {
     _searchDebounceTimer?.cancel();
     _searchDebounceTimer = Timer(_searchDebounce, () {
-      context.read<OrdersViewModel>().loadOrders(
-        search: query.trim().isEmpty ? null : query.trim(),
-      );
+      if (!mounted) return;
+      context.read<OrdersViewModel>().loadOrders(search: _searchQuery);
     });
   }
 
@@ -85,10 +126,7 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
   }
 
   Future<void> _handleRefresh() {
-    final query = _searchController.text.trim();
-    return context.read<OrdersViewModel>().loadOrders(
-      search: query.isEmpty ? null : query,
-    );
+    return context.read<OrdersViewModel>().loadOrders(search: _searchQuery);
   }
 
   /// Makes [child] fill and scroll within the available height, so

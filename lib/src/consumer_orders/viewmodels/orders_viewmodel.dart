@@ -183,6 +183,13 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   }
 
   Future<void> cancelOrder(String orderId, {required String reason}) async {
+    if (orderById(orderId)?.isParcel ?? false) {
+      // Parcels have their own cancel endpoint and its response isn't an
+      // order, so re-read the order to pick up the new status.
+      await _repository.cancelParcel(orderId, reason: reason);
+      await trackOrder(orderId);
+      return;
+    }
     final updated = await _repository.cancelOrder(orderId, reason: reason);
     await _replaceOrder(updated);
   }

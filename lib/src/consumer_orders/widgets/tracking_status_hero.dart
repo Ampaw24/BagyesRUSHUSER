@@ -18,36 +18,38 @@ class TrackingStatusHero extends StatelessWidget {
 
   static const _onTheWayImage = 'assets/tracking.png';
 
-  bool get _isParcel => order.parcelDirection != null;
+  bool get _isParcel => order.isParcel;
 
   Color get _color => switch (order.status) {
-        OrderStatus.cancelled => AppColors.error,
-        OrderStatus.delivered => AppColors.success,
-        _ => AppColors.primary,
-      };
+    OrderStatus.cancelled || OrderStatus.rejected => AppColors.error,
+    OrderStatus.delivered => AppColors.success,
+    OrderStatus.refunded => AppColors.warning,
+    _ => AppColors.primary,
+  };
 
   IconData get _icon => switch (order.status) {
-        OrderStatus.pending when order.needsPayment => Icons.payments_rounded,
-        OrderStatus.pending =>
-          _isParcel ? Icons.person_search_rounded : Icons.receipt_long_rounded,
-        OrderStatus.accepted =>
-          _isParcel ? Icons.two_wheeler_rounded : Icons.thumb_up_alt_rounded,
-        OrderStatus.preparing =>
-          _isParcel ? Icons.two_wheeler_rounded : Icons.restaurant_rounded,
-        OrderStatus.readyForPickup =>
-          _isParcel ? Icons.two_wheeler_rounded : Icons.room_service_rounded,
-        OrderStatus.pickedUp ||
-        OrderStatus.onTheWay =>
-          Icons.delivery_dining_rounded,
-        OrderStatus.delivered => Icons.task_alt_rounded,
-        OrderStatus.cancelled => Icons.cancel_rounded,
-      };
+    OrderStatus.pending when order.needsPayment => Icons.payments_rounded,
+    OrderStatus.pending =>
+      _isParcel ? Icons.person_search_rounded : Icons.receipt_long_rounded,
+    OrderStatus.accepted =>
+      _isParcel ? Icons.two_wheeler_rounded : Icons.thumb_up_alt_rounded,
+    OrderStatus.preparing =>
+      _isParcel ? Icons.two_wheeler_rounded : Icons.restaurant_rounded,
+    OrderStatus.readyForPickup =>
+      _isParcel ? Icons.two_wheeler_rounded : Icons.room_service_rounded,
+    OrderStatus.pickedUp ||
+    OrderStatus.onTheWay => Icons.delivery_dining_rounded,
+    OrderStatus.delivered => Icons.task_alt_rounded,
+    OrderStatus.cancelled => Icons.cancel_rounded,
+    OrderStatus.rejected => Icons.block_rounded,
+    OrderStatus.refunded => Icons.currency_exchange_rounded,
+  };
 
   /// Illustration shown instead of [_icon] once the rider has the order.
   String? get _image => switch (order.status) {
-        OrderStatus.pickedUp || OrderStatus.onTheWay => _onTheWayImage,
-        _ => null,
-      };
+    OrderStatus.pickedUp || OrderStatus.onTheWay => _onTheWayImage,
+    _ => null,
+  };
 
   String get _title {
     final noun = _isParcel ? 'parcel' : 'order';
@@ -62,41 +64,57 @@ class TrackingStatusHero extends StatelessWidget {
         _isParcel ? 'Rider heading to pickup' : 'Your food is ready',
       OrderStatus.pickedUp => 'Your $noun has been picked up',
       OrderStatus.onTheWay => 'Your $noun is on the way!',
-      OrderStatus.delivered => _isParcel ? 'Parcel delivered' : 'Order delivered',
+      OrderStatus.delivered =>
+        _isParcel ? 'Parcel delivered' : 'Order delivered',
       OrderStatus.cancelled =>
         _isParcel ? 'Parcel cancelled' : 'Order cancelled',
+      OrderStatus.rejected => _isParcel ? 'Request declined' : 'Order declined',
+      OrderStatus.refunded => _isParcel ? 'Parcel refunded' : 'Order refunded',
     };
   }
 
   /// One-line "what happens next" under the title, parcel-aware.
   String? get _hint => switch (order.status) {
-        OrderStatus.pending when isConfirmingPayment =>
-          'Hang tight while we confirm your payment.',
-        OrderStatus.pending when order.needsPayment =>
-          'Complete payment to confirm your order.',
-        OrderStatus.pending => _isParcel
-            ? 'Finding a rider nearby…'
-            : 'Waiting for the restaurant to confirm.',
-        OrderStatus.accepted => _isParcel
-            ? 'Your rider is heading to the pickup point.'
-            : 'The restaurant has confirmed your order.',
-        OrderStatus.preparing || OrderStatus.readyForPickup => _isParcel
-            ? 'Your rider is heading to the pickup point.'
-            : 'Your rider will pick it up shortly.',
-        OrderStatus.pickedUp || OrderStatus.onTheWay => _isParcel
-            ? "We're almost there! Your parcel is on its way."
-            : "We're almost there! Your food is on its way to your doorstep.",
-        OrderStatus.delivered =>
-          _isParcel ? 'Your parcel has been delivered.' : 'Enjoy your meal!',
-        OrderStatus.cancelled => null,
-      };
+    OrderStatus.pending when isConfirmingPayment =>
+      'Hang tight while we confirm your payment.',
+    OrderStatus.pending when order.needsPayment =>
+      'Complete payment to confirm your order.',
+    OrderStatus.pending =>
+      _isParcel
+          ? 'Finding a rider nearby…'
+          : 'Waiting for the restaurant to confirm.',
+    OrderStatus.accepted =>
+      _isParcel
+          ? 'Your rider is heading to the pickup point.'
+          : 'The restaurant has confirmed your order.',
+    OrderStatus.preparing || OrderStatus.readyForPickup =>
+      _isParcel
+          ? 'Your rider is heading to the pickup point.'
+          : 'Your rider will pick it up shortly.',
+    OrderStatus.pickedUp || OrderStatus.onTheWay =>
+      _isParcel
+          ? "We're almost there! Your parcel is on its way."
+          : "We're almost there! Your food is on its way to your doorstep.",
+    OrderStatus.delivered =>
+      _isParcel ? 'Your parcel has been delivered.' : 'Enjoy your meal!',
+    OrderStatus.cancelled => null,
+    OrderStatus.rejected =>
+      _isParcel
+          ? "We couldn't find a rider for this request. Any payment "
+                'will be refunded.'
+          : "The restaurant couldn't take this order. Any payment "
+                'will be refunded.',
+    OrderStatus.refunded => 'Your refund is on its way back to you.',
+  };
 
   String? get _etaLine {
     if (!order.status.isActive) return null;
     final eta = order.estimatedDelivery;
     if (eta != null) {
       final minutes = eta.difference(DateTime.now()).inMinutes;
-      return minutes <= 0 ? 'Arriving any moment now' : 'Arriving in $minutes min';
+      return minutes <= 0
+          ? 'Arriving any moment now'
+          : 'Arriving in $minutes min';
     }
     final prep = order.estimatedPrepMinutes;
     if (prep != null &&
@@ -151,13 +169,32 @@ class TrackingStatusHero extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    _title,
-                    style: TextStyle(
-                      fontSize: w * 0.047,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                      color: AppColors.textPrimary,
+                  // Slides/fades to the new headline when the status changes.
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween(
+                          begin: const Offset(0, 0.25),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    layoutBuilder: (current, previous) => Stack(
+                      alignment: Alignment.topLeft,
+                      children: [...previous, ?current],
+                    ),
+                    child: Text(
+                      _title,
+                      key: ValueKey(_title),
+                      style: TextStyle(
+                        fontSize: w * 0.047,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                   if (eta != null) ...[
