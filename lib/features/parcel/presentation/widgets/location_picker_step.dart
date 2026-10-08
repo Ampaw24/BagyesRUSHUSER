@@ -14,9 +14,6 @@ class LocationPickerStep extends StatefulWidget {
   final String selectedAddress;
   final void Function(LatLng latLng, String address) onLocationSelected;
 
-  /// Hidden when the location is someone else's (receive-flow sender).
-  final bool allowCurrentLocation;
-
   /// Extra content rendered below the selected-address card.
   final Widget? footer;
 
@@ -27,7 +24,6 @@ class LocationPickerStep extends StatefulWidget {
     required this.selectedLatLng,
     required this.selectedAddress,
     required this.onLocationSelected,
-    this.allowCurrentLocation = true,
     this.footer,
   });
 
@@ -127,17 +123,15 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
         SizedBox(height: w * 0.06),
 
         // ── Action buttons ────────────────────────────────────────────────────
-        if (widget.allowCurrentLocation) ...[
-          _ActionButton(
-            icon: HugeIcons.strokeRoundedMapsLocation01,
-            label: 'Use My Current Location',
-            description: 'Detect your location automatically',
-            isLoading: _isLocating,
-            onTap: _useCurrentLocation,
-            w: w,
-          ),
-          SizedBox(height: w * 0.03),
-        ],
+        _ActionButton(
+          icon: HugeIcons.strokeRoundedMapsLocation01,
+          label: 'Use My Current Location',
+          description: 'Detect your location automatically',
+          isLoading: _isLocating,
+          onTap: _useCurrentLocation,
+          w: w,
+        ),
+        SizedBox(height: w * 0.03),
         _ActionButton(
           icon: HugeIcons.strokeRoundedSearch01,
           label: 'Search for an Address',

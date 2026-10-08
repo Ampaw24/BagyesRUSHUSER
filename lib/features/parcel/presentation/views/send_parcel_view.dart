@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/utils/money_format.dart';
+import '../../../../core/widgets/custom_dialogs.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
 import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
@@ -87,6 +88,10 @@ class _SendParcelViewState extends State<SendParcelView> {
   /// (an unpaid parcel keeps its "Pay Now" button there). Skipped entirely
   /// when the wallet already settled the full charge.
   Future<void> _payThenTrack(Parcel parcel, SendParcelState state) async {
+    if (parcel.needsPayment == false) {
+      await _confirmPaidInFull(parcel);
+      return;
+    }
     // The created parcel's own payment state wins; the reviewed split is
     // only the fallback when the response doesn't say.
     final requiresPayment =
@@ -102,6 +107,7 @@ class _SendParcelViewState extends State<SendParcelView> {
       context,
       orderId: parcel.id,
       requiresPayment: requiresPayment,
+      useWallet: state.walletSplit.usesWallet,
       stayOnFailure: true,
       settledMessage: state.walletSplit.usesWallet
           ? 'Paid with your wallet — finding you a rider.'
@@ -116,6 +122,26 @@ class _SendParcelViewState extends State<SendParcelView> {
         _paymentError = failure;
       });
     }
+  }
+
+  /// The create response says nothing is left to pay (the wallet covered it
+  /// all): no gateway call, no "Pay Now" afterwards — confirm, then track.
+  Future<void> _confirmPaidInFull(Parcel parcel) async {
+    final walletVm = context.read<CustomerWalletViewmodel>();
+    final ordersVm = context.read<OrdersViewModel>();
+    ordersVm.markPaid(parcel.id);
+    walletVm.fetchWallet();
+    ordersVm.refresh();
+
+    await CustomDialog.showSuccess(
+      context: context,
+      title: 'Payment complete',
+      subtitle:
+          'Your wallet covered the full amount. We\'re finding you a rider.',
+      confirmText: 'Track parcel',
+    );
+    if (!mounted) return;
+    AppNavigator.goToOrderTracking(context, parcel.id);
   }
 
   @override
@@ -304,7 +330,6 @@ class _SendParcelViewState extends State<SendParcelView> {
           selectedLatLng: state.pickupLatLng,
           selectedAddress: state.pickupAddress,
           onLocationSelected: vm.setPickupLocation,
-          allowCurrentLocation: !isReceive,
           footer: isReceive
               ? SenderContactCard(
                   name: state.senderName,

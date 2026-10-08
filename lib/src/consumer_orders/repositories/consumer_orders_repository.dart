@@ -165,12 +165,16 @@ class ConsumerOrdersRepository {
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
+    bool useWallet = false,
   }) async {
     for (var attempt = 1; attempt <= _payOrderMaxAttempts; attempt++) {
       try {
         final response = await _client.post(
           ApiEndpoints.customerOrderPay(orderId),
-          data: {'payment_method': paymentMethod},
+          data: {
+            'payment_method': paymentMethod,
+            if (useWallet) 'use_wallet': true,
+          },
         );
         return _dataMap(response);
       } on DioException catch (e) {

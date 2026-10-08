@@ -256,8 +256,13 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   Future<Map<String, dynamic>> payOrder(
     String orderId, {
     required String paymentMethod,
+    bool useWallet = false,
   }) =>
-      _repository.payOrder(orderId, paymentMethod: paymentMethod);
+      _repository.payOrder(
+        orderId,
+        paymentMethod: paymentMethod,
+        useWallet: useWallet,
+      );
 
   /// In-flight verifications by `orderId|reference`, so overlapping checks
   /// (dismissal check, receipt screen, its poll) share one request.
@@ -327,6 +332,13 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   }
 
   /// See [_awaitingPayment].
+  /// Records that [orderId] is already settled (e.g. its wallet covered the
+  /// full charge on creation) so "Pay Now" is never offered for it.
+  void markPaid(String orderId) {
+    _confirmedPayments.add(orderId);
+    emit(state);
+  }
+
   void markAwaitingPaymentConfirmation(String orderId) {
     _awaitingPayment[orderId] = DateTime.now();
     emit(state);

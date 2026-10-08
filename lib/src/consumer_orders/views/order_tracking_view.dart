@@ -368,8 +368,9 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                   if (vendorName.isNotEmpty) vendorName,
                 ].join(' · '),
           actions: [
-            // Once a rider is assigned, chat moves onto the rider card.
-            if (canChat && !hasRider)
+            // Once a rider is assigned, chat moves onto the rider card. A
+            // parcel has no one to chat with until then.
+            if (canChat && !hasRider && !isParcel)
               TrackingCircleButton(
                 icon: Icons.chat_bubble_outline_rounded,
                 tooltip: 'Chat',

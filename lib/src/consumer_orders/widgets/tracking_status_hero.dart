@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
@@ -17,8 +19,16 @@ class TrackingStatusHero extends StatelessWidget {
   final bool isConfirmingPayment;
 
   static const _onTheWayImage = 'assets/tracking.png';
+  static const _findingRiderImage = 'assets/scooter_search.png';
 
   bool get _isParcel => order.isParcel;
+
+  /// A paid parcel still waiting for a rider to accept it.
+  bool get _isFindingRider =>
+      _isParcel &&
+      order.status == OrderStatus.pending &&
+      !isConfirmingPayment &&
+      !order.needsPayment;
 
   Color get _color => switch (order.status) {
     OrderStatus.cancelled || OrderStatus.rejected => AppColors.error,
@@ -157,12 +167,18 @@ class TrackingStatusHero extends StatelessWidget {
       children: [
         Row(
           children: [
-            _HeroIllustration(
-              icon: _icon,
-              imageAsset: _image,
-              color: color,
-              animate: order.status.isActive,
-            ),
+            if (_isFindingRider)
+              _FindingRiderIllustration(
+                imageAsset: _findingRiderImage,
+                color: color,
+              )
+            else
+              _HeroIllustration(
+                icon: _icon,
+                imageAsset: _image,
+                color: color,
+                animate: order.status.isActive,
+              ),
             SizedBox(width: w * 0.045),
             Expanded(
               child: Column(
@@ -345,6 +361,122 @@ class _HeroIllustrationState extends State<_HeroIllustration>
                   filterQuality: FilterQuality.medium,
                   errorBuilder: (_, _, _) => icon,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Finding a rider" illustration: the rider rides gently in place while two
+/// soft rings ripple out from behind, like a radar sweep.
+class _FindingRiderIllustration extends StatefulWidget {
+  const _FindingRiderIllustration({
+    required this.imageAsset,
+    required this.color,
+  });
+
+  final String imageAsset;
+  final Color color;
+
+  @override
+  State<_FindingRiderIllustration> createState() =>
+      _FindingRiderIllustrationState();
+}
+
+class _FindingRiderIllustrationState extends State<_FindingRiderIllustration>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _loop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _loop.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context).width * 0.26;
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final imageWidth = size * 0.68;
+    final color = widget.color;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: AnimatedBuilder(
+        animation: _loop,
+        builder: (_, _) {
+          final t = _loop.value;
+          // Two bobs and one slow drift per cycle keep the ride lively
+          // without ever leaving the circle.
+          final bob = math.sin(t * math.pi * 4) * size * 0.018;
+          final drift = math.sin(t * math.pi * 2) * size * 0.03;
+
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      color.withValues(alpha: 0.14),
+                      color.withValues(alpha: 0.04),
+                    ],
+                  ),
+                ),
+                child: SizedBox.square(dimension: size * 0.8),
+              ),
+              _Ripple(progress: t, size: size, color: color),
+              _Ripple(progress: (t + 0.5) % 1, size: size, color: color),
+              Transform.translate(
+                offset: Offset(drift, bob),
+                child: Image.asset(
+                  widget.imageAsset,
+                  width: imageWidth,
+                  cacheWidth: (imageWidth * pixelRatio).round(),
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, _, _) => Icon(
+                    Icons.person_search_rounded,
+                    size: size * 0.48,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// One expanding, fading ring; [progress] runs 0 → 1 over its lifetime.
+class _Ripple extends StatelessWidget {
+  const _Ripple({
+    required this.progress,
+    required this.size,
+    required this.color,
+  });
+
+  final double progress;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final eased = Curves.easeOut.transform(progress);
+    return Container(
+      width: size * (0.5 + 0.5 * eased),
+      height: size * (0.5 + 0.5 * eased),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: color.withValues(alpha: 0.35 * (1 - progress)),
+          width: 1.5,
         ),
       ),
     );

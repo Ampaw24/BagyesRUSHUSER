@@ -37,6 +37,9 @@ class OrderPaymentLauncher {
   /// pay, so no saved number or network is looked up or forwarded.
   static const _paymentMethod = 'mobile_money';
 
+  /// With [useWallet] the backend applies the customer's wallet first and
+  /// charges only what's left.
+  ///
   /// Starts the Paystack payment for [orderId]: `POST customer/orders/:id/pay`
   /// → hosted checkout → once the customer is back from the gateway the
   /// payment is checked and shown as a receipt. The result says how it ended
@@ -44,11 +47,13 @@ class OrderPaymentLauncher {
   static Future<OrderPaymentResult> pay(
     BuildContext context, {
     required String orderId,
+    bool useWallet = false,
   }) async {
     final orders = context.read<OrdersViewModel>();
     final payResponse = await orders.payOrder(
       orderId,
       paymentMethod: _paymentMethod,
+      useWallet: useWallet,
     );
     if (!context.mounted) return _dismissed;
 
@@ -94,7 +99,7 @@ class OrderPaymentLauncher {
       orders.markAwaitingPaymentConfirmation(orderId);
     }
     if (result.exit == PaymentExit.retry && context.mounted) {
-      return pay(context, orderId: orderId);
+      return pay(context, orderId: orderId, useWallet: useWallet);
     }
     return result;
   }
@@ -116,6 +121,7 @@ class OrderPaymentLauncher {
     BuildContext context, {
     required String orderId,
     required bool requiresPayment,
+    bool useWallet = false,
     String settledMessage = 'Order confirmed.',
     bool stayOnFailure = false,
   }) async {
@@ -126,7 +132,11 @@ class OrderPaymentLauncher {
     if (requiresPayment) {
       String? failure;
       try {
-        final result = await pay(context, orderId: orderId);
+        final result = await pay(
+          context,
+          orderId: orderId,
+          useWallet: useWallet,
+        );
         message = result.outcome.followUpMessage;
         exit = result.exit;
       } on OrderPaymentException catch (e) {
