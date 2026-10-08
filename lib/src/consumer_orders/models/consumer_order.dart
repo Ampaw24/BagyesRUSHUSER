@@ -428,6 +428,9 @@ class ConsumerOrder {
   /// until it's delivered (including while out for delivery), food only
   /// until the kitchen has finished it.
   bool get canCancel {
+    // Already cancelled or declined: nothing left to cancel, whatever a
+    // stale `can_cancel` flag says.
+    if (status.isCancelledOrDeclined) return false;
     final backend = cancellable;
     if (backend != null) return backend;
     if (isParcel) {

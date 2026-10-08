@@ -228,7 +228,7 @@ class _CheckoutViewState extends State<CheckoutView> {
         isEstimate: isEstimate,
       ),
       confirmText:
-          shownSplit.coversFully ? 'Pay with Wallet' : 'Proceed to Payment',
+          shownSplit.coversFully ? 'Pay with Wallet' : ' Payment',
       onConfirm: () => checkoutVm.placeOrder(
         cart,
         walletCoversTotal: split.coversFully,

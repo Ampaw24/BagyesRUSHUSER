@@ -1,3 +1,5 @@
+import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/core/widgets/inline_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -42,6 +44,10 @@ class _SendParcelViewState extends State<SendParcelView> {
   /// True from parcel creation until the Paystack checkout closes.
   bool _isLaunchingPayment = false;
 
+  /// Why the payment for the already-booked parcel didn't start; the
+  /// customer stays on the summary to try again or pay later.
+  String? _paymentError;
+
   @override
   void initState() {
     super.initState();
@@ -69,9 +75,9 @@ class _SendParcelViewState extends State<SendParcelView> {
       _payThenTrack(next.createdParcel!, next);
     } else if (next.submitError != null &&
         next.submitError != previous.submitError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(next.submitError!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(next.submitError!)));
     }
     setState(() {});
   }
@@ -88,11 +94,15 @@ class _SendParcelViewState extends State<SendParcelView> {
     final walletVm = context.read<CustomerWalletViewmodel>();
     final ordersVm = context.read<OrdersViewModel>();
 
-    setState(() => _isLaunchingPayment = true);
-    await OrderPaymentLauncher.payThenTrack(
+    setState(() {
+      _isLaunchingPayment = true;
+      _paymentError = null;
+    });
+    final failure = await OrderPaymentLauncher.payThenTrack(
       context,
       orderId: parcel.id,
       requiresPayment: requiresPayment,
+      stayOnFailure: true,
       settledMessage: state.walletSplit.usesWallet
           ? 'Paid with your wallet — finding you a rider.'
           : 'Parcel confirmed — finding you a rider.',
@@ -100,7 +110,12 @@ class _SendParcelViewState extends State<SendParcelView> {
     // Both lists should now include the new parcel and its charge.
     walletVm.fetchWallet();
     ordersVm.refresh();
-    if (mounted) setState(() => _isLaunchingPayment = false);
+    if (mounted) {
+      setState(() {
+        _isLaunchingPayment = false;
+        _paymentError = failure;
+      });
+    }
   }
 
   @override
@@ -148,11 +163,43 @@ class _SendParcelViewState extends State<SendParcelView> {
                 ),
               ),
 
+              // The backend's reason the rider list didn't open.
+              if (state.currentStep == ParcelStep.deliveryLocation &&
+                  state.quoteBlockedMessage != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    MediaQuery.sizeOf(context).width * 0.05,
+                    0,
+                    MediaQuery.sizeOf(context).width * 0.05,
+                    MediaQuery.sizeOf(context).width * 0.03,
+                  ),
+                  child: InlineMessage(message: state.quoteBlockedMessage!),
+                ),
+
+              // The parcel is booked but its payment didn't start: say why and
+              // offer to retry (the button below) or pay later from tracking.
+              if (isSummary &&
+                  state.createdParcel != null &&
+                  _paymentError != null)
+                _PaymentFailedBanner(
+                  message: _paymentError!,
+                  onPayLater: () => AppNavigator.goToOrderTracking(
+                    context,
+                    state.createdParcel!.id,
+                  ),
+                ),
+
               // ── Bottom action bar ──────────────────────────────────────────
               ParcelBottomBar(
                 currentStep: state.currentStep,
                 canProceed: state.canProceed,
-                isLoading: state.isSubmitting || _isLaunchingPayment,
+                // On the delivery step Continue first checks the quote.
+                isLoading:
+                    state.isSubmitting ||
+                    _isLaunchingPayment ||
+                    (state.currentStep == ParcelStep.deliveryLocation &&
+                        state.isFetchingQuote),
+                showBack: state.createdParcel == null,
                 confirmLabel: _confirmLabel(state),
                 confirmIsFree: state.walletSplit.coversFully,
                 onBack: _vm.goBack,
@@ -180,7 +227,10 @@ class _SendParcelViewState extends State<SendParcelView> {
       scrolledUnderElevation: 0,
       leading: GestureDetector(
         onTap: () {
-          if (state.currentStep == ParcelStep.packageType) {
+          // Once booked there is nothing to edit; leaving keeps the unpaid
+          // parcel (with "Pay Now") in the customer's orders.
+          if (state.currentStep == ParcelStep.packageType ||
+              state.createdParcel != null) {
             Navigator.pop(context);
           } else {
             vm.goBack();
@@ -274,24 +324,24 @@ class _SendParcelViewState extends State<SendParcelView> {
           onStopUpdated: vm.updateDeliveryStop,
           onAddStop: vm.addDeliveryStop,
           onStopRemoved: vm.removeDeliveryStop,
-          onStopDetailsChanged: (
-            id, {
-            required itemDescription,
-            required quantity,
-            required recipientName,
-            required recipientPhone,
-            required specialInstructions,
-            required selectedImageIndices,
-          }) =>
-              vm.updateDeliveryStopDetails(
-            id,
-            itemDescription: itemDescription,
-            quantity: quantity,
-            recipientName: recipientName,
-            recipientPhone: recipientPhone,
-            specialInstructions: specialInstructions,
-            selectedImageIndices: selectedImageIndices,
-          ),
+          onStopDetailsChanged:
+              (
+                id, {
+                required itemDescription,
+                required quantity,
+                required recipientName,
+                required recipientPhone,
+                required specialInstructions,
+                required selectedImageIndices,
+              }) => vm.updateDeliveryStopDetails(
+                id,
+                itemDescription: itemDescription,
+                quantity: quantity,
+                recipientName: recipientName,
+                recipientPhone: recipientPhone,
+                specialInstructions: specialInstructions,
+                selectedImageIndices: selectedImageIndices,
+              ),
           maxStops: SendParcelViewModel.maxStops,
         );
 
@@ -329,9 +379,10 @@ class _SendParcelViewState extends State<SendParcelView> {
   /// "Pay GHS 18.05" — what goes to mobile money after the wallet — or
   /// "Confirm booking" when the wallet covers it all and nothing is paid.
   String _confirmLabel(SendParcelState state) {
+    if (state.createdParcel != null) return 'Try payment again';
     if (state.quotedPrice == null) return 'Confirm & Pay';
     final split = state.walletSplit;
-    if (split.coversFully) return 'Confirm booking';
+    if (split.coversFully) return 'Confirm';
     return 'Pay ${formatMoney(split.remaining, currency: state.quoteCurrency ?? 'GHS')}';
   }
 
@@ -343,7 +394,12 @@ class _SendParcelViewState extends State<SendParcelView> {
     SendParcelViewModel vm,
   ) {
     if (state.currentStep == ParcelStep.summary) {
-      vm.submitParcel();
+      final booked = state.createdParcel;
+      if (booked != null) {
+        _payThenTrack(booked, state);
+      } else {
+        vm.submitParcel();
+      }
       return;
     }
     vm.advance();
@@ -367,5 +423,32 @@ class _SendParcelViewState extends State<SendParcelView> {
       case ParcelStep.summary:
         return 'Delivery Summary';
     }
+  }
+}
+
+/// Shown on the summary when the booked parcel's payment couldn't start.
+class _PaymentFailedBanner extends StatelessWidget {
+  const _PaymentFailedBanner({required this.message, required this.onPayLater});
+
+  final String message;
+  final VoidCallback onPayLater;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(w * 0.05, 0, w * 0.05, w * 0.03),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InlineMessage(message: message),
+          SizedBox(height: w * 0.01),
+          TextButton(
+            onPressed: onPayLater,
+            child: const Text('Pay later from tracking'),
+          ),
+        ],
+      ),
+    );
   }
 }

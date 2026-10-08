@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
@@ -104,27 +106,47 @@ class OrderPaymentLauncher {
   /// customer left the receipt for — so back can't return to, and resubmit,
   /// checkout. Any follow-up (payment not finished, failed, still
   /// confirming) is shown as a snackbar on the destination screen.
-  static Future<void> payThenTrack(
+  ///
+  /// With [stayOnFailure], a payment that couldn't even be started (the
+  /// server refused it, or no connection) does not navigate: unless the
+  /// order turns out to be paid already (e.g. the wallet settled it), the
+  /// server's reason is returned and the caller keeps the customer where
+  /// they can try again. Returns null whenever it navigated.
+  static Future<String?> payThenTrack(
     BuildContext context, {
     required String orderId,
     required bool requiresPayment,
     String settledMessage = 'Order confirmed.',
+    bool stayOnFailure = false,
   }) async {
     final messenger = ScaffoldMessenger.of(context);
+    final orders = context.read<OrdersViewModel>();
     String? message = settledMessage;
     var exit = PaymentExit.track;
     if (requiresPayment) {
+      String? failure;
       try {
         final result = await pay(context, orderId: orderId);
         message = result.outcome.followUpMessage;
         exit = result.exit;
       } on OrderPaymentException catch (e) {
-        message = e.message;
-      } catch (_) {
-        message = 'Payment failed. You can retry from the tracking screen.';
+        failure = e.message;
+      } catch (e) {
+        failure = _requestFailureMessage(e);
+      }
+      if (failure != null) {
+        if (stayOnFailure) {
+          // "Failed" can mean already settled (a wallet covering the whole
+          // charge) — only an unpaid order keeps the customer here.
+          final check = await orders.checkPayment(orderId);
+          if (!check.isPaid) return failure;
+          message = settledMessage;
+        } else {
+          message = '$failure You can retry from the tracking screen.';
+        }
       }
     }
-    if (!context.mounted) return;
+    if (!context.mounted) return null;
     if (exit == PaymentExit.home) {
       AppNavigator.toHome(context);
     } else {
@@ -135,6 +157,15 @@ class OrderPaymentLauncher {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
     }
+    return null;
+  }
+
+  /// The server's own reason when it refused the request, else a generic one.
+  static String _requestFailureMessage(Object error) {
+    if (error is DioException && error.response != null) {
+      return NetworkUtils.handleDioException(error).value.message;
+    }
+    return 'Payment couldn\'t be started.';
   }
 
   /// Closing the gateway before its redirect doesn't prove nothing was paid

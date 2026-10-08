@@ -44,6 +44,11 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   /// "Pay Now" for a charge that already went through.
   final Set<String> _confirmedPayments = {};
 
+  /// Orders whose cancellation the server accepted this session.
+  /// [orderById] never offers "Cancel" for them again, even while a lagging
+  /// refresh (or a stale `can_cancel`) still reports them as open.
+  final Set<String> _cancelledOrders = {};
+
   /// Orders paid at the gateway but not yet confirmed by the server, with
   /// when that started. "Pay Now" stays disabled for these until the payment
   /// resolves or [paymentConfirmationWindow] passes, so an unconfirmed
@@ -73,6 +78,7 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
     _needsLoad = true;
     _standalone.clear();
     _confirmedPayments.clear();
+    _cancelledOrders.clear();
     _awaitingPayment.clear();
     emit(const OrdersLoading());
   }
@@ -187,11 +193,19 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
       // Parcels have their own cancel endpoint and its response isn't an
       // order, so re-read the order to pick up the new status.
       await _repository.cancelParcel(orderId, reason: reason);
-      await trackOrder(orderId);
+      _markCancelled(orderId);
+      await trackOrder(orderId).catchError((Object _) {});
       return;
     }
     final updated = await _repository.cancelOrder(orderId, reason: reason);
+    _markCancelled(orderId);
     await _replaceOrder(updated);
+  }
+
+  /// The server accepted the cancellation: hide "Cancel" straight away.
+  void _markCancelled(String orderId) {
+    _cancelledOrders.add(orderId);
+    emit(state);
   }
 
   Future<void> reorder(String orderId) async {
@@ -336,12 +350,18 @@ class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
 
   /// Returns a single order by ID, or null if not found / still loading.
   ConsumerOrder? orderById(String orderId) {
-    final order = _findOrder(orderId);
-    if (order == null || !_confirmedPayments.contains(orderId)) return order;
-    return order.copyWith(
-      paymentStatus: PaymentStatus.paid,
-      requiresPayment: false,
-    );
+    var order = _findOrder(orderId);
+    if (order == null) return null;
+    if (_confirmedPayments.contains(orderId)) {
+      order = order.copyWith(
+        paymentStatus: PaymentStatus.paid,
+        requiresPayment: false,
+      );
+    }
+    if (_cancelledOrders.contains(orderId)) {
+      order = order.copyWith(cancellable: false);
+    }
+    return order;
   }
 
   ConsumerOrder? _findOrder(String orderId) {

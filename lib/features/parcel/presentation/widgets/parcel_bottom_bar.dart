@@ -11,6 +11,9 @@ class ParcelBottomBar extends StatelessWidget {
   final VoidCallback onContinue;
   final bool isLoading;
 
+  /// Hidden once the parcel is booked, so it can't be edited and booked twice.
+  final bool showBack;
+
   /// Final-step button text — e.g. "Pay GHS 18.05", or "Confirm booking"
   /// when the wallet covers everything and there's nothing to pay.
   final String confirmLabel;
@@ -25,6 +28,7 @@ class ParcelBottomBar extends StatelessWidget {
     required this.onBack,
     required this.onContinue,
     this.isLoading = false,
+    this.showBack = true,
     this.confirmLabel = 'Confirm & Pay',
     this.confirmIsFree = false,
   });
@@ -52,7 +56,7 @@ class ParcelBottomBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (!_isFirstStep) ...[
+          if (!_isFirstStep && showBack) ...[
             _BackButton(w: w, onTap: onBack),
             SizedBox(width: w * 0.03),
           ],

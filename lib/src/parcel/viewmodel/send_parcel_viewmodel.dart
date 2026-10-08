@@ -69,7 +69,7 @@ class SendParcelState {
   /// Matches the booking-level toggle used by Lalamove and GrabExpress.
   final bool fragile;
 
-  /// Backend size category (e.g. 'envelope', 'small', 'medium', 'large',
+  /// Backend size category (e.g. 'small', 'medium', 'large',
   /// 'heavy') selected in [PackageDetailsStep] — sent as `size` on every
   /// stop in the create/quote requests.
   final String packageSize;
@@ -86,6 +86,11 @@ class SendParcelState {
   /// business outcome, not a connectivity error, so it drives the muted
   /// "no riders nearby" state instead of an error screen.
   final String? noRidersMessage;
+
+  /// Why "Continue" from the delivery step did not open the rider list: the
+  /// server's own message (an unserviceable address, a bad field, no riders,
+  /// no connection). The customer stays on that step until it's fixed.
+  final String? quoteBlockedMessage;
 
   /// One quote per available rider, each priced from that rider's position.
   final List<ParcelQuote> riderQuotes;
@@ -124,6 +129,7 @@ class SendParcelState {
     this.isFetchingQuote = false,
     this.quoteError,
     this.noRidersMessage,
+    this.quoteBlockedMessage,
     this.riderQuotes = const [],
     this.selectedRiderId,
     this.useWallet = false,
@@ -194,7 +200,8 @@ class SendParcelState {
             ? hasPickup && hasValidSenderContact
             : hasPickup;
       case ParcelStep.deliveryLocation:
-        return _stopsComplete;
+        // The quote check runs on Continue; don't allow a second one.
+        return _stopsComplete && !isFetchingQuote;
       case ParcelStep.availableRiders:
         return !isFetchingQuote && assignedRider != null;
       case ParcelStep.summary:
@@ -223,6 +230,7 @@ class SendParcelState {
     bool? isFetchingQuote,
     Object? quoteError = _unset,
     Object? noRidersMessage = _unset,
+    Object? quoteBlockedMessage = _unset,
     List<ParcelQuote>? riderQuotes,
     Object? selectedRiderId = _unset,
     bool? useWallet,
@@ -253,6 +261,9 @@ class SendParcelState {
         noRidersMessage: identical(noRidersMessage, _unset)
             ? this.noRidersMessage
             : noRidersMessage as String?,
+        quoteBlockedMessage: identical(quoteBlockedMessage, _unset)
+            ? this.quoteBlockedMessage
+            : quoteBlockedMessage as String?,
         riderQuotes: riderQuotes ?? this.riderQuotes,
         selectedRiderId: identical(selectedRiderId, _unset)
             ? this.selectedRiderId
@@ -314,20 +325,32 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
   // ── Step navigation ──────────────────────────────────────────────────────
 
-  void advance() {
+  Future<void> advance() async {
     if (!state.canProceed) return;
     final steps = ParcelStep.values;
-    final next = state.currentStep.index + 1;
+    final from = state.currentStep;
+    final next = from.index + 1;
     if (next >= steps.length) return;
 
     final nextStep = steps[next];
 
-    // When entering the riders step, compute the client-side route distance
-    // for immediate display, then fetch the per-rider backend quotes.
+    // The rider list opens only once the backend has quoted the trip: its
+    // own refusal (unserviceable address, invalid field, no riders…) is
+    // shown on the step the customer can fix, not behind a rider screen
+    // they can't act on.
     if (nextStep == ParcelStep.availableRiders) {
-      final dist = _calculateTotalRouteDistance();
-      emit(state.copyWith(currentStep: nextStep, distanceKm: dist));
-      fetchQuote();
+      emit(state.copyWith(
+        distanceKm: _calculateTotalRouteDistance(),
+        quoteBlockedMessage: null,
+      ));
+      final problem = await fetchQuote();
+      // They went back while the quote was loading — leave them where they are.
+      if (state.currentStep != from) return;
+      if (problem != null) {
+        emit(state.copyWith(quoteBlockedMessage: problem));
+        return;
+      }
+      emit(state.copyWith(currentStep: nextStep));
       return;
     }
 
@@ -345,7 +368,10 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   void goBack() {
     final prev = state.currentStep.index - 1;
     if (prev < 0) return;
-    emit(state.copyWith(currentStep: ParcelStep.values[prev]));
+    emit(state.copyWith(
+      currentStep: ParcelStep.values[prev],
+      quoteBlockedMessage: null,
+    ));
   }
 
   // ── Package type ─────────────────────────────────────────────────────────
@@ -399,7 +425,7 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     final stops = state.deliveryStops
         .map((s) => s.id == id ? s.copyWith(latLng: latLng, address: address) : s)
         .toList();
-    emit(state.copyWith(deliveryStops: stops));
+    emit(state.copyWith(deliveryStops: stops, quoteBlockedMessage: null));
   }
 
   /// Appends a blank stop. No-op when [maxStops] is already reached OR
@@ -412,7 +438,7 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     }
     final newId = 'stop_${_stopCounter++}';
     final stops = [...state.deliveryStops, DeliveryStop(id: newId)];
-    emit(state.copyWith(deliveryStops: stops));
+    emit(state.copyWith(deliveryStops: stops, quoteBlockedMessage: null));
   }
 
   /// Updates the optional item details for the stop identified by [id].
@@ -440,14 +466,14 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
               : s,
         )
         .toList();
-    emit(state.copyWith(deliveryStops: stops));
+    emit(state.copyWith(deliveryStops: stops, quoteBlockedMessage: null));
   }
 
   /// Removes the stop with [id]. No-op when only one stop remains.
   void removeDeliveryStop(String id) {
     if (state.deliveryStops.length <= 1) return;
     final stops = state.deliveryStops.where((s) => s.id != id).toList();
-    emit(state.copyWith(deliveryStops: stops));
+    emit(state.copyWith(deliveryStops: stops, quoteBlockedMessage: null));
   }
 
   // ── Payment ───────────────────────────────────────────────────────────────
@@ -464,8 +490,13 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
 
   /// Fetches one quote per available rider. [submitParcel] books the
   /// selected one while it's valid and re-quotes only once it has expired.
-  Future<void> fetchQuote() async {
-    if (state.pickupLatLng == null || state.deliveryStops.isEmpty) return;
+  ///
+  /// Returns null when at least one rider was quoted, otherwise the message
+  /// explaining why not — the server's own words when it refused.
+  Future<String?> fetchQuote() async {
+    if (state.pickupLatLng == null || state.deliveryStops.isEmpty) {
+      return 'Choose a pickup and delivery location first.';
+    }
 
     emit(state.copyWith(
       isFetchingQuote: true,
@@ -480,24 +511,30 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
       stops: _quoteStops(),
     );
 
-    result.fold(
+    return result.fold(
       // A connectivity failure (timeout/no internet) never reached the
       // backend, so it's a true error state. Anything else is the server
       // responding that it couldn't match a rider — a normal "try again
       // shortly" outcome, not something to alarm the user about.
-      (failure) => emit(state.copyWith(
-        isFetchingQuote: false,
-        quoteError: failure.isConnectivityFailure ? failure.message : null,
-        noRidersMessage: failure.isConnectivityFailure ? null : failure.message,
-        riderQuotes: const [],
-        selectedRiderId: null,
-      )),
-      (quotes) => emit(state.copyWith(
-        isFetchingQuote: false,
-        noRidersMessage: quotes.isEmpty ? _noRidersFallback : null,
-        riderQuotes: quotes,
-        selectedRiderId: _resolveSelection(quotes),
-      )),
+      (failure) {
+        emit(state.copyWith(
+          isFetchingQuote: false,
+          quoteError: failure.isConnectivityFailure ? failure.message : null,
+          noRidersMessage: failure.isConnectivityFailure ? null : failure.message,
+          riderQuotes: const [],
+          selectedRiderId: null,
+        ));
+        return failure.message;
+      },
+      (quotes) {
+        emit(state.copyWith(
+          isFetchingQuote: false,
+          noRidersMessage: quotes.isEmpty ? _noRidersFallback : null,
+          riderQuotes: quotes,
+          selectedRiderId: _resolveSelection(quotes),
+        ));
+        return quotes.isEmpty ? _noRidersBlocked : null;
+      },
     );
   }
 
@@ -507,6 +544,8 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   }
 
   static const _noRidersFallback = 'Please try again in a moment.';
+  static const _noRidersBlocked =
+      'No riders are available for this route right now. Please try again in a moment.';
 
   /// Keeps the customer's pick when that rider is still available,
   /// otherwise defaults to the first quote the backend returned.
@@ -523,6 +562,8 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
   /// split on the summary are exactly what gets charged. The price itself
   /// always comes from the backend, never from a client-side estimate.
   Future<bool> submitParcel() async {
+    // Already booked (payment is what's left): never create a second parcel.
+    if (state.createdParcel != null) return true;
     if (state.pickupLatLng == null || !state._stopsComplete) return false;
     if (state.direction.isReceive && !state.hasValidSenderContact) return false;
     final riderId = state.selectedRiderId;

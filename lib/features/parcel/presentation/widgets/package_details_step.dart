@@ -33,8 +33,7 @@ class _WCategory {
   });
 
   double get _min => switch (id) {
-        'envelope' => 0.0,
-        'small' => 0.5,
+        'small' => 0.0,
         'medium' => 3.0,
         'large' => 8.0,
         'heavy' => 15.0,
@@ -42,7 +41,6 @@ class _WCategory {
       };
 
   double get _max => switch (id) {
-        'envelope' => 0.5,
         'small' => 3.0,
         'medium' => 8.0,
         'large' => 15.0,
@@ -102,18 +100,9 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 
     _categories = [
       _WCategory(
-        id: 'envelope',
-        label: 'Envelope',
-        range: 'Under 0.5 kg',
-        examples: 'Documents, letters, SIM cards',
-        defaultKg: '0.3',
-        icon: HugeIcons.strokeRoundedMail01,
-        accent: AppColors.info,
-      ),
-      _WCategory(
         id: 'small',
         label: 'Small',
-        range: '0.5 – 3 kg',
+        range: 'Under 3 kg',
         examples: 'Phone, books, shoes, small gift',
         defaultKg: '1.5',
         icon: HugeIcons.strokeRoundedSmartPhone01,
@@ -414,59 +403,28 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
     final gap = w * 0.03;
     final tileW = (w - w * 0.1 - gap) / 2;
 
+    Widget tile(_WCategory category) => _CategoryTile(
+          category: category,
+          isSelected: _selectedCategoryId == category.id,
+          width: tileW,
+          onTap: () => _selectCategory(category),
+          w: w,
+        );
+
     return Column(
       children: [
-        // Row 1: Envelope + Small
-        Row(
-          children: [
-            _CategoryTile(
-              category: _categories[0],
-              isSelected: _selectedCategoryId == _categories[0].id,
-              width: tileW,
-              onTap: () => _selectCategory(_categories[0]),
-              w: w,
-            ),
-            SizedBox(width: gap),
-            _CategoryTile(
-              category: _categories[1],
-              isSelected: _selectedCategoryId == _categories[1].id,
-              width: tileW,
-              onTap: () => _selectCategory(_categories[1]),
-              w: w,
-            ),
-          ],
-        ),
-        SizedBox(height: gap),
-        // Row 2: Medium + Large
-        Row(
-          children: [
-            _CategoryTile(
-              category: _categories[2],
-              isSelected: _selectedCategoryId == _categories[2].id,
-              width: tileW,
-              onTap: () => _selectCategory(_categories[2]),
-              w: w,
-            ),
-            SizedBox(width: gap),
-            _CategoryTile(
-              category: _categories[3],
-              isSelected: _selectedCategoryId == _categories[3].id,
-              width: tileW,
-              onTap: () => _selectCategory(_categories[3]),
-              w: w,
-            ),
-          ],
-        ),
-        SizedBox(height: gap),
-        // Row 3: Heavy (full width)
-        _CategoryTile(
-          category: _categories[4],
-          isSelected: _selectedCategoryId == _categories[4].id,
-          width: double.infinity,
-          isFullWidth: true,
-          onTap: () => _selectCategory(_categories[4]),
-          w: w,
-        ),
+        for (var i = 0; i < _categories.length; i += 2) ...[
+          if (i > 0) SizedBox(height: gap),
+          Row(
+            children: [
+              tile(_categories[i]),
+              if (i + 1 < _categories.length) ...[
+                SizedBox(width: gap),
+                tile(_categories[i + 1]),
+              ],
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -634,7 +592,6 @@ class _CategoryTile extends StatelessWidget {
   final _WCategory category;
   final bool isSelected;
   final double width;
-  final bool isFullWidth;
   final VoidCallback onTap;
   final double w;
 
@@ -644,7 +601,6 @@ class _CategoryTile extends StatelessWidget {
     required this.width,
     required this.onTap,
     required this.w,
-    this.isFullWidth = false,
   });
 
   @override
@@ -666,15 +622,13 @@ class _CategoryTile extends StatelessWidget {
             width: isSelected ? 2.0 : 1.0,
           ),
         ),
-        child: isFullWidth
-            ? _FullWidthContent(category: category, isSelected: isSelected, w: w)
-            : _CompactContent(category: category, isSelected: isSelected, w: w),
+        child: _CompactContent(category: category, isSelected: isSelected, w: w),
       ),
     );
   }
 }
 
-// ── Compact tile content (2-column tiles) ─────────────────────────────────────
+// ── Tile content ──────────────────────────────────────────────────────────────
 
 class _CompactContent extends StatelessWidget {
   final _WCategory category;
@@ -762,84 +716,6 @@ class _CompactContent extends StatelessWidget {
   }
 }
 
-// ── Full-width tile content (Heavy tier) ──────────────────────────────────────
-
-class _FullWidthContent extends StatelessWidget {
-  final _WCategory category;
-  final bool isSelected;
-  final double w;
-
-  const _FullWidthContent({
-    required this.category,
-    required this.isSelected,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(w * 0.025),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? category.accent.withValues(alpha: 0.15)
-                : AppColors.border.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(w * 0.02),
-          ),
-          child: HugeIcon(
-            icon: category.icon,
-            color: isSelected ? category.accent : AppColors.textSecondary,
-            size: w * 0.055,
-          ),
-        ),
-        SizedBox(width: w * 0.035),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                category.label,
-                style: TextStyle(
-                  fontSize: w * 0.038,
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? category.accent : AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: w * 0.005),
-              Text(
-                '${category.range}  ·  ${category.examples}',
-                style: TextStyle(
-                  fontSize: w * 0.029,
-                  color: AppColors.textHint,
-                  height: 1.35,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        if (isSelected) ...[
-          SizedBox(width: w * 0.02),
-          Container(
-            width: w * 0.055,
-            height: w * 0.055,
-            decoration: BoxDecoration(
-              color: category.accent,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.check_rounded,
-              color: Colors.white,
-              size: w * 0.035,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
 
 // ── Selected weight badge ─────────────────────────────────────────────────────
 
