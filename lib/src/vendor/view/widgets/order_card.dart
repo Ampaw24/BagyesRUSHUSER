@@ -508,7 +508,7 @@ class OrderCard extends StatelessWidget {
 
     return [
       SizedBox(height: w * 0.04),
-      if (actionRow != null) actionRow,
+      ?actionRow,
       if (showCancel) ...[
         SizedBox(height: w * 0.02),
         Center(

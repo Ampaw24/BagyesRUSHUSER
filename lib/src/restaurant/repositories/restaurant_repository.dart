@@ -153,12 +153,12 @@ class RestaurantRepository {
         'lat': position.latitude,
         'lng': position.longitude,
         'per_page': perPage,
-        if (radius != null) 'radius': radius,
+        'radius': ?radius,
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
-        if (businessTypeId != null) 'business_type_id': businessTypeId,
+        'business_type_id': ?businessTypeId,
         if (category != null && category.toLowerCase() != 'all')
           'category': category.toLowerCase().replaceAll(' ', '-'),
-        if (isOpen != null) 'is_open': isOpen,
+        'is_open': ?isOpen,
       };
 
       final response = await _client.get(

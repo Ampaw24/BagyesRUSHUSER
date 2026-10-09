@@ -463,7 +463,7 @@ class _LoginViewState extends State<LoginView>
 // ── Phone input ───────────────────────────────────────────────────────────────
 
 class _ForgotPasswordSheetContent extends StatefulWidget {
-  const _ForgotPasswordSheetContent({super.key});
+  const _ForgotPasswordSheetContent();
 
   @override
   State<_ForgotPasswordSheetContent> createState() =>

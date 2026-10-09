@@ -436,7 +436,7 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                   SizedBox(height: w * 0.05),
                 ],
 
-                // ── Delivery PIN / parcel collection code ──
+                // ── Delivery PIN, or a receive parcel's pickup + drop-off codes ──
                 reveal('codes', 2, OrderCodesPanel(order: order)),
 
                 // ── Rider ──

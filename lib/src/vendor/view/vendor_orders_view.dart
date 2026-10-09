@@ -272,7 +272,7 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
                       w * 0.25,
                     ),
                     itemCount: orders.length,
-                    separatorBuilder: (_, __) => SizedBox(height: w * 0.03),
+                    separatorBuilder: (_, _) => SizedBox(height: w * 0.03),
                     itemBuilder: (_, index) {
                       final order = orders[index];
                       return OrderCard(

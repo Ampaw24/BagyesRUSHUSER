@@ -117,7 +117,7 @@ class ChatRepository {
         ApiEndpoints.conversationMessages(conversationId),
         queryParameters: {
           'per_page': perPage,
-          if (cursor != null) 'cursor': cursor,
+          'cursor': ?cursor,
         },
       );
       if (response.statusCode == 200) {
@@ -142,7 +142,7 @@ class ChatRepository {
     try {
       final response = await _client.post(
         ApiEndpoints.conversationMessages(conversationId),
-        data: {'body': body, if (clientUuid != null) 'client_uuid': clientUuid},
+        data: {'body': body, 'client_uuid': ?clientUuid},
       );
       if ([200, 201].contains(response.statusCode)) {
         appLogger.i('ChatRepository.sendMessage → success');

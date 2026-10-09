@@ -45,10 +45,10 @@ class PaymentGatewayRepository {
           'paymentMethod': paymentMethod.apiValue,
           if (mobileMoneyProvider != null)
             'mobileMoneyProvider': mobileMoneyProvider.apiValue,
-          if (phone != null) 'phone': phone,
+          'phone': ?phone,
           'email': email,
           'orderId': orderId,
-          if (metadata != null) 'metadata': metadata,
+          'metadata': ?metadata,
         },
       );
 
@@ -187,7 +187,7 @@ class PaymentGatewayRepository {
           'paymentMethod': paymentMethod.apiValue,
           if (mobileMoneyProvider != null)
             'mobileMoneyProvider': mobileMoneyProvider.apiValue,
-          if (phone != null) 'phone': phone,
+          'phone': ?phone,
         },
       );
 
@@ -239,7 +239,7 @@ class PaymentGatewayRepository {
         queryParameters: {
           'page': page,
           'limit': limit,
-          if (type != null) 'type': type,
+          'type': ?type,
         },
       );
 

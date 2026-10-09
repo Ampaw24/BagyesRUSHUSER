@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 
 /// Highlighted card for a short verification code (delivery PIN, parcel
-/// collection code). Tap the code to copy; [onShare] adds a share action.
+/// pickup code). Tap the code to copy; [onShare] adds a share action.
 class OrderCodeCard extends StatelessWidget {
   final String title;
   final String subtitle;

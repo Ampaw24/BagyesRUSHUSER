@@ -165,13 +165,13 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
       final response = await _networkUtility.dio.get(
         ApiEndpoints.vendorOrders,
         queryParameters: {
-          if (status != null) 'status': status,
-          if (type != null) 'type': type,
-          if (paymentStatus != null) 'payment_status': paymentStatus,
+          'status': ?status,
+          'type': ?type,
+          'payment_status': ?paymentStatus,
           if (search != null && search.isNotEmpty) 'search': search,
           if (from != null) 'from': _dateOnly(from),
           if (to != null) 'to': _dateOnly(to),
-          if (perPage != null) 'per_page': perPage,
+          'per_page': ?perPage,
         },
       );
       if (_isSuccess(response.statusCode)) {
@@ -763,8 +763,7 @@ class VendorDashboardRepositoryImpl implements VendorDashboardRepository {
           'opening_time': openingTime,
           'closing_time': closingTime,
           'operating_days': operatingDays,
-          if (estimatedPrepTimeMinutes != null)
-            'estimated_prep_time_minutes': estimatedPrepTimeMinutes,
+          'estimated_prep_time_minutes': ?estimatedPrepTimeMinutes,
         },
       );
       if (_isSuccess(response.statusCode)) {

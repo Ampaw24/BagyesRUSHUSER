@@ -11,6 +11,7 @@ import '../../../../constant/config.dart';
 import '../../../../core/enums/map_style_type.dart';
 import '../../../../core/services/map_style_service.dart';
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/utils/map_marker_icons.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
 import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
 import 'rider_card.dart';
@@ -19,7 +20,8 @@ import 'rider_card.dart';
 /// each rider's position) and lets the customer pick one.
 ///
 /// A live map sits above the summary: pickup + stop pins connected by a
-/// dashed route that draws itself in on arrival. The route follows actual
+/// dashed route that draws itself in on arrival. With several stops, each
+/// pin is numbered in the order the route visits them. The route follows actual
 /// roads (fetched from the Directions API via [PolylinePoints], same as
 /// [RouteMap]) instead of a straight line between pickup and each stop,
 /// falling back to the straight line if that request fails. A pulsing
@@ -69,6 +71,13 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
   String? _mapStyle;
   BitmapDescriptor? _pickupIcon;
   BitmapDescriptor? _stopIcon;
+
+  // Numbered badges (1-based, route order) used once there are 2+ stops.
+  // `_requestedNumbers` stops overlapping loads from rendering the same badge
+  // twice; both reset if the display's pixel ratio changes.
+  final Map<int, BitmapDescriptor> _numberedIcons = {};
+  final Set<int> _requestedNumbers = {};
+  double? _iconPixelRatio;
   late final AnimationController _pulseController;
 
   /// Draws the route on from pickup to the last stop over
@@ -116,19 +125,35 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
   // them dominate a tightly-zoomed map.
   static const _markerSize = 30.0;
 
+  // Markers are only added to the map once their icon is ready, so the
+  // stock red pin never flashes before the custom one swaps in. If an asset
+  // fails to load, the stock pins stand in so the locations still show.
   Future<void> _loadIcons() async {
-    final pickup = await BitmapDescriptor.asset(
-      const ImageConfiguration(),
-      'assets/pickup-marker.png',
-      width: _markerSize,
-      height: _markerSize,
-    );
-    final stop = await BitmapDescriptor.asset(
-      const ImageConfiguration(),
-      'assets/delivery_marker.png',
-      width: _markerSize,
-      height: _markerSize,
-    );
+    BitmapDescriptor pickup;
+    BitmapDescriptor stop;
+    try {
+      pickup = await BitmapDescriptor.asset(
+        const ImageConfiguration(),
+        'assets/pickup-marker.png',
+        width: _markerSize,
+        height: _markerSize,
+      );
+      stop = await BitmapDescriptor.asset(
+        const ImageConfiguration(),
+        'assets/delivery_marker.png',
+        width: _markerSize,
+        height: _markerSize,
+      );
+    } catch (e, s) {
+      appLogger.e(
+        '[AvailableRidersStep] Failed to load marker icons',
+        error: e,
+        stackTrace: s,
+      );
+      pickup =
+          BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+      stop = BitmapDescriptor.defaultMarker;
+    }
     if (!mounted) return;
     setState(() {
       _pickupIcon = pickup;
@@ -136,9 +161,52 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
     });
   }
 
+  /// Renders a numbered badge for every stop number not yet drawn. Not needed
+  /// for a single stop, which keeps the plain delivery pin.
+  Future<void> _loadNumberedIcons() async {
+    final stopCount = _locatedStops.length;
+    if (stopCount < 2) return;
+
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    if (pixelRatio != _iconPixelRatio) {
+      _iconPixelRatio = pixelRatio;
+      _numberedIcons.clear();
+      _requestedNumbers.clear();
+    }
+
+    for (var number = 1; number <= stopCount; number++) {
+      if (!_requestedNumbers.add(number)) continue;
+      BitmapDescriptor? icon;
+      try {
+        icon = await numberedMarkerIcon(
+          number,
+          size: _markerSize,
+          devicePixelRatio: pixelRatio,
+        );
+      } catch (e, s) {
+        appLogger.e(
+          '[AvailableRidersStep] Failed to render stop $number marker',
+          error: e,
+          stackTrace: s,
+        );
+      }
+      if (!mounted || pixelRatio != _iconPixelRatio) return;
+      setState(() {
+        _numberedIcons[number] = icon ?? BitmapDescriptor.defaultMarker;
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadNumberedIcons();
+  }
+
   @override
   void didUpdateWidget(AvailableRidersStep old) {
     super.didUpdateWidget(old);
+    _loadNumberedIcons();
     if (widget.isFetchingQuote && !_pulseController.isAnimating) {
       _pulseController.repeat();
     } else if (!widget.isFetchingQuote && _pulseController.isAnimating) {
@@ -169,11 +237,14 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
     return true;
   }
 
+  /// Stops that have a location, in the order the route visits them — the
+  /// single source for both the route line and the pin numbers.
+  List<DeliveryStop> get _locatedStops =>
+      widget.deliveryStops.where((s) => s.latLng != null).toList();
+
   List<LatLng> get _routePoints => [
         if (widget.pickupLatLng != null) widget.pickupLatLng!,
-        ...widget.deliveryStops
-            .where((s) => s.latLng != null)
-            .map((s) => s.latLng!),
+        ..._locatedStops.map((s) => s.latLng!),
       ];
 
   /// The road route once it's loaded, else the straight pickup→stop line.
@@ -429,25 +500,56 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
     );
   }
 
+  /// One stop keeps the plain delivery pin; several get numbered badges
+  /// matching the route order. A pin is skipped until its icon is ready.
+  Iterable<Marker> _stopMarkers() sync* {
+    final stops = _locatedStops;
+
+    if (stops.length == 1) {
+      final icon = _stopIcon;
+      if (icon == null) return;
+      yield Marker(
+        markerId: MarkerId('stop_${stops.first.id}'),
+        position: stops.first.latLng!,
+        icon: icon,
+      );
+      return;
+    }
+
+    final anchors = stackedMarkerAnchors([for (final s in stops) s.latLng!]);
+    for (var i = 0; i < stops.length; i++) {
+      final icon = _numberedIcons[i + 1];
+      if (icon == null) continue;
+      final stop = stops[i];
+      yield Marker(
+        markerId: MarkerId('stop_${stop.id}'),
+        position: stop.latLng!,
+        icon: icon,
+        anchor: anchors[i],
+        zIndexInt: i + 1,
+        infoWindow: InfoWindow(
+          title: 'Stop ${i + 1}',
+          snippet: stop.address.isEmpty ? null : stop.address,
+        ),
+      );
+    }
+  }
+
   Widget _buildMap(double w, {required double bottomInset}) {
     final pickup = widget.pickupLatLng;
     if (pickup == null) {
       return Container(color: AppColors.surfaceVariant);
     }
 
+    final pickupIcon = _pickupIcon;
     final markers = <Marker>{
-      Marker(
-        markerId: const MarkerId('pickup'),
-        position: pickup,
-        icon: _pickupIcon ??
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ),
-      for (final stop in widget.deliveryStops.where((s) => s.latLng != null))
+      if (pickupIcon != null)
         Marker(
-          markerId: MarkerId('stop_${stop.id}'),
-          position: stop.latLng!,
-          icon: _stopIcon ?? BitmapDescriptor.defaultMarker,
+          markerId: const MarkerId('pickup'),
+          position: pickup,
+          icon: pickupIcon,
         ),
+      ..._stopMarkers(),
     };
 
     final routePoints = _displayRoute;

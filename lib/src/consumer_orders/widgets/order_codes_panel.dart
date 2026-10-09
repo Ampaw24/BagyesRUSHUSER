@@ -24,15 +24,19 @@ class OrderCodesPanel extends StatelessWidget {
         !collection.hasFailed &&
         order.status.isActive;
 
+    // A receive parcel has two handovers, so its codes are named for the
+    // place they're used; any other order keeps the single "Delivery PIN".
+    final isReceive = order.isReceiveParcel || collection != null;
+
     final children = <Widget>[
       if (collection != null && collection.hasFailed)
         _CollectionFailedBanner(reason: collection.failureReason),
       if (showCollectionCode)
-        _collectionCard(collection, collectionCode),
+        _pickupCodeCard(collection, collectionCode),
       if (deliveryPin.isNotEmpty)
         OrderCodeCard(
-          title: 'Delivery PIN',
-          subtitle: order.isReceiveParcel || collection != null
+          title: isReceive ? 'Drop-off code' : 'Delivery PIN',
+          subtitle: isReceive
               ? 'Give this to the rider when they arrive with your package'
               : 'Share this with your rider to confirm delivery',
           code: deliveryPin,
@@ -53,13 +57,13 @@ class OrderCodesPanel extends StatelessWidget {
     );
   }
 
-  Widget _collectionCard(OrderCollection collection, String code) {
+  Widget _pickupCodeCard(OrderCollection collection, String code) {
     final sender = collection.contactName?.trim();
     final senderLabel = sender == null || sender.isEmpty ? 'The sender' : sender;
     final shareTarget = sender == null || sender.isEmpty ? 'sender' : sender;
 
     return OrderCodeCard(
-      title: 'Collection code',
+      title: 'Pickup code',
       subtitle: '$senderLabel gives this to the rider at pickup. '
           'Never share it with the rider yourself.',
       code: code,
@@ -67,7 +71,7 @@ class OrderCodesPanel extends StatelessWidget {
       shareLabel: 'Send to $shareTarget',
       onShare: () => SharePlus.instance.share(
         ShareParams(
-          text: 'Your bagyesRUSH collection code is $code. A rider is '
+          text: 'Your bagyesRUSH pickup code is $code. A rider is '
               'coming to collect the package — give them this code when '
               'they arrive.',
         ),

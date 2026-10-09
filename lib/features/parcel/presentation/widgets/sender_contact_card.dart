@@ -201,7 +201,7 @@ class _CollectionCodeNote extends StatelessWidget {
           SizedBox(width: w * 0.03),
           Expanded(
             child: Text(
-              '$senderName will get a 4-digit collection code by SMS once a '
+              '$senderName will get a 4-digit pickup code by SMS once a '
               'rider accepts. They give it to the rider to release the '
               'package.',
               style: TextStyle(

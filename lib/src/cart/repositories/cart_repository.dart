@@ -94,7 +94,7 @@ class CartRepository {
         data: {
           'menu_item_id': menuItemId,
           'quantity': quantity,
-          if (notes != null) 'notes': notes,
+          'notes': ?notes,
           if (addonOptionIds.isNotEmpty) 'addon_option_ids': addonOptionIds,
         },
       );
@@ -131,9 +131,9 @@ class CartRepository {
       final response = await _client.patch(
         ApiEndpoints.customerCartItemById(itemId),
         data: {
-          if (quantity != null) 'quantity': quantity,
-          if (notes != null) 'notes': notes,
-          if (addonOptionIds != null) 'addon_option_ids': addonOptionIds,
+          'quantity': ?quantity,
+          'notes': ?notes,
+          'addon_option_ids': ?addonOptionIds,
         },
       );
 
