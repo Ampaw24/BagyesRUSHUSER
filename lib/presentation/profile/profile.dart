@@ -197,7 +197,7 @@ class _ProfileState extends State<Profile> {
                       _ProfileTile(
                         icon: HugeIcons.strokeRoundedReceiptDollar,
                         label: 'Order History',
-                        onTap: () {},
+                        onTap: () => context.push(AppRoutes.orderHistory),
                         w: w,
                       ),
                       _ProfileTile(

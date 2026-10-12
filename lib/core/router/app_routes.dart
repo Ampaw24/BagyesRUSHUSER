@@ -40,6 +40,7 @@ abstract final class AppRoutes {
 
   // ── Orders detail ──
   static const String trackOrder = '/orders/track';
+  static const String orderHistory = '/orders/history';
 
   // ── Route map (with query params) ──
   static const String routeMap = '/route-map';

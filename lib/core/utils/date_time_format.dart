@@ -3,6 +3,12 @@ const _months = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
+/// "Oct 2026" in the device's local time — a heading for a month of entries.
+String formatMonthYear(DateTime value) {
+  final local = value.toLocal();
+  return '${_months[local.month - 1]} ${local.year}';
+}
+
 /// "12 Oct 2026 · 3:45 PM" in the device's local time.
 String formatDateTimeShort(DateTime value) {
   final local = value.toLocal();

@@ -44,6 +44,7 @@ import 'package:bagyesrushappusernew/src/vendor-wallet/views/vendor_wallet_view.
 import 'package:bagyesrushappusernew/src/restaurant/views/restaurant_detail_view.dart';
 import 'package:bagyesrushappusernew/src/checkout/views/checkout_view.dart';
 import 'package:bagyesrushappusernew/src/cart/views/cart_view.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/views/order_history_view.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/views/order_tracking_view.dart';
 import 'package:bagyesrushappusernew/src/search/views/consumer_search_view.dart';
 import 'package:bagyesrushappusernew/src/transaction/views/transaction_view.dart';
@@ -290,6 +291,12 @@ final GoRouter appRouter = GoRouter(
           body: const Center(child: Text('Order not found')),
         );
       },
+    ),
+
+    // ── Consumer: order history (opened from Profile) ──
+    GoRoute(
+      path: AppRoutes.orderHistory,
+      builder: (context, state) => const OrderHistoryView(),
     ),
 
     // ── Consumer: search ──

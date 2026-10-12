@@ -1,4 +1,3 @@
-import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -6,13 +5,13 @@ import 'package:provider/provider.dart';
 
 import 'package:bagyesrushappusernew/constant/app_theme.dart';
 import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
-import 'package:bagyesrushappusernew/resources/resources.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
 import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
 import 'package:bagyesrushappusernew/src/order_reviews/widgets/order_rating_pill.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_display.dart';
+import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_thumbnail.dart';
 import 'package:bagyesrushappusernew/src/report/model/report.dart';
 import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
 import 'package:bagyesrushappusernew/src/report/widgets/report_quick_action_sheet.dart';
@@ -278,29 +277,14 @@ class _OrderCard extends StatelessWidget {
     required this.onReport,
   });
 
-  /// "Parcel delivery · Send" / "· Receive" — a parcel has no vendor name.
-  String get _title {
-    if (!order.isParcel) return order.restaurantName;
-    return 'Parcel delivery · ${order.isReceiveParcel ? 'Receive' : 'Send'}';
-  }
-
-  /// Item count for food; for a parcel, where it went (or how many stops).
-  String get _subtitle {
-    final total = 'GHS ${order.total.toStringAsFixed(2)}';
-    if (!order.isParcel) {
-      return '${order.totalItems} item${order.totalItems > 1 ? 's' : ''} · $total';
-    }
-    final stops = order.stops;
-    if (stops.length > 1) return '${stops.length} drop-offs · $total';
-    final dest = (stops.isEmpty ? order.deliveryAddress : stops.first.address)
-        .trim();
-    return dest.isEmpty ? total : 'To $dest · $total';
-  }
+  String get _subtitle => [
+    order.listDetail,
+    'GHS ${order.total.toStringAsFixed(2)}',
+  ].where((part) => part.isNotEmpty).join(' · ');
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final thumb = w * 0.155;
 
     return GestureDetector(
       onTap: onTap,
@@ -326,40 +310,14 @@ class _OrderCard extends StatelessWidget {
               padding: EdgeInsets.all(w * 0.04),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(w * 0.025),
-                    child: SizedBox(
-                      width: thumb,
-                      height: thumb,
-                      child: order.isParcel
-                          ? Image.asset(
-                              Assets.deliveryBoxParcel,
-                              fit: BoxFit.cover,
-                              cacheWidth: coverCacheWidth(
-                                context,
-                                width: thumb,
-                                height: thumb,
-                              ),
-                            )
-                          // Logo when the vendor has one; their initials
-                          // (e.g. "FK") on a name-keyed tint otherwise.
-                          : NetworkAvatar(
-                              name: order.restaurantName,
-                              photoUrl: order.restaurantImageUrl,
-                              size: thumb,
-                              foregroundColor:
-                                  nameTintColor(order.restaurantName),
-                              borderRadius: BorderRadius.zero,
-                            ),
-                    ),
-                  ),
+                  OrderThumbnail(order: order, size: w * 0.155, radius: w * 0.025),
                   SizedBox(width: w * 0.03),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _title,
+                          order.listTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -400,7 +358,7 @@ class _OrderCard extends StatelessWidget {
                 vertical: w * 0.025,
               ),
               decoration: BoxDecoration(
-                color: _statusColor(order.status).withValues(alpha: 0.08),
+                color: order.status.color.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.vertical(
                   bottom: Radius.circular(w * 0.04),
                 ),
@@ -411,7 +369,7 @@ class _OrderCard extends StatelessWidget {
                     width: w * 0.02,
                     height: w * 0.02,
                     decoration: BoxDecoration(
-                      color: _statusColor(order.status),
+                      color: order.status.color,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -421,7 +379,7 @@ class _OrderCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: w * 0.033,
                       fontWeight: FontWeight.w600,
-                      color: _statusColor(order.status),
+                      color: order.status.color,
                     ),
                   ),
                   const Spacer(),
@@ -475,23 +433,6 @@ class _OrderCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _statusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.delivered:
-        return AppColors.success;
-      case OrderStatus.cancelled:
-      case OrderStatus.rejected:
-        return AppColors.error;
-      case OrderStatus.refunded:
-        return AppColors.warning;
-      case OrderStatus.onTheWay:
-      case OrderStatus.pickedUp:
-        return AppColors.info;
-      default:
-        return AppColors.accent;
-    }
   }
 
   String _formatDate(DateTime dt) {
