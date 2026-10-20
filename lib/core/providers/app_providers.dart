@@ -2,14 +2,14 @@ import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/transaction/viewmodels/transaction_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/src/orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/payment/viewmodels/payment_viewmodel.dart';
+import 'package:gopady/src/transaction/viewmodels/transaction_viewmodel.dart';
+import 'package:gopady/src/vendor-wallet/viewmodels/vendor_wallet_viewmodel.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
 
 final _sl = GetIt.instance;
 

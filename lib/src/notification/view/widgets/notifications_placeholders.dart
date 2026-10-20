@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -170,7 +171,7 @@ class NotificationsEmptyState extends StatelessWidget {
                 'No notifications yet',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                   fontSize: w * 0.045,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -181,7 +182,7 @@ class NotificationsEmptyState extends StatelessWidget {
                 subtitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                   fontSize: w * 0.033,
                   height: 1.4,
                   color: AppColors.textSecondary,

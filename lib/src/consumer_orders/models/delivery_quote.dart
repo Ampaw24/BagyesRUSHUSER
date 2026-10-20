@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/json_utils.dart';
 
 /// `GET /customer/delivery-quote` → `data`. [id] is the `delivery_quote_id`
 /// for checkout; the fee itself is never sent back — the server reads it

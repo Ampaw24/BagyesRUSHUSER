@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
+import 'package:gopady/src/home/models/category_element.model.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import '../../../../constant/app_theme.dart';

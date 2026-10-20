@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/core/widgets/inline_message.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/withdraw_eligibility.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/core/widgets/inline_message.dart';
+import 'package:gopady/src/customer-wallet/models/customer_wallet_model.dart';
+import 'package:gopady/src/customer-wallet/models/withdraw_eligibility.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
 
 /// The most the backend accepts in one withdrawal (`max:1000000`).
 const maxWithdrawalAmount = 1000000.0;

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// Aggregate rating stats for `GET /vendor/me/reviews/summary`.
 ///

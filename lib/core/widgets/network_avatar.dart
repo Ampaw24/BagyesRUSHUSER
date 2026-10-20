@@ -1,12 +1,15 @@
-import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
+import 'package:gopady/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 
 import '../../constant/app_theme.dart';
 
 /// "Kofi Asante" → "KA", "Ama" → "A", "" → "?".
 String personInitials(String name) {
-  final parts =
-      name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .toList();
   if (parts.isEmpty) return '?';
   final first = parts.first[0];
   final second = parts.length > 1 ? parts.last[0] : '';
@@ -17,7 +20,7 @@ String personInitials(String name) {
 /// logo-less vendors stay recognisable across lists.
 Color nameTintColor(String name) {
   const palette = [
-    Color(0xFFD32F2F), // brand red
+    AppColors.primary,
     Color(0xFFDD6B20), // orange
     Color(0xFF38A169), // green
     Color(0xFF3182CE), // blue
@@ -78,33 +81,29 @@ class NetworkAvatar extends StatelessWidget {
     );
 
     final avatar = SizedBox.square(
-        dimension: size,
-        child: url.isEmpty
-            ? initials
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                cacheWidth: coverCacheWidth(
-                  context,
-                  width: size,
-                  height: size,
-                ),
-                errorBuilder: (_, _, _) => initials,
-                frameBuilder: (_, image, frame, loadedSync) {
-                  if (loadedSync) return image;
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      initials,
-                      AnimatedOpacity(
-                        opacity: frame == null ? 0 : 1,
-                        duration: const Duration(milliseconds: 250),
-                        child: image,
-                      ),
-                    ],
-                  );
-                },
-              ),
+      dimension: size,
+      child: url.isEmpty
+          ? initials
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              cacheWidth: coverCacheWidth(context, width: size, height: size),
+              errorBuilder: (_, _, _) => initials,
+              frameBuilder: (_, image, frame, loadedSync) {
+                if (loadedSync) return image;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    initials,
+                    AnimatedOpacity(
+                      opacity: frame == null ? 0 : 1,
+                      duration: const Duration(milliseconds: 250),
+                      child: image,
+                    ),
+                  ],
+                );
+              },
+            ),
     );
 
     final radius = borderRadius;

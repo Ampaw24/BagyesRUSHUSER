@@ -12,8 +12,8 @@ import '../../../../core/enums/map_style_type.dart';
 import '../../../../core/services/map_style_service.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../../../core/utils/map_marker_icons.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/model/delivery_stop.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
 import 'rider_card.dart';
 
 /// Lists every available rider with their own fee and ETA (priced from

@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/services/secure_storage_service.dart';
-import 'package:bagyesrushappusernew/src/onboarding/services/onboarding_service.dart';
-import 'package:bagyesrushappusernew/src/onboarding/viewmodels/onboarding_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/onboarding/views/onboarding_view.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/services/secure_storage_service.dart';
+import 'package:gopady/src/onboarding/services/onboarding_service.dart';
+import 'package:gopady/src/onboarding/viewmodels/onboarding_viewmodel.dart';
+import 'package:gopady/src/onboarding/views/onboarding_view.dart';
 
 void main() {
   Future<void> pumpWelcome(WidgetTester tester, {required String start}) async {

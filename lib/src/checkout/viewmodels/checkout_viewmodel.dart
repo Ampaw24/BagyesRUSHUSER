@@ -1,17 +1,17 @@
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
-import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
-import 'package:bagyesrushappusernew/src/customer_address/repositories/customer_address_repository.dart';
+import 'package:gopady/core/utils/network_utils.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/cart/models/cart_model.dart';
+import 'package:gopady/src/checkout/models/checkout_model.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_state.dart';
+import 'package:gopady/src/consumer_orders/repositories/consumer_orders_repository.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/customer_address/models/customer_address.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/src/customer_address/repositories/customer_address_repository.dart';
 
 enum AddressesStatus { loading, error, loaded }
 

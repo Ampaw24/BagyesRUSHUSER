@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// Parses `GET /realtime/config` — connection details for the realtime
 /// (Reverb/Pusher-protocol) layer. Fetched once per session; host/port/key

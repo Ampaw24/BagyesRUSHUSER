@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/vendor_order.dart';
-import 'package:bagyesrushappusernew/src/vendor/repository/vendor_dashboard_repository.dart';
-import 'package:bagyesrushappusernew/src/vendor/view/vendor_orders_view.dart';
-import 'package:bagyesrushappusernew/src/vendor/viewmodel/dashboard_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor/viewmodel/orders_viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/src/vendor/model/vendor_order.dart';
+import 'package:gopady/src/vendor/repository/vendor_dashboard_repository.dart';
+import 'package:gopady/src/vendor/view/vendor_orders_view.dart';
+import 'package:gopady/src/vendor/viewmodel/dashboard_viewmodel.dart';
+import 'package:gopady/src/vendor/viewmodel/orders_viewmodel.dart';
 
 VendorOrder _order(String id, OrderStatus status) => VendorOrder(
   id: id,

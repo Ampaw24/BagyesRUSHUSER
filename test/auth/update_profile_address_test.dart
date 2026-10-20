@@ -5,13 +5,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/presentation/profile/edit_profile.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
-import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/helpers/cache_helper.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/presentation/profile/edit_profile.dart';
+import 'package:gopady/src/auth/models/user.dart';
+import 'package:gopady/src/auth/repositories/auth_repository.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
 
 import '../core/support/auth_test_support.dart';
 

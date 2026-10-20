@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
 import '../repositories/customer_wallet_repository.dart';
 
 class PayoutSetupState extends Equatable {

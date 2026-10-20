@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/phone_launcher.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/phone_launcher.dart';
+import 'package:gopady/core/widgets/network_avatar.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 import 'tracking_card.dart';
 
 /// Assigned rider's profile — photo, name, vehicle and number plate — with

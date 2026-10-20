@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:gopady/src/report/model/report.dart';
 
 /// Pre-fill passed via `extra:` when pushing [AppRoutes.reportFlow].
 /// Contextual entry points (an order card, a notification) set [targetType]

@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/core/utils/map_marker_icons.dart';
+import 'package:gopady/core/utils/map_marker_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 

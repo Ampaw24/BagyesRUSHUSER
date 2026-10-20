@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// A saved delivery address (`GET /customer/addresses`). Its [id] is the
 /// `customer_address_id` sent to the delivery quote and to order placement.

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/legal/models/legal_document.dart';
 
-/// Shows a [LegalDocument] from the bagyesRUSH website. Only https pages on
+/// Shows a [LegalDocument] from the GoPady website. Only https pages on
 /// [legalSiteHost] load in-app; any other link (mailto:, tel:, other sites)
 /// is handed to the system instead.
 class LegalWebViewScreen extends StatefulWidget {

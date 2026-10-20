@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/image_compression_utils.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
-import 'package:bagyesrushappusernew/src/report/repository/report_repository.dart';
-import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
+import 'package:gopady/core/utils/image_compression_utils.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/model/report_reason.dart';
+import 'package:gopady/src/report/repository/report_repository.dart';
+import 'package:gopady/src/report/views/report_flow_args.dart';
 
 /// The steps of the report wizard, in order. A given run only shows a
 /// subset of these — [ReportFormState.steps] holds the filtered sequence.

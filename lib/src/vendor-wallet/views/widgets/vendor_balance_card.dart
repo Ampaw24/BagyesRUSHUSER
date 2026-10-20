@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../../models/vendor_wallet_model.dart';
 
 /// Hero balance card for the vendor wallet hub — on-brand

@@ -1,22 +1,22 @@
-import 'package:bagyesrushappusernew/core/di/service_locator.dart' show sl;
-import 'package:bagyesrushappusernew/core/providers/app_providers.dart'
+import 'package:gopady/core/di/service_locator.dart' show sl;
+import 'package:gopady/core/providers/app_providers.dart'
     as core_providers;
-import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart'
+import 'package:gopady/src/cart/viewmodels/cart_viewmodel.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart'
     as consumer_orders;
-import 'package:bagyesrushappusernew/src/home/viewmodel/home_discovery_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/search/viewmodels/search_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/notification/viewmodel/notification_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/onboarding/viewmodels/onboarding_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor/viewmodel/dashboard_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor/viewmodel/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor/viewmodel/settings_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/vendor_reviews/viewmodels/reviews_viewmodel.dart';
+import 'package:gopady/src/home/viewmodel/home_discovery_viewmodel.dart';
+import 'package:gopady/src/search/viewmodels/search_viewmodel.dart';
+import 'package:gopady/src/notification/viewmodel/notification_viewmodel.dart';
+import 'package:gopady/src/onboarding/viewmodels/onboarding_viewmodel.dart';
+import 'package:gopady/src/payment/viewmodel/payout_providers_viewmodel.dart';
+import 'package:gopady/src/vendor/viewmodel/dashboard_viewmodel.dart';
+import 'package:gopady/src/vendor/viewmodel/orders_viewmodel.dart';
+import 'package:gopady/src/vendor/viewmodel/settings_viewmodel.dart';
+import 'package:gopady/src/vendor/viewmodel/vendor_kyc_viewmodel.dart';
+import 'package:gopady/src/vendor_registration/viewmodels/vendor_registration_viewmodel.dart';
+import 'package:gopady/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
+import 'package:gopady/src/vendor_reviews/viewmodels/reviews_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 

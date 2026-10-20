@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/core/utils/relative_time.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/core/utils/relative_time.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../../models/vendor_withdrawal_model.dart';
 
 class VendorWithdrawalTile extends StatelessWidget {

@@ -1,16 +1,16 @@
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/router/router.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/auth/views/widgets/guest_prompt.dart';
-import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
-import 'package:bagyesrushappusernew/src/vendor/view/widgets/floating_nav_bar.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/router/router.dart';
+import 'package:gopady/src/auth/models/user.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/src/auth/views/widgets/guest_prompt.dart';
+import 'package:gopady/src/legal/models/legal_document.dart';
+import 'package:gopady/src/vendor/view/widgets/floating_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:bagyesrushappusernew/src/auth/views/logout_action.dart';
+import 'package:gopady/src/auth/views/logout_action.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -111,7 +111,7 @@ class _ProfileState extends State<Profile> {
           SizedBox(height: w * 0.06),
           GuestPrompt(
             icon: HugeIcons.strokeRoundedUser,
-            title: 'Welcome to bagyesRUSH',
+            title: 'Welcome to GoPady',
             message: 'Sign in or create an account to order food, send '
                 'parcels and track your deliveries.',
             onSignIn: () => AppNavigator.toLoginForResult(context),

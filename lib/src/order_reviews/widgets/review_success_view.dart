@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
 
 /// Confirmation shown in place of the form once the review is saved.
 class ReviewSuccessView extends StatelessWidget {

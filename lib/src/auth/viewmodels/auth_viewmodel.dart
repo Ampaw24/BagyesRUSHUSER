@@ -2,19 +2,19 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/device_info_utils.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/services/fcm_service.dart';
+import 'package:gopady/core/services/realtime_service.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/device_info_utils.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/auth/repositories/auth_repository.dart';
+import 'package:gopady/src/auth/viewmodels/auth_state.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/auth/models/otp_purpose.dart';
+import 'package:gopady/src/auth/models/user.dart';
+import 'package:gopady/src/vendor/model/vendor_profile.dart';
 
 /// Merges a user response from a *scoped* update endpoint (avatar-only,
 /// profile-only) onto the previously cached user, so a field that endpoint

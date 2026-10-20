@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../../models/transaction_model.dart';
 
 class TransactionTile extends StatelessWidget {
@@ -111,7 +111,7 @@ class TransactionTile extends StatelessWidget {
         return AppColors.error;
       case 'pending':
       case 'processing':
-        return AppColors.warning;
+        return AppColors.accentInk;
       default:
         return AppColors.info;
     }

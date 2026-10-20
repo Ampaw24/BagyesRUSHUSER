@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
+import 'package:gopady/core/widgets/network_avatar.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/model/rider_model.dart';
 
 /// Selectable rider tile. Each rider carries their own quote — fee and ETA
 /// differ by where that rider currently is.

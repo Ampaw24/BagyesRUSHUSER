@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_codes_panel.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/widgets/order_codes_panel.dart';
 
 Map<String, dynamic> _receiveParcel({
   String status = 'accepted',

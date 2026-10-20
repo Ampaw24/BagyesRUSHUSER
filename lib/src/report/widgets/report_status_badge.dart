@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:gopady/src/report/model/report.dart';
 
 class ReportStatusBadge extends StatelessWidget {
   final ReportStatus status;

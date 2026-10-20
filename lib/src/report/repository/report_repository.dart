@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
+import 'package:gopady/src/report/model/report_reason.dart';
 import 'package:dio/dio.dart';
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/src/report/model/report.dart';
 
 /// Backed by the live `v1/report` API (see `reportapis.md`): `customer/reports`
 /// and `vendor/me/reports`, both GET (list/show) and POST (create).

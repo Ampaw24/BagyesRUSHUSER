@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import 'chat_dimensions.dart';
 
 /// The message input bar — owns its own [TextEditingController] so the

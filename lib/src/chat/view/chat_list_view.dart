@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/core/router/app_router.dart' show appRouteObserver;
-import 'package:bagyesrushappusernew/src/chat/viewmodel/chat_list_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/conversation_tile.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/core/router/app_router.dart' show appRouteObserver;
+import 'package:gopady/src/chat/viewmodel/chat_list_viewmodel.dart';
+import 'package:gopady/src/chat/view/widgets/conversation_tile.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 
 /// The chat inbox — `GET conversations`, filtered to threads whose order is
 /// still in progress. Unlike a general messaging app this is not a

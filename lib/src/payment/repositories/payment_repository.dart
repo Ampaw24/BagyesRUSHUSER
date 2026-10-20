@@ -1,15 +1,15 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_init_result.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_transaction.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_verification_result.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_wallet.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/network_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/payment/models/payment_channel.dart';
+import 'package:gopady/src/payment/models/payment_init_result.dart';
+import 'package:gopady/src/payment/models/payment_transaction.dart';
+import 'package:gopady/src/payment/models/payment_verification_result.dart';
+import 'package:gopady/src/payment/models/payment_wallet.dart';
 
 /// Talks to the `/payments/*` domain (BACKEND_API_SPEC.md §8.7). Named
 /// `PaymentGatewayRepository` — not `PaymentRepository` — to avoid colliding

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../../models/customer_withdrawal_model.dart';
 import '../../viewmodels/customer_withdrawals_state.dart';
 import '../../viewmodels/customer_withdrawals_viewmodel.dart';

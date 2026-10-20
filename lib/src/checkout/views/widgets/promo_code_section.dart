@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/money_format.dart';
 
 /// Checkout promo-code entry: collapsed "Have a promo code?" row → input
 /// with Apply → applied chip with savings + Remove. The discount shown is

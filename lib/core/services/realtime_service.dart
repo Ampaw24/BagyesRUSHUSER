@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/services/realtime_config.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_repository.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_realtime_events.dart';
+import 'package:gopady/core/services/realtime_config.dart';
+import 'package:gopady/core/services/realtime_events.dart';
+import 'package:gopady/core/services/realtime_repository.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
+import 'package:gopady/src/chat/model/chat_realtime_events.dart';
 
 /// How a private-channel authorization attempt failed, surfaced via
 /// [RealtimeService.channelErrors] so callers can tell a real

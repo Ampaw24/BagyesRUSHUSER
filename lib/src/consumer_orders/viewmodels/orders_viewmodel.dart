@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
-import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
+import 'package:gopady/core/services/realtime_events.dart';
+import 'package:gopady/core/services/realtime_service.dart';
+import 'package:gopady/core/utils/network_utils.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_verification.dart';
+import 'package:gopady/src/consumer_orders/models/rider_location.dart';
+import 'package:gopady/src/consumer_orders/repositories/consumer_orders_repository.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_state.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
 
 class OrdersViewModel extends ViewModel<OrdersState> with SessionAware {
   OrdersViewModel(

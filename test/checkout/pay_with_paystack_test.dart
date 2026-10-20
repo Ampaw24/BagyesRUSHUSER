@@ -1,20 +1,20 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
-import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart'
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/src/cart/models/cart_model.dart';
+import 'package:gopady/src/checkout/models/checkout_model.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_state.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/repositories/consumer_orders_repository.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart'
     as consumer_orders;
-import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
-import 'package:bagyesrushappusernew/src/customer_address/repositories/customer_address_repository.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/src/customer_address/models/customer_address.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/src/customer_address/repositories/customer_address_repository.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 import '../consumer_orders/support/order_test_support.dart';
 import '../core/support/auth_test_support.dart';

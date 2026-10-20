@@ -2,13 +2,13 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/model/parcel_stop.dart';
+import 'package:gopady/src/parcel/repository/parcel_repository.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 /// Answers quote requests with whatever [answer] is set to.
 class _Repository extends Fake implements ParcelRepository {

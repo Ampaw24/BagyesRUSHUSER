@@ -1,4 +1,5 @@
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -13,10 +14,11 @@ import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/auth_state.dart';
 import '../../../core/common/app/current_user_provider.dart';
 import '../../../core/router/router.dart';
-import '../../../core/widgets/app_logo_card.dart';
+import '../../../core/widgets/gopady_logo.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/decorative_background.dart';
+import '../../../core/widgets/brand_watermark_background.dart';
 import 'widgets/auth_back_button.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key, this.returnOnSuccess = false});
@@ -73,7 +75,7 @@ class _LoginViewState extends State<LoginView>
         context,
         isSuccess: true,
         title: 'Login Successful',
-        subtitle: 'Welcome back to bagyesRUSH!',
+        subtitle: 'Welcome back to GoPady!',
       );
       if (isVendor) {
         AppNavigator.toVendorHome(context);
@@ -213,8 +215,8 @@ class _LoginViewState extends State<LoginView>
         if (!didPop) _backToWelcome();
       },
       child: Scaffold(
-        backgroundColor: kDecorativeBackgroundColor,
-        body: DecorativeBackground(
+        backgroundColor: AppColors.cream,
+        body: BrandWatermarkBackground(
           child: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -284,12 +286,15 @@ class _LoginViewState extends State<LoginView>
   }
 
   Widget _buildLogoSection(double sw, bool isTablet) {
-    final logoSize = isTablet ? sw * 0.20 : sw * 0.28;
+    final logoWidth = (isTablet ? sw * 0.30 : sw * 0.45).clamp(
+      GoPadyLogo.minLockupWidth,
+      260.0,
+    );
     return Row(
       children: [
         AuthBackButton(onPressed: _backToWelcome),
         SizedBox(width: sw * 0.03),
-        AppLogoCard(size: logoSize),
+        GoPadyLogo(width: logoWidth),
       ],
     );
   }
@@ -378,10 +383,10 @@ class _LoginViewState extends State<LoginView>
             child: Text(
               'Forgot Password?',
               style: TextStyle(
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
                 fontSize: (sw * 0.032).clamp(11.0, 14.0),
                 fontWeight: FontWeight.w600,
-                color: Colors.red,
+                color: AppColors.primary,
               ),
             ),
           ),
@@ -405,16 +410,9 @@ class _LoginViewState extends State<LoginView>
         height: (sh * 0.065).clamp(44.0, 58.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(sw * 0.032),
-          color: loading ? Colors.red.withValues(alpha: 0.7) : Colors.red,
-          boxShadow: loading
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.red.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+          color: loading
+              ? AppColors.primary.withValues(alpha: 0.7)
+              : AppColors.primary,
         ),
         child: Center(
           child: loading
@@ -447,7 +445,7 @@ class _LoginViewState extends State<LoginView>
                 text: 'Sign up',
                 style: TextStyle(
                   fontSize: fontSize,
-                  color: Colors.red,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
                 recognizer: _signUpTapRecognizer,
@@ -517,7 +515,7 @@ class _ForgotPasswordSheetContentState
                 const Text(
                   'Forgot Password',
                   style: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -544,7 +542,7 @@ class _ForgotPasswordSheetContentState
             const Text(
               'Enter your phone number below. We will send a 6-digit OTP to verify your identity and reset your password.',
               style: TextStyle(
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
                 fontSize: 14,
                 color: Colors.black54,
                 height: 1.4,
@@ -624,7 +622,7 @@ class _ForgotPasswordSheetContentState
                         }
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppColors.primary,
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -635,7 +633,7 @@ class _ForgotPasswordSheetContentState
                     : const Text(
                         'Send OTP',
                         style: TextStyle(
-                          fontFamily: 'Mukta',
+                          fontFamily: AppFonts.body,
                           fontSize: 16,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -728,7 +726,7 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
         borderRadius: radius,
         color: Colors.white,
         border: Border.all(
-          color: _isFocused ? Colors.red : Colors.grey[200]!,
+          color: _isFocused ? AppColors.primary : Colors.grey[200]!,
           width: _isFocused ? 1.5 : 1,
         ),
       ),
@@ -744,7 +742,7 @@ class _ModernPhoneInputState extends State<_ModernPhoneInput> {
               style: TextStyle(
                 fontSize: (sw * 0.038).clamp(12.0, 17.0),
                 fontWeight: FontWeight.w600,
-                color: _isFocused ? Colors.red : Colors.black87,
+                color: _isFocused ? AppColors.primary : Colors.black87,
                 letterSpacing: 0.3,
               ),
             ),
@@ -870,7 +868,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
         borderRadius: radius,
         color: Colors.white,
         border: Border.all(
-          color: _isFocused ? Colors.red : Colors.grey[200]!,
+          color: _isFocused ? AppColors.primary : Colors.grey[200]!,
           width: _isFocused ? 1.5 : 1,
         ),
       ),
@@ -884,7 +882,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
             HugeIcon(
               icon: HugeIcons.strokeRoundedLock,
               size: (sw * 0.045).clamp(14.0, 20.0),
-              color: _isFocused ? Colors.red : Colors.grey[500]!,
+              color: _isFocused ? AppColors.primary : Colors.grey[500]!,
             ),
             SizedBox(width: sw * 0.028),
             Container(

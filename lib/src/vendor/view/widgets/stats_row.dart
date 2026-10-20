@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class StatItem {
   final String value;
@@ -81,7 +82,7 @@ class _StatCard extends StatelessWidget {
               fontSize: (w * 0.04).clamp(14.0, 18.0),
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               letterSpacing: -0.5,
             ),
           ),
@@ -93,7 +94,7 @@ class _StatCard extends StatelessWidget {
               fontSize: (w * 0.024).clamp(9.0, 12.0),
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               height: 1.1,
             ),
           ),

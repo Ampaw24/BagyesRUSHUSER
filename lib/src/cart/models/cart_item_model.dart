@@ -1,6 +1,6 @@
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/restaurant/models/addon.dart';
 
 /// A single line item on a server-side vendor cart, returned by
 /// `GET customer/carts/:vendorId` and embedded in every cart mutation

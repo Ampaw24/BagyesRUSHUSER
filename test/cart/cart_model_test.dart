@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
+import 'package:gopady/src/cart/models/cart_model.dart';
 
 CartModel _cart(Map<String, dynamic> totals) =>
     CartModel.fromJson({'vendor_id': 'v1', 'items': [], 'totals': totals});

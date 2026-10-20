@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/core/utils/relative_time.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/core/utils/relative_time.dart';
 import '../../models/customer_withdrawal_model.dart';
 
 class CustomerWithdrawalTile extends StatelessWidget {
@@ -161,7 +161,7 @@ class CustomerWithdrawalTile extends StatelessWidget {
     CustomerWithdrawalStatus.failed => AppColors.error,
     CustomerWithdrawalStatus.cancelled => AppColors.textHint,
     CustomerWithdrawalStatus.processing => AppColors.info,
-    CustomerWithdrawalStatus.pending => AppColors.warning,
+    CustomerWithdrawalStatus.pending => AppColors.accentInk,
     CustomerWithdrawalStatus.unknown => AppColors.textSecondary,
   };
 }

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/json_utils.dart';
 
 /// Result of `GET /vendor/me/wallet`.
 class VendorWalletModel extends Equatable {

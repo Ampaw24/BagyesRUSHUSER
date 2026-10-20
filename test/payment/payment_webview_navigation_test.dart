@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/payment/views/screens/payment_webview_screen.dart';
+import 'package:gopady/src/payment/views/screens/payment_webview_screen.dart';
 
 GatewayNavigation _decide(String url, {bool isMainFrame = true}) =>
     decideGatewayNavigation(Uri.tryParse(url), isMainFrame: isMainFrame);

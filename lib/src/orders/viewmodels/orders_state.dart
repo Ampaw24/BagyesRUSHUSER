@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/menu_item.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/src/home/models/category_element.model.dart';
+import 'package:gopady/src/vendor/model/menu_item.dart';
 import '../models/order.dart';
 
 enum MenuStatus { initial, loading, loaded, error }

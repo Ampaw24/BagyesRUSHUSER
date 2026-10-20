@@ -1,7 +1,7 @@
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
-import 'package:bagyesrushappusernew/src/transaction/models/transaction_model.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_outcome.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_verification.dart';
+import 'package:gopady/src/transaction/models/transaction_model.dart';
 
 enum ReceiptStatus {
   paid,

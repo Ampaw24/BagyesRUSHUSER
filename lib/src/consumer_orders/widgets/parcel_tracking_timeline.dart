@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 import 'tracking_card.dart';
 import 'tracking_reveal.dart';
 
@@ -270,7 +270,7 @@ class _MilestoneRow extends StatelessWidget {
   Color get _connectorColor => switch (nextState) {
     _MilestoneState.done || _MilestoneState.current => AppColors.success,
     _MilestoneState.failed => AppColors.error.withValues(alpha: 0.5),
-    _MilestoneState.refunded => AppColors.warning.withValues(alpha: 0.6),
+    _MilestoneState.refunded => AppColors.info.withValues(alpha: 0.6),
     _ => AppColors.border,
   };
 
@@ -284,7 +284,7 @@ class _MilestoneRow extends StatelessWidget {
       _MilestoneState.upcoming => AppColors.textHint,
       _MilestoneState.current => AppColors.primary,
       _MilestoneState.failed => AppColors.error,
-      _MilestoneState.refunded => AppColors.warning,
+      _MilestoneState.refunded => AppColors.info,
       _MilestoneState.done => AppColors.textPrimary,
     };
     final time = milestone.time;
@@ -485,8 +485,8 @@ class _MilestoneDotState extends State<_MilestoneDot>
         Colors.white,
       ),
       _MilestoneState.refunded => (
-        AppColors.warning,
-        AppColors.warning,
+        AppColors.info,
+        AppColors.info,
         Colors.white,
       ),
     };

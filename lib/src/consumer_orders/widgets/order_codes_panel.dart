@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 import 'order_code_card.dart';
 
 /// Every code the customer may need on the tracking screen, each labelled by
@@ -71,7 +71,7 @@ class OrderCodesPanel extends StatelessWidget {
       shareLabel: 'Send to $shareTarget',
       onShare: () => SharePlus.instance.share(
         ShareParams(
-          text: 'Your bagyesRUSH pickup code is $code. A rider is '
+          text: 'Your GoPady pickup code is $code. A rider is '
               'coming to collect the package — give them this code when '
               'they arrive.',
         ),

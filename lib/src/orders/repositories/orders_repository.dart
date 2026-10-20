@@ -1,11 +1,11 @@
-import 'package:bagyesrushappusernew/src/home/models/category.dart';
+import 'package:gopady/src/home/models/category.dart';
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/menu_item.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/network_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/vendor/model/menu_item.dart';
 import '../models/order.dart' as ord;
 
 class OrdersRepository {

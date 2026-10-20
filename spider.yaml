@@ -34,3 +34,6 @@ groups:
     class_name: RestaurantAssets
     types: [ .png, .jpg, .jpeg, .svg, .webp ]
 
+  - path: assets/brand
+    class_name: BrandAssets
+    types: [ .png ]

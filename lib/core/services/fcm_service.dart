@@ -4,9 +4,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'package:bagyesrushappusernew/core/router/app_router.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+import 'package:gopady/core/router/app_router.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/utils/app_logger.dart';
 
 /// Same order-related push convention already used by the in-app
 /// notification list (see `NotificationDetailsScreen._isOrderRelated`):
@@ -139,7 +139,7 @@ const _apnsTokenMaxAttempts = 6;
 const _apnsTokenRetryDelay = Duration(milliseconds: 500);
 
 Future<void> _initLocalNotifications() async {
-  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const androidInit = AndroidInitializationSettings('@drawable/ic_notification');
   // Permission is requested by FcmService.requestPermission, not at init.
   const iosInit = DarwinInitializationSettings(
     requestAlertPermission: false,
@@ -181,7 +181,7 @@ Future<void> _showLocalNotification(RemoteMessage message) async {
         channelDescription: _androidChannel.description,
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_notification',
       ),
       iOS: const DarwinNotificationDetails(),
     ),

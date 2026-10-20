@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
-import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/core/utils/location_helper.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/repository/parcel_repository.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 class _Repository extends Fake implements ParcelRepository {}
 

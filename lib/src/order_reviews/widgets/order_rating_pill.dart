@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/views/order_review_sheet.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
+import 'package:gopady/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
+import 'package:gopady/src/order_reviews/views/order_review_sheet.dart';
 
 /// Order-history pill for a delivered order: "Rate" opens the review sheet;
 /// once rated it becomes a read-only "★ 4" badge (the restaurant's rating

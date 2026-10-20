@@ -1,9 +1,9 @@
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/notification/repository/notification_repository.dart';
-import 'package:bagyesrushappusernew/src/notification/viewmodel/notification_state.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/notification/repository/notification_repository.dart';
+import 'package:gopady/src/notification/viewmodel/notification_state.dart';
 
 class NotificationViewmodel extends ViewModel<NotificationState>
     with SessionAware {

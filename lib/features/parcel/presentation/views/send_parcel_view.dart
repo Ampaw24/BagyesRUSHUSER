@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/core/widgets/inline_message.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/core/widgets/inline_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,12 +8,12 @@ import '../../../../constant/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/utils/money_format.dart';
 import '../../../../core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/views/order_payment_launcher.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:gopady/src/parcel/model/parcel.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 import '../widgets/available_riders_step.dart';
 import '../widgets/delivery_stops_step.dart';
 import '../widgets/location_picker_step.dart';
@@ -23,6 +23,7 @@ import '../widgets/parcel_bottom_bar.dart';
 import '../widgets/parcel_step_indicator.dart';
 import '../widgets/parcel_summary_step.dart';
 import '../widgets/sender_contact_card.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class SendParcelView extends StatefulWidget {
   final ParcelDirection direction;
@@ -284,7 +285,7 @@ class _SendParcelViewState extends State<SendParcelView> {
           fontSize: w * 0.042,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
         ),
       ),
       centerTitle: true,

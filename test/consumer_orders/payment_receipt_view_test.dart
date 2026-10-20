@@ -2,14 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/payment_receipt_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/views/payment_receipt_view.dart';
-import 'package:bagyesrushappusernew/src/transaction/repositories/transaction_repository.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_outcome.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/src/consumer_orders/repositories/consumer_orders_repository.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/payment_receipt_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/views/payment_receipt_view.dart';
+import 'package:gopady/src/transaction/repositories/transaction_repository.dart';
 
 import 'support/order_test_support.dart';
 

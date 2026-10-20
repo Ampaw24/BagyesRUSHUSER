@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/report/widgets/report_target_tile.dart';
-import 'package:bagyesrushappusernew/src/vendor_registration/views/widgets/vendor_text_field.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/report/widgets/report_target_tile.dart';
+import 'package:gopady/src/vendor_registration/views/widgets/vendor_text_field.dart';
 
 const _maxPhotos = 5;
 

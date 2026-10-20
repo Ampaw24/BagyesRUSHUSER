@@ -10,7 +10,7 @@ const _tagMeta = <String, Map<String, dynamic>>{
   'Vegetarian': {'emoji': '🥦', 'color': Color(0xFF66BB6A)},
   'Gluten-Free': {'emoji': '🌾', 'color': Color(0xFFFB8C00)},
   'Bestseller': {'emoji': '⭐', 'color': Color(0xFFF59E0B)},
-  'New': {'emoji': '🆕', 'color': Color(0xFF3182CE)},
+  'New': {'emoji': '🆕', 'color': AppColors.info},
   'Seasonal': {'emoji': '🌟', 'color': Color(0xFF8E24AA)},
 };
 

@@ -1,3 +1,4 @@
+import 'package:gopady/constant/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -191,11 +192,11 @@ class _CustomDialogState extends State<CustomDialog>
     );
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, -0.08), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _animationController.forward();
   }
 
@@ -211,15 +212,15 @@ class _CustomDialogState extends State<CustomDialog>
     if (widget.config.customColor != null) return widget.config.customColor!;
     switch (widget.config.type) {
       case DialogType.error:
-        return const Color(0xFFE53935);
+        return AppColors.error;
       case DialogType.success:
-        return const Color(0xFF2E7D32);
+        return AppColors.success;
       case DialogType.warning:
-        return const Color.fromARGB(255, 250, 205, 3);
+        return AppColors.warning;
       case DialogType.confirmation:
-        return const Color(0xFFD32F2F);
+        return AppColors.primary;
       case DialogType.info:
-        return const Color(0xFF0056D2);
+        return AppColors.info;
     }
   }
 
@@ -260,10 +261,10 @@ class _CustomDialogState extends State<CustomDialog>
 
   @override
   Widget build(BuildContext context) {
-    final mq     = MediaQuery.of(context);
-    final sw     = mq.size.width;
-    final sh     = mq.size.height;
-    final theme  = Theme.of(context);
+    final mq = MediaQuery.of(context);
+    final sw = mq.size.width;
+    final sh = mq.size.height;
+    final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return PopScope(
@@ -345,11 +346,11 @@ class _CustomDialogState extends State<CustomDialog>
 
   Widget _buildIconBadge(double sw) {
     final badgeSize = sw * 0.155;
-    final iconSize  = sw * 0.075;
-    final accent    = _color();
+    final iconSize = sw * 0.075;
+    final accent = _color();
 
     return Container(
-      width:  badgeSize,
+      width: badgeSize,
       height: badgeSize,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.1),
@@ -360,11 +361,7 @@ class _CustomDialogState extends State<CustomDialog>
         ),
       ),
       child: Center(
-        child: HugeIcon(
-          icon: _icon(),
-          size: iconSize,
-          color: accent,
-        ),
+        child: HugeIcon(icon: _icon(), size: iconSize, color: accent),
       ),
     );
   }
@@ -378,7 +375,10 @@ class _CustomDialogState extends State<CustomDialog>
               text: widget.config.cancelText,
               onPressed: _handleCancel,
               isPrimary: false,
-              sw: sw, sh: sh, theme: theme, isDark: isDark,
+              sw: sw,
+              sh: sh,
+              theme: theme,
+              isDark: isDark,
             ),
           ),
           SizedBox(width: sw * 0.03),
@@ -387,7 +387,10 @@ class _CustomDialogState extends State<CustomDialog>
               text: widget.config.confirmText,
               onPressed: _handleConfirm,
               isPrimary: true,
-              sw: sw, sh: sh, theme: theme, isDark: isDark,
+              sw: sw,
+              sh: sh,
+              theme: theme,
+              isDark: isDark,
             ),
           ),
         ],
@@ -397,7 +400,10 @@ class _CustomDialogState extends State<CustomDialog>
       text: widget.config.confirmText,
       onPressed: _handleConfirm,
       isPrimary: true,
-      sw: sw, sh: sh, theme: theme, isDark: isDark,
+      sw: sw,
+      sh: sh,
+      theme: theme,
+      isDark: isDark,
     );
   }
 
@@ -425,8 +431,8 @@ class _CustomDialogState extends State<CustomDialog>
             color: isPrimary
                 ? accent
                 : (isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.grey.shade100),
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.grey.shade100),
             borderRadius: BorderRadius.circular(sw * 0.03),
             border: Border.all(
               color: isPrimary

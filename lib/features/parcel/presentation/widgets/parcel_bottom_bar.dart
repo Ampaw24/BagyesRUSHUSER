@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 class ParcelBottomBar extends StatelessWidget {
   final ParcelStep currentStep;
@@ -140,15 +140,6 @@ class _ContinueButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: (canProceed || isLoading) ? AppColors.primary : AppColors.border,
           borderRadius: BorderRadius.circular(w * 0.03),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : [],
         ),
         child: isLoading
             ? Center(

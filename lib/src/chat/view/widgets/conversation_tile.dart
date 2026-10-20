@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/chat/model/conversation.dart';
 import 'chat_avatar.dart';
 import 'chat_dimensions.dart';
 

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
+import 'package:gopady/src/order_reviews/models/order_review.dart';
 
 enum OrderReviewsStatus { initial, loading, loaded, error }
 

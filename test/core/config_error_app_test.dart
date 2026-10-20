@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/constant/config.dart';
-import 'package:bagyesrushappusernew/core/widgets/config_error_app.dart';
+import 'package:gopady/constant/config.dart';
+import 'package:gopady/core/widgets/config_error_app.dart';
 
 void main() {
   test('Config.validate names the flag when API_BASE_URL is missing', () {

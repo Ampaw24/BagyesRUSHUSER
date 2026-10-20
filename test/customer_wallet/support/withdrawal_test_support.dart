@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/repositories/customer_wallet_repository.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/src/auth/models/user.dart';
+import 'package:gopady/src/customer-wallet/models/customer_wallet_model.dart';
+import 'package:gopady/src/customer-wallet/repositories/customer_wallet_repository.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_withdrawals_viewmodel.dart';
 
 import '../../core/support/auth_test_support.dart';
 

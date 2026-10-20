@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// Payload of the `conversation.typing` realtime event. There is no
 /// "stopped typing" event — the receiving side is expected to expire the

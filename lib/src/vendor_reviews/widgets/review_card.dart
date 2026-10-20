@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../models/review.dart';
 import 'rating_stars.dart';
 import 'reply_composer_sheet.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Same hand-rolled relative-time idiom as `report_card.dart`'s
 /// `reportRelativeTime` — no `intl` dependency in this app.
@@ -73,7 +74,7 @@ class ReviewCard extends StatelessWidget {
                               fontSize: w * 0.037,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -85,7 +86,7 @@ class ReviewCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: w * 0.027,
                             color: AppColors.textHint,
-                            fontFamily: 'Mukta',
+                            fontFamily: AppFonts.body,
                           ),
                         ),
                       ],
@@ -123,7 +124,7 @@ class ReviewCard extends StatelessWidget {
                       fontSize: w * 0.026,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textHint,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                 ],
@@ -137,7 +138,7 @@ class ReviewCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: w * 0.034,
                 color: AppColors.textPrimary,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
                 height: 1.4,
               ),
             ),
@@ -208,7 +209,7 @@ class _InitialsAvatar extends StatelessWidget {
           fontSize: size * 0.4,
           fontWeight: FontWeight.w700,
           color: AppColors.primary,
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
         ),
       ),
     );
@@ -242,7 +243,7 @@ class _ReplyBubble extends StatelessWidget {
                   fontSize: w * 0.03,
                   fontWeight: FontWeight.w700,
                   color: AppColors.primary,
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                 ),
               ),
               if (review.repliedAt != null) ...[
@@ -252,7 +253,7 @@ class _ReplyBubble extends StatelessWidget {
                   style: TextStyle(
                     fontSize: w * 0.026,
                     color: AppColors.textHint,
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                   ),
                 ),
               ],
@@ -264,7 +265,7 @@ class _ReplyBubble extends StatelessWidget {
             style: TextStyle(
               fontSize: w * 0.033,
               color: AppColors.textSecondary,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               height: 1.4,
             ),
           ),

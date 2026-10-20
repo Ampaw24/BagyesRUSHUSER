@@ -1,18 +1,18 @@
 import 'dart:async';
-import 'dart:math' as math;
-
-import 'package:bagyesrushappusernew/constant/config.dart';
-import 'package:bagyesrushappusernew/constant/constant.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
+import 'package:gopady/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../core/common/app/current_user_provider.dart';
+import '../resources/resources.dart';
 import '../core/services/fcm_service.dart';
-import '../core/widgets/app_logo_card.dart';
-import '../core/widgets/decorative_background.dart';
+import '../core/widgets/brand_pattern_background.dart';
+import '../core/widgets/gopady_logo.dart';
+import '../core/widgets/skyline_watermark.dart';
 import '../src/auth/repositories/auth_repository.dart';
 import '../src/auth/viewmodels/auth_viewmodel.dart';
 import '../src/auth/viewmodels/auth_state.dart';
@@ -26,13 +26,14 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  /// The logo animation (1.5s) plus a brief hold.
+  /// The intro animation plus a brief hold.
   static const _minimumDisplay = Duration(seconds: 2);
   static const _maxValidationWait = Duration(seconds: 4);
+  static const _maxPrecacheWait = Duration(seconds: 1);
 
   late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+  final Completer<void> _introFinished = Completer<void>();
+  bool _introStarted = false;
 
   String? _versionLabel;
 
@@ -47,21 +48,36 @@ class _SplashScreenState extends State<SplashScreen>
   void _setupAnimations() {
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: AppMotion.intro,
     );
+  }
 
-    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_introStarted) return;
+    _introStarted = true;
+    _playIntro();
+  }
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
-      ),
-    );
-
-    _animationController.forward();
+  /// Decodes the artwork first so the intro never starts on an empty frame
+  /// (an image that decodes mid-animation would just pop in).
+  Future<void> _playIntro() async {
+    try {
+      await Future.wait([
+        precacheImage(
+          const AssetImage(BrandAssets.gopadyLogoTransparentWhite),
+          context,
+        ),
+        precacheImage(const AssetImage(BrandAssets.gopadyIconYellow), context),
+        precacheImage(const AssetImage(IconAssets.rebrandFilter), context),
+      ]).timeout(_maxPrecacheWait);
+    } catch (_) {
+      // Best effort: play the intro even if an asset is slow to decode.
+    }
+    if (!mounted) return;
+    await _animationController.forward().orCancel.catchError((_) {});
+    if (!_introFinished.isCompleted) _introFinished.complete();
   }
 
   Future<void> _loadVersion() async {
@@ -75,6 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    if (!_introFinished.isCompleted) _introFinished.complete();
     _animationController.dispose();
     super.dispose();
   }
@@ -91,6 +108,7 @@ class _SplashScreenState extends State<SplashScreen>
     // logs the user out; a 401 later does, via the router).
     await Future.wait([
       Future.delayed(_minimumDisplay),
+      _introFinished.future,
       authViewmodel.sessionValidation.timeout(
         _maxValidationWait,
         onTimeout: () {},
@@ -140,106 +158,86 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDecorativeBackgroundColor,
+      backgroundColor: AppColors.primary,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final height = constraints.maxHeight;
+          final size = constraints.biggest;
+          // Everything scales off the shorter side so portrait, landscape and
+          // split-screen all keep the same proportions.
+          final unit = size.shortestSide;
 
-          // Card is clamped so it stays comfortable on both small phones
-          // and large tablets, while still scaling with the viewport.
-          final cardSize = (math.min(width, height) * 0.34).clamp(120.0, 260.0);
-          final loaderWidth = (width * 0.32).clamp(96.0, 220.0);
-
-          return DecorativeBackground(
-            child: SafeArea(
-              child: Column(
-                children: [
-                  const Spacer(flex: 5),
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: AppLogoCard(size: cardSize),
-                    ),
-                  ),
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 22),
-                      child: Container(
-                        width: 40,
-                        height: 2.5,
-                        decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ),
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: 18,
-                        left: 24,
-                        right: 24,
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          Config.splashText,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: greyColor.withValues(alpha: 0.8),
-                            letterSpacing: 3,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Spacer(flex: 6),
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SizedBox(
-                      width: loaderWidth,
-                      height: 3,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            primaryColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12, bottom: 20),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Text(
-                        _versionLabel ?? '',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: greyColor.withValues(alpha: 0.6),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: BrandReveal(
+                  animation: _animationController,
+                  end: 0.5,
+                  child: const BrandPatternBackground(),
+                ),
               ),
-            ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: BrandReveal(
+                  animation: _animationController,
+                  begin: 0.1,
+                  end: 0.65,
+                  slideFrom: const Offset(0, 0.25),
+                  child: const SkylineWatermark(color: AppColors.primaryDark),
+                ),
+              ),
+              SafeArea(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BrandReveal(
+                        animation: _animationController,
+                        begin: 0.2,
+                        end: 0.8,
+                        scaleFrom: 0.9,
+                        slideFrom: const Offset(0, 0.08),
+                        blurFrom: unit * 0.025,
+                        child: GoPadyLogo(
+                          width: unit * 0.72,
+                          variant: GoPadyLogoVariant.onDark,
+                        ),
+                      ),
+                      SizedBox(height: unit * 0.1),
+                      BrandReveal(
+                        animation: _animationController,
+                        begin: 0.7,
+                        end: 1,
+                        child: SizedBox(
+                          width: unit * 0.3,
+                          height: unit * 0.008,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(unit * 0.004),
+                            child: const LinearProgressIndicator(
+                              backgroundColor: AppColors.primaryDark,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.accent,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // SizedBox(height: unit * 0.04),
+                      // Text(
+                      //   _versionLabel ?? '',
+                      //   style: TextStyle(
+                      //     fontSize: unit * 0.03,
+                      //     color: AppColors.onDarkMuted,
+                      //     letterSpacing: unit * 0.001,
+                      //   ),
+                      // ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 }
-
-

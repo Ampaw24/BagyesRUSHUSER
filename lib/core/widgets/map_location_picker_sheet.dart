@@ -14,6 +14,7 @@ import '../enums/map_style_type.dart';
 import '../services/map_style_service.dart';
 import '../services/places_service.dart';
 import '../utils/location_helper.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point
@@ -46,8 +47,10 @@ class MapLocationPickerSheet extends StatefulWidget {
 class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     with SingleTickerProviderStateMixin {
   // ── Constants ──────────────────────────────────────────────────────────────
-  static const _accraFallback =
-      LatLng(Config.defaultMapCenterLat, Config.defaultMapCenterLng);
+  static const _accraFallback = LatLng(
+    Config.defaultMapCenterLat,
+    Config.defaultMapCenterLng,
+  );
   static const _defaultZoom = 15.0;
   // Below this movement, a camera-idle re-geocode is skipped — the address
   // wouldn't meaningfully change and it saves a geocoding API call.
@@ -190,7 +193,11 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
         );
       });
     } catch (e, s) {
-      appLogger.e('[MapPicker] Reverse geocode failed', error: e, stackTrace: s);
+      appLogger.e(
+        '[MapPicker] Reverse geocode failed',
+        error: e,
+        stackTrace: s,
+      );
       if (mounted) {
         setState(() {
           _address = LocationHelper.resolveAddress(
@@ -282,32 +289,44 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
           break;
         case LocationStatus.serviceDisabled:
           if (notifyOnFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Location services disabled. Enable GPS and try again.'),
-              behavior: SnackBarBehavior.floating,
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Location services disabled. Enable GPS and try again.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
           }
           break;
         case LocationStatus.permissionDeniedForever:
           if (notifyOnFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: const Text('Location permission denied. Enable it in Settings.'),
-              behavior: SnackBarBehavior.floating,
-              action: SnackBarAction(
-                label: 'Settings',
-                onPressed: LocationHelper.openAppSettings,
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Location permission denied. Enable it in Settings.',
+                ),
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: LocationHelper.openAppSettings,
+                ),
               ),
-            ));
+            );
           }
           break;
         case LocationStatus.permissionDenied:
         case LocationStatus.timeout:
         case LocationStatus.error:
           if (notifyOnFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Could not get your location. Try dragging the map.'),
-              behavior: SnackBarBehavior.floating,
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Could not get your location. Try dragging the map.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
           }
           break;
       }
@@ -347,20 +366,24 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
         try {
           final locations = await locationFromAddress(text);
           results = locations
-              .where((loc) => Geolocator.distanceBetween(
-                    _center.latitude,
-                    _center.longitude,
-                    loc.latitude,
-                    loc.longitude,
-                  ) <=
-                  _maxForwardGeocodeDistanceMeters)
+              .where(
+                (loc) =>
+                    Geolocator.distanceBetween(
+                      _center.latitude,
+                      _center.longitude,
+                      loc.latitude,
+                      loc.longitude,
+                    ) <=
+                    _maxForwardGeocodeDistanceMeters,
+              )
               .take(5)
               .map((loc) {
-            return PlacePrediction(
-              placeId: '${loc.latitude},${loc.longitude}',
-              description: text,
-            );
-          }).toList();
+                return PlacePrediction(
+                  placeId: '${loc.latitude},${loc.longitude}',
+                  description: text,
+                );
+              })
+              .toList();
         } catch (e, s) {
           appLogger.w(
             '[MapPicker] Forward geocode fallback failed for "$text"',
@@ -394,7 +417,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     if (!prediction.placeId.contains(',')) {
       final detail = await PlacesService.fetchPlaceDetail(prediction.placeId);
       if (detail != null) {
-        latLng      = detail.latLng;
+        latLng = detail.latLng;
         richAddress = detail.formattedAddress.isNotEmpty
             ? detail.formattedAddress
             : null;
@@ -417,13 +440,16 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
     if (latLng == null) {
       try {
         final locations = await locationFromAddress(prediction.description);
-        final nearby = locations.where((loc) => Geolocator.distanceBetween(
-              _center.latitude,
-              _center.longitude,
-              loc.latitude,
-              loc.longitude,
-            ) <=
-            _maxForwardGeocodeDistanceMeters);
+        final nearby = locations.where(
+          (loc) =>
+              Geolocator.distanceBetween(
+                _center.latitude,
+                _center.longitude,
+                loc.latitude,
+                loc.longitude,
+              ) <=
+              _maxForwardGeocodeDistanceMeters,
+        );
         if (nearby.isNotEmpty) {
           final match = nearby.first;
           latLng = LatLng(match.latitude, match.longitude);
@@ -440,10 +466,12 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
 
     if (latLng == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not locate that place. Try another.'),
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not locate that place. Try another.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
       return;
     }
@@ -550,7 +578,7 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
         style: TextStyle(
           fontSize: w * 0.038,
           color: AppColors.textPrimary,
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
         ),
         decoration: InputDecoration(
           hintText: 'Search streets, areas, landmarks…',
@@ -646,69 +674,69 @@ class _MapLocationPickerSheetState extends State<MapLocationPickerSheet>
                 ),
               )
             : _predictions.isEmpty
-                ? Padding(
-                    padding: EdgeInsets.all(w * 0.05),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.search_off_rounded,
-                          size: w * 0.045,
+            ? Padding(
+                padding: EdgeInsets.all(w * 0.05),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.search_off_rounded,
+                      size: w * 0.045,
+                      color: AppColors.textHint,
+                    ),
+                    SizedBox(width: w * 0.025),
+                    Expanded(
+                      child: Text(
+                        'No places found. Try a different search.',
+                        style: TextStyle(
+                          fontSize: w * 0.034,
                           color: AppColors.textHint,
                         ),
-                        SizedBox(width: w * 0.025),
-                        Expanded(
-                          child: Text(
-                            'No places found. Try a different search.',
-                            style: TextStyle(
-                              fontSize: w * 0.034,
-                              color: AppColors.textHint,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : ListView.separated(
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                itemCount: _predictions.length,
+                separatorBuilder: (context, index) =>
+                    const Divider(height: 1, color: AppColors.divider),
+                itemBuilder: (_, i) {
+                  final p = _predictions[i];
+                  return InkWell(
+                    onTap: () => _selectPrediction(p),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: w * 0.035,
+                        vertical: w * 0.03,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: w * 0.045,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: w * 0.025),
+                          Expanded(
+                            child: Text(
+                              p.description,
+                              style: TextStyle(
+                                fontSize: w * 0.034,
+                                color: AppColors.textPrimary,
+                                height: 1.3,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: _predictions.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1, color: AppColors.divider),
-                    itemBuilder: (_, i) {
-                      final p = _predictions[i];
-                      return InkWell(
-                        onTap: () => _selectPrediction(p),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: w * 0.035,
-                            vertical: w * 0.03,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_outlined,
-                                size: w * 0.045,
-                                color: AppColors.primary,
-                              ),
-                              SizedBox(width: w * 0.025),
-                              Expanded(
-                                child: Text(
-                                  p.description,
-                                  style: TextStyle(
-                                    fontSize: w * 0.034,
-                                    color: AppColors.textPrimary,
-                                    height: 1.3,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  );
+                },
+              ),
       ),
     );
   }
@@ -940,12 +968,12 @@ class _MapPinPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w  = size.width;
-    final h  = size.height;
+    final w = size.width;
+    final h = size.height;
     final cx = w / 2;
 
     // Sphere occupies ~37% of the width as its radius.
-    final r  = w * 0.37;
+    final r = w * 0.37;
     // Centre y: leave ~8% of height as breathing room for the halo at the top.
     final cy = r + h * 0.08;
 
@@ -956,7 +984,9 @@ class _MapPinPainter extends CustomPainter {
       Paint()
         ..color = color.withValues(alpha: 0.12 + elevation * 0.06)
         ..maskFilter = MaskFilter.blur(
-            BlurStyle.normal, w * 0.20 + elevation * w * 0.09),
+          BlurStyle.normal,
+          w * 0.20 + elevation * w * 0.09,
+        ),
     );
 
     // ── 2. Sphere drop shadow ─────────────────────────────────────────────────
@@ -966,7 +996,9 @@ class _MapPinPainter extends CustomPainter {
       Paint()
         ..color = Colors.black.withValues(alpha: 0.22 + elevation * 0.08)
         ..maskFilter = MaskFilter.blur(
-            BlurStyle.normal, w * 0.14 + elevation * w * 0.11),
+          BlurStyle.normal,
+          w * 0.14 + elevation * w * 0.11,
+        ),
     );
 
     // ── 3. Sphere — radial gradient (light source: top-left) ─────────────────
@@ -991,7 +1023,7 @@ class _MapPinPainter extends CustomPainter {
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(cx - r * 0.24, cy - r * 0.32),
-        width:  r * 1.00,
+        width: r * 1.00,
         height: r * 0.58,
       ),
       Paint()
@@ -1003,7 +1035,7 @@ class _MapPinPainter extends CustomPainter {
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(cx - r * 0.28, cy - r * 0.40),
-        width:  r * 0.40,
+        width: r * 0.40,
         height: r * 0.22,
       ),
       Paint()..color = Colors.white.withValues(alpha: 0.52),
@@ -1017,18 +1049,18 @@ class _MapPinPainter extends CustomPainter {
     );
 
     // ── 7. Thin needle ────────────────────────────────────────────────────────
-    final baseY       = cy + r - h * 0.015;
-    final halfW       = w * 0.065;
-    final tipY        = h;
+    final baseY = cy + r - h * 0.015;
+    final halfW = w * 0.065;
+    final tipY = h;
     final needleColor = Color.lerp(color, Colors.black, 0.32)!;
 
     // Needle shadow
     canvas.drawPath(
       (Path()
-        ..moveTo(cx - halfW, baseY)
-        ..lineTo(cx + halfW, baseY)
-        ..lineTo(cx, tipY)
-        ..close())
+            ..moveTo(cx - halfW, baseY)
+            ..lineTo(cx + halfW, baseY)
+            ..lineTo(cx, tipY)
+            ..close())
           .shift(Offset(w * 0.035, h * 0.038)),
       Paint()
         ..color = Colors.black.withValues(alpha: 0.22)

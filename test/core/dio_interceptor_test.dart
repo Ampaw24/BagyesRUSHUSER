@@ -2,10 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
+import 'package:gopady/core/helpers/cache_helper.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/services/dio_interceptor.dart';
+import 'package:gopady/core/singletons/cache.dart';
 
 import 'support/auth_test_support.dart';
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Custom-styled bottom sheet with a single destructive action, used across
 /// the app for "delete this item" confirmations (e.g. notifications).
@@ -42,7 +43,7 @@ class DeleteActionSheet {
                   title: Text(
                     label,
                     style: TextStyle(
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                       fontSize: w * 0.038,
                       fontWeight: FontWeight.w600,
                       color: AppColors.error,

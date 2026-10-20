@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class KYCPromptBanner extends StatelessWidget {
   final VoidCallback onTap;
@@ -65,7 +66,7 @@ class KYCPromptBanner extends StatelessWidget {
                       fontSize: w * 0.038,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                   SizedBox(height: w * 0.005),

@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:uuid/uuid.dart';
 
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_realtime_events.dart';
-import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
-import 'package:bagyesrushappusernew/src/chat/repository/chat_repository.dart';
-import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
+import 'package:gopady/core/services/realtime_service.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
+import 'package:gopady/src/chat/model/chat_realtime_events.dart';
+import 'package:gopady/src/chat/model/conversation.dart';
+import 'package:gopady/src/chat/repository/chat_repository.dart';
+import 'package:gopady/src/chat/view/chat_thread_args.dart';
 
 /// Sealed states for a single conversation thread.
 sealed class ChatThreadState {

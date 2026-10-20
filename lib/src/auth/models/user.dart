@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/src/vendor/model/vendor_profile.dart';
 
 class User extends Equatable {
   const User({

@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:bagyesrushappusernew/resources/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gopady/resources/resources.dart';
 
 void main() {
   test('restaurant_assets assets test', () {

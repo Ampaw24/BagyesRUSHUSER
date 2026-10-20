@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
-import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
-import 'package:bagyesrushappusernew/src/chat/view/chat_thread_sheet.dart';
-import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/views/report_flow_args.dart';
+import 'package:gopady/src/chat/view/chat_thread_args.dart';
+import 'package:gopady/src/chat/view/chat_thread_sheet.dart';
+import 'package:gopady/src/legal/models/legal_document.dart';
 
 import 'app_routes.dart';
 

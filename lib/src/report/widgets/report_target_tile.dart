@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// A person/place that can be reported, derived from the reporter's own
 /// order history — riders and customers have no stable id elsewhere in

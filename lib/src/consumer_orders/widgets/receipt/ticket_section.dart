@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 enum TicketPart { top, bottom }
 

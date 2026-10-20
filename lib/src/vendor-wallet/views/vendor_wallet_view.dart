@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../viewmodels/vendor_wallet_state.dart';
 import '../viewmodels/vendor_wallet_viewmodel.dart';
 import 'vendor_wallet_history_view.dart';

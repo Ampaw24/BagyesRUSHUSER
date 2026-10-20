@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../models/review_summary.dart';
 import 'rating_stars.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Big average-rating number + star breakdown, for the top of the Reviews
 /// screen — the vendor's at-a-glance reputation snapshot.
@@ -49,7 +50,7 @@ class ReviewSummaryHeader extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
                       height: 1.0,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                   SizedBox(height: w * 0.014),
@@ -63,7 +64,7 @@ class ReviewSummaryHeader extends StatelessWidget {
                     style: TextStyle(
                       fontSize: w * 0.03,
                       color: AppColors.textSecondary,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                 ],
@@ -114,7 +115,7 @@ class ReviewSummaryHeader extends StatelessWidget {
                       fontSize: w * 0.031,
                       fontWeight: FontWeight.w700,
                       color: AppColors.warning,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                 ],
@@ -151,7 +152,7 @@ class _BreakdownRow extends StatelessWidget {
             fontSize: w * 0.028,
             fontWeight: FontWeight.w600,
             color: AppColors.textSecondary,
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
           ),
         ),
         SizedBox(width: w * 0.01),
@@ -180,7 +181,7 @@ class _BreakdownRow extends StatelessWidget {
             style: TextStyle(
               fontSize: w * 0.027,
               color: AppColors.textHint,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
         ),

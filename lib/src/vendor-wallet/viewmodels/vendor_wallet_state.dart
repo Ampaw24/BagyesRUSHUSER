@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
+import 'package:gopady/core/errors/failure.dart';
 import '../models/vendor_wallet_model.dart';
 import '../models/vendor_wallet_transaction_model.dart';
 import '../models/vendor_withdrawal_model.dart';

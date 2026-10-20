@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/repositories/consumer_orders_repository.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/src/consumer_orders/repositories/consumer_orders_repository.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 
 import '../core/support/auth_test_support.dart';
 import 'support/order_test_support.dart';

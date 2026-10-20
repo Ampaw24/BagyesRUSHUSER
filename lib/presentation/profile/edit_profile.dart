@@ -1,15 +1,15 @@
 import 'dart:io';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/auth/views/change_password_sheet.dart';
-import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
-import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
-import 'package:bagyesrushappusernew/src/referral/widgets/referral_code_card.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
+import 'package:gopady/core/widgets/network_avatar.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/src/auth/views/change_password_sheet.dart';
+import 'package:gopady/core/utils/phone_utils.dart';
+import 'package:gopady/src/auth/views/widgets/phone_change_flow_sheet.dart';
+import 'package:gopady/src/referral/widgets/referral_code_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +17,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:bagyesrushappusernew/src/auth/views/logout_action.dart';
+import 'package:gopady/src/auth/views/logout_action.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -598,7 +598,7 @@ class _EditProfileState extends State<EditProfile> {
     SharePlus.instance.share(
       ShareParams(
         text:
-            'Join me on bagyesRUSH! Use my referral code $code when you sign up.',
+            'Join me on GoPady! Use my referral code $code when you sign up.',
       ),
     );
   }
@@ -629,7 +629,7 @@ class _EditProfileHero extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primary, Color(0xFFEF5350)],
+          colors: [AppColors.primaryDark, AppColors.primary, AppColors.primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1025,7 +1025,7 @@ class _ReferralCard extends StatelessWidget {
             colors: [
               AppColors.primaryDark,
               AppColors.primary,
-              Color(0xFFEF5350),
+              AppColors.primaryLight,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

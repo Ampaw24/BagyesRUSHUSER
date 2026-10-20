@@ -3,14 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
-import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_state.dart';
-import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/cart/views/widgets/cart_item_tile.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
+import 'package:gopady/src/cart/models/cart_item_model.dart';
+import 'package:gopady/src/cart/viewmodels/cart_state.dart';
+import 'package:gopady/src/cart/viewmodels/cart_viewmodel.dart';
+import 'package:gopady/src/cart/views/widgets/cart_item_tile.dart';
+import 'package:gopady/core/utils/money_format.dart';
 
 class CartView extends StatefulWidget {
   const CartView({super.key});

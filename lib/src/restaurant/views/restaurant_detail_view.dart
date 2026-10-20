@@ -1,21 +1,22 @@
-import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
+import 'package:gopady/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/src/auth/views/auth_gate.dart';
-import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/menu_item.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
-import 'package:bagyesrushappusernew/src/restaurant/viewmodels/restaurant_detail_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/restaurant/widgets/item_addon_sheet.dart';
-import 'package:bagyesrushappusernew/src/restaurant/widgets/menu_item_card.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/src/auth/views/auth_gate.dart';
+import 'package:gopady/src/cart/viewmodels/cart_viewmodel.dart';
+import 'package:gopady/src/restaurant/models/addon.dart';
+import 'package:gopady/src/restaurant/models/menu_item.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
+import 'package:gopady/src/restaurant/viewmodels/restaurant_detail_viewmodel.dart';
+import 'package:gopady/src/restaurant/widgets/item_addon_sheet.dart';
+import 'package:gopady/src/restaurant/widgets/menu_item_card.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class RestaurantDetailView extends StatefulWidget {
   final String restaurantId;
@@ -311,7 +312,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView>
                   labelStyle: TextStyle(
                     fontSize: w * 0.035,
                     fontWeight: FontWeight.w700,
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                   ),
                   tabs: categories.map((c) => Tab(text: c)).toList(),
                 )

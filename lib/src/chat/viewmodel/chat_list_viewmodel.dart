@@ -1,6 +1,6 @@
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
-import 'package:bagyesrushappusernew/src/chat/repository/chat_repository.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/chat/model/conversation.dart';
+import 'package:gopady/src/chat/repository/chat_repository.dart';
 
 /// Sealed states for the conversation inbox.
 sealed class ChatListState {

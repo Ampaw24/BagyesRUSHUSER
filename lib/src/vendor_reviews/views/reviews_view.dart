@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../viewmodels/reviews_state.dart';
 import '../viewmodels/reviews_viewmodel.dart';
 import '../widgets/review_card.dart';
 import '../widgets/review_filter_chips.dart';
 import '../widgets/review_summary_header.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class ReviewsView extends StatefulWidget {
   const ReviewsView({super.key});
@@ -141,7 +142,7 @@ class _EmptyState extends StatelessWidget {
             fontSize: w * 0.045,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
           ),
         ),
         SizedBox(height: w * 0.015),
@@ -153,7 +154,7 @@ class _EmptyState extends StatelessWidget {
           style: TextStyle(
             fontSize: w * 0.033,
             color: AppColors.textSecondary,
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
             height: 1.4,
           ),
         ),
@@ -191,7 +192,7 @@ class _ErrorState extends StatelessWidget {
                 fontSize: w * 0.042,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
             ),
             SizedBox(height: w * 0.012),
@@ -201,7 +202,7 @@ class _ErrorState extends StatelessWidget {
               style: TextStyle(
                 fontSize: w * 0.032,
                 color: AppColors.textSecondary,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
             ),
             SizedBox(height: w * 0.04),

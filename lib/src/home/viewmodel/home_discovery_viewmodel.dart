@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/home/models/ads_banner.dart';
-import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
-import 'package:bagyesrushappusernew/src/restaurant/repositories/restaurant_repository.dart';
-import 'package:bagyesrushappusernew/src/restaurant/widgets/food_category_chip.dart'
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/home/models/ads_banner.dart';
+import 'package:gopady/src/home/repositories/home_repository.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
+import 'package:gopady/src/restaurant/repositories/restaurant_repository.dart';
+import 'package:gopady/src/restaurant/widgets/food_category_chip.dart'
     show FoodCategory;
 
 enum CategoriesStatus { loading, error, loaded }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
 
 class PackageTypeStep extends StatelessWidget {
   final String? selectedType;

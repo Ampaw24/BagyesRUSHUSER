@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/core/utils/active_poller.dart';
+import 'package:gopady/core/utils/active_poller.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/src/legal/models/legal_document.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:gopady/src/legal/models/legal_document.dart';
+import 'package:gopady/src/report/model/report.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -38,6 +38,7 @@ import '../../notification/viewmodel/notification_viewmodel.dart';
 import '../../../core/widgets/custom_dialogs.dart';
 import '../../../core/utils/location_helper.dart';
 import '../../auth/views/logout_action.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -650,7 +651,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                       fontSize: w * 0.036,
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                   Text(
@@ -660,7 +661,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
                       height: 1.1,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                       letterSpacing: -0.8,
                     ),
                   ),
@@ -814,7 +815,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                               fontSize: w * 0.042,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                             ),
                           ),
                           SizedBox(height: w * 0.012),
@@ -824,7 +825,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                             style: TextStyle(
                               fontSize: w * 0.032,
                               color: AppColors.textSecondary,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                               height: 1.4,
                             ),
                           ),
@@ -943,7 +944,7 @@ class _InfoPill extends StatelessWidget {
                 fontSize: w * 0.03,
                 fontWeight: FontWeight.w700,
                 color: muted ? AppColors.textHint : AppColors.textPrimary,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
             ),
           ),
@@ -989,7 +990,7 @@ class _SetupPendingStoreRow extends StatelessWidget {
                     fontSize: w * 0.038,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                   ),
                 ),
                 Text(
@@ -997,7 +998,7 @@ class _SetupPendingStoreRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: w * 0.028,
                     color: AppColors.textSecondary,
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                   ),
                 ),
               ],

@@ -5,11 +5,12 @@ import 'package:provider/provider.dart';
 import '../../../../../../constant/app_theme.dart';
 import '../../../../../../core/router/app_navigator.dart';
 import '../../../../../../core/widgets/delete_action_sheet.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/views/report_flow_args.dart';
 import '../../../../../notification/model/notification.model.dart';
 import '../../../../../notification/utils/notification_style.dart';
 import '../../../../../notification/viewmodel/notification_viewmodel.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Rich detail view for a single [NotificationModel], pushed from
 /// [VendorNotificationsScreen] when a tile is tapped.
@@ -155,7 +156,7 @@ class _VendorNotificationDetailsScreenState
                                             ? n.title
                                             : 'Notification',
                                         style: TextStyle(
-                                          fontFamily: 'Mukta',
+                                          fontFamily: AppFonts.body,
                                           fontSize: w * 0.05,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.textPrimary,
@@ -181,7 +182,7 @@ class _VendorNotificationDetailsScreenState
                                     NotificationStyle.fullTimestamp(
                                         n.createdAt),
                                     style: TextStyle(
-                                      fontFamily: 'Mukta',
+                                      fontFamily: AppFonts.body,
                                       fontSize: w * 0.031,
                                       color: AppColors.textHint,
                                       fontWeight: FontWeight.w500,
@@ -221,7 +222,7 @@ class _VendorNotificationDetailsScreenState
                               ? n.body
                               : 'No additional details for this notification.',
                           style: TextStyle(
-                            fontFamily: 'Mukta',
+                            fontFamily: AppFonts.body,
                             fontSize: w * 0.037,
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w500,
@@ -278,7 +279,7 @@ class _VendorNotificationDetailsScreenState
                             label: Text(
                               'Report an Issue',
                               style: TextStyle(
-                                fontFamily: 'Mukta',
+                                fontFamily: AppFonts.body,
                                 fontSize: w * 0.04,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textSecondary,
@@ -332,7 +333,7 @@ class _Header extends StatelessWidget {
           Text(
             'Notification',
             style: TextStyle(
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               fontSize: w * 0.048,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -381,7 +382,7 @@ class _Pill extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
           fontSize: w * 0.028,
           fontWeight: FontWeight.w700,
           color: fg,
@@ -403,7 +404,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text.toUpperCase(),
       style: TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: w * 0.03,
         fontWeight: FontWeight.w700,
         color: AppColors.textHint,
@@ -442,7 +443,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
                 fontSize: w * 0.033,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
@@ -456,7 +457,7 @@ class _DetailRow extends StatelessWidget {
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
                 fontSize: w * 0.033,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,

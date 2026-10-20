@@ -52,7 +52,7 @@ class PaymentMethodHeroCard extends StatelessWidget {
       Color.alphaBlend(Colors.black.withValues(alpha: 0.24), gradientBase),
     ];
     final onGradient = provider != null && gradientBase.computeLuminance() > 0.5
-        ? const Color(0xFF1A1A1A)
+        ? AppColors.forest
         : Colors.white;
     final radius = w * 0.06;
 

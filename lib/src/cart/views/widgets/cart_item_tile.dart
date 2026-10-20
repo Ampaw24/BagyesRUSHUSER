@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/cart/models/cart_item_model.dart';
+import 'package:gopady/core/utils/money_format.dart';
 
 class CartItemTile extends StatelessWidget {
   final CartItemModel cartItem;

@@ -4,25 +4,25 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/core/widgets/map_location_picker_sheet.dart';
-import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_state.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/checkout/views/widgets/delivery_address_section.dart';
-import 'package:bagyesrushappusernew/src/checkout/views/widgets/promo_code_section.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/views/order_payment_launcher.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
-import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_viewmodel.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/src/payment/views/widgets/paystack_note.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/location_helper.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
+import 'package:gopady/core/widgets/map_location_picker_sheet.dart';
+import 'package:gopady/src/checkout/models/checkout_model.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_state.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_viewmodel.dart';
+import 'package:gopady/src/checkout/views/widgets/delivery_address_section.dart';
+import 'package:gopady/src/checkout/views/widgets/promo_code_section.dart';
+import 'package:gopady/src/consumer_orders/views/order_payment_launcher.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/src/customer-wallet/models/wallet_split.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_state.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:gopady/src/customer-wallet/views/widgets/use_wallet_tile.dart';
+import 'package:gopady/src/cart/models/cart_model.dart';
+import 'package:gopady/src/cart/viewmodels/cart_viewmodel.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/src/payment/views/widgets/paystack_note.dart';
 
 /// Unwraps whichever [CheckoutState] variant carries a [CheckoutForm].
 CheckoutForm _formFromState(CheckoutState state) => switch (state) {

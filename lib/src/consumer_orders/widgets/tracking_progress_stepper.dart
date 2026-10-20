@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 enum _StepState { done, current, upcoming }
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/checkout/viewmodels/checkout_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/checkout/viewmodels/checkout_viewmodel.dart';
+import 'package:gopady/src/customer_address/models/customer_address.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
 
 /// Saved delivery addresses for checkout, plus "Use current location" /
 /// "Pick on map", which select a location without saving it.

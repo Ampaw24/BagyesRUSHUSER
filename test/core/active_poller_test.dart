@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/utils/active_poller.dart';
+import 'package:gopady/core/utils/active_poller.dart';
 
 const _interval = Duration(seconds: 15);
 

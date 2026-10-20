@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // ── Colors (aligned with AppColors but kept for backward compat) ──
 const Color scaffoldBgColor = AppColors.scaffold;
@@ -23,7 +24,7 @@ const SizedBox widthSpace = SizedBox(width: 10.0);
 const TextStyle splashBigTextStyle = TextStyle(
   color: AppColors.primary,
   fontSize: 40.0,
-  fontFamily: 'Pacifico',
+  fontFamily: AppFonts.display,
 );
 
 const TextStyle bottomBarItemStyle = TextStyle(

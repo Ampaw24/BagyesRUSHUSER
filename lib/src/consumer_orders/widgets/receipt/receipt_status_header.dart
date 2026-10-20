@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/widgets/animated_money.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/animated_money.dart';
+import 'package:gopady/core/widgets/gopady_logo.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
 
 extension ReceiptStatusStyle on ReceiptStatus {
   Color get color => switch (this) {
@@ -47,15 +48,7 @@ class ReceiptStatusHeader extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'bagyesRUSH',
-          style: TextStyle(
-            fontSize: w * 0.038,
-            fontWeight: FontWeight.w800,
-            letterSpacing: w * 0.003,
-            color: AppColors.primary,
-          ),
-        ),
+        GoPadyLogo(width: (w * 0.42).clamp(GoPadyLogo.minLockupWidth, 240.0)),
         SizedBox(height: w * 0.045),
         _StatusBadge(status: status),
         SizedBox(height: w * 0.03),

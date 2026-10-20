@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/parcel/model/parcel.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/src/parcel/model/parcel.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 ParcelQuote _quote({double total = 30.4, DateTime? expiresAt}) =>
     ParcelQuote.fromJson({

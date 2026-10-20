@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_tag.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/order_reviews/models/order_review.dart';
+import 'package:gopady/src/order_reviews/models/review_tag.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
 
 ConsumerOrder _order({
   String? parcelDirection,

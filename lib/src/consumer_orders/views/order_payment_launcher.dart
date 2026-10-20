@@ -2,16 +2,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/views/payment_receipt_view.dart';
-import 'package:bagyesrushappusernew/src/payment/views/screens/payment_webview_screen.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/core/utils/network_utils.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_outcome.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_verification.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/views/payment_receipt_view.dart';
+import 'package:gopady/src/payment/views/screens/payment_webview_screen.dart';
 
-export 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
+export 'package:gopady/src/consumer_orders/models/order_payment_outcome.dart';
 
 /// An expected, already user-worded payment failure — callers show
 /// [message] as-is instead of a generic error.

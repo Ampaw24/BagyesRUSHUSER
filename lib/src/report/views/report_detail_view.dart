@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/viewmodel/report_detail_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/report/widgets/report_status_badge.dart';
-import 'package:bagyesrushappusernew/src/report/widgets/report_card.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/viewmodel/report_detail_viewmodel.dart';
+import 'package:gopady/src/report/widgets/report_status_badge.dart';
+import 'package:gopady/src/report/widgets/report_card.dart';
 
 class ReportDetailView extends StatefulWidget {
   final String reportId;

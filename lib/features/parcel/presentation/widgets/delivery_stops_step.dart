@@ -9,9 +9,9 @@ import '../../../../constant/app_theme.dart';
 import '../../../../core/services/contact_picker_service.dart';
 import '../../../../core/widgets/contact_picker_button.dart';
 import '../../../../core/widgets/map_location_picker_sheet.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/src/parcel/model/delivery_stop.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 import 'parcel_form_fields.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/model/report_reason.dart';
 
 /// Splits a [ReportTargetType]'s enum name (which mirrors the API's
 /// category keys — `vendor`, `rider`, `customer`, `orderIssue`, `general`)

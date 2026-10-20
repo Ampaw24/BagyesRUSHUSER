@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../models/review.dart';
 import '../viewmodels/reviews_viewmodel.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Bottom sheet for composing a vendor's public reply to a review — built
-/// the same way as [DeleteActionSheet] (drag handle, rounded top, `Mukta`
+/// the same way as [DeleteActionSheet] (drag handle, rounded top, body font
 /// text), with a public-reply notice and a live 1000-char counter since the
 /// backend enforces `reply: min:2,max:1000`.
 ///
@@ -93,7 +94,7 @@ class _ReplyComposerSheetState extends State<ReplyComposerSheet> {
                   fontSize: w * 0.045,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                 ),
               ),
               SizedBox(height: w * 0.03),
@@ -120,7 +121,7 @@ class _ReplyComposerSheetState extends State<ReplyComposerSheet> {
                         style: TextStyle(
                           fontSize: w * 0.029,
                           color: AppColors.info,
-                          fontFamily: 'Mukta',
+                          fontFamily: AppFonts.body,
                         ),
                       ),
                     ),
@@ -134,7 +135,7 @@ class _ReplyComposerSheetState extends State<ReplyComposerSheet> {
                 maxLength: 1000,
                 enabled: !isSubmitting,
                 onChanged: (_) => setState(() {}),
-                style: TextStyle(fontSize: w * 0.036, fontFamily: 'Mukta'),
+                style: TextStyle(fontSize: w * 0.036, fontFamily: AppFonts.body),
                 decoration: const InputDecoration(
                   hintText: 'Write a reply…',
                 ),
@@ -146,7 +147,7 @@ class _ReplyComposerSheetState extends State<ReplyComposerSheet> {
                   style: TextStyle(
                     fontSize: w * 0.03,
                     color: AppColors.error,
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                   ),
                 ),
                 SizedBox(height: w * 0.012),

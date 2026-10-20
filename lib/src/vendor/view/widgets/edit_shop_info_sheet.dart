@@ -7,7 +7,7 @@ import '../../../../../core/common/app/current_user_provider.dart';
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/utils/phone_utils.dart';
 import '../../../../../src/home/viewmodel/home_discovery_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/auth/views/widgets/phone_change_flow_sheet.dart';
+import 'package:gopady/src/auth/views/widgets/phone_change_flow_sheet.dart';
 import '../../model/vendor_profile.dart';
 import '../../repository/vendor_dashboard_repository.dart';
 import 'shop_location_field.dart';

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
+import 'package:gopady/core/utils/location_helper.dart';
 
 Position _position() => Position(
       longitude: -0.19,

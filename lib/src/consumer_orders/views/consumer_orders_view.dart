@@ -3,18 +3,18 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_state.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/widgets/order_rating_pill.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_display.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/order_thumbnail.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
-import 'package:bagyesrushappusernew/src/report/widgets/report_quick_action_sheet.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_state.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
+import 'package:gopady/src/order_reviews/widgets/order_rating_pill.dart';
+import 'package:gopady/src/consumer_orders/widgets/order_display.dart';
+import 'package:gopady/src/consumer_orders/widgets/order_thumbnail.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/views/report_flow_args.dart';
+import 'package:gopady/src/report/widgets/report_quick_action_sheet.dart';
 
 class ConsumerOrdersView extends StatefulWidget {
   const ConsumerOrdersView({super.key});

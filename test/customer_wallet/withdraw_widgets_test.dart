@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_withdrawal_model.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/customer_withdrawal_tile.dart';
-import 'package:bagyesrushappusernew/src/transaction/views/widgets/withdraw_sheet.dart';
+import 'package:gopady/src/customer-wallet/models/customer_withdrawal_model.dart';
+import 'package:gopady/src/customer-wallet/views/widgets/customer_withdrawal_tile.dart';
+import 'package:gopady/src/transaction/views/widgets/withdraw_sheet.dart';
 
 import '../core/support/auth_test_support.dart';
 import 'support/withdrawal_test_support.dart';

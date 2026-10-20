@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
 
 /// Sealed states for the search screen.
 sealed class SearchState {

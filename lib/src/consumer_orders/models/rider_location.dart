@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
+import 'package:gopady/core/services/realtime_events.dart';
 
 /// The trimmed, UI-facing projection of a `rider.location` realtime event
 /// that lives on [ConsumerOrder] — just what the tracking map needs for

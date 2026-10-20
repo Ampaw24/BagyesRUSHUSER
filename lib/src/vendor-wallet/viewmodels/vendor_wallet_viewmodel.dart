@@ -1,7 +1,7 @@
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
 import '../models/vendor_wallet_model.dart';
 import '../models/vendor_wallet_transaction_model.dart';
 import '../models/vendor_withdrawal_model.dart';

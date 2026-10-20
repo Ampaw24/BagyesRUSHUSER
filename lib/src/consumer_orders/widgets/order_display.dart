@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 /// Colour an order's status is shown in across the order lists.
 extension OrderStatusColor on OrderStatus {
   Color get color => switch (this) {
     OrderStatus.delivered => AppColors.success,
     OrderStatus.cancelled || OrderStatus.rejected => AppColors.error,
-    OrderStatus.refunded => AppColors.warning,
+    OrderStatus.refunded => AppColors.info,
     OrderStatus.onTheWay || OrderStatus.pickedUp => AppColors.info,
-    _ => AppColors.accent,
+    _ => AppColors.accentInk,
   };
 }
 

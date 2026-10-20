@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/src/customer-wallet/models/customer_wallet_model.dart';
+import 'package:gopady/src/customer-wallet/models/wallet_split.dart';
 
 /// "Use wallet balance" toggle shared by food checkout and the parcel
 /// summary. Never blocks payment on its own load state — a slow or failed

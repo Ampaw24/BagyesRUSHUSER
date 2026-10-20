@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/constant/constant.dart';
+import 'package:gopady/constant/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:go_router/go_router.dart';
@@ -504,13 +504,6 @@ class _VendorRegistrationViewState extends State<VendorRegistrationView>
                   color: isSubmitting
                       ? AppColors.primary.withValues(alpha: 0.6)
                       : AppColors.primary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
-                      blurRadius: size.width * 0.025,
-                      offset: Offset(0, size.height * 0.005),
-                    ),
-                  ],
                 ),
                 child: Center(
                   child: isSubmitting

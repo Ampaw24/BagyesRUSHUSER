@@ -1,10 +1,10 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_init_result.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_transaction.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_verification_result.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_wallet.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/src/payment/models/payment_init_result.dart';
+import 'package:gopady/src/payment/models/payment_transaction.dart';
+import 'package:gopady/src/payment/models/payment_verification_result.dart';
+import 'package:gopady/src/payment/models/payment_wallet.dart';
 
 sealed class PaymentState extends Equatable {
   const PaymentState();

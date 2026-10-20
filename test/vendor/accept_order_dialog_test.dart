@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/vendor/view/widgets/accept_order_dialog.dart';
+import 'package:gopady/src/vendor/view/widgets/accept_order_dialog.dart';
 
 void main() {
   Future<void> openDialog(

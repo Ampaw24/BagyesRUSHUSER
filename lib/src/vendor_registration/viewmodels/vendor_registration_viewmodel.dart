@@ -1,10 +1,10 @@
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
-import 'package:bagyesrushappusernew/constant/config.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
+import 'package:gopady/constant/config.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/src/auth/models/otp_purpose.dart';
+import 'package:gopady/src/auth/viewmodels/auth_state.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/src/home/repositories/home_repository.dart';
 import 'package:flutter/foundation.dart';
 import '../models/vendor_enums.dart';
 import '../models/business_details_data.dart';

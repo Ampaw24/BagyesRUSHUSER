@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// Stands where a saved-payment-method picker used to be: Paystack's secure
 /// page, shown after the order or parcel is placed, is where the customer

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/menu_item.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/restaurant/models/menu_item.dart';
 
 class MenuItemCard extends StatelessWidget {
   final MenuItem item;

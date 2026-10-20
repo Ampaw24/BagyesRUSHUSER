@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
+import 'package:gopady/core/utils/image_cache_size.dart';
 
 void main() {
   group('coverDecodeWidth', () {

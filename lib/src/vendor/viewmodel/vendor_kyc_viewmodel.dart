@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/viewmodel/viewmodel.dart';
 import '../../payment/model/payout_provider_model.dart';

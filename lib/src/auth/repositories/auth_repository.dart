@@ -1,15 +1,15 @@
-import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
+import 'package:gopady/src/auth/models/business_type_model.dart';
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/network_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/auth/models/otp_purpose.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
-import 'package:bagyesrushappusernew/src/vendor/model/vendor_profile.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/core/helpers/cache_helper.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/network_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/auth/models/otp_purpose.dart';
+import 'package:gopady/src/auth/models/user.dart';
+import 'package:gopady/src/vendor/model/vendor_profile.dart';
 
 /// `PUT customer/me` answered 200 but kept its previous address — every
 /// other field in the request was saved. Carries the returned [user] so the

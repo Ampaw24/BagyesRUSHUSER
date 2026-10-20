@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/router/app_navigator.dart';
 import 'tracking_card.dart';
 
 /// "Track order" title bar: outlined back button, title + subtitle, and

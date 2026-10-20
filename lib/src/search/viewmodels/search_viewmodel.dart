@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/restaurant/repositories/restaurant_repository.dart';
-import 'package:bagyesrushappusernew/src/search/viewmodels/search_state.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/restaurant/repositories/restaurant_repository.dart';
+import 'package:gopady/src/search/viewmodels/search_state.dart';
 
 class SearchViewModel extends ViewModel<SearchState> {
   SearchViewModel(this._repository) : super(const SearchIdle());

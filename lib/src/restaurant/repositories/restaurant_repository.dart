@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/menu_item.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/location_helper.dart';
+import 'package:gopady/src/restaurant/models/menu_item.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
 
 class RestaurantPage {
   final List<Restaurant> restaurants;

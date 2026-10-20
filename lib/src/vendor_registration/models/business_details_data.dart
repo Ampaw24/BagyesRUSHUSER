@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
+import 'package:gopady/src/auth/models/business_type_model.dart';
 import 'package:equatable/equatable.dart';
 
 /// Data model for Step 1 - Business Details

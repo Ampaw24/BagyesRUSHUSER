@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// Row of 5 stars for an integer 1–5 rating. `size` is caller-supplied so
 /// the same widget serves both the summary header (large) and each review

@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 /// Status headline for the tracking screen: an animated illustration, a
 /// status title, the ETA line and a "what happens next" hint, plus rider
@@ -33,7 +33,7 @@ class TrackingStatusHero extends StatelessWidget {
   Color get _color => switch (order.status) {
     OrderStatus.cancelled || OrderStatus.rejected => AppColors.error,
     OrderStatus.delivered => AppColors.success,
-    OrderStatus.refunded => AppColors.warning,
+    OrderStatus.refunded => AppColors.info,
     _ => AppColors.primary,
   };
 

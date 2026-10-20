@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 /// Who a rating is for. One `POST customer/orders/:id/review` can rate both
 /// the vendor (food orders) and the rider who delivered.

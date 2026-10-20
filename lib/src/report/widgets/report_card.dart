@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/report/model/report.dart';
 
 List<List<dynamic>> targetTypeIcon(ReportTargetType type) => switch (type) {
       ReportTargetType.vendor => HugeIcons.strokeRoundedStore01,

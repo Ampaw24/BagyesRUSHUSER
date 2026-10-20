@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
+import 'package:gopady/src/home/models/category_element.model.dart';
 import 'package:equatable/equatable.dart';
 
 class Category extends Equatable {

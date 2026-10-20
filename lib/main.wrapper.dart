@@ -1,7 +1,7 @@
-import 'package:bagyesrushappusernew/appBehaviour/my_behaviour.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_router.dart';
-import 'package:bagyesrushappusernew/core/widgets/keyboard_dismisser.dart';
+import 'package:gopady/appBehaviour/my_behaviour.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/router/app_router.dart';
+import 'package:gopady/core/widgets/keyboard_dismisser.dart';
 import 'package:flutter/material.dart';
 
 class MyApp extends StatelessWidget {
@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'bagyesRUSH',
+      title: 'GoPady',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,

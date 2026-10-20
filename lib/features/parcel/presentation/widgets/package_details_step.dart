@@ -7,6 +7,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // 5 MB size cap per image
 const _maxFileSizeBytes = 5 * 1024 * 1024;
@@ -870,14 +871,14 @@ class _CustomWeightField extends StatelessWidget {
               style: TextStyle(
                 fontSize: w * 0.04,
                 color: AppColors.textPrimary,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
               decoration: InputDecoration(
                 hintText: '0.0',
                 hintStyle: TextStyle(
                   fontSize: w * 0.04,
                   color: AppColors.textHint,
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                 ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(

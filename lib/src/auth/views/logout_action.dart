@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
 
 /// The single logout entry point for every role: asks for confirmation,
 /// then runs [performLogout].

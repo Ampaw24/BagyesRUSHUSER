@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/core/widgets/animated_money.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_state.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/views/widgets/use_wallet_tile.dart';
-import 'package:bagyesrushappusernew/src/payment/views/widgets/paystack_note.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/core/widgets/animated_money.dart';
+import 'package:gopady/core/widgets/network_avatar.dart';
+import 'package:gopady/src/customer-wallet/models/wallet_split.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_state.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_viewmodel.dart';
+import 'package:gopady/src/customer-wallet/views/widgets/use_wallet_tile.dart';
+import 'package:gopady/src/payment/views/widgets/paystack_note.dart';
 
 import '../../../../constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
-import 'package:bagyesrushappusernew/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'package:gopady/src/parcel/model/delivery_stop.dart';
+import 'package:gopady/src/parcel/model/rider_model.dart';
+import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 class ParcelSummaryStep extends StatefulWidget {
   final String packageType;

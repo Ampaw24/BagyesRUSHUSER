@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/parcel/model/parcel_stop.dart';
 import 'tracking_card.dart';
 
 /// Pickup → drop-off route for a parcel, with who's at each end and what's

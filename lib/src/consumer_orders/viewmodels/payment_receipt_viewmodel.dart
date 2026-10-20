@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/orders_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/transaction/models/transaction_model.dart';
-import 'package:bagyesrushappusernew/src/transaction/repositories/transaction_repository.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_verification.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/src/transaction/models/transaction_model.dart';
+import 'package:gopady/src/transaction/repositories/transaction_repository.dart';
 
 sealed class PaymentReceiptState {
   const PaymentReceiptState();

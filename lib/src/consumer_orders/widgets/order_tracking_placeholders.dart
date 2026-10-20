@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// Skeleton shown while an order that isn't cached yet is being fetched —
 /// mirrors the tracking layout (status, progress, rider, items) so the

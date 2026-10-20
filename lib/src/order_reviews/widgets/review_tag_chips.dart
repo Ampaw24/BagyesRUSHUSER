@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// Multi-select quick-feedback pills. Keyed by the tag set so switching
 /// between praise and complaint chips cross-fades instead of snapping.

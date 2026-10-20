@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/src/auth/models/user.dart';
 
 class CurrentUserProvider extends ChangeNotifier {
   User? _user;

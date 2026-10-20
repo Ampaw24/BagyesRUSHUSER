@@ -71,7 +71,7 @@ _FieldLook _resolveFieldLook({
   if (hasError) {
     return (
       border: AppColors.error,
-      fill: const Color(0xFFFFF0F0),
+      fill: AppColors.error.withValues(alpha: 0.06),
       shadows: [
         BoxShadow(color: AppColors.error.withValues(alpha: 0.18), blurRadius: 8),
       ],
@@ -94,7 +94,7 @@ _FieldLook _resolveFieldLook({
       ],
     );
   }
-  return (border: AppColors.border, fill: const Color(0xFFF7F9FC), shadows: const []);
+  return (border: AppColors.border, fill: AppColors.surface, shadows: const []);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

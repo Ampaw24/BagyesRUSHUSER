@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
+import 'package:gopady/core/services/realtime_service.dart';
 
 /// Answers every request through [handle] after a short delay (so callers
 /// overlap the way real network calls do), recording each request it saw.

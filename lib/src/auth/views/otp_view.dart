@@ -14,6 +14,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../models/otp_purpose.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SECTION 1 — String constants
@@ -110,7 +111,7 @@ final class _Dims {
 /// widget code and makes theming changes single-point.
 abstract final class _Styles {
   static TextStyle title(_Dims d) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.titleFontSize,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
@@ -118,14 +119,14 @@ abstract final class _Styles {
       );
 
   static TextStyle subtitle(_Dims d) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.subtitleFontSize,
         color: AppColors.textSecondary,
         height: 1.5,
       );
 
   static TextStyle digit(_Dims d, {required bool onDark}) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.digitFontSize,
         fontWeight: FontWeight.w700,
         height: 1.0,
@@ -133,27 +134,27 @@ abstract final class _Styles {
       );
 
   static TextStyle button(_Dims d) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.buttonFontSize,
         fontWeight: FontWeight.w600,
         color: Colors.white,
       );
 
   static TextStyle resendPrompt(_Dims d) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.captionFontSize,
         color: AppColors.textSecondary,
       );
 
   static TextStyle resendAction(_Dims d, {required bool enabled}) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.captionFontSize,
         fontWeight: FontWeight.w600,
         color: enabled ? AppColors.primary : AppColors.textHint,
       );
 
   static TextStyle errorText(_Dims d) => TextStyle(
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
         fontSize: d.errorFontSize,
         color: AppColors.error,
       );
@@ -195,7 +196,7 @@ _FieldLook resolveFieldLook({
   if (hasError) {
     return (
       border:  AppColors.error,
-      fill:    const Color(0xFFFFF0F0), // very light red tint — stays light
+      fill:    AppColors.error.withValues(alpha: 0.06),
       shadows: [
         BoxShadow(
           color:      AppColors.error.withValues(alpha: 0.18),
@@ -230,7 +231,7 @@ _FieldLook resolveFieldLook({
   // Inactive — clean white, no shadow
   return (
     border:  AppColors.border,
-    fill:    const Color(0xFFF7F9FC),
+    fill:    AppColors.surface,
     shadows: const [],
   );
 }
@@ -880,7 +881,7 @@ class _OTPViewState extends State<OTPView> with TickerProviderStateMixin {
     AppToast.show(
       context,
       isSuccess: true,
-      title: 'Welcome to bagyesRUSH!',
+      title: 'Welcome to GoPady!',
       subtitle: 'Your phone number has been verified.',
     );
     // Route by role — a vendor's `user.profile` is a VendorProfile, which

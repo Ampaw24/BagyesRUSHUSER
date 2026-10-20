@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/utils/widget_capture.dart';
-import 'package:bagyesrushappusernew/core/widgets/app_toast.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_outcome.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/viewmodels/payment_receipt_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/receipt/receipt_actions.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/receipt/receipt_status_header.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/receipt/receipt_ticket.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_card.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/core/utils/widget_capture.dart';
+import 'package:gopady/core/widgets/app_toast.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_outcome.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/src/consumer_orders/viewmodels/payment_receipt_viewmodel.dart';
+import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_actions.dart';
+import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_status_header.dart';
+import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_ticket.dart';
+import 'package:gopady/src/consumer_orders/widgets/tracking_card.dart';
 
 /// Where a payment stands, as a receipt. Checks the payment on open, then
 /// shows a paid / processing / failed receipt. Pops an [OrderPaymentResult]
@@ -106,8 +106,8 @@ class _PaymentReceiptViewState extends State<PaymentReceiptView> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile.fromData(bytes, mimeType: 'image/png')],
-          fileNameOverrides: ['bagyesrush-receipt-${receipt.orderNumber}.png'],
-          text: 'My bagyesRUSH payment receipt',
+          fileNameOverrides: ['gopady-receipt-${receipt.orderNumber}.png'],
+          text: 'My GoPady payment receipt',
           sharePositionOrigin: origin,
         ),
       );

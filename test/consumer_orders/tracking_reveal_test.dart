@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_reveal.dart';
+import 'package:gopady/src/consumer_orders/widgets/tracking_reveal.dart';
 
 double _opacity(WidgetTester tester) =>
     tester.widget<Opacity>(find.byType(Opacity).first).opacity;

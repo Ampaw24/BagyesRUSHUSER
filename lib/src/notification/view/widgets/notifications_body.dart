@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/notification/model/notification.model.dart';
-import 'package:bagyesrushappusernew/src/notification/utils/notification_style.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/notification/model/notification.model.dart';
+import 'package:gopady/src/notification/utils/notification_style.dart';
 import 'notification_card.dart';
 import 'notifications_placeholders.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Loading / empty / list body shared by the consumer and vendor
 /// notifications screens. Cross-fades between the three states.
@@ -215,7 +216,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         group.label.toUpperCase(),
         style: TextStyle(
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
           fontSize: w * 0.029,
           fontWeight: FontWeight.w700,
           letterSpacing: w * 0.002,

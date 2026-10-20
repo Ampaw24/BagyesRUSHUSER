@@ -1,7 +1,7 @@
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/menu_item.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
-import 'package:bagyesrushappusernew/src/restaurant/repositories/restaurant_repository.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/restaurant/models/menu_item.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
+import 'package:gopady/src/restaurant/repositories/restaurant_repository.dart';
 
 enum RestaurantLoadStatus { loading, error, loaded }
 

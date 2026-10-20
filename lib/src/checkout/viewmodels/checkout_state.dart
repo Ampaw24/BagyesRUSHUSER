@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/src/checkout/models/checkout_model.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/checkout/models/checkout_model.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 /// Sealed states for the checkout flow.
 sealed class CheckoutState {

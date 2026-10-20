@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
 
 /// Pinned bottom bar: tracking is always the main way forward, with home and
 /// (when paid) sharing as secondary choices. A failed payment leads with

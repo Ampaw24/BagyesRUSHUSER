@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Prompts the signed-in user to re-enter their password to confirm a
 /// sensitive action (e.g. changing payout details). Returns the entered
@@ -8,12 +9,14 @@ import '../../constant/app_theme.dart';
 Future<String?> promptCurrentPassword(
   BuildContext context, {
   String title = 'Confirm Your Password',
-  String message = 'For your security, please re-enter your password to continue.',
+  String message =
+      'For your security, please re-enter your password to continue.',
 }) {
   return showDialog<String>(
     context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => _PasswordConfirmDialog(title: title, message: message),
+    builder: (dialogContext) =>
+        _PasswordConfirmDialog(title: title, message: message),
   );
 }
 
@@ -64,7 +67,7 @@ class _PasswordConfirmDialogState extends State<_PasswordConfirmDialog> {
       title: Text(
         widget.title,
         style: TextStyle(
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
           fontWeight: FontWeight.w800,
           fontSize: w * 0.045,
           color: AppColors.textPrimary,
@@ -77,7 +80,7 @@ class _PasswordConfirmDialogState extends State<_PasswordConfirmDialog> {
           Text(
             widget.message,
             style: TextStyle(
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               fontSize: w * 0.034,
               color: AppColors.textSecondary,
               height: 1.4,
@@ -89,7 +92,7 @@ class _PasswordConfirmDialogState extends State<_PasswordConfirmDialog> {
             obscureText: _obscure,
             autofocus: true,
             textInputAction: TextInputAction.done,
-            style: TextStyle(fontFamily: 'Mukta', fontSize: w * 0.038),
+            style: TextStyle(fontFamily: AppFonts.body, fontSize: w * 0.038),
             decoration: InputDecoration(
               hintText: 'Password',
               errorText: _errorText,
@@ -105,7 +108,9 @@ class _PasswordConfirmDialogState extends State<_PasswordConfirmDialog> {
               ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                   color: AppColors.textHint,
                   size: w * 0.05,
                 ),

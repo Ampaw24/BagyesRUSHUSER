@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
+import 'package:gopady/src/auth/viewmodels/auth_state.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/src/report/model/report_reason.dart';
 
 /// Full-screen "Delete Account" flow — reachable from the customer, courier
 /// and vendor "Delete Account" entry points alike, since account deletion

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Title bar for the notifications screens: back button, animated unread
 /// summary, and a "Mark all read" pill that only shows while there is
@@ -41,7 +42,7 @@ class NotificationsHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     fontSize: w * 0.048,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -61,7 +62,7 @@ class NotificationsHeader extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: 'Mukta',
+                            fontFamily: AppFonts.body,
                             fontSize: w * 0.03,
                             fontWeight: FontWeight.w500,
                             color: count > 0
@@ -156,7 +157,7 @@ class _MarkAllReadButton extends StatelessWidget {
               Text(
                 'Mark all read',
                 style: TextStyle(
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                   fontSize: w * 0.03,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,

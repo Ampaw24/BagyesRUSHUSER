@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/auth/views/widgets/guest_prompt.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/auth/views/widgets/guest_prompt.dart';
 
 enum LoginPromptChoice { signIn, createAccount }
 
@@ -43,7 +43,7 @@ class LoginPromptSheet extends StatelessWidget {
       ),
       child: GuestPrompt(
         title: 'Sign in to continue',
-        message: reason ?? 'You need a bagyesRUSH account for this.',
+        message: reason ?? 'You need a GoPady account for this.',
         onSignIn: () => Navigator.pop(context, LoginPromptChoice.signIn),
         onCreateAccount: () =>
             Navigator.pop(context, LoginPromptChoice.createAccount),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../constant/app_theme.dart';
 import '../../model/vendor_profile.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class SetupStep {
   final String label;
@@ -132,7 +133,7 @@ class SetupProgressCard extends StatelessWidget {
                   fontSize: w * 0.027,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.0,
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                 ),
               ),
               const Spacer(),
@@ -142,7 +143,7 @@ class SetupProgressCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.45),
                   fontSize: w * 0.029,
                   fontWeight: FontWeight.w700,
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                 ),
               ),
             ],
@@ -155,7 +156,7 @@ class SetupProgressCard extends StatelessWidget {
               fontSize: w * 0.042,
               fontWeight: FontWeight.w800,
               height: 1.15,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
           SizedBox(height: w * 0.03),
@@ -235,7 +236,7 @@ class _StepRow extends StatelessWidget {
                 fontSize: w * 0.031,
                 fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
                 decoration: isDone ? TextDecoration.lineThrough : null,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
             ),
           ),
@@ -257,7 +258,7 @@ class _StepRow extends StatelessWidget {
                     color: Colors.white,
                     fontSize: w * 0.027,
                     fontWeight: FontWeight.w700,
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                   ),
                 ),
               ),
@@ -269,7 +270,7 @@ class _StepRow extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.35),
                 fontSize: w * 0.026,
                 fontWeight: FontWeight.w600,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
             ),
         ],

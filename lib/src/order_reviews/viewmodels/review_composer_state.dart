@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_tag.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
+import 'package:gopady/src/order_reviews/models/order_review.dart';
+import 'package:gopady/src/order_reviews/models/review_tag.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
 
 enum ReviewSubmitStatus { idle, submitting, success, error }
 

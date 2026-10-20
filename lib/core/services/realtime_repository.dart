@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_config.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/services/realtime_config.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// Fetches the realtime (Reverb/Pusher-protocol) connection config.
 ///

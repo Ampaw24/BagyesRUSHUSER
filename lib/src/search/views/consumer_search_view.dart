@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/src/restaurant/widgets/restaurant_card.dart';
-import 'package:bagyesrushappusernew/src/search/viewmodels/search_state.dart';
-import 'package:bagyesrushappusernew/src/search/viewmodels/search_viewmodel.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/src/restaurant/widgets/restaurant_card.dart';
+import 'package:gopady/src/search/viewmodels/search_state.dart';
+import 'package:gopady/src/search/viewmodels/search_viewmodel.dart';
 
 class ConsumerSearchView extends StatefulWidget {
   const ConsumerSearchView({super.key});
@@ -47,7 +49,13 @@ class _ConsumerSearchViewState extends State<ConsumerSearchView> {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        leadingWidth: w * 0.14,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: w * 0.05),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.home),
+        ),
         title: TextField(
           controller: _controller,
           focusNode: _focus,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/report/model/report_reason.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/report/model/report_reason.dart';
 
 /// Step 3 — "What went wrong?"
 class ReportReasonStep extends StatelessWidget {

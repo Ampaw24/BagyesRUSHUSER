@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
 
 /// Consecutive messages from the same side within this window render as one
 /// visual group (tight spacing, joined corners).

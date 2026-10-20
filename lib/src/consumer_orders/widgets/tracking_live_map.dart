@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/lat_lng_tween.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/lat_lng_tween.dart';
+import 'package:gopady/src/consumer_orders/models/rider_location.dart';
 
 /// Live rider position on Google's standard map style (street names and
 /// points of interest stay readable), animating the marker between fixes

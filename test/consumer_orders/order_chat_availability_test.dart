@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/tracking_rider_card.dart';
+import 'package:gopady/src/chat/model/conversation.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/widgets/tracking_rider_card.dart';
 
 ConsumerOrder _orderWithRider(String status) => ConsumerOrder.fromJson({
       'id': 1,

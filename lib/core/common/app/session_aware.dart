@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
 
 /// For app-wide view models holding per-account data (cart, orders, …):
 /// calls [onSignedIn] / [onSignedOut] when the session starts or ends, so a

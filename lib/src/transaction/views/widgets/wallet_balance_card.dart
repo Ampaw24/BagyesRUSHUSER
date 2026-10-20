@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/customer_wallet_model.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/src/customer-wallet/models/customer_wallet_model.dart';
 
 /// Hero wallet card for the customer transaction screen — refunds and
 /// order-adjustment credits collect here as a running balance (distinct

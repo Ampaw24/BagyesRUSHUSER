@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/report/widgets/report_target_tile.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/report/widgets/report_target_tile.dart';
 
 /// Step 2 — "Who are you reporting?" A searchable list of past
 /// vendors/riders/customers, sourced from the reporter's own order history.

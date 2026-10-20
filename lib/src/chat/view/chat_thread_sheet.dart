@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/utils/phone_launcher.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
-import 'package:bagyesrushappusernew/src/chat/view/chat_thread_args.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/chat_avatar.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/chat_composer.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/chat_day_separator.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/chat_dimensions.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/message_bubble.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/message_grouping.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/quick_actions_grid.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/typing_bubble.dart';
-import 'package:bagyesrushappusernew/src/chat/viewmodel/chat_thread_viewmodel.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/core/utils/phone_launcher.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
+import 'package:gopady/src/chat/view/chat_thread_args.dart';
+import 'package:gopady/src/chat/view/widgets/chat_avatar.dart';
+import 'package:gopady/src/chat/view/widgets/chat_composer.dart';
+import 'package:gopady/src/chat/view/widgets/chat_day_separator.dart';
+import 'package:gopady/src/chat/view/widgets/chat_dimensions.dart';
+import 'package:gopady/src/chat/view/widgets/message_bubble.dart';
+import 'package:gopady/src/chat/view/widgets/message_grouping.dart';
+import 'package:gopady/src/chat/view/widgets/quick_actions_grid.dart';
+import 'package:gopady/src/chat/view/widgets/typing_bubble.dart';
+import 'package:gopady/src/chat/viewmodel/chat_thread_viewmodel.dart';
 
 /// Presents a conversation thread as a draggable bottom sheet over whatever
 /// screen is already on-screen (the live order-tracking map, the inbox

@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/main.wrapper.dart';
-import 'package:bagyesrushappusernew/scw_provider.dart';
+import 'package:gopady/main.wrapper.dart';
+import 'package:gopady/scw_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +24,7 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   // Phase 1 — legacy vendor/onboarding services
   await di.init();
-  // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,
+  // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,bv. 
   // AuthRepository, AuthViewmodel); guarded with isRegistered checks.
   await AppInitializer.initialize();
   SystemChrome.setPreferredOrientations([

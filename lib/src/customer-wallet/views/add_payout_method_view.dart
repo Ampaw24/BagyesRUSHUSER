@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/widgets/inline_message.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_state.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/views/widgets/payout_provider_visuals.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/widgets/inline_message.dart';
+import 'package:gopady/src/payment/model/payout_provider_model.dart';
+import 'package:gopady/src/payment/viewmodel/payout_providers_state.dart';
+import 'package:gopady/src/payment/viewmodel/payout_providers_viewmodel.dart';
+import 'package:gopady/src/payment/views/widgets/payout_provider_visuals.dart';
 import '../viewmodels/payout_setup_viewmodel.dart';
 
 /// Sets where wallet withdrawals are paid out: the account's verified phone

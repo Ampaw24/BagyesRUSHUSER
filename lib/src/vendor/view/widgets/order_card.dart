@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../model/vendor_order.dart';
 import 'delivery_pin_sheet.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class OrderCard extends StatelessWidget {
   final VendorOrder order;
@@ -87,7 +88,7 @@ class OrderCard extends StatelessWidget {
                         fontSize: w * 0.036,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -126,7 +127,7 @@ class OrderCard extends StatelessWidget {
                               fontSize: w * 0.038,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -137,7 +138,7 @@ class OrderCard extends StatelessWidget {
                               fontSize: w * 0.03,
                               color: AppColors.textHint,
                               fontWeight: FontWeight.w500,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                             ),
                           ),
                         ],
@@ -149,7 +150,7 @@ class OrderCard extends StatelessWidget {
                         fontSize: w * 0.045,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primary,
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -206,7 +207,7 @@ class OrderCard extends StatelessWidget {
                                       fontSize: w * 0.026,
                                       fontWeight: FontWeight.w800,
                                       color: AppColors.primary,
-                                      fontFamily: 'Mukta',
+                                      fontFamily: AppFonts.body,
                                     ),
                                   ),
                                 ),
@@ -218,7 +219,7 @@ class OrderCard extends StatelessWidget {
                                       fontSize: w * 0.032,
                                       color: AppColors.textPrimary,
                                       fontWeight: FontWeight.w600,
-                                      fontFamily: 'Mukta',
+                                      fontFamily: AppFonts.body,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -229,7 +230,7 @@ class OrderCard extends StatelessWidget {
                                     fontSize: w * 0.03,
                                     color: AppColors.textSecondary,
                                     fontWeight: FontWeight.w700,
-                                    fontFamily: 'Mukta',
+                                    fontFamily: AppFonts.body,
                                   ),
                                 ),
                               ],
@@ -251,7 +252,7 @@ class OrderCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: w * 0.027,
                                     color: AppColors.textHint,
-                                    fontFamily: 'Mukta',
+                                    fontFamily: AppFonts.body,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -292,7 +293,7 @@ class OrderCard extends StatelessWidget {
                             fontSize: w * 0.03,
                             color: AppColors.secondary,
                             fontWeight: FontWeight.w500,
-                            fontFamily: 'Mukta',
+                            fontFamily: AppFonts.body,
                             height: 1.3,
                           ),
                         ),
@@ -617,7 +618,7 @@ class _OrderTypeBadge extends StatelessWidget {
               fontSize: w * 0.024,
               fontWeight: FontWeight.w700,
               color: AppColors.secondary,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
         ],
@@ -735,7 +736,7 @@ class _OrderNumberTag extends StatelessWidget {
           fontSize: w * 0.024,
           fontWeight: FontWeight.w700,
           color: AppColors.secondary,
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
         ),
       ),
     );
@@ -768,7 +769,7 @@ class _InfoLine extends StatelessWidget {
               fontSize: w * 0.03,
               color: c,
               fontWeight: FontWeight.w500,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               height: 1.3,
             ),
           ),
@@ -813,7 +814,7 @@ class _PriceLine extends StatelessWidget {
               fontSize: w * 0.031,
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
               color: textColor,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
           Text(
@@ -822,7 +823,7 @@ class _PriceLine extends StatelessWidget {
               fontSize: w * 0.031,
               fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
               color: textColor,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
         ],
@@ -883,7 +884,7 @@ class _TimelineRow extends StatelessWidget {
                       color: reached
                           ? AppColors.textPrimary
                           : AppColors.textHint,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                   if (reached)
@@ -892,7 +893,7 @@ class _TimelineRow extends StatelessWidget {
                       style: TextStyle(
                         fontSize: w * 0.026,
                         color: AppColors.textHint,
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                       ),
                     ),
                 ],

@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/core/utils/app_logger.dart';
 
 /// All sensitive data (token, refresh token, user id) is stored exclusively
 /// in FlutterSecureStorage (iOS Keychain / Android Keystore).

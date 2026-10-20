@@ -1,11 +1,11 @@
 /// Consumer-side order domain entity.
 library;
 
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/rider_location.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/src/consumer_orders/models/rider_location.dart';
+import 'package:gopady/src/parcel/model/parcel_stop.dart';
+import 'package:gopady/src/restaurant/models/addon.dart';
 
 enum OrderStatus {
   pending,

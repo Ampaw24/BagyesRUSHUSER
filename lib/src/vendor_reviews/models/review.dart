@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// A customer's review of an order — of the vendor for food orders, of the
 /// rider for parcels — with the vendor's optional public reply. Shared by

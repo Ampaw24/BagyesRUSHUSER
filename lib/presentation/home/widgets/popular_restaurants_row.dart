@@ -49,7 +49,7 @@ class PopularRestaurantsRow extends StatelessWidget {
               w: w,
               icon: HugeIcons.strokeRoundedLocation01,
               title: 'No popular spots near you yet',
-              subtitle: 'Check back soon as more vendors join bagyesRUSH.',
+              subtitle: 'Check back soon as more vendors join GoPady.',
             ),
           );
         }

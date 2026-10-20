@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../../constant/app_theme.dart';
 import '../../../src/notification/viewmodel/notification_viewmodel.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // ─── Customer Drawer ──────────────────────────────────────────────────────────
 
@@ -548,7 +549,7 @@ class DrawerTile extends StatelessWidget {
                       child: Text(
                         '$badgeCount',
                         style: TextStyle(
-                          fontFamily: 'Mukta',
+                          fontFamily: AppFonts.body,
                           fontSize: w * 0.028,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,

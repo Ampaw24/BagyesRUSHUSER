@@ -12,6 +12,7 @@ import '../models/otp_purpose.dart';
 import '../viewmodels/auth_state.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import 'logout_action.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class KycVerificationView extends StatefulWidget {
   const KycVerificationView({super.key});
@@ -142,7 +143,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
                             'Verify Your Phone',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                               fontSize: (sw * 0.068).clamp(22, 32),
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -157,7 +158,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
                             'phone number to confirm your identity.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                               fontSize: (sw * 0.038).clamp(13, 17),
                               color: AppColors.textSecondary,
                               height: 1.5,
@@ -246,7 +247,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
           Text(
             masked,
             style: TextStyle(
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               fontSize: (sw * 0.04).clamp(14, 18),
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
@@ -271,15 +272,6 @@ class _KycVerificationViewState extends State<KycVerificationView>
           color: _sending
               ? AppColors.primary.withValues(alpha: 0.7)
               : AppColors.primary,
-          boxShadow: _sending
-              ? []
-              : [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
         ),
         child: Center(
           child: _sending
@@ -296,7 +288,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
                     Text(
                       'Send Verification Code',
                       style: TextStyle(
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                         color: Colors.white,
                         fontSize: (sw * 0.042).clamp(14, 18),
                         fontWeight: FontWeight.w600,
@@ -316,7 +308,7 @@ class _KycVerificationViewState extends State<KycVerificationView>
       child: Text(
         'Log out',
         style: TextStyle(
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
           fontSize: (sw * 0.036).clamp(12, 16),
           color: AppColors.textSecondary,
           fontWeight: FontWeight.w500,

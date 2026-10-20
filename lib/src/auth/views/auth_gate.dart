@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/src/auth/views/widgets/login_prompt_sheet.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/src/auth/views/widgets/login_prompt_sheet.dart';
 
 /// Guest browsing (Apple guideline 5.1.1(v)): anyone can browse without an
 /// account, and sign-in is only asked for when an account feature is used —

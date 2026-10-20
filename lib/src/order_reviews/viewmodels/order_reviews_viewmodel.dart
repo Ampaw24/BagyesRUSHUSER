@@ -1,11 +1,11 @@
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/repositories/order_review_repository.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_state.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/order_reviews/repositories/order_review_repository.dart';
+import 'package:gopady/src/order_reviews/viewmodels/order_reviews_state.dart';
+import 'package:gopady/src/order_reviews/models/order_review.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
 
 /// App-wide cache of which orders the customer has rated — read by order
 /// history, the tracking screen and the review sheet. Keyed by order id, so

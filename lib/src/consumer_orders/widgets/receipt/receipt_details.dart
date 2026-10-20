@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/utils/date_time_format.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/date_time_format.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
 
 /// The lower half of the receipt: payment facts, what was bought and the
 /// breakdown. Only facts the backend supplied are listed.
@@ -79,7 +79,7 @@ class ReceiptDetails extends StatelessWidget {
           ),
         SizedBox(height: w * 0.045),
         Text(
-          'Thank you for choosing bagyesRUSH',
+          'Thank you for choosing GoPady',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: w * 0.032,

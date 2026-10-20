@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/menu_item.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/restaurant/models/addon.dart';
+import 'package:gopady/src/restaurant/models/menu_item.dart';
 
 // ─── Result ───────────────────────────────────────────────────────────────────
 

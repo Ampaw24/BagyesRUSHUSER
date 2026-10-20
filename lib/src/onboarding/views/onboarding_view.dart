@@ -1,26 +1,27 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../constant/constant.dart';
 import '../../../constant/app_theme.dart';
+import '../../../constant/app_tokens.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../core/widgets/app_logo_card.dart';
-import '../../../core/widgets/decorative_background.dart';
+import '../../../core/widgets/brand_pattern_background.dart';
+import '../../../core/widgets/gopady_logo.dart';
+import '../../../core/widgets/skyline_watermark.dart';
 import '../../auth/views/widgets/auth_back_button.dart';
 import '../models/app_role.dart';
 import '../viewmodels/onboarding_viewmodel.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Design tokens — "Role select, modernised" rebrand
+// Brand moment — brand-green surface (same as the splash), yellow call-to-action
 // ═══════════════════════════════════════════════════════════════════════════
 
-const Color _cardSelectedBg = Color(0xFFFFF5F5);
-const Color _tileUnselectedBg = AppColors.surfaceVariant;
-const Color _ctaDisabledBg = Color(0xFFECECF1);
+const Color _cardBorderIdle = Color(0x1AFFFFFF);
+const Color _cardIdleFill = Color(0x1AFFFFFF);
+const Color _cardSelectedFill = Color(0x2EFFFFFF);
+const Color _glassBorder = Color(0x33FFFFFF);
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({super.key});
@@ -30,70 +31,21 @@ class OnboardingView extends StatefulWidget {
 }
 
 class _OnboardingViewState extends State<OnboardingView>
-    with TickerProviderStateMixin {
-  late AnimationController _heroController;
-  late AnimationController _cardsController;
-  late Animation<double> _heroFade;
-  late Animation<Offset> _heroSlide;
-  late List<Animation<double>> _cardAnimations;
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _introController;
 
   @override
   void initState() {
     super.initState();
-    _setupAnimations();
-  }
-
-  void _setupAnimations() {
-    // Hero card animations
-    _heroController = AnimationController(
+    _introController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _heroFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _heroController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _heroSlide = Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _heroController,
-            curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
-          ),
-        );
-
-    // Card staggered animations
-    _cardsController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
-    _cardAnimations = List.generate(
-      2,
-      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _cardsController,
-          curve: Interval(
-            0.2 + (index * 0.2),
-            0.6 + (index * 0.2),
-            curve: Curves.easeOutCubic,
-          ),
-        ),
-      ),
-    );
-
-    // Start animations
-    _heroController.forward();
-    _cardsController.forward();
+      duration: AppMotion.intro,
+    )..forward();
   }
 
   @override
   void dispose() {
-    _heroController.dispose();
-    _cardsController.dispose();
+    _introController.dispose();
     super.dispose();
   }
 
@@ -113,7 +65,7 @@ class _OnboardingViewState extends State<OnboardingView>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(viewModel.state.errorMessage ?? 'An error occurred'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -137,109 +89,118 @@ class _OnboardingViewState extends State<OnboardingView>
     final viewModel = context.watch<OnboardingViewModel>();
 
     return Scaffold(
-      backgroundColor: kDecorativeBackgroundColor,
-      body: DecorativeBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isTablet = constraints.maxWidth > 600;
-              final horizontalPadding = isTablet
-                  ? constraints.maxWidth * 0.15
-                  : constraints.maxWidth * 0.06;
+      backgroundColor: AppColors.primary,
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: BrandReveal(
+                animation: _introController,
+                end: 0.45,
+                child: const BrandPatternBackground(),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: BrandReveal(
+                animation: _introController,
+                begin: 0.05,
+                end: 0.6,
+                slideFrom: const Offset(0, 0.25),
+                child: const SkylineWatermark(
+                  color: AppColors.primaryDark,
+                  maxHeightFactor: 0.3,
+                ),
+              ),
+            ),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isTablet = constraints.maxWidth > 600;
+                  final horizontalPadding = isTablet
+                      ? constraints.maxWidth * 0.15
+                      : constraints.maxWidth * 0.06;
 
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: IntrinsicHeight(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
+                  return SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      child: Column(
-                        children: [
-                          SizedBox(height: size.height * 0.02),
-
-                          // Hero Card — logo, brand badge, headline & subtext
-                          FadeTransition(
-                            opacity: _heroFade,
-                            child: SlideTransition(
-                              position: _heroSlide,
-                              child: _buildHeroCard(size),
-                            ),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding,
                           ),
+                          child: Column(
+                            children: [
+                              SizedBox(height: size.height * 0.02),
 
-                          SizedBox(height: size.height * 0.03),
+                              // Hero Card — logo, brand badge, headline & subtext
+                              BrandReveal(
+                                animation: _introController,
+                                begin: 0.15,
+                                end: 0.65,
+                                slideFrom: const Offset(0, 0.06),
+                                blurFrom: size.width * 0.02,
+                                child: _buildHeroContent(size),
+                              ),
 
-                          // "I am a" label
-                          _buildSectionLabel(size),
+                              SizedBox(height: size.height * 0.03),
 
-                          SizedBox(height: size.height * 0.015),
+                              // "I am a" label
+                              BrandReveal(
+                                animation: _introController,
+                                begin: 0.4,
+                                end: 0.7,
+                                child: _buildSectionLabel(size),
+                              ),
 
-                          // Role Cards
-                          _buildRoleCards(size, viewModel),
+                              SizedBox(height: size.height * 0.015),
 
-                          SizedBox(height: size.height * 0.08),
+                              // Role Cards
+                              _buildRoleCards(size, viewModel),
 
-                          // Continue Button
-                          _buildContinueButton(size, viewModel),
+                              SizedBox(height: size.height * 0.08),
 
-                          const Spacer(),
-                          SizedBox(height: size.height * 0.02),
-                          // Login Link
-                          _buildLoginLink(size),
+                              // Continue Button
+                              BrandReveal(
+                                animation: _introController,
+                                begin: 0.75,
+                                end: 1,
+                                slideFrom: const Offset(0, 0.3),
+                                child: _buildContinueButton(size, viewModel),
+                              ),
 
-                          if (!_openedFromGuestMode) _buildGuestLink(size),
+                              const Spacer(),
+                              SizedBox(height: size.height * 0.02),
+                              // Login Link
+                              BrandReveal(
+                                animation: _introController,
+                                begin: 0.85,
+                                end: 1,
+                                child: Column(
+                                  children: [
+                                    _buildLoginLink(size),
+                                    if (!_openedFromGuestMode)
+                                      _buildGuestLink(size),
+                                  ],
+                                ),
+                              ),
 
-                          SizedBox(height: size.height * 0.03),
-                        ],
+                              SizedBox(height: size.height * 0.03),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeroCard(Size size) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned(
-          right: -size.width * 0.22,
-          top: -size.width * 0.1,
-          child: _bubble(
-            size.width * 0.68,
-            primaryColor.withValues(alpha: 0.09),
-          ),
-        ),
-        Positioned(
-          left: -size.width * 0.28,
-          top: size.width * 0.28,
-          child: _bubble(
-            size.width * 0.5,
-            primaryColor.withValues(alpha: 0.06),
-          ),
-        ),
-        _buildHeroContent(size),
-      ],
-    );
-  }
-
-  Widget _bubble(double diameter, Color color) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(
-        sigmaX: diameter * 0.22,
-        sigmaY: diameter * 0.22,
-      ),
-      child: Container(
-        width: diameter,
-        height: diameter,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }
@@ -252,12 +213,15 @@ class _OnboardingViewState extends State<OnboardingView>
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (_openedFromGuestMode) ...[
-              const AuthBackButton(),
+              const AuthBackButton(onDark: true),
               SizedBox(width: size.width * 0.03),
             ],
             GestureDetector(
               onTap: () => context.go(AppRoutes.vendorHome),
-              child: AppLogoCard(size: size.width * 0.22),
+              child: GoPadyLogo(
+                width: (size.width * 0.5).clamp(GoPadyLogo.minLockupWidth, 280),
+                variant: GoPadyLogoVariant.onDark,
+              ),
             ),
           ],
         ),
@@ -265,22 +229,23 @@ class _OnboardingViewState extends State<OnboardingView>
         Text(
           "Let's get\nyou set up.",
           style: TextStyle(
+            fontFamily: AppFonts.display,
             fontSize: size.width * 0.085,
             fontWeight: FontWeight.w800,
-            letterSpacing: size.width * -0.0025,
+            letterSpacing: size.width * -0.003,
             height: 1.05,
-            color: AppColors.textPrimary,
+            color: AppColors.onDark,
           ),
         ),
         SizedBox(height: size.width * 0.02),
         ConstrainedBox(
           constraints: BoxConstraints(maxWidth: size.width * 0.7),
           child: Text(
-            "Pick how you'll use Bagyes. You can change this later in settings.",
+            "Pick how you'll use GoPady. You can change this later in settings.",
             style: TextStyle(
               fontSize: size.width * 0.0375,
               height: 1.45,
-              color: AppColors.textSecondary,
+              color: AppColors.onDarkMuted,
             ),
           ),
         ),
@@ -297,7 +262,7 @@ class _OnboardingViewState extends State<OnboardingView>
           fontSize: size.width * 0.028,
           fontWeight: FontWeight.w700,
           letterSpacing: size.width * 0.0045,
-          color: AppColors.textSecondary,
+          color: AppColors.onDarkMuted,
         ),
       ),
     );
@@ -309,31 +274,20 @@ class _OnboardingViewState extends State<OnboardingView>
     return Column(
       children: List.generate(
         options.length,
-        (index) => AnimatedBuilder(
-          animation: _cardAnimations[index],
-          builder: (context, child) {
-            return Opacity(
-              opacity: _cardAnimations[index].value,
-              child: Transform.translate(
-                offset: Offset(
-                  0,
-                  size.height * 0.04 * (1 - _cardAnimations[index].value),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: size.height * 0.015),
-                  child: _RoleCard(
-                    size: size,
-                    option: options[index],
-                    isSelected:
-                        viewModel.state.selectedRole == options[index].role,
-                    onTap: () {
-                      viewModel.selectRole(options[index].role);
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
+        (index) => BrandReveal(
+          animation: _introController,
+          begin: 0.45 + index * 0.12,
+          end: 0.8 + index * 0.12,
+          slideFrom: const Offset(0, 0.2),
+          child: Padding(
+            padding: EdgeInsets.only(bottom: size.height * 0.015),
+            child: _RoleCard(
+              size: size,
+              option: options[index],
+              isSelected: viewModel.state.selectedRole == options[index].role,
+              onTap: () => viewModel.selectRole(options[index].role),
+            ),
+          ),
         ),
       ),
     );
@@ -342,7 +296,7 @@ class _OnboardingViewState extends State<OnboardingView>
   Widget _buildContinueButton(Size size, OnboardingViewModel viewModel) {
     final isEnabled =
         viewModel.state.selectedRole != null && !viewModel.state.isLoading;
-    final radius = size.width * 0.045;
+    final radius = size.width * 0.03;
 
     return InkWell(
       onTap: isEnabled ? () => _handleRoleSelection(context, viewModel) : null,
@@ -353,16 +307,7 @@ class _OnboardingViewState extends State<OnboardingView>
         padding: EdgeInsets.symmetric(vertical: size.width * 0.045),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
-          color: isEnabled ? primaryColor : _ctaDisabledBg,
-          boxShadow: isEnabled
-              ? [
-                  BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.08),
-                    blurRadius: size.width * 0.02,
-                    offset: Offset(0, size.height * 0.004),
-                  ),
-                ]
-              : [],
+          color: isEnabled ? AppColors.accent : AppColors.primaryDark,
         ),
         child: Center(
           child: viewModel.state.isLoading
@@ -370,14 +315,16 @@ class _OnboardingViewState extends State<OnboardingView>
                   width: size.width * 0.06,
                   height: size.width * 0.06,
                   child: const CircularProgressIndicator(
-                    color: Colors.white,
+                    color: AppColors.onAccent,
                     strokeWidth: 2.5,
                   ),
                 )
               : Text(
                   _ctaLabel(viewModel),
                   style: TextStyle(
-                    color: isEnabled ? Colors.white : AppColors.textSecondary,
+                    color: isEnabled
+                        ? AppColors.onAccent
+                        : AppColors.onDarkSubtle,
                     fontSize: size.width * 0.041,
                     fontWeight: FontWeight.w700,
                     letterSpacing: size.width * -0.001,
@@ -397,7 +344,7 @@ class _OnboardingViewState extends State<OnboardingView>
             text: 'Already have an account? ',
             style: TextStyle(
               fontSize: size.width * 0.035,
-              color: AppColors.textSecondary,
+              color: AppColors.onDarkMuted,
               fontWeight: FontWeight.w500,
             ),
             children: [
@@ -405,7 +352,7 @@ class _OnboardingViewState extends State<OnboardingView>
                 text: 'Log in',
                 style: TextStyle(
                   fontSize: size.width * 0.035,
-                  color: primaryColor,
+                  color: AppColors.accent,
                   fontWeight: FontWeight.w700,
                 ),
                 recognizer: TapGestureRecognizer()
@@ -435,15 +382,13 @@ class _OnboardingViewState extends State<OnboardingView>
         ),
       ),
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: AppColors.onDark,
+        backgroundColor: Colors.white.withValues(alpha: 0.10),
         padding: EdgeInsets.symmetric(
           horizontal: size.width * 0.05,
           vertical: size.width * 0.025,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(size.width * 0.06),
-          side: const BorderSide(color: AppColors.border),
-        ),
+        shape: const StadiumBorder(side: BorderSide(color: _glassBorder)),
       ),
     );
   }
@@ -476,7 +421,7 @@ class _RoleCardState extends State<_RoleCard> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
-    final radius = size.width * 0.055;
+    const radius = AppRadius.sheet;
     final innerPadding = size.width * 0.04;
     final iconContainerSize = size.width * 0.13;
     final indicatorSize = size.width * 0.055;
@@ -500,26 +445,11 @@ class _RoleCardState extends State<_RoleCard> {
           ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
-          color: widget.isSelected ? _cardSelectedBg : Colors.white,
+          color: widget.isSelected ? _cardSelectedFill : _cardIdleFill,
           border: Border.all(
-            color: widget.isSelected ? primaryColor : AppColors.border,
+            color: widget.isSelected ? AppColors.accent : _cardBorderIdle,
             width: 1.5,
           ),
-          boxShadow: widget.isSelected
-              ? [
-                  BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.05),
-                    blurRadius: size.width * 0.025,
-                    offset: Offset(0, size.height * 0.005),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: size.width * 0.02,
-                    offset: Offset(0, size.height * 0.003),
-                  ),
-                ],
         ),
         child: Padding(
           padding: EdgeInsets.all(innerPadding),
@@ -532,9 +462,7 @@ class _RoleCardState extends State<_RoleCard> {
                 height: iconContainerSize,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(radius * 0.65),
-                  color: widget.isSelected
-                      ? primaryColor.withValues(alpha: 0.12)
-                      : _tileUnselectedBg,
+                  color: AppColors.surface,
                 ),
                 child: Padding(
                   padding: EdgeInsets.all(iconContainerSize * 0.14),
@@ -552,10 +480,11 @@ class _RoleCardState extends State<_RoleCard> {
                     Text(
                       widget.option.title,
                       style: TextStyle(
+                        fontFamily: AppFonts.display,
                         fontSize: size.width * 0.0425,
                         fontWeight: FontWeight.w700,
                         letterSpacing: size.width * -0.001,
-                        color: AppColors.textPrimary,
+                        color: AppColors.onDark,
                       ),
                     ),
                     SizedBox(height: size.height * 0.004),
@@ -563,7 +492,7 @@ class _RoleCardState extends State<_RoleCard> {
                       widget.option.description,
                       style: TextStyle(
                         fontSize: size.width * 0.0335,
-                        color: AppColors.textSecondary,
+                        color: AppColors.onDarkMuted,
                         height: 1.4,
                       ),
                     ),
@@ -580,9 +509,13 @@ class _RoleCardState extends State<_RoleCard> {
                 height: indicatorSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.isSelected ? primaryColor : Colors.transparent,
+                  color: widget.isSelected
+                      ? AppColors.accent
+                      : Colors.transparent,
                   border: Border.all(
-                    color: widget.isSelected ? primaryColor : AppColors.border,
+                    color: widget.isSelected
+                        ? AppColors.accent
+                        : AppColors.onDarkSubtle,
                     width: 2,
                   ),
                 ),
@@ -590,7 +523,7 @@ class _RoleCardState extends State<_RoleCard> {
                     ? Icon(
                         Icons.check,
                         size: indicatorSize * 0.65,
-                        color: Colors.white,
+                        color: AppColors.onAccent,
                       )
                     : null,
               ),

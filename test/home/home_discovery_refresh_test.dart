@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/home/models/ads_banner.dart';
-import 'package:bagyesrushappusernew/src/home/models/category.dart';
-import 'package:bagyesrushappusernew/src/home/repositories/home_repository.dart';
-import 'package:bagyesrushappusernew/src/home/viewmodel/home_discovery_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
-import 'package:bagyesrushappusernew/src/restaurant/repositories/restaurant_repository.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/home/models/ads_banner.dart';
+import 'package:gopady/src/home/models/category.dart';
+import 'package:gopady/src/home/repositories/home_repository.dart';
+import 'package:gopady/src/home/viewmodel/home_discovery_viewmodel.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
+import 'package:gopady/src/restaurant/repositories/restaurant_repository.dart';
 
 Restaurant _restaurant(String name) => Restaurant(
       id: name,

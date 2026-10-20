@@ -47,19 +47,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBK1eFzwpRi5YmxraoGy8Hf6STQi-XAjA4',
-    appId: '1:782816451697:android:0de01801954ecbdf350fd0',
-    messagingSenderId: '782816451697',
-    projectId: 'bagyesrushapp-e0e4f',
-    storageBucket: 'bagyesrushapp-e0e4f.firebasestorage.app',
+    apiKey: 'AIzaSyAohyyp914xM6kgrf6H49yNK1TnuzZq9B8',
+    appId: '1:356203398523:android:b8ea2186cf92c55f18a9de',
+    messagingSenderId: '356203398523',
+    projectId: 'gopady-prod',
+    storageBucket: 'gopady-prod.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCXhHMAtaozDFCU7XXE__Me4nOfvERAE3k',
-    appId: '1:782816451697:ios:b24cb37605c34c11350fd0',
-    messagingSenderId: '782816451697',
-    projectId: 'bagyesrushapp-e0e4f',
-    storageBucket: 'bagyesrushapp-e0e4f.firebasestorage.app',
+    apiKey: 'AIzaSyB7oF-QWtmMnypll6O1UlKA_TYRmtrzg5g',
+    appId: '1:356203398523:ios:3e41542332c004b518a9de',
+    messagingSenderId: '356203398523',
+    projectId: 'gopady-prod',
+    storageBucket: 'gopady-prod.firebasestorage.app',
     iosBundleId: 'com.bagye.bagyesrush2',
   );
 

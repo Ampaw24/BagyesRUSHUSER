@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/router/app_router.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:gopady/core/router/app_router.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/src/auth/models/user.dart';
 
 User _user({String role = 'customer', bool phoneVerified = true}) => User(
       id: '1',

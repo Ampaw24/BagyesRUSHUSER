@@ -1,7 +1,7 @@
 /// Menu item domain entity.
 library;
 
-import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
+import 'package:gopady/src/restaurant/models/addon.dart';
 
 class MenuItem {
   final String id;

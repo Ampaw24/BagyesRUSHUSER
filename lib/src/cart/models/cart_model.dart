@@ -1,7 +1,7 @@
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/cart/models/cart_item_model.dart';
 
 /// `wallet` block of the cart: [payable] is the figure on the checkout
 /// button when the wallet is used — never `total − balance`.

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/core/router/app_router.dart' show appRouteObserver;
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/viewmodel/my_reports_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
-import 'package:bagyesrushappusernew/src/report/widgets/report_card.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/core/router/app_router.dart' show appRouteObserver;
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/viewmodel/my_reports_viewmodel.dart';
+import 'package:gopady/src/report/views/report_flow_args.dart';
+import 'package:gopady/src/report/widgets/report_card.dart';
 
 enum _ReportFilter { open, resolved, all }
 

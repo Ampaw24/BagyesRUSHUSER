@@ -4,9 +4,9 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/src/referral/widgets/referral_code_card.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/src/referral/widgets/referral_code_card.dart';
 
 /// Refer & Earn screen.
 ///
@@ -37,7 +37,7 @@ class ReferralView extends StatelessWidget {
     SharePlus.instance.share(
       ShareParams(
         text:
-            'Join me on bagyesRUSH! Use my referral code $code when you sign up.',
+            'Join me on GoPady! Use my referral code $code when you sign up.',
       ),
     );
   }
@@ -124,7 +124,7 @@ class _RewardHero extends StatelessWidget {
               SizedBox(width: w * 0.03),
               Expanded(
                 child: Text(
-                  'Invite friends to bagyesRUSH',
+                  'Invite friends to GoPady',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,

@@ -1,7 +1,7 @@
-import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
+import 'package:gopady/core/utils/image_cache_size.dart';
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/restaurant.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/restaurant/models/restaurant.dart';
 
 /// Vertical restaurant card used in grid / horizontal list.
 class RestaurantCard extends StatelessWidget {

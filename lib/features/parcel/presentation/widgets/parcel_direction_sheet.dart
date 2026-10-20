@@ -3,7 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
 import '../../../../core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
 
 /// Entry point for the parcel wizard: lets the customer choose whether
 /// they are sending a package or having one brought to them.

@@ -1,9 +1,9 @@
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_channel.dart';
-import 'package:bagyesrushappusernew/src/payment/models/payment_wallet.dart';
-import 'package:bagyesrushappusernew/src/payment/repositories/payment_repository.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodels/payment_state.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/payment/models/payment_channel.dart';
+import 'package:gopady/src/payment/models/payment_wallet.dart';
+import 'package:gopady/src/payment/repositories/payment_repository.dart';
+import 'package:gopady/src/payment/viewmodels/payment_state.dart';
 
 class PaymentViewmodel extends ViewModel<PaymentState> {
   PaymentViewmodel({required PaymentGatewayRepository repository})

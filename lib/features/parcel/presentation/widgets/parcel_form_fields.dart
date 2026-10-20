@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Shared label + text field used by the parcel wizard's detail forms
 /// (delivery stops, sender contact) so they stay visually identical.
@@ -107,7 +108,7 @@ class ParcelTextField extends StatelessWidget {
       style: TextStyle(
         fontSize: w * 0.036,
         color: AppColors.textPrimary,
-        fontFamily: 'Mukta',
+        fontFamily: AppFonts.body,
       ),
       decoration: InputDecoration(
         hintText: hint,
@@ -115,7 +116,7 @@ class ParcelTextField extends StatelessWidget {
         hintStyle: TextStyle(
           fontSize: w * 0.034,
           color: AppColors.textHint,
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
         ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: w * 0.04,

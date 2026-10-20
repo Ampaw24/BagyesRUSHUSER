@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
 
 void main() {
   test('ParcelQuote charges the total and keeps the fee breakdown', () {

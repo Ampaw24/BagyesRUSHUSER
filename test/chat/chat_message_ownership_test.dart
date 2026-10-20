@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
-import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
-import 'package:bagyesrushappusernew/src/chat/view/widgets/message_grouping.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
+import 'package:gopady/src/chat/model/conversation.dart';
+import 'package:gopady/src/chat/view/widgets/message_grouping.dart';
 
 ChatMessage _message({required String senderId, required bool isMine}) =>
     ChatMessage.fromJson({

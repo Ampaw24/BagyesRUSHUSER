@@ -1,13 +1,15 @@
-import 'package:bagyesrushappusernew/constant/constant.dart';
-import 'package:bagyesrushappusernew/core/router/app_navigator.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/constant/constant.dart';
+import 'package:gopady/core/router/app_navigator.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
+import 'package:gopady/src/auth/viewmodels/auth_state.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class ResetPasswordView extends StatefulWidget {
   const ResetPasswordView({super.key, required this.phone, required this.code});
@@ -151,7 +153,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                 Text(
                   'Reset Password',
                   style: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     fontSize: (sw * 0.075).clamp(22.0, 34.0),
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -162,7 +164,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                 Text(
                   'Create a new password for ${widget.phone}. Make sure it\'s secure.',
                   style: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     fontSize: (sw * 0.038).clamp(12.0, 17.0),
                     color: Colors.grey[600],
                     height: 1.4,
@@ -173,7 +175,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                 Text(
                   'New Password',
                   style: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     fontSize: (sw * 0.034).clamp(11.0, 15.0),
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -196,7 +198,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                 Text(
                   'Confirm Password',
                   style: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     fontSize: (sw * 0.034).clamp(11.0, 15.0),
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -225,17 +227,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(sw * 0.032),
                       color: _submitting
-                          ? Colors.red.withValues(alpha: 0.7)
-                          : Colors.red,
-                      boxShadow: _submitting
-                          ? []
-                          : [
-                              BoxShadow(
-                                color: Colors.red.withValues(alpha: 0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
+                          ? AppColors.primary.withValues(alpha: 0.7)
+                          : AppColors.primary,
                     ),
                     child: Center(
                       child: _submitting
@@ -243,7 +236,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                           : Text(
                               'Reset Password',
                               style: TextStyle(
-                                fontFamily: 'Mukta',
+                                fontFamily: AppFonts.body,
                                 color: Colors.white,
                                 fontSize: (sw * 0.04).clamp(13.0, 17.0),
                                 fontWeight: FontWeight.w600,
@@ -313,7 +306,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
         borderRadius: radius,
         color: Colors.white,
         border: Border.all(
-          color: _isFocused ? Colors.red : Colors.grey[200]!,
+          color: _isFocused ? AppColors.primary : Colors.grey[200]!,
           width: _isFocused ? 1.5 : 1,
         ),
       ),
@@ -327,7 +320,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
             HugeIcon(
               icon: HugeIcons.strokeRoundedLock,
               size: (sw * 0.045).clamp(14.0, 20.0),
-              color: _isFocused ? Colors.red : Colors.grey[500]!,
+              color: _isFocused ? AppColors.primary : Colors.grey[500]!,
             ),
             SizedBox(width: sw * 0.028),
             Container(
@@ -344,7 +337,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
                 obscureText: widget.obscure,
                 keyboardType: TextInputType.visiblePassword,
                 style: TextStyle(
-                  fontFamily: 'Mukta',
+                  fontFamily: AppFonts.body,
                   fontSize: (sw * 0.038).clamp(12.0, 17.0),
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
@@ -353,7 +346,7 @@ class _ModernPasswordInputState extends State<_ModernPasswordInput> {
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
                   hintStyle: TextStyle(
-                    fontFamily: 'Mukta',
+                    fontFamily: AppFonts.body,
                     color: Colors.grey[400],
                     fontWeight: FontWeight.w400,
                     fontSize: (sw * 0.038).clamp(12.0, 17.0),

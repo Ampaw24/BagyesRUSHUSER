@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
+import 'package:gopady/core/utils/typedefs.dart';
 
 /// A GPS / map-picked drop-off that is not saved as a [CustomerAddress].
 /// Sent to the delivery quote and order placement in place of

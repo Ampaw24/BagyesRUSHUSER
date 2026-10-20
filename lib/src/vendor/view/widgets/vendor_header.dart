@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class VendorHeader extends StatelessWidget {
   final String initials;
@@ -116,7 +117,7 @@ class VendorHeader extends StatelessWidget {
                         color: Colors.white,
                         fontSize: w * 0.032,
                         fontWeight: FontWeight.w700,
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                       ),
                     ),
             ),

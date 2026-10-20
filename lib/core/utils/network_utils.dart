@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
+import 'package:gopady/core/errors/failure.dart';
 import 'app_logger.dart';
 
 abstract class NetworkUtils {

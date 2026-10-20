@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/constant/config.dart';
-import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
+import 'package:gopady/constant/config.dart';
+import 'package:gopady/src/auth/models/business_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';

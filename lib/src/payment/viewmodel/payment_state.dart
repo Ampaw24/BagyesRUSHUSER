@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
+import 'package:gopady/core/errors/failure.dart';
 import '../model/payment_method.dart';
 
 sealed class PaymentState extends Equatable {

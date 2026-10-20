@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/json_utils.dart';
 
 /// Result of `GET /customer/wallet` — richer than `PaymentWallet`
 /// (`/payments/wallet`): splits the balance into a withdrawable slice and a

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/widgets/delete_action_sheet.dart';
-import 'package:bagyesrushappusernew/src/notification/model/notification.model.dart';
-import 'package:bagyesrushappusernew/src/notification/utils/notification_style.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/delete_action_sheet.dart';
+import 'package:gopady/src/notification/model/notification.model.dart';
+import 'package:gopady/src/notification/utils/notification_style.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Card-style notification row with press feedback and an animated
 /// unread → read transition. Long-press opens the delete sheet.
@@ -188,7 +189,7 @@ class _CardContent extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
             fontSize: w * 0.037,
             fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
             color: AppColors.textPrimary,
@@ -201,7 +202,7 @@ class _CardContent extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               fontSize: w * 0.032,
               height: 1.35,
               fontWeight: isUnread ? FontWeight.w500 : FontWeight.w400,
@@ -217,7 +218,7 @@ class _CardContent extends StatelessWidget {
             AnimatedDefaultTextStyle(
               duration: _NotificationCardState._stateDuration,
               style: TextStyle(
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
                 fontSize: w * 0.028,
                 fontWeight: isUnread ? FontWeight.w600 : FontWeight.w400,
                 color: isUnread ? AppColors.primary : AppColors.textHint,
@@ -256,7 +257,7 @@ class _TypeChip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontFamily: 'Mukta',
+          fontFamily: AppFonts.body,
           fontSize: w * 0.026,
           fontWeight: FontWeight.w600,
           color: NotificationStyle.iconColor(type),

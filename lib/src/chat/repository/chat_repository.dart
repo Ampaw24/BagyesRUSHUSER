@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
-import 'package:bagyesrushappusernew/src/chat/model/conversation.dart';
-import 'package:bagyesrushappusernew/src/chat/model/messages_page.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
+import 'package:gopady/src/chat/model/conversation.dart';
+import 'package:gopady/src/chat/model/messages_page.dart';
 
 /// Thrown by [ChatRepository.getConversationForOrder] for a 422 — per the
 /// API contract this means no conversation exists yet for this order

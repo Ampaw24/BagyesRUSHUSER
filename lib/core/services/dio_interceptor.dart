@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
+import 'package:gopady/core/helpers/cache_helper.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/core/utils/app_logger.dart';
 
 final _log = appLogger;
 

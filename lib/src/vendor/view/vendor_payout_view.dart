@@ -13,6 +13,7 @@ import '../../payment/viewmodel/payout_providers_viewmodel.dart';
 import '../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../model/vendor_profile.dart';
 import '../viewmodel/settings_viewmodel.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Full-screen payout configuration for `PUT /vendor/me/payout` — lets a
 /// vendor set the bank and/or mobile-money details they get paid out to.
@@ -180,7 +181,7 @@ class _VendorPayoutViewState extends State<VendorPayoutView> {
             color: AppColors.textPrimary,
             fontSize: w * 0.045,
             fontWeight: FontWeight.bold,
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
           ),
         ),
         leading: IconButton(

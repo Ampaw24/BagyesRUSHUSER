@@ -51,7 +51,7 @@ if (project.hasProperty('dart-defines')) {
 def googleMapsApiKey = dartDefines['MAPS_ANDROID_KEY'] ?: ''
 
 android {
-    namespace "com.bagye.bagyesrush2"
+    namespace "com.gopady.app"
     compileSdk 36
 
     sourceSets {
@@ -60,7 +60,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.bagye.bagyesrush2"
+        applicationId "com.gopady.app"
         minSdkVersion flutter.minSdkVersion
         targetSdk 36
         versionCode flutterVersionCode.toInteger()

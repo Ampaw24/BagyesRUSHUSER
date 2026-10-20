@@ -14,6 +14,7 @@ import '../../payment/viewmodel/payout_providers_viewmodel.dart';
 import '../../payment/views/widgets/payout_provider_dropdown.dart';
 import '../viewmodel/vendor_kyc_viewmodel.dart';
 import '../model/vendor_profile.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class VendorKycView extends StatefulWidget {
   /// Which step to open on — e.g. jumping straight to the documents step
@@ -171,7 +172,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
             color: AppColors.textPrimary,
             fontSize: w * 0.045,
             fontWeight: FontWeight.bold,
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
           ),
         ),
         leading: IconButton(
@@ -286,7 +287,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
                     : AppColors.textHint,
             fontSize: w * 0.028,
             fontWeight: isActive || isDone ? FontWeight.w700 : FontWeight.w500,
-            fontFamily: 'Mukta',
+            fontFamily: AppFonts.body,
           ),
         ),
       ],
@@ -367,7 +368,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
                 fontSize: w * 0.04,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
-                fontFamily: 'Mukta',
+                fontFamily: AppFonts.body,
               ),
             ),
             SizedBox(height: w * 0.02),
@@ -579,7 +580,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
               fontSize: w * 0.04,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
           SizedBox(height: w * 0.015),
@@ -678,7 +679,7 @@ class _VendorKycViewState extends State<VendorKycView> with TickerProviderStateM
               fontSize: w * 0.04,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
           SizedBox(height: w * 0.015),

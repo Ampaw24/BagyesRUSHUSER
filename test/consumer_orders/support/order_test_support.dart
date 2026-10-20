@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/services/realtime_events.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
+import 'package:gopady/core/services/realtime_events.dart';
+import 'package:gopady/core/services/realtime_service.dart';
 
 /// Serves canned JSON per `METHOD path`, so the real repository parsing and
 /// view-model merging run against realistic payloads. [statusCodes] overrides

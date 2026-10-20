@@ -1,8 +1,8 @@
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_tag.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/review_composer_state.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/order_reviews/models/review_tag.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
+import 'package:gopady/src/order_reviews/viewmodels/order_reviews_viewmodel.dart';
+import 'package:gopady/src/order_reviews/viewmodels/review_composer_state.dart';
 
 /// Form state for one review sheet. Submission goes through the shared
 /// [OrderReviewsViewModel] so every screen learns the order is rated.

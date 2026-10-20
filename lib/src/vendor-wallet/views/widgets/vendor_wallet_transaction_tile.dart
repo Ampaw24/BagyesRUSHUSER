@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import '../../models/vendor_wallet_transaction_model.dart';
 
 class VendorWalletTransactionTile extends StatelessWidget {

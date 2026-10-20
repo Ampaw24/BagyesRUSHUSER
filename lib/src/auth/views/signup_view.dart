@@ -1,4 +1,5 @@
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart'
@@ -150,16 +151,16 @@ class _SignupViewState extends State<SignupView>
 
     if (strength <= 0.3) {
       text = 'Weak';
-      color = Colors.red;
+      color = AppColors.error;
     } else if (strength <= 0.6) {
       text = 'Fair';
       color = Colors.orange;
     } else if (strength <= 0.8) {
       text = 'Good';
-      color = Colors.blue;
+      color = AppColors.info;
     } else {
       text = 'Strong';
-      color = Colors.green;
+      color = AppColors.success;
     }
 
     setState(() {
@@ -421,7 +422,7 @@ class _SignupViewState extends State<SignupView>
                   height: sh * 0.005,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(sw * 0.005),
-                    color: Colors.red,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -432,7 +433,7 @@ class _SignupViewState extends State<SignupView>
                   height: sh * 0.005,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(sw * 0.005),
-                    color: _currentStep >= 1 ? Colors.red : Colors.grey[300],
+                    color: _currentStep >= 1 ? AppColors.primary : Colors.grey[300],
                   ),
                 ),
               ),
@@ -711,7 +712,7 @@ class _SignupViewState extends State<SignupView>
               ? HugeIcons.strokeRoundedCheckmarkCircle01
               : HugeIcons.strokeRoundedAlert01,
           size: (sw * 0.038).clamp(14.0, 18.0),
-          color: match ? Colors.green : Colors.red,
+          color: match ? AppColors.success : AppColors.error,
         ),
         SizedBox(width: sw * 0.02),
         Text(
@@ -719,7 +720,7 @@ class _SignupViewState extends State<SignupView>
           style: TextStyle(
             fontSize: (sw * 0.033).clamp(11.0, 14.0),
             fontWeight: FontWeight.w500,
-            color: match ? Colors.green : Colors.red,
+            color: match ? AppColors.success : AppColors.error,
           ),
         ),
       ],
@@ -792,7 +793,7 @@ class _SignupViewState extends State<SignupView>
                 ? HugeIcons.strokeRoundedCheckmarkCircle01
                 : HugeIcons.strokeRoundedCircle,
             size: (sw * 0.041).clamp(14, 18),
-            color: met ? Colors.green : Colors.grey[400]!,
+            color: met ? AppColors.success : Colors.grey[400]!,
           ),
           SizedBox(width: sw * 0.02),
           Expanded(
@@ -800,7 +801,7 @@ class _SignupViewState extends State<SignupView>
               text,
               style: TextStyle(
                 fontSize: (sw * 0.030).clamp(10, 14),
-                color: met ? Colors.green : Colors.grey[600],
+                color: met ? AppColors.success : Colors.grey[600],
                 fontWeight: met ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -832,16 +833,7 @@ class _SignupViewState extends State<SignupView>
               height: (sw * 0.14).clamp(48, 60),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(sw * 0.04),
-                color: loading ? Colors.red.withValues(alpha: 0.7) : Colors.red,
-                boxShadow: loading
-                    ? []
-                    : [
-                        BoxShadow(
-                          color: Colors.red.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                color: loading ? AppColors.primary.withValues(alpha: 0.7) : AppColors.primary,
               ),
               child: Center(
                 child: loading
@@ -872,7 +864,7 @@ class _SignupViewState extends State<SignupView>
                     text: 'Log in',
                     style: TextStyle(
                       fontSize: (sw * 0.036).clamp(12, 16),
-                      color: Colors.red,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                     recognizer: _loginTapRecognizer,
@@ -970,7 +962,7 @@ class _ModernTextFieldState extends State<_ModernTextField> {
             borderRadius: radius,
             color: Colors.white,
             border: Border.all(
-              color: _isFocused ? Colors.red : Colors.grey[200]!,
+              color: _isFocused ? AppColors.primary : Colors.grey[200]!,
               width: _isFocused ? 1.5 : 1,
             ),
           ),
@@ -983,7 +975,7 @@ class _ModernTextFieldState extends State<_ModernTextField> {
               children: [
                 HugeIcon(
                   icon: widget.prefixIcon,
-                  color: _isFocused ? Colors.red : Colors.grey[500]!,
+                  color: _isFocused ? AppColors.primary : Colors.grey[500]!,
                   size: iconSize,
                 ),
                 SizedBox(width: sw * 0.028),
@@ -1120,7 +1112,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
             borderRadius: radius,
             color: Colors.white,
             border: Border.all(
-              color: _isFocused ? Colors.red : Colors.grey[200]!,
+              color: _isFocused ? AppColors.primary : Colors.grey[200]!,
               width: _isFocused ? 1.5 : 1,
             ),
           ),
@@ -1130,7 +1122,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
                 padding: EdgeInsets.only(left: sw * 0.04),
                 child: HugeIcon(
                   icon: HugeIcons.strokeRoundedCall,
-                  color: _isFocused ? Colors.red : Colors.grey[500]!,
+                  color: _isFocused ? AppColors.primary : Colors.grey[500]!,
                   size: (sw * 0.038).clamp(14, 18),
                 ),
               ),
@@ -1140,7 +1132,7 @@ class _ModernPhoneFieldState extends State<_ModernPhoneField> {
                 style: TextStyle(
                   fontSize: (sw * 0.038).clamp(13, 17),
                   fontWeight: FontWeight.w600,
-                  color: _isFocused ? Colors.red : Colors.black87,
+                  color: _isFocused ? AppColors.primary : Colors.black87,
                 ),
               ),
               SizedBox(width: sw * 0.025),

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 void main() {
   ConsumerOrder parse(Map<String, dynamic> extra) =>

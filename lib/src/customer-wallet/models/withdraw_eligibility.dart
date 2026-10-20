@@ -1,4 +1,4 @@
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
+import 'package:gopady/core/utils/money_format.dart';
 import 'customer_wallet_model.dart';
 
 /// Why a customer can't withdraw right now — drives the message shown when

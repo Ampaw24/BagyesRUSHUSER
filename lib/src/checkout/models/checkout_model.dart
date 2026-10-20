@@ -1,6 +1,6 @@
-import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/customer_address.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/src/consumer_orders/models/delivery_quote.dart';
+import 'package:gopady/src/customer_address/models/customer_address.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
 
 /// Sentinel distinguishing "leave unchanged" from "set to null" in
 /// [CheckoutForm.copyWith] for genuinely-nullable fields.

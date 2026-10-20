@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/core/utils/image_cache_size.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
-import 'package:bagyesrushappusernew/resources/resources.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/core/utils/image_cache_size.dart';
+import 'package:gopady/core/widgets/network_avatar.dart';
+import 'package:gopady/resources/resources.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 
 /// Square picture for an order row: the parcel box for a parcel, otherwise
 /// the vendor's logo — or their initials on a name-keyed tint when they have
@@ -29,7 +29,7 @@ class OrderThumbnail extends StatelessWidget {
         height: size,
         child: order.isParcel
             ? Image.asset(
-                Assets.deliveryBoxParcel,
+                Assets.dDeliveryBoxParcel,
                 fit: BoxFit.cover,
                 cacheWidth: coverCacheWidth(context, width: size, height: size),
               )

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/src/consumer_orders/models/payment_receipt.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/receipt/receipt_details.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/receipt/receipt_status_header.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/widgets/receipt/ticket_section.dart';
+import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_details.dart';
+import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_status_header.dart';
+import 'package:gopady/src/consumer_orders/widgets/receipt/ticket_section.dart';
 
 /// The receipt itself: status header over a tear line, details below. Kept
 /// self-contained (no screen chrome) so it can also be captured as an image.

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/services/realtime_config.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_repository.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
+import 'package:gopady/core/services/realtime_config.dart';
+import 'package:gopady/core/services/realtime_repository.dart';
+import 'package:gopady/core/services/realtime_service.dart';
 
 /// Holds each `getConfig()` open until [release] — the window in which a
 /// logout can race a connect.

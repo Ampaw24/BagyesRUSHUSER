@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/src/cart/models/cart_model.dart';
 
 sealed class CartState extends Equatable {
   const CartState();

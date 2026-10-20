@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class NewOrderBanner extends StatefulWidget {
   final String orderId;
@@ -93,7 +94,7 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                             color: AppColors.accentLight,
                             fontSize: w * 0.026,
                             fontWeight: FontWeight.w800,
-                            fontFamily: 'Mukta',
+                            fontFamily: AppFonts.body,
                             letterSpacing: 1.0,
                           ),
                         ),
@@ -106,7 +107,7 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                         color: Colors.white,
                         fontSize: w * 0.036,
                         fontWeight: FontWeight.w800,
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                       ),
                     ),
                     Text(
@@ -114,7 +115,7 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: w * 0.028,
-                        fontFamily: 'Mukta',
+                        fontFamily: AppFonts.body,
                         fontWeight: FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -147,7 +148,7 @@ class _NewOrderBannerState extends State<NewOrderBanner>
                       color: AppColors.primary,
                       fontSize: w * 0.032,
                       fontWeight: FontWeight.w800,
-                      fontFamily: 'Mukta',
+                      fontFamily: AppFonts.body,
                     ),
                   ),
                 ),

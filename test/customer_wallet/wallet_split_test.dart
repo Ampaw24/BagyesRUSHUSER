@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
+import 'package:gopady/src/customer-wallet/models/wallet_split.dart';
 
 void main() {
   group('WalletSplit.from', () {

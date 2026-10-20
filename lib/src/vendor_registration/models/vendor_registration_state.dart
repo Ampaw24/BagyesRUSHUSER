@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
-import 'package:bagyesrushappusernew/src/home/models/category_element.model.dart';
+import 'package:gopady/src/auth/models/business_type_model.dart';
+import 'package:gopady/src/home/models/category_element.model.dart';
 import 'vendor_enums.dart';
 import 'business_details_data.dart';
 import 'legal_compliance_data.dart';

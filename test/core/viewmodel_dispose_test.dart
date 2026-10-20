@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
 
 class _CounterViewModel extends ViewModel<int> {
   _CounterViewModel() : super(0);

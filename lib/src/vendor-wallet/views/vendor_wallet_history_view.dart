@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/widgets/app_toast.dart';
-import 'package:bagyesrushappusernew/core/widgets/custom_dialogs.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/app_toast.dart';
+import 'package:gopady/core/widgets/custom_dialogs.dart';
 import '../models/vendor_withdrawal_model.dart';
 import '../viewmodels/vendor_wallet_state.dart';
 import '../viewmodels/vendor_wallet_viewmodel.dart';

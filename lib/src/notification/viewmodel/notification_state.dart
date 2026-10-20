@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/src/notification/model/notification.model.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/src/notification/model/notification.model.dart';
 
 sealed class NotificationState extends Equatable {
   const NotificationState();

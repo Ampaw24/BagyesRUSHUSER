@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_tag.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/src/order_reviews/models/review_tag.dart';
 
 /// Five tappable stars with a springy pop on the chosen star and an
 /// optional live caption ("Good", "Excellent!"). [starSizeFactor] is a

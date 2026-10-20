@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/src/auth/models/business_type_model.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/src/auth/models/business_type_model.dart';
+import 'package:gopady/src/auth/models/user.dart';
 
 sealed class AuthState extends Equatable {
   const AuthState();

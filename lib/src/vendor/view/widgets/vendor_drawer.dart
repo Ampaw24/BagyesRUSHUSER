@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class VendorDrawer extends StatefulWidget {
   final String userName;
@@ -563,7 +564,7 @@ class _AnimatedDrawerTile extends StatelessWidget {
                       child: Text(
                         '$badgeCount',
                         style: TextStyle(
-                          fontFamily: 'Mukta',
+                          fontFamily: AppFonts.body,
                           fontSize: w * 0.028,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,

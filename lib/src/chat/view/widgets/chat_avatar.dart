@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/widgets/network_avatar.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/network_avatar.dart';
 
 /// Circular participant avatar: the photo when one is known, initials
 /// otherwise, with an optional role badge (rider / vendor) in the corner.

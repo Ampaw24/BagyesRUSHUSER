@@ -1,6 +1,6 @@
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/chat/model/chat_message.dart';
+import 'package:gopady/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/chat/model/chat_message.dart';
 
 /// One cursor-paginated page of `GET conversations/:id/messages`.
 ///

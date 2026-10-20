@@ -69,17 +69,18 @@ class _AppToastState extends State<AppToast> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 500),
       reverseDuration: const Duration(milliseconds: 400),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeIn,
-    ));
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _slideController, curve: Curves.easeOut),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -1.2), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _slideController,
+            curve: Curves.easeOutBack,
+            reverseCurve: Curves.easeIn,
+          ),
+        );
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
 
     // Badge icon pop-in
     _iconController = AnimationController(
@@ -117,8 +118,7 @@ class _AppToastState extends State<AppToast> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final topPad = MediaQuery.of(context).padding.top;
-    final accentColor =
-        widget.isSuccess ? AppColors.success : AppColors.error;
+    final accentColor = widget.isSuccess ? AppColors.success : AppColors.error;
 
     return Positioned(
       top: topPad + 12,
@@ -185,7 +185,9 @@ class _AppToastState extends State<AppToast> with TickerProviderStateMixin {
                           ],
                         ),
                         child: Icon(
-                          widget.isSuccess ? Icons.check_rounded : Icons.close_rounded,
+                          widget.isSuccess
+                              ? Icons.check_rounded
+                              : Icons.close_rounded,
                           color: Colors.white,
                           size: w * 0.065,
                         ),

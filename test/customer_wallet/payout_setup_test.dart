@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/core/utils/typedefs.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/repositories/customer_wallet_repository.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/viewmodels/payout_setup_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/views/add_payout_method_view.dart';
-import 'package:bagyesrushappusernew/src/payment/model/payout_provider_model.dart';
-import 'package:bagyesrushappusernew/src/payment/repository/payment_repository.dart';
-import 'package:bagyesrushappusernew/src/payment/viewmodel/payout_providers_viewmodel.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/core/utils/typedefs.dart';
+import 'package:gopady/src/customer-wallet/repositories/customer_wallet_repository.dart';
+import 'package:gopady/src/customer-wallet/viewmodels/payout_setup_viewmodel.dart';
+import 'package:gopady/src/customer-wallet/views/add_payout_method_view.dart';
+import 'package:gopady/src/payment/model/payout_provider_model.dart';
+import 'package:gopady/src/payment/repository/payment_repository.dart';
+import 'package:gopady/src/payment/viewmodel/payout_providers_viewmodel.dart';
 
 import '../core/support/auth_test_support.dart';
 import 'support/withdrawal_test_support.dart';

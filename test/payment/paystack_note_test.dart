@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bagyesrushappusernew/src/payment/views/widgets/paystack_note.dart';
+import 'package:gopady/src/payment/views/widgets/paystack_note.dart';
 
 void main() {
   Future<void> pump(WidgetTester tester, {bool walletCoversFully = false}) async {

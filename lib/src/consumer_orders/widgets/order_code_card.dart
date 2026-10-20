@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// Highlighted card for a short verification code (delivery PIN, parcel
 /// pickup code). Tap the code to copy; [onShare] adds a share action.

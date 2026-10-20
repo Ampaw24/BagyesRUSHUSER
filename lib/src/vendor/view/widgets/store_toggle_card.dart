@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 class StoreToggleCard extends StatefulWidget {
   final bool isOpen;
@@ -73,11 +74,11 @@ class _StoreToggleCardState extends State<StoreToggleCard>
           end: Alignment.bottomRight,
           colors: widget.isOpen
               ? [AppColors.primary, AppColors.primaryDark]
-              : [const Color(0xFF374151), const Color(0xFF1F2937)],
+              : [AppColors.secondaryLight, AppColors.secondary],
         ),
         boxShadow: [
           BoxShadow(
-            color: (widget.isOpen ? AppColors.primary : const Color(0xFF374151))
+            color: (widget.isOpen ? AppColors.primary : AppColors.secondaryLight)
                 .withValues(alpha: 0.28),
             blurRadius: 20,
             offset: const Offset(0, 10),
@@ -143,7 +144,7 @@ class _StoreToggleCardState extends State<StoreToggleCard>
                               color: Colors.white,
                               fontSize: w * 0.045,
                               fontWeight: FontWeight.w800,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -154,7 +155,7 @@ class _StoreToggleCardState extends State<StoreToggleCard>
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.8),
                               fontSize: w * 0.03,
-                              fontFamily: 'Mukta',
+                              fontFamily: AppFonts.body,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -298,7 +299,7 @@ class _StoreToggleCardState extends State<StoreToggleCard>
               color: Colors.white,
               fontSize: w * 0.038,
               fontWeight: FontWeight.w800,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
               letterSpacing: -0.5,
             ),
           ),
@@ -308,7 +309,7 @@ class _StoreToggleCardState extends State<StoreToggleCard>
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: w * 0.024,
               fontWeight: FontWeight.w600,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
         ],

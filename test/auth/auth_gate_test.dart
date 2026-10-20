@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/singletons/cache.dart';
-import 'package:bagyesrushappusernew/src/auth/models/user.dart';
-import 'package:bagyesrushappusernew/src/auth/views/auth_gate.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/singletons/cache.dart';
+import 'package:gopady/src/auth/models/user.dart';
+import 'package:gopady/src/auth/views/auth_gate.dart';
 
 const _user = User(
   id: '1',

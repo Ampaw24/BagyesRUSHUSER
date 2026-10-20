@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Horizontally-scrollable, mutually-exclusive filter tabs: All, Unanswered,
 /// then 5★ down to 1★. [onSelect] receives the resulting (rating, unanswered)
@@ -88,7 +89,7 @@ class _FilterChip extends StatelessWidget {
               fontSize: w * 0.033,
               fontWeight: FontWeight.w600,
               color: selected ? Colors.white : AppColors.textSecondary,
-              fontFamily: 'Mukta',
+              fontFamily: AppFonts.body,
             ),
           ),
         ),

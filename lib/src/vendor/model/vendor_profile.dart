@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bagyesrushappusernew/core/utils/json_utils.dart';
+import 'package:gopady/core/utils/json_utils.dart';
 
 /// Uploaded/reviewed state of a single KYC document.
 class VendorDocumentStatus extends Equatable {

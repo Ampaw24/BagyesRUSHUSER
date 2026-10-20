@@ -3,19 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
-import 'package:bagyesrushappusernew/core/di/service_locator.dart';
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_tag.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/review_target.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/review_composer_state.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/viewmodels/review_composer_viewmodel.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/widgets/review_success_view.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/widgets/review_tag_chips.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/widgets/star_rating_input.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/views/report_flow_args.dart';
-import 'package:bagyesrushappusernew/src/order_reviews/models/order_review.dart';
+import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/di/service_locator.dart';
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/src/order_reviews/models/review_tag.dart';
+import 'package:gopady/src/order_reviews/models/review_target.dart';
+import 'package:gopady/src/order_reviews/viewmodels/review_composer_state.dart';
+import 'package:gopady/src/order_reviews/viewmodels/review_composer_viewmodel.dart';
+import 'package:gopady/src/order_reviews/widgets/review_success_view.dart';
+import 'package:gopady/src/order_reviews/widgets/review_tag_chips.dart';
+import 'package:gopady/src/order_reviews/widgets/star_rating_input.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/views/report_flow_args.dart';
+import 'package:gopady/src/order_reviews/models/order_review.dart';
 
 /// Rate-and-review bottom sheet with one section per party (restaurant,
 /// rider). Stars first; chips and a comment box slide in once that party is

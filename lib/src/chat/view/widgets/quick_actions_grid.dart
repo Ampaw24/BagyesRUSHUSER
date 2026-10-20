@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 import 'chat_dimensions.dart';
 
 /// Server-supplied `quick_replies` as one horizontally scrolling row of

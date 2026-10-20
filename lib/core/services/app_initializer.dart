@@ -3,18 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
-import 'package:bagyesrushappusernew/constant/baseurl.dart';
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/helpers/cache_helper.dart';
-import 'package:bagyesrushappusernew/core/router/app_router.dart' show appRouter;
-import 'package:bagyesrushappusernew/core/router/app_routes.dart';
-import 'package:bagyesrushappusernew/core/services/dio_interceptor.dart';
-import 'package:bagyesrushappusernew/core/services/fcm_service.dart';
-import 'package:bagyesrushappusernew/core/services/realtime_service.dart';
-import 'package:bagyesrushappusernew/src/auth/repositories/auth_repository.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_state.dart';
-import 'package:bagyesrushappusernew/src/auth/viewmodels/auth_viewmodel.dart';
+import 'package:gopady/constant/baseurl.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/helpers/cache_helper.dart';
+import 'package:gopady/core/router/app_router.dart' show appRouter;
+import 'package:gopady/core/router/app_routes.dart';
+import 'package:gopady/core/services/dio_interceptor.dart';
+import 'package:gopady/core/services/fcm_service.dart';
+import 'package:gopady/core/services/realtime_service.dart';
+import 'package:gopady/src/auth/repositories/auth_repository.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/src/auth/viewmodels/auth_state.dart';
+import 'package:gopady/src/auth/viewmodels/auth_viewmodel.dart';
 
 class AppInitializer {
   static final _sl = GetIt.instance;

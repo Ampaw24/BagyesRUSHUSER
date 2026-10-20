@@ -1,5 +1,5 @@
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
 import '../model/payment_method.dart';
 import '../repository/payment_repository.dart';
 import 'payment_state.dart';

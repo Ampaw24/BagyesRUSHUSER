@@ -1,6 +1,6 @@
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/report/model/report.dart';
-import 'package:bagyesrushappusernew/src/report/repository/report_repository.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/report/model/report.dart';
+import 'package:gopady/src/report/repository/report_repository.dart';
 
 /// Sealed states for the "My Reports" list.
 sealed class MyReportsState {

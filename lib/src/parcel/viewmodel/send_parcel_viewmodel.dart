@@ -4,18 +4,18 @@ import 'dart:math' show cos, sqrt, asin;
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:bagyesrushappusernew/core/utils/location_helper.dart';
-import 'package:bagyesrushappusernew/core/utils/money_format.dart';
-import 'package:bagyesrushappusernew/core/utils/phone_utils.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/customer-wallet/models/wallet_split.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/delivery_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_direction.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_quote.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/parcel_stop.dart';
-import 'package:bagyesrushappusernew/src/parcel/model/rider_model.dart';
-import 'package:bagyesrushappusernew/src/parcel/repository/parcel_repository.dart';
+import 'package:gopady/core/utils/location_helper.dart';
+import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/core/utils/phone_utils.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/customer-wallet/models/wallet_split.dart';
+import 'package:gopady/src/parcel/model/delivery_stop.dart';
+import 'package:gopady/src/parcel/model/parcel.dart';
+import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/src/parcel/model/parcel_quote.dart';
+import 'package:gopady/src/parcel/model/parcel_stop.dart';
+import 'package:gopady/src/parcel/model/rider_model.dart';
+import 'package:gopady/src/parcel/repository/parcel_repository.dart';
 
 /// Sentinel used by [SendParcelState.copyWith] to distinguish "leave
 /// unchanged" from "explicitly set to null" for nullable fields.

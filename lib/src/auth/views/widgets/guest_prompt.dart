@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import 'package:bagyesrushappusernew/constant/app_theme.dart';
+import 'package:gopady/constant/app_theme.dart';
 
 /// Sign-in call to action for guests — the body of the login prompt sheet
 /// (see AuthGate) and the stand-in for account-only tabs like Orders.

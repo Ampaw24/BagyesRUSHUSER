@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../constant/app_theme.dart';
 import '../../constant/config.dart';
 import '../../core/enums/map_style_type.dart';
 import '../../core/services/map_style_service.dart';
@@ -195,7 +196,7 @@ class _RouteMapState extends State<RouteMap> {
       Polyline polyline = Polyline(
         polylineId: PolylineId("poly"),
         width: 4,
-        color: Colors.black,
+        color: AppColors.primary,
         points: polylineCoordinates,
       );
 

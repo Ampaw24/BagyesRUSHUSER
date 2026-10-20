@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 
-import 'package:bagyesrushappusernew/core/network/api_endpoints.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/consumer_order.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/delivery_quote.dart';
-import 'package:bagyesrushappusernew/src/consumer_orders/models/order_payment_verification.dart';
-import 'package:bagyesrushappusernew/src/customer_address/models/delivery_location.dart';
+import 'package:gopady/core/network/api_endpoints.dart';
+import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
+import 'package:gopady/src/consumer_orders/models/delivery_quote.dart';
+import 'package:gopady/src/consumer_orders/models/order_payment_verification.dart';
+import 'package:gopady/src/customer_address/models/delivery_location.dart';
 
 class OrdersPage {
   final List<ConsumerOrder> orders;

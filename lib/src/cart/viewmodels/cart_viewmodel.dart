@@ -1,15 +1,15 @@
 import 'package:dartz/dartz.dart';
 
-import 'package:bagyesrushappusernew/core/common/app/current_user_provider.dart';
-import 'package:bagyesrushappusernew/core/common/app/session_aware.dart';
-import 'package:bagyesrushappusernew/core/errors/failure.dart';
-import 'package:bagyesrushappusernew/core/utils/app_logger.dart';
-import 'package:bagyesrushappusernew/core/viewmodel/viewmodel.dart';
-import 'package:bagyesrushappusernew/src/restaurant/models/addon.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_item_model.dart';
-import 'package:bagyesrushappusernew/src/cart/models/cart_model.dart';
-import 'package:bagyesrushappusernew/src/cart/repositories/cart_repository.dart';
-import 'package:bagyesrushappusernew/src/cart/viewmodels/cart_state.dart';
+import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/common/app/session_aware.dart';
+import 'package:gopady/core/errors/failure.dart';
+import 'package:gopady/core/utils/app_logger.dart';
+import 'package:gopady/core/viewmodel/viewmodel.dart';
+import 'package:gopady/src/restaurant/models/addon.dart';
+import 'package:gopady/src/cart/models/cart_item_model.dart';
+import 'package:gopady/src/cart/models/cart_model.dart';
+import 'package:gopady/src/cart/repositories/cart_repository.dart';
+import 'package:gopady/src/cart/viewmodels/cart_state.dart';
 
 class CartViewModel extends ViewModel<CartState> with SessionAware {
   CartViewModel({
