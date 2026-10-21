@@ -39,9 +39,9 @@ class GoPadyLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final useMark = width < minLockupWidth;
     final asset = switch ((useMark, variant)) {
-      (true, GoPadyLogoVariant.light) => BrandAssets.gopadyIconGreen,
+      (true, GoPadyLogoVariant.light) => BrandAssets.gopadyIconYellow,
       (true, GoPadyLogoVariant.onDark) => BrandAssets.gopadyIconYellow,
-      (false, GoPadyLogoVariant.light) => BrandAssets.gopadyLogoLight,
+      (false, GoPadyLogoVariant.light) => BrandAssets.gopadyIconYellow,
       (false, GoPadyLogoVariant.onDark) =>
         BrandAssets.gopadyLogoTransparentWhite,
     };

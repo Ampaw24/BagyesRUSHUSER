@@ -177,8 +177,8 @@ flutter_launcher_icons:
 flutter_native_splash:
   color: "#087A4B"
   color_dark: "#087A4B"
-  image: tool/brand/splash_android12.png
-  image_dark: tool/brand/splash_android12.png
+  image: tool/brand/splash_logo.png
+  image_dark: tool/brand/splash_logo.png
   android_12:
     color: "#087A4B"
     image: tool/brand/splash_android12.png
