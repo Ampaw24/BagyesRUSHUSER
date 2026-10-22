@@ -18,7 +18,6 @@ import 'package:gopady/src/consumer_orders/widgets/order_codes_panel.dart';
 import 'package:gopady/src/consumer_orders/widgets/order_tracking_placeholders.dart';
 import 'package:gopady/src/consumer_orders/widgets/parcel_route_card.dart';
 import 'package:gopady/src/consumer_orders/widgets/parcel_tracking_timeline.dart';
-import 'package:gopady/src/consumer_orders/widgets/tracking_card.dart';
 import 'package:gopady/src/consumer_orders/widgets/tracking_header.dart';
 import 'package:gopady/src/consumer_orders/widgets/tracking_live_map.dart';
 import 'package:gopady/src/consumer_orders/widgets/tracking_order_summary.dart';
@@ -367,16 +366,6 @@ class _OrderTrackingViewState extends State<OrderTrackingView>
                   'Order #$shortId',
                   if (vendorName.isNotEmpty) vendorName,
                 ].join(' · '),
-          actions: [
-            // Once a rider is assigned, chat moves onto the rider card. A
-            // parcel has no one to chat with until then.
-            if (canChat && !hasRider && !isParcel)
-              TrackingCircleButton(
-                icon: Icons.chat_bubble_outline_rounded,
-                tooltip: 'Chat',
-                onTap: () => _openChat(order),
-              ),
-          ],
         ),
         Expanded(
           child: RefreshIndicator(

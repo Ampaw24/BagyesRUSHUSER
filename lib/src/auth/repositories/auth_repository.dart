@@ -314,8 +314,6 @@ class AuthRepository {
 
         final userJson = payload['user'] as DataMap? ?? payload;
         final parsed = User.fromJson(userJson);
-        appLogger.d('AuthRepository.login → user=${parsed.toJson()}');
-        appLogger.d('AuthRepository.login → payload=${parsed.id}');
 
         // This app only serves customers and vendors. Any other account
         // (rider, admin, ...) is turned away *before* its tokens are cached

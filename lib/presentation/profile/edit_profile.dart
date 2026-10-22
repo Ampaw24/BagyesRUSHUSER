@@ -16,7 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:gopady/core/utils/share_utils.dart';
 import 'package:gopady/src/auth/views/logout_action.dart';
 
 class EditProfile extends StatefulWidget {
@@ -595,11 +595,9 @@ class _EditProfileState extends State<EditProfile> {
 
   void _shareReferralCode(String code) {
     if (code.isEmpty) return;
-    SharePlus.instance.share(
-      ShareParams(
-        text:
-            'Join me on GoPady! Use my referral code $code when you sign up.',
-      ),
+    shareText(
+      context,
+      'Join me on GoPady! Use my referral code $code when you sign up.',
     );
   }
 }

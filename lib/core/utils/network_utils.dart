@@ -7,6 +7,14 @@ import 'package:gopady/core/errors/failure.dart';
 import 'app_logger.dart';
 
 abstract class NetworkUtils {
+  // 499 keeps `Failure.isConnectivityFailure` true: the server was never
+  // reached, so callers can offer a retry.
+  static const _secureConnectionFailure = ServerFailure(
+    message: 'Couldn\'t establish a secure connection. Please try again later.',
+    statusCode: 499,
+    title: 'Secure Connection Failed',
+  );
+
   static Left<Failure, T> handleDioException<T>(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
@@ -17,6 +25,8 @@ abstract class NetworkUtils {
           statusCode: 408,
           title: 'Timeout',
         ));
+      case DioExceptionType.badCertificate:
+        return Left(_secureConnectionFailure);
       case DioExceptionType.connectionError:
         return Left(const ServerFailure(
           message: 'No internet connection.',
@@ -27,8 +37,16 @@ abstract class NetworkUtils {
         if (e.response != null) {
           return handleDioResponseError(e.response!);
         }
-        return Left(ServerFailure(
-          message: e.message ?? 'An unexpected error occurred.',
+        // A failed TLS handshake surfaces as `unknown` with a null message.
+        if (e.error is TlsException) {
+          appLogger.w('NetworkUtils.handleDioException → TLS: ${e.error}');
+          return Left(_secureConnectionFailure);
+        }
+        appLogger.w(
+          'NetworkUtils.handleDioException → ${e.type}: ${e.message} ${e.error}',
+        );
+        return Left(const ServerFailure(
+          message: 'An unexpected error occurred.',
           statusCode: 500,
           title: 'Error',
         ));
@@ -58,7 +76,12 @@ abstract class NetworkUtils {
       message = errorDetail ?? topMessage ?? message;
       appLogger.w('NetworkUtils.handleDioResponseError → $message');
     } else if (data is String && data.isNotEmpty) {
-      message = data;
+      // Plain/HTML bodies (proxy or WAF error pages) are for the log only.
+      final preview = data.length > 300 ? data.substring(0, 300) : data;
+      appLogger.w(
+        'NetworkUtils.handleDioResponseError → non-JSON body '
+        '(${response.statusCode}): $preview',
+      );
     }
 
     return Left(ServerFailure(
@@ -88,8 +111,10 @@ abstract class NetworkUtils {
       ));
     }
 
-    return Left(ServerFailure(
-      message: e.toString(),
+    if (e is TlsException) return Left(_secureConnectionFailure);
+
+    return Left(const ServerFailure(
+      message: 'Something went wrong. Please try again.',
       statusCode: 500,
       title: 'Unexpected Error',
     ));

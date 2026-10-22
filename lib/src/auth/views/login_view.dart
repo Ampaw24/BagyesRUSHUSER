@@ -179,10 +179,17 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
-  /// Back from login always lands on the welcome screen — wherever login
-  /// was opened from — so a signed-out user can pick log in, register or
-  /// guest mode from there.
-  void _backToWelcome() => AppNavigator.toOnboarding(context);
+  /// Back returns to the screen that asked for sign-in when login was pushed
+  /// from a guest prompt, so the guest keeps their place (restaurant, cart).
+  /// Otherwise it lands on the welcome screen, where a signed-out user can
+  /// pick log in, register or guest mode.
+  void _goBack() {
+    if (widget.returnOnSuccess && context.canPop()) {
+      context.pop(false);
+    } else {
+      AppNavigator.toOnboarding(context);
+    }
+  }
 
   void _showErrorDialog(BuildContext context, String title, String message) {
     CustomDialog.showError(context: context, title: title, subtitle: message);
@@ -207,12 +214,12 @@ class _LoginViewState extends State<LoginView>
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final keyboardVisible = keyboardHeight > 0;
 
-    // Also routes the system back gesture/button to the welcome screen
-    // instead of popping to the previous route.
+    // Also routes the system back gesture/button through _goBack instead of
+    // popping to the previous route.
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _backToWelcome();
+        if (!didPop) _goBack();
       },
       child: Scaffold(
         backgroundColor: AppColors.cream,
@@ -292,7 +299,7 @@ class _LoginViewState extends State<LoginView>
     );
     return Row(
       children: [
-        AuthBackButton(onPressed: _backToWelcome),
+        AuthBackButton(onPressed: _goBack),
         SizedBox(width: sw * 0.03),
         GoPadyLogo(width: logoWidth),
       ],

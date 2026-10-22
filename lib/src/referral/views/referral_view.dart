@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'package:gopady/constant/app_theme.dart';
 import 'package:gopady/core/common/app/current_user_provider.dart';
+import 'package:gopady/core/utils/share_utils.dart';
 import 'package:gopady/src/referral/widgets/referral_code_card.dart';
 
 /// Refer & Earn screen.
@@ -32,13 +32,11 @@ class ReferralView extends StatelessWidget {
     ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
   }
 
-  void _shareCode(String code) {
+  void _shareCode(BuildContext context, String code) {
     if (code.isEmpty) return;
-    SharePlus.instance.share(
-      ShareParams(
-        text:
-            'Join me on GoPady! Use my referral code $code when you sign up.',
-      ),
+    shareText(
+      context,
+      'Join me on GoPady! Use my referral code $code when you sign up.',
     );
   }
 
@@ -71,7 +69,7 @@ class ReferralView extends StatelessWidget {
                 ReferralCodeCard(
                   code: code,
                   onCopy: () => _copyCode(context, code),
-                  onShare: () => _shareCode(code),
+                  onShare: () => _shareCode(context, code),
                 )
               else
                 Text(

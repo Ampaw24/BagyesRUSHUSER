@@ -2,7 +2,7 @@ import 'package:gopady/core/router/app_routes.dart';
 
 /// Host the legal pages are served from; in-page links elsewhere open in
 /// the external browser.
-const String legalSiteHost = 'bagyesrushdelivery.com';
+const String legalSiteHost = 'gopady.com';
 
 /// Legal pages hosted on the GoPady website, shown in-app via
 /// `LegalWebViewScreen`.

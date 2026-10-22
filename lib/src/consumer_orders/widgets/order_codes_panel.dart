@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/utils/share_utils.dart';
 import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 import 'order_code_card.dart';
 
@@ -32,7 +32,7 @@ class OrderCodesPanel extends StatelessWidget {
       if (collection != null && collection.hasFailed)
         _CollectionFailedBanner(reason: collection.failureReason),
       if (showCollectionCode)
-        _pickupCodeCard(collection, collectionCode),
+        _pickupCodeCard(context, collection, collectionCode),
       if (deliveryPin.isNotEmpty)
         OrderCodeCard(
           title: isReceive ? 'Drop-off code' : 'Delivery PIN',
@@ -57,7 +57,11 @@ class OrderCodesPanel extends StatelessWidget {
     );
   }
 
-  Widget _pickupCodeCard(OrderCollection collection, String code) {
+  Widget _pickupCodeCard(
+    BuildContext context,
+    OrderCollection collection,
+    String code,
+  ) {
     final sender = collection.contactName?.trim();
     final senderLabel = sender == null || sender.isEmpty ? 'The sender' : sender;
     final shareTarget = sender == null || sender.isEmpty ? 'sender' : sender;
@@ -69,12 +73,11 @@ class OrderCodesPanel extends StatelessWidget {
       code: code,
       icon: Icons.lock_open_rounded,
       shareLabel: 'Send to $shareTarget',
-      onShare: () => SharePlus.instance.share(
-        ShareParams(
-          text: 'Your GoPady pickup code is $code. A rider is '
-              'coming to collect the package — give them this code when '
-              'they arrive.',
-        ),
+      onShare: () => shareText(
+        context,
+        'Your GoPady pickup code is $code. A rider is '
+        'coming to collect the package — give them this code when '
+        'they arrive.',
       ),
     );
   }
