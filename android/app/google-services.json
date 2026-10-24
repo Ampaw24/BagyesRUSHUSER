@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "356203398523",
-    "project_id": "gopady-prod",
-    "storage_bucket": "gopady-prod.firebasestorage.app"
+    "project_number": "546762474757",
+    "project_id": "gopady-mobile",
+    "storage_bucket": "gopady-mobile.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:356203398523:android:b8ea2186cf92c55f18a9de",
+        "mobilesdk_app_id": "1:546762474757:android:a075963896d3a03ab3e36c",
         "android_client_info": {
           "package_name": "com.gopady.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAohyyp914xM6kgrf6H49yNK1TnuzZq9B8"
+          "current_key": "AIzaSyAe5LCUu9Pj_VpnEwtjC-WEk1LIHeA7URI"
         }
       ],
       "services": {

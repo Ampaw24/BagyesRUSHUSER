@@ -47,28 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAohyyp914xM6kgrf6H49yNK1TnuzZq9B8',
-    appId: '1:356203398523:android:b8ea2186cf92c55f18a9de',
-    messagingSenderId: '356203398523',
-    projectId: 'gopady-prod',
-    storageBucket: 'gopady-prod.firebasestorage.app',
+    apiKey: 'AIzaSyAe5LCUu9Pj_VpnEwtjC-WEk1LIHeA7URI',
+    appId: '1:546762474757:android:a075963896d3a03ab3e36c',
+    messagingSenderId: '546762474757',
+    projectId: 'gopady-mobile',
+    storageBucket: 'gopady-mobile.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB7oF-QWtmMnypll6O1UlKA_TYRmtrzg5g',
-    appId: '1:356203398523:ios:3e41542332c004b518a9de',
-    messagingSenderId: '356203398523',
-    projectId: 'gopady-prod',
-    storageBucket: 'gopady-prod.firebasestorage.app',
+    apiKey: 'AIzaSyD9jWp9ALprGSAWKM1rz9EUTHiLSPoXlLI',
+    appId: '1:546762474757:ios:8a6ee52a5c226d97b3e36c',
+    messagingSenderId: '546762474757',
+    projectId: 'gopady-mobile',
+    storageBucket: 'gopady-mobile.firebasestorage.app',
     iosBundleId: 'com.bagye.bagyesrush2',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCXhHMAtaozDFCU7XXE__Me4nOfvERAE3k',
-    appId: '1:782816451697:ios:a7627dbf619fea7c350fd0',
-    messagingSenderId: '782816451697',
-    projectId: 'bagyesrushapp-e0e4f',
-    storageBucket: 'bagyesrushapp-e0e4f.firebasestorage.app',
-    iosBundleId: 'com.example.bagyesrushappusernew',
+    apiKey: 'AIzaSyD9jWp9ALprGSAWKM1rz9EUTHiLSPoXlLI',
+    appId: '1:546762474757:ios:986137beb3d8e814b3e36c',
+    messagingSenderId: '546762474757',
+    projectId: 'gopady-mobile',
+    storageBucket: 'gopady-mobile.firebasestorage.app',
+    iosBundleId: 'com.gopady.app',
   );
 }

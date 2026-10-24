@@ -12,3 +12,6 @@ key.properties
 app/keys/
 *.jks
 *.keystore
+
+# Gradle output when assembling from android/ directly
+/build/

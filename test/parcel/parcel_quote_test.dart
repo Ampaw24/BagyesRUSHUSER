@@ -16,7 +16,7 @@ void main() {
       'rider': {
         'id': 31,
         'name': 'Kofi O.',
-        'photo_url': 'https://api.bagyesrushdelivery.com/api/v1/media/riders/kofi.jpg',
+        'photo_url': 'https://api.gopady.com/api/v1/media/riders/kofi.jpg',
         'rating': 4.8,
         'review_count': 132,
         'deliveries_completed': 486,

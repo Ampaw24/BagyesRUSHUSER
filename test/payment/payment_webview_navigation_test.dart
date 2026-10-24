@@ -29,7 +29,7 @@ void main() {
     test('the page redirecting to the merchant callback completes the charge',
         () {
       expect(
-        _decide('https://api.bagyesrushdelivery.com/payment/callback?reference=r1'),
+        _decide('https://api.gopady.com/payment/callback?reference=r1'),
         GatewayNavigation.complete,
       );
     });
