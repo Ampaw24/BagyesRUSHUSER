@@ -25,7 +25,7 @@ void main() async {
   // Phase 1 — legacy vendor/onboarding services
   await di.init();
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,bv. 
-  // AuthRepository, AuthViewmodel); guarded with isRegistered checks.
+  // AuthRepository, AuthViewmodel); guarded with isRegistered checks.-
   await AppInitializer.initialize();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

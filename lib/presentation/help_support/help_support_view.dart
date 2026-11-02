@@ -9,7 +9,7 @@ import '../../constant/app_theme.dart';
 class HelpSupportView extends StatelessWidget {
   const HelpSupportView({super.key});
 
-  static const String supportEmail = 'support@bagyesrushdelivery.com';
+  static const String supportEmail = 'support@gopady.com';
   static const String supportPhone = '+233 54 976 0079';
   static const String supportWhatsapp = '+233 54 976 0079';
 
