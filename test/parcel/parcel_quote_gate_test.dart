@@ -173,4 +173,58 @@ void main() {
 
     expect(vm.state.quoteBlockedMessage, isNull);
   });
+
+  // testWidgets runs on a fake clock, so `pump(duration)` fires the timer.
+  group('the "no riders" notice', () {
+    testWidgets('clears itself after 5 seconds', (tester) async {
+      await reachDeliveryStep();
+      repo.answer = const Right([]);
+      await vm.advance();
+      expect(vm.state.quoteBlockedMessage, contains('No riders'));
+
+      await tester.pump(const Duration(seconds: 4));
+      expect(vm.state.quoteBlockedMessage, isNotNull);
+      await tester.pump(const Duration(seconds: 1));
+      expect(vm.state.quoteBlockedMessage, isNull);
+      expect(vm.state.currentStep, ParcelStep.deliveryLocation);
+    });
+
+    testWidgets('also clears when the server says no riders', (tester) async {
+      await reachDeliveryStep();
+      repo.answer = Left(_refusal(
+        'No riders are available near that pickup point right now.',
+      ));
+      await vm.advance();
+      expect(vm.state.quoteBlockedMessage, isNotNull);
+
+      await tester.pump(SendParcelViewModel.blockedMessageDuration);
+      expect(vm.state.quoteBlockedMessage, isNull);
+    });
+
+    testWidgets('a retry restarts the 5 seconds', (tester) async {
+      await reachDeliveryStep();
+      repo.answer = const Right([]);
+      await vm.advance();
+      await tester.pump(const Duration(seconds: 3));
+      await vm.advance();
+      await tester.pump(const Duration(seconds: 3));
+      expect(vm.state.quoteBlockedMessage, isNotNull);
+      await tester.pump(const Duration(seconds: 2));
+      expect(vm.state.quoteBlockedMessage, isNull);
+    });
+
+    testWidgets('problems the customer must fix stay on screen',
+        (tester) async {
+      await reachDeliveryStep();
+      repo.answer = Left(_refusal('We don\'t deliver to Madina yet.'));
+      await vm.advance();
+      await tester.pump(const Duration(seconds: 30));
+      expect(vm.state.quoteBlockedMessage, 'We don\'t deliver to Madina yet.');
+
+      repo.answer = Left(_refusal('No internet connection.', status: 499));
+      await vm.advance();
+      await tester.pump(const Duration(seconds: 30));
+      expect(vm.state.quoteBlockedMessage, 'No internet connection.');
+    });
+  });
 }

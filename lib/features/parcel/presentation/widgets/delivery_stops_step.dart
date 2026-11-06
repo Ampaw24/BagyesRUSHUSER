@@ -13,6 +13,8 @@ import 'package:gopady/src/parcel/model/delivery_stop.dart';
 import 'package:gopady/src/parcel/model/parcel_direction.dart';
 import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 import 'parcel_form_fields.dart';
+import 'parcel_ui.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point
@@ -67,39 +69,26 @@ class DeliveryStopsStep extends StatelessWidget {
     final w = MediaQuery.sizeOf(context).width;
 
     final isReceive = direction.isReceive;
-    final canAdd = !isReceive &&
+    final canAdd =
+        !isReceive &&
         stops.isNotEmpty &&
         stops.last.isComplete &&
         stops.length < maxStops;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.1),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.1),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──────────────────────────────────────────────────────────
-          Text(
-            isReceive ? 'Deliver To You' : 'Delivery Location',
-            style: TextStyle(
-              fontSize: w * 0.055,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: w * 0.015),
-          Text(
-            isReceive
+          ParcelStepHeader(
+            title: isReceive ? 'Deliver to you' : 'Where is it going?',
+            subtitle: isReceive
                 ? 'Where should the rider bring your package?'
                 : stops.length > 1
-                    ? 'Managing ${stops.length} stops — one rider handles all.'
-                    : 'Where should your package be delivered?',
-            style: TextStyle(
-              fontSize: w * 0.035,
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
+                ? '${stops.length} stops · one rider handles them all, in order.'
+                : 'Add the drop-off and who will receive it.',
           ),
-
           SizedBox(height: w * 0.05),
 
           // ── Stop cards ───────────────────────────────────────────────────────
@@ -116,7 +105,7 @@ class DeliveryStopsStep extends StatelessWidget {
               onDetailsChanged: onStopDetailsChanged,
               onRemove: () => onStopRemoved(stops[i].id),
             ),
-            SizedBox(height: w * 0.03),
+            SizedBox(height: w * 0.035),
           ],
 
           // ── Add another stop — animated reveal ───────────────────────────────
@@ -262,40 +251,19 @@ class _StopCardState extends State<_StopCard> {
     final isReceive = widget.direction.isReceive;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: isComplete
-            ? AppColors.success.withValues(alpha: 0.02)
-            : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.04),
-        border: Border.all(
-          color: isComplete
-              ? AppColors.success.withValues(alpha: 0.4)
-              : AppColors.border,
-          width: isComplete ? 1.5 : 1.0,
-        ),
-        boxShadow: isComplete
-            ? [
-                BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ]
-            : [],
-      ),
+      duration: AppMotion.standard,
+      curve: AppMotion.outExpo,
+      clipBehavior: Clip.antiAlias,
+      decoration: parcelCardDecoration(w, highlighted: isComplete),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Location row ─────────────────────────────────────────────────────
-          GestureDetector(
+          InkWell(
             onTap: () => _openLocationSheet(context),
-            behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: EdgeInsets.all(w * 0.04),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   _StopBadge(index: widget.index, isSet: isComplete),
                   SizedBox(width: w * 0.035),
@@ -304,13 +272,16 @@ class _StopCardState extends State<_StopCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isReceive ? 'Your drop-off' : 'Stop ${widget.index + 1}',
+                          (isReceive
+                                  ? 'Your drop-off'
+                                  : 'Stop ${widget.index + 1}')
+                              .toUpperCase(),
                           style: TextStyle(
-                            fontSize: w * 0.027,
+                            fontSize: w * 0.026,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.6,
                             color: isComplete
-                                ? AppColors.success
+                                ? AppColors.primary
                                 : AppColors.textHint,
                           ),
                         ),
@@ -318,12 +289,15 @@ class _StopCardState extends State<_StopCard> {
                         Text(
                           hasLocation
                               ? widget.stop.address
-                              : 'Tap to set delivery location',
+                              : 'Set drop-off location',
                           style: TextStyle(
                             fontSize: w * 0.036,
+                            fontWeight: hasLocation
+                                ? FontWeight.w500
+                                : FontWeight.w600,
                             color: hasLocation
                                 ? AppColors.textPrimary
-                                : AppColors.textHint,
+                                : AppColors.primary,
                             height: 1.35,
                           ),
                           maxLines: 2,
@@ -333,34 +307,26 @@ class _StopCardState extends State<_StopCard> {
                     ),
                   ),
                   SizedBox(width: w * 0.02),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        hasLocation
-                            ? Icons.edit_location_alt_outlined
-                            : Icons.add_location_alt_outlined,
-                        size: w * 0.055,
-                        color:
-                            hasLocation ? AppColors.primary : AppColors.textHint,
-                      ),
-                      if (widget.canRemove) ...[
-                        SizedBox(height: w * 0.018),
-                        GestureDetector(
-                          onTap: widget.onRemove,
-                          behavior: HitTestBehavior.opaque,
-                          child: Padding(
-                            padding: EdgeInsets.all(w * 0.01),
-                            child: Icon(
-                              Icons.remove_circle_outline_rounded,
-                              size: w * 0.048,
-                              color: AppColors.error.withValues(alpha: 0.75),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                  HugeIcon(
+                    icon: hasLocation
+                        ? HugeIcons.strokeRoundedEdit02
+                        : HugeIcons.strokeRoundedArrowRight01,
+                    size: w * 0.048,
+                    color: hasLocation
+                        ? AppColors.textSecondary
+                        : AppColors.primary,
                   ),
+                  if (widget.canRemove)
+                    IconButton(
+                      tooltip: 'Remove stop',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: widget.onRemove,
+                      icon: HugeIcon(
+                        icon: HugeIcons.strokeRoundedDelete02,
+                        size: w * 0.048,
+                        color: AppColors.error,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -370,8 +336,9 @@ class _StopCardState extends State<_StopCard> {
           AnimatedSize(
             duration: const Duration(milliseconds: 320),
             curve: Curves.easeOutCubic,
-            child:
-                hasLocation ? _buildDetailsSection(w) : const SizedBox.shrink(),
+            child: hasLocation
+                ? _buildDetailsSection(w)
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -385,15 +352,14 @@ class _StopCardState extends State<_StopCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Divider(color: AppColors.divider, height: 1),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-          child: Divider(color: AppColors.divider, height: 1),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.035, w * 0.04, w * 0.04),
+          padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.04, w * 0.04, w * 0.045),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const _GroupTitle('What\'s being dropped'),
+              SizedBox(height: w * 0.03),
               // ── Photos for this stop ───────────────────────────────────────
               if (widget.packageImages.isNotEmpty) ...[
                 ParcelFieldLabel(
@@ -418,16 +384,16 @@ class _StopCardState extends State<_StopCard> {
                           curve: Curves.easeOutCubic,
                           width: w * 0.18,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(w * 0.025),
+                            borderRadius: BorderRadius.circular(w * 0.03),
                             border: Border.all(
                               color: selected
                                   ? AppColors.primary
-                                  : AppColors.border,
-                              width: selected ? 2.5 : 1.0,
+                                  : Colors.transparent,
+                              width: 2,
                             ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(w * 0.022),
+                            borderRadius: BorderRadius.circular(w * 0.026),
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
@@ -517,7 +483,9 @@ class _StopCardState extends State<_StopCard> {
                 ],
               ),
 
-              SizedBox(height: w * 0.035),
+              SizedBox(height: w * 0.05),
+              _GroupTitle(isReceive ? 'Receiver' : 'Recipient'),
+              SizedBox(height: w * 0.03),
 
               // ── Recipient name ─────────────────────────────────────────────
               ParcelFieldLabel(
@@ -618,6 +586,25 @@ class _StopCardState extends State<_StopCard> {
   }
 }
 
+class _GroupTitle extends StatelessWidget {
+  final String text;
+  const _GroupTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return Text(
+      text,
+      style: TextStyle(
+        fontFamily: AppFonts.display,
+        fontSize: w * 0.037,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+
 class _QtyStepper extends StatelessWidget {
   final int qty;
   final VoidCallback onDecrement;
@@ -633,34 +620,43 @@ class _QtyStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _QtyButton(
-          icon: Icons.remove_rounded,
-          onTap: onDecrement,
-          enabled: qty > 1,
-          w: w,
-        ),
-        Container(
-          width: w * 0.12,
-          alignment: Alignment.center,
-          child: Text(
-            '$qty',
-            style: TextStyle(
-              fontSize: w * 0.04,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+    return Container(
+      padding: EdgeInsets.all(w * 0.01),
+      decoration: const ShapeDecoration(
+        color: AppColors.surface,
+        shape: StadiumBorder(),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _QtyButton(
+            icon: Icons.remove_rounded,
+            onTap: onDecrement,
+            enabled: qty > 1,
+            label: 'Decrease quantity',
+            w: w,
+          ),
+          SizedBox(
+            width: w * 0.1,
+            child: Text(
+              '$qty',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: w * 0.038,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
-        ),
-        _QtyButton(
-          icon: Icons.add_rounded,
-          onTap: onIncrement,
-          enabled: qty < 99,
-          w: w,
-        ),
-      ],
+          _QtyButton(
+            icon: Icons.add_rounded,
+            onTap: onIncrement,
+            enabled: qty < 99,
+            label: 'Increase quantity',
+            w: w,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -669,38 +665,40 @@ class _QtyButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool enabled;
+  final String label;
   final double w;
 
   const _QtyButton({
     required this.icon,
     required this.onTap,
     required this.enabled,
+    required this.label,
     required this.w,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: w * 0.09,
-        height: w * 0.09,
-        decoration: BoxDecoration(
-          color: enabled
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.border.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(w * 0.025),
-          border: Border.all(
-            color: enabled
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : AppColors.border,
+    final size = w * 0.08;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: Material(
+        color: enabled ? AppColors.card : Colors.transparent,
+        shape: const CircleBorder(),
+        elevation: 0,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: enabled ? onTap : null,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Icon(
+              icon,
+              size: w * 0.042,
+              color: enabled ? AppColors.textPrimary : AppColors.textHint,
+            ),
           ),
-        ),
-        child: Icon(
-          icon,
-          size: w * 0.042,
-          color: enabled ? AppColors.primary : AppColors.textHint,
         ),
       ),
     );
@@ -720,27 +718,26 @@ class _StopBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final size = w * 0.1;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-      width: w * 0.11,
-      height: w * 0.11,
+      duration: AppMotion.standard,
+      curve: AppMotion.outExpo,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: isSet
-            ? AppColors.success
-            : AppColors.border.withValues(alpha: 0.55),
+        color: isSet ? AppColors.primary : AppColors.surfaceVariant,
         shape: BoxShape.circle,
       ),
       child: Center(
         child: isSet
-            ? Icon(Icons.check_rounded, color: Colors.white, size: w * 0.048)
+            ? Icon(Icons.check_rounded, color: Colors.white, size: size * 0.5)
             : Text(
                 '${index + 1}',
                 style: TextStyle(
-                  fontSize: w * 0.034,
+                  fontSize: w * 0.036,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textHint,
+                  color: AppColors.textSecondary,
                 ),
               ),
       ),
@@ -766,59 +763,47 @@ class _AddStopButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final radius = BorderRadius.circular(w * 0.045);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: w * 0.042,
-          horizontal: w * 0.04,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(w * 0.04),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.35),
-            width: 1.5,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: radius,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: w * 0.035,
+            horizontal: w * 0.04,
           ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_circle_outline_rounded,
-              color: AppColors.primary,
-              size: w * 0.052,
-            ),
-            SizedBox(width: w * 0.025),
-            Text(
-              'Add another stop',
-              style: TextStyle(
-                fontSize: w * 0.038,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
+          child: Row(
+            children: [
+              ParcelIconBadge(
+                icon: HugeIcons.strokeRoundedAdd01,
+                active: true,
+                sizeFactor: 0.1,
               ),
-            ),
-            SizedBox(width: w * 0.025),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: w * 0.02,
-                vertical: w * 0.006,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(w * 0.02),
-              ),
-              child: Text(
-                '$stopCount / $maxStops',
-                style: TextStyle(
-                  fontSize: w * 0.028,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+              SizedBox(width: w * 0.035),
+              Expanded(
+                child: Text(
+                  'Add another stop',
+                  style: TextStyle(
+                    fontSize: w * 0.037,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-            ),
-          ],
+              Text(
+                '$stopCount of $maxStops',
+                style: TextStyle(
+                  fontSize: w * 0.03,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -16,6 +16,7 @@ import '../viewmodels/transaction_viewmodel.dart';
 import 'widgets/transaction_tile.dart';
 import 'widgets/wallet_balance_card.dart';
 import 'widgets/withdraw_sheet.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 enum _WalletTab { transactions, withdrawals }
 
@@ -138,9 +139,7 @@ class _TransactionViewState extends State<TransactionView> {
         final state = vm.state;
 
         if (state is TransactionLoading || state is TransactionInitial) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
+          return const AppLoader();
         }
 
         if (state is TransactionError) {

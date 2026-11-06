@@ -9,6 +9,7 @@ import 'package:gopady/core/router/app_router.dart' show appRouteObserver;
 import 'package:gopady/src/chat/viewmodel/chat_list_viewmodel.dart';
 import 'package:gopady/src/chat/view/widgets/conversation_tile.dart';
 import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// The chat inbox — `GET conversations`, filtered to threads whose order is
 /// still in progress. Unlike a general messaging app this is not a
@@ -74,8 +75,7 @@ class _ChatListViewState extends State<ChatListView> with RouteAware {
       body: SafeArea(
         top: false,
         child: switch (state) {
-          ChatListLoading() =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          ChatListLoading() => const AppLoader(),
           ChatListError(:final message) =>
             _ErrorState(w: w, message: message, onRetry: _vm.refresh),
           ChatListLoaded(:final conversations) => conversations.isEmpty

@@ -9,6 +9,7 @@ import 'package:gopady/src/report/model/report.dart';
 import 'package:gopady/src/report/viewmodel/my_reports_viewmodel.dart';
 import 'package:gopady/src/report/views/report_flow_args.dart';
 import 'package:gopady/src/report/widgets/report_card.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 enum _ReportFilter { open, resolved, all }
 
@@ -77,8 +78,7 @@ class _MyReportsViewState extends State<MyReportsView> with RouteAware {
       backgroundColor: AppColors.scaffold,
       body: SafeArea(
         child: switch (state) {
-          MyReportsLoading() =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          MyReportsLoading() => const AppLoader(),
           MyReportsError(:final message) => Column(
               children: [
                 _Header(w: w, role: widget.role, openCount: 0, resolvedThisWeek: 0),

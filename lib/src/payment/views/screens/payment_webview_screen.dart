@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:gopady/constant/app_theme.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Only Paystack's own hosted-checkout domains may be loaded/navigated to.
 /// Everything else (including the merchant's own callback host once the
@@ -160,9 +161,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
                   children: [
                     WebViewWidget(controller: _controller),
                     if (_isLoading)
-                      const Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
-                      ),
+                      const AppLoader(message: 'Opening secure checkout…'),
                   ],
                 ),
     );

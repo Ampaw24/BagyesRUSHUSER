@@ -1,29 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 import 'package:gopady/src/parcel/model/parcel_direction.dart';
 import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
+/// Slim segmented progress bar with a "Step x of y · Label" caption.
 class ParcelStepIndicator extends StatelessWidget {
   final ParcelStep currentStep;
   final ParcelDirection direction;
 
   static const _sendLabels = [
-    'Type',
-    'Details',
+    'Package type',
+    'Package details',
     'Pickup',
     'Delivery',
-    'Riders',
+    'Rider',
     'Confirm',
   ];
 
   static const _receiveLabels = [
-    'Type',
-    'Details',
+    'Package type',
+    'Package details',
     'Sender',
     'Drop-off',
-    'Riders',
+    'Rider',
     'Confirm',
   ];
 
@@ -40,91 +41,85 @@ class ParcelStepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     final total = ParcelStep.values.length;
+    final current = currentStep.index;
+    final next = current + 1 < total ? _labels[current + 1] : null;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.05, vertical: w * 0.04),
-      child: Row(
-        children: List.generate(total * 2 - 1, (index) {
-          if (index.isOdd) return _connector(index ~/ 2, w);
-          final stepIndex = index ~/ 2;
-          return _stepDot(stepIndex, w);
-        }),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.01, w * 0.05, w * 0.035),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              for (var i = 0; i < total; i++) ...[
+                if (i > 0) SizedBox(width: w * 0.012),
+                Expanded(
+                  child: _Segment(filled: i <= current, w: w),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: w * 0.025),
+          Row(
+            children: [
+              Text(
+                'Step ${current + 1} of $total',
+                style: TextStyle(
+                  fontSize: w * 0.03,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                '  ·  ${_labels[current]}',
+                style: TextStyle(
+                  fontSize: w * 0.03,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              if (next != null)
+                Flexible(
+                  child: Text(
+                    'Next: $next',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: w * 0.029,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _stepDot(int stepIndex, double w) {
-    final current = currentStep.index;
-    final isDone = stepIndex < current;
-    final isActive = stepIndex == current;
+class _Segment extends StatelessWidget {
+  final bool filled;
+  final double w;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          width: w * 0.07,
-          height: w * 0.07,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isDone
-                ? AppColors.success
-                : isActive
-                    ? AppColors.primary
-                    : AppColors.surfaceVariant,
-            border: Border.all(
-              color: isDone
-                  ? AppColors.success
-                  : isActive
-                      ? AppColors.primary
-                      : AppColors.border,
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: isDone
-                ? HugeIcon(
-                    icon: HugeIcons.strokeRoundedCheckmarkBadge01,
-                    color: Colors.white,
-                    size: w * 0.038,
-                  )
-                : Text(
-                    '${stepIndex + 1}',
-                    style: TextStyle(
-                      fontSize: w * 0.03,
-                      fontWeight: FontWeight.w700,
-                      color: isActive ? Colors.white : AppColors.textHint,
-                    ),
-                  ),
-          ),
-        ),
-        SizedBox(height: w * 0.012),
-        Text(
-          _labels[stepIndex],
-          style: TextStyle(
-            fontSize: w * 0.024,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-            color: isActive ? AppColors.primary : AppColors.textHint,
-          ),
-        ),
-      ],
-    );
-  }
+  const _Segment({required this.filled, required this.w});
 
-  Widget _connector(int precedingStep, double w) {
-    final isDone = precedingStep < currentStep.index;
-    return Expanded(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: w * 0.046),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          height: 1.5,
-          decoration: BoxDecoration(
-            color: isDone ? AppColors.success : AppColors.border,
-            borderRadius: BorderRadius.circular(2),
+  @override
+  Widget build(BuildContext context) {
+    final height = w * 0.011;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(height),
+      child: Stack(
+        children: [
+          Container(height: height, color: AppColors.surfaceVariant),
+          AnimatedFractionallySizedBox(
+            duration: AppMotion.standard,
+            curve: AppMotion.outExpo,
+            widthFactor: filled ? 1 : 0,
+            child: Container(height: height, color: AppColors.primary),
           ),
-        ),
+        ],
       ),
     );
   }

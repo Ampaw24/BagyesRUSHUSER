@@ -6,4 +6,6 @@ part 'restaurant_assets.dart';
 
 part 'brand_assets.dart';
 
+part 'lottie_assets.dart';
+
 part 'fonts.dart';

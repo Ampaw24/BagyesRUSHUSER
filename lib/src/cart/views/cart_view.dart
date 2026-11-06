@@ -11,6 +11,7 @@ import 'package:gopady/src/cart/viewmodels/cart_state.dart';
 import 'package:gopady/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:gopady/src/cart/views/widgets/cart_item_tile.dart';
 import 'package:gopady/core/utils/money_format.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class CartView extends StatefulWidget {
   const CartView({super.key});
@@ -150,9 +151,7 @@ class _CartViewState extends State<CartView> {
 
     if (state is CartLoading || state is CartInitial) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
+        body: AppLoader(),
       );
     }
 

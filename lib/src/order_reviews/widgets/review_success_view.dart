@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import 'package:gopady/constant/app_theme.dart';
 import 'package:gopady/src/order_reviews/models/review_target.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Confirmation shown in place of the form once the review is saved.
 class ReviewSuccessView extends StatelessWidget {
@@ -19,18 +19,10 @@ class ReviewSuccessView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: w * 0.32,
-            height: w * 0.32,
-            child: Lottie.asset(
-              'assets/success_loader.json',
-              repeat: false,
-              errorBuilder: (_, _, _) => Icon(
-                Icons.check_circle_rounded,
-                size: w * 0.24,
-                color: AppColors.success,
-              ),
-            ),
+          AppStatusAnimation(
+            AppStatus.success,
+            size: (w * 0.3).clamp(96.0, 160.0),
+            semanticLabel: 'Review submitted',
           ),
           SizedBox(height: w * 0.03),
           Text(

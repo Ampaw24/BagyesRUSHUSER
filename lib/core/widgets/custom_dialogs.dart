@@ -2,6 +2,8 @@ import 'package:gopady/constant/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import 'app_status_animation.dart';
+
 enum DialogType { success, error, confirmation, info, warning }
 
 class CustomDialogConfig {
@@ -344,7 +346,30 @@ class _CustomDialogState extends State<CustomDialog>
     );
   }
 
+  /// Animated status for outcome dialogs; confirmations (and custom-tinted
+  /// dialogs) keep the static icon badge.
+  AppStatus? get _animatedStatus {
+    if (widget.config.customColor != null) return null;
+    return switch (widget.config.type) {
+      DialogType.success => AppStatus.success,
+      DialogType.error => AppStatus.error,
+      DialogType.warning => AppStatus.warning,
+      DialogType.info => AppStatus.info,
+      DialogType.confirmation => null,
+    };
+  }
+
   Widget _buildIconBadge(double sw) {
+    final status = _animatedStatus;
+    if (status != null) {
+      return AppStatusAnimation(
+        status,
+        size: (sw * 0.26).clamp(72.0, 132.0),
+        // Let the dialog's own scale-in land before the badge draws.
+        delay: const Duration(milliseconds: 180),
+      );
+    }
+
     final badgeSize = sw * 0.155;
     final iconSize = sw * 0.075;
     final accent = _color();

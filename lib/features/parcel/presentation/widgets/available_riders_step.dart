@@ -15,6 +15,9 @@ import '../../../../core/utils/map_marker_icons.dart';
 import 'package:gopady/src/parcel/model/delivery_stop.dart';
 import 'package:gopady/src/parcel/model/parcel_quote.dart';
 import 'rider_card.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
+import 'parcel_ui.dart';
+import 'package:gopady/constant/app_tokens.dart';
 
 /// Lists every available rider with their own fee and ETA (priced from
 /// each rider's position) and lets the customer pick one.
@@ -150,8 +153,7 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
         error: e,
         stackTrace: s,
       );
-      pickup =
-          BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+      pickup = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
       stop = BitmapDescriptor.defaultMarker;
     }
     if (!mounted) return;
@@ -243,9 +245,9 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
       widget.deliveryStops.where((s) => s.latLng != null).toList();
 
   List<LatLng> get _routePoints => [
-        if (widget.pickupLatLng != null) widget.pickupLatLng!,
-        ..._locatedStops.map((s) => s.latLng!),
-      ];
+    if (widget.pickupLatLng != null) widget.pickupLatLng!,
+    ..._locatedStops.map((s) => s.latLng!),
+  ];
 
   /// The road route once it's loaded, else the straight pickup→stop line.
   List<LatLng> get _displayRoute =>
@@ -293,8 +295,9 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
     }
 
     setState(() {
-      _roadRoute =
-          result.points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+      _roadRoute = result.points
+          .map((p) => LatLng(p.latitude, p.longitude))
+          .toList();
     });
 
     // The actual road route can bow outside the straight-line box between
@@ -318,9 +321,9 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
   }
 
   LatLng _lerpLatLng(LatLng a, LatLng b, double t) => LatLng(
-        a.latitude + (b.latitude - a.latitude) * t,
-        a.longitude + (b.longitude - a.longitude) * t,
-      );
+    a.latitude + (b.latitude - a.latitude) * t,
+    a.longitude + (b.longitude - a.longitude) * t,
+  );
 
   /// Returns the prefix of [route] reached after travelling fraction [t] of
   /// its total length, with the cut point interpolated so the line's tip
@@ -472,15 +475,11 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
                 ),
               ),
             ),
-            Text(
-              'Choose a Rider',
-              style: TextStyle(
-                fontSize: w * 0.055,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
+            const ParcelStepHeader(
+              title: 'Choose a rider',
+              subtitle: 'Each price is based on where that rider is now.',
             ),
-            SizedBox(height: w * 0.025),
+            SizedBox(height: w * 0.04),
 
             _TripSummaryCard(
               distanceKm: widget.distanceKm,
@@ -491,8 +490,9 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
               w: w,
             ),
 
-            SizedBox(height: w * 0.06),
-
+            SizedBox(height: w * 0.05),
+            const ParcelSectionLabel(label: 'Available riders'),
+            SizedBox(height: w * 0.03),
             _buildRiderSection(w),
           ],
         ),
@@ -614,8 +614,7 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
   Widget _buildRiderSection(double w) {
     if (widget.isFetchingQuote) {
       return _StatusMessage(
-        icon: null,
-        showSpinner: true,
+        status: AppStatus.searching,
         title: 'Finding riders near you…',
         subtitle: 'This usually takes a few seconds.',
         w: w,
@@ -624,8 +623,7 @@ class _AvailableRidersStepState extends State<AvailableRidersStep>
 
     if (widget.quoteError != null) {
       return _StatusMessage(
-        icon: HugeIcons.strokeRoundedAlert01,
-        iconColor: AppColors.error,
+        status: AppStatus.error,
         title: 'Couldn\'t reach the server',
         subtitle: widget.quoteError!,
         onRetry: widget.onRetry,
@@ -677,63 +675,34 @@ class _TripSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(w * 0.045),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    final pending = isFetchingQuote;
+    return Row(
+      children: [
+        _StatItem(
+          icon: HugeIcons.strokeRoundedRoute01,
+          value: '${distanceKm.toStringAsFixed(1)} km',
+          label: 'Distance',
+          w: w,
         ),
-        borderRadius: BorderRadius.circular(w * 0.04),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _StatItem(
-            icon: HugeIcons.strokeRoundedMapsLocation01,
-            value: '${distanceKm.toStringAsFixed(1)} km',
-            label: 'Distance',
-            w: w,
-          ),
-          _divider(w: w),
-          _StatItem(
-            icon: HugeIcons.strokeRoundedMoneyBag01,
-            value: isFetchingQuote || quotedPrice == null
-                ? '—'
-                : '${quoteCurrency ?? 'GHS'} ${quotedPrice!.toStringAsFixed(0)}',
-            label: 'Est. Cost',
-            w: w,
-          ),
-          _divider(w: w),
-          _StatItem(
-            icon: HugeIcons.strokeRoundedClock01,
-            value: isFetchingQuote || etaMinutes == null
-                ? '—'
-                : '$etaMinutes min',
-            label: 'ETA',
-            w: w,
-          ),
-        ],
-      ),
+        SizedBox(width: w * 0.025),
+        _StatItem(
+          icon: HugeIcons.strokeRoundedMoneyBag01,
+          value: pending || quotedPrice == null
+              ? '—'
+              : '${quoteCurrency ?? 'GHS'} ${quotedPrice!.toStringAsFixed(2)}',
+          label: 'Selected fare',
+          w: w,
+        ),
+        SizedBox(width: w * 0.025),
+        _StatItem(
+          icon: HugeIcons.strokeRoundedClock01,
+          value: pending || etaMinutes == null ? '—' : '$etaMinutes min',
+          label: 'Arrives in',
+          w: w,
+        ),
+      ],
     );
   }
-
-  Widget _divider({required double w}) => Container(
-        width: 1,
-        height: w * 0.1,
-        color: Colors.white.withValues(alpha: 0.25),
-        margin: EdgeInsets.symmetric(horizontal: w * 0.02),
-      );
 }
 
 class _StatItem extends StatelessWidget {
@@ -752,31 +721,43 @@ class _StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          HugeIcon(icon: icon, color: Colors.white, size: w * 0.05),
-          SizedBox(height: w * 0.015),
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: w * 0.033,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+      child: Container(
+        padding: EdgeInsets.all(w * 0.03),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(w * 0.035),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            HugeIcon(icon: icon, color: AppColors.primary, size: w * 0.045),
+            SizedBox(height: w * 0.02),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: AppFonts.display,
+                  fontSize: w * 0.037,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
-          ),
-          SizedBox(height: w * 0.005),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: w * 0.027,
-              color: Colors.white.withValues(alpha: 0.75),
+            SizedBox(height: w * 0.004),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: w * 0.027,
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -785,18 +766,14 @@ class _StatItem extends StatelessWidget {
 // ── Status message (loading / error / empty) ─────────────────────────────
 
 class _StatusMessage extends StatelessWidget {
-  final List<List<dynamic>>? icon;
-  final Color? iconColor;
-  final bool showSpinner;
+  final AppStatus status;
   final String title;
   final String subtitle;
   final VoidCallback? onRetry;
   final double w;
 
   const _StatusMessage({
-    required this.icon,
-    this.iconColor,
-    this.showSpinner = false,
+    required this.status,
     required this.title,
     required this.subtitle,
     this.onRetry,
@@ -806,18 +783,11 @@ class _StatusMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: w * 0.1),
+      padding: EdgeInsets.symmetric(vertical: w * 0.04),
       child: Column(
         children: [
-          if (showSpinner)
-            SizedBox(
-              width: w * 0.09,
-              height: w * 0.09,
-              child: const CircularProgressIndicator(strokeWidth: 2.4),
-            )
-          else if (icon != null)
-            HugeIcon(icon: icon!, color: iconColor ?? AppColors.textSecondary, size: w * 0.1),
-          SizedBox(height: w * 0.04),
+          AppStatusAnimation(status, size: w * 0.26, semanticLabel: title),
+          SizedBox(height: w * 0.03),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -831,28 +801,14 @@ class _StatusMessage extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
+            style: TextStyle(
+              fontSize: w * 0.032,
+              color: AppColors.textSecondary,
+            ),
           ),
           if (onRetry != null) ...[
             SizedBox(height: w * 0.04),
-            GestureDetector(
-              onTap: onRetry,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.06, vertical: w * 0.03),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(w * 0.03),
-                ),
-                child: Text(
-                  'Retry',
-                  style: TextStyle(
-                    fontSize: w * 0.035,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Try again')),
           ],
         ],
       ),

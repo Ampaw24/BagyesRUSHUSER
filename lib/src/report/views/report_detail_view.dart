@@ -7,6 +7,7 @@ import 'package:gopady/src/report/model/report.dart';
 import 'package:gopady/src/report/viewmodel/report_detail_viewmodel.dart';
 import 'package:gopady/src/report/widgets/report_status_badge.dart';
 import 'package:gopady/src/report/widgets/report_card.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class ReportDetailView extends StatefulWidget {
   final String reportId;
@@ -51,8 +52,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(title: const Text('Report Details')),
       body: switch (state) {
-        ReportDetailLoading() =>
-          const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        ReportDetailLoading() => const AppLoader(),
         ReportDetailError(:final message) => Center(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: w * 0.1),

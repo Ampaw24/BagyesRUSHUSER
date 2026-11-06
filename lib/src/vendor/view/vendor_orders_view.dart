@@ -12,6 +12,7 @@ import '../viewmodel/orders_viewmodel.dart';
 import 'widgets/accept_order_dialog.dart';
 import 'widgets/order_card.dart';
 import 'widgets/order_reason_sheet.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class VendorOrdersView extends StatefulWidget {
   /// Whether this tab is the one on screen — VendorHome's [IndexedStack]
@@ -257,7 +258,7 @@ class _VendorOrdersViewState extends State<VendorOrdersView> {
             color: AppColors.primary,
             child: vm.state.status == OrdersStatus.loading && allOrders.isEmpty
                 ? _scrollableFill(
-                    const Center(child: CircularProgressIndicator()),
+                    const AppLoader(),
                   )
                 : orders.isEmpty
                 ? _scrollableFill(

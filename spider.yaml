@@ -37,3 +37,7 @@ groups:
   - path: assets/brand
     class_name: BrandAssets
     types: [ .png ]
+
+  - path: assets/lottie
+    class_name: LottieAssets
+    types: [ .json ]

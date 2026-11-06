@@ -5,6 +5,7 @@ import '../../../constant/app_theme.dart';
 import '../../../core/router/app_routes.dart';
 import '../viewmodel/settings_viewmodel.dart';
 import '../../auth/views/logout_action.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class VendorSettingsView extends StatefulWidget {
   const VendorSettingsView({super.key});
@@ -35,7 +36,7 @@ class _VendorSettingsViewState extends State<VendorSettingsView> {
     return Consumer<SettingsViewModel>(
       builder: (context, vm, _) {
         if (vm.state.status == SettingsStatus.loading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoader();
         }
         if (vm.state.status == SettingsStatus.error) {
           return Center(

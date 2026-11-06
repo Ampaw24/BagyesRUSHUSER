@@ -7,6 +7,7 @@ import '../../orders/viewmodels/orders_viewmodel.dart';
 import '../model/menu_item.dart';
 import 'widgets/menu_item_card.dart';
 import 'add_edit_menu_view.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 // ── Main view ──────────
 
@@ -312,7 +313,7 @@ class _VendorMenuViewState extends State<VendorMenuView> {
     required double horizontalPad,
   }) {
     if (state.status == MenuStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoader();
     }
 
     if (state.status == MenuStatus.error) {

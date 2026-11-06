@@ -30,6 +30,7 @@ import 'package:gopady/src/vendor/model/vendor_order.dart'
 import 'package:gopady/src/vendor/viewmodel/orders_viewmodel.dart'
     as vendor_orders;
 import 'package:gopady/constant/app_tokens.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class ReportFlowView extends StatefulWidget {
   final ReportFlowArgs args;
@@ -540,8 +541,7 @@ class _VendorTargetPickerState extends State<_VendorTargetPicker> {
     final w = MediaQuery.sizeOf(context).width;
 
     return switch (_vm.state) {
-      ReportVendorsLoading() =>
-        const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      ReportVendorsLoading() => const AppLoader(),
       ReportVendorsError() => Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: w * 0.1),

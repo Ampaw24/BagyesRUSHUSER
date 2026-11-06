@@ -347,7 +347,9 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
       // They went back while the quote was loading — leave them where they are.
       if (state.currentStep != from) return;
       if (problem != null) {
-        emit(state.copyWith(quoteBlockedMessage: problem));
+        // "No riders" is temporary, so it clears itself; anything the
+        // customer must fix (address, connection) stays until they act.
+        _showBlockedMessage(problem, autoDismiss: _isNoRiders(problem));
         return;
       }
       emit(state.copyWith(currentStep: nextStep));
@@ -363,6 +365,35 @@ class SendParcelViewModel extends ViewModel<SendParcelState> {
     }
 
     emit(state.copyWith(currentStep: nextStep));
+  }
+
+  /// How long a "no riders available" notice stays on the delivery step.
+  static const blockedMessageDuration = Duration(seconds: 5);
+  Timer? _blockedMessageTimer;
+
+  void _showBlockedMessage(String message, {required bool autoDismiss}) {
+    _blockedMessageTimer?.cancel();
+    emit(state.copyWith(quoteBlockedMessage: message));
+    if (!autoDismiss) return;
+    _blockedMessageTimer = Timer(blockedMessageDuration, () {
+      // Only clear the notice this timer was started for.
+      if (state.quoteBlockedMessage == message) {
+        emit(state.copyWith(quoteBlockedMessage: null));
+      }
+    });
+  }
+
+  /// The backend sends no code for "no riders", only its message, so this
+  /// matches our own empty-list notice or the server's "no rider…" wording.
+  bool _isNoRiders(String message) =>
+      message == _noRidersBlocked ||
+      (state.quoteError == null &&
+          message.toLowerCase().contains('no rider'));
+
+  @override
+  void dispose() {
+    _blockedMessageTimer?.cancel();
+    super.dispose();
   }
 
   void goBack() {

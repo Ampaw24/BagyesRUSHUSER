@@ -8,6 +8,7 @@ import 'package:gopady/core/router/app_routes.dart';
 import 'package:gopady/src/restaurant/widgets/restaurant_card.dart';
 import 'package:gopady/src/search/viewmodels/search_state.dart';
 import 'package:gopady/src/search/viewmodels/search_viewmodel.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class ConsumerSearchView extends StatefulWidget {
   const ConsumerSearchView({super.key});
@@ -89,10 +90,12 @@ class _ConsumerSearchViewState extends State<ConsumerSearchView> {
       ),
       body: switch (searchState) {
         SearchIdle() => _EmptySearch(),
-        SearchLoading() => const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+        SearchLoading() => const AppLoader(status: AppStatus.searching),
+        SearchError(:final message) => AppStatusView(
+            status: AppStatus.error,
+            title: 'Search didn\'t work',
+            message: message,
           ),
-        SearchError(:final message) => Center(child: Text('Error: $message')),
         SearchLoaded(:final query, :final results) => results.isEmpty
             ? _NoResults(query: query)
             : ListView.builder(

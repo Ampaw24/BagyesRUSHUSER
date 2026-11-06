@@ -31,13 +31,13 @@ class ParcelFieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        HugeIcon(icon: icon, color: AppColors.textSecondary, size: w * 0.038),
-        SizedBox(width: w * 0.02),
+        HugeIcon(icon: icon, color: AppColors.textHint, size: w * 0.036),
+        SizedBox(width: w * 0.018),
         Text(
           label,
           style: TextStyle(
-            fontSize: w * 0.033,
-            fontWeight: FontWeight.w700,
+            fontSize: w * 0.032,
+            fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
         ),
@@ -46,7 +46,7 @@ class ParcelFieldLabel extends StatelessWidget {
           Text(
             '*',
             style: TextStyle(
-              fontSize: w * 0.033,
+              fontSize: w * 0.032,
               fontWeight: FontWeight.w700,
               color: AppColors.error,
             ),
@@ -55,7 +55,7 @@ class ParcelFieldLabel extends StatelessWidget {
         if (hint != null) ...[
           SizedBox(width: w * 0.015),
           Text(
-            '($hint)',
+            hint!,
             style: TextStyle(fontSize: w * 0.028, color: AppColors.textHint),
           ),
         ],
@@ -93,6 +93,12 @@ class ParcelTextField extends StatelessWidget {
     this.errorText,
   });
 
+  OutlineInputBorder _border(Color color, [double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(w * 0.03),
+        borderSide: BorderSide(color: color, width: width),
+      );
+
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -113,6 +119,7 @@ class ParcelTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         errorText: errorText,
+        counterText: '',
         hintStyle: TextStyle(
           fontSize: w * 0.034,
           color: AppColors.textHint,
@@ -120,22 +127,15 @@ class ParcelTextField extends StatelessWidget {
         ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: w * 0.04,
-          vertical: w * 0.032,
+          vertical: w * 0.034,
         ),
         filled: true,
-        fillColor: AppColors.scaffold,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(w * 0.03),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-        ),
+        fillColor: AppColors.surface,
+        border: _border(Colors.transparent),
+        enabledBorder: _border(Colors.transparent),
+        focusedBorder: _border(AppColors.primary, 1.5),
+        errorBorder: _border(AppColors.error),
+        focusedErrorBorder: _border(AppColors.error, 1.5),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../models/customer_withdrawal_model.dart';
 import '../../viewmodels/customer_withdrawals_state.dart';
 import '../../viewmodels/customer_withdrawals_viewmodel.dart';
 import 'customer_withdrawal_tile.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// The customer's withdrawal requests, newest first as the server returns
 /// them: loading, error with retry, empty, and the paginated list with
@@ -59,7 +60,7 @@ class _WithdrawalsListState extends State<WithdrawalsList> {
 
     if (state.status == WithdrawalsStatus.initial ||
         state.status == WithdrawalsStatus.loading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const AppLoader();
     }
 
     if (state.status == WithdrawalsStatus.error) {

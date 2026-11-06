@@ -16,6 +16,7 @@ import 'package:gopady/src/chat/view/widgets/message_grouping.dart';
 import 'package:gopady/src/chat/view/widgets/quick_actions_grid.dart';
 import 'package:gopady/src/chat/view/widgets/typing_bubble.dart';
 import 'package:gopady/src/chat/viewmodel/chat_thread_viewmodel.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Presents a conversation thread as a draggable bottom sheet over whatever
 /// screen is already on-screen (the live order-tracking map, the inbox
@@ -98,12 +99,7 @@ class _ChatThreadSheetBodyState extends State<_ChatThreadSheetBody> {
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
                     child: switch (state) {
-                      ChatThreadLoading() => const Center(
-                          key: ValueKey('loading'),
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
-                        ),
+                      ChatThreadLoading() => const AppLoader(key: ValueKey('loading')),
                       ChatThreadError(:final message) => _ErrorState(
                           key: const ValueKey('error'),
                           w: w,

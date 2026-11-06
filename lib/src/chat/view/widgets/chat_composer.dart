@@ -158,7 +158,11 @@ class _ChatComposerState extends State<ChatComposer> {
               ),
             ),
             SizedBox(width: w * 0.025),
-            _SendButton(enabled: _hasText, onPressed: _handleSend),
+            // Part of the field's tap region, so sending keeps the
+            // keyboard up for the next message.
+            TextFieldTapRegion(
+              child: _SendButton(enabled: _hasText, onPressed: _handleSend),
+            ),
           ],
         ),
       ),

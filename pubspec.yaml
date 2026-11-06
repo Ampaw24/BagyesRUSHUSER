@@ -110,6 +110,7 @@ flutter:
     - assets/icons/
     - assets/brand/
     - assets/map_styles/
+    - assets/lottie/
     - assets/restaurant/
     - assets/restaurant/foodbanner.jpg
 

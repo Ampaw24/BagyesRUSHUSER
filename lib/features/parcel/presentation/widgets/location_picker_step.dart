@@ -6,6 +6,8 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/utils/location_helper.dart';
 import '../../../../core/widgets/map_location_picker_sheet.dart';
+import 'package:gopady/constant/app_tokens.dart';
+import 'parcel_ui.dart';
 
 class LocationPickerStep extends StatefulWidget {
   final String title;
@@ -53,7 +55,8 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  'Location services are disabled. Enable GPS and try again.'),
+                'Location services are disabled. Enable GPS and try again.',
+              ),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -62,7 +65,8 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                  'Location permission permanently denied. Enable it in Settings.'),
+                'Location permission permanently denied. Enable it in Settings.',
+              ),
               behavior: SnackBarBehavior.floating,
               action: SnackBarAction(
                 label: 'Settings',
@@ -75,7 +79,8 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  'Location permission denied. Please allow access in Settings.'),
+                'Location permission denied. Please allow access in Settings.',
+              ),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -85,7 +90,8 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  'Could not detect location. Try searching for your address.'),
+                'Could not detect location. Try searching for your address.',
+              ),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -101,64 +107,38 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
     final w = MediaQuery.sizeOf(context).width;
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.08),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
-        // ── Header ───────────────────────────────────────────────────────────
-        Text(
-          widget.title,
-          style: TextStyle(
-            fontSize: w * 0.055,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-          ),
+        ParcelStepHeader(title: widget.title, subtitle: widget.subtitle),
+        const ParcelGap(0.06),
+        _SearchBar(onTap: () => _openAddressSearch(context)),
+        const ParcelGap(0.03),
+        _CurrentLocationRow(isLoading: _isLocating, onTap: _useCurrentLocation),
+        const ParcelGap(0.05),
+        AnimatedSwitcher(
+          duration: AppMotion.standard,
+          child: widget.selectedAddress.isNotEmpty
+              ? _SelectedAddressCard(
+                  key: const ValueKey('selected'),
+                  label: widget.title,
+                  address: widget.selectedAddress,
+                  onChange: () => _openAddressSearch(context),
+                )
+              : const ParcelNote(
+                  key: ValueKey('empty'),
+                  icon: HugeIcons.strokeRoundedLocation01,
+                  message:
+                      'No location yet — search for an address or use '
+                      'where you are now.',
+                ),
         ),
-        SizedBox(height: w * 0.015),
-        Text(
-          widget.subtitle,
-          style: TextStyle(
-            fontSize: w * 0.035,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        SizedBox(height: w * 0.06),
-
-        // ── Action buttons ────────────────────────────────────────────────────
-        _ActionButton(
-          icon: HugeIcons.strokeRoundedMapsLocation01,
-          label: 'Use My Current Location',
-          description: 'Detect your location automatically',
-          isLoading: _isLocating,
-          onTap: _useCurrentLocation,
-          w: w,
-        ),
-        SizedBox(height: w * 0.03),
-        _ActionButton(
-          icon: HugeIcons.strokeRoundedSearch01,
-          label: 'Search for an Address',
-          description: 'Type a street, area or landmark',
-          isPrimary: true,
-          onTap: () => _openAddressSearch(context, w),
-          w: w,
-        ),
-
-        SizedBox(height: w * 0.06),
-
-        // ── Selected address card ─────────────────────────────────────────────
-        _SelectedAddressCard(
-          address: widget.selectedAddress,
-          latLng: widget.selectedLatLng,
-          w: w,
-        ),
-
-        if (widget.footer != null) ...[
-          SizedBox(height: w * 0.05),
-          widget.footer!,
-        ],
+        if (widget.footer != null) ...[const ParcelGap(0.06), widget.footer!],
       ],
     );
   }
 
-  void _openAddressSearch(BuildContext context, double w) {
+  void _openAddressSearch(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -176,113 +156,127 @@ class _LocationPickerStepState extends State<LocationPickerStep> {
   }
 }
 
-// ── Action button ─────────────────────────────────────────────────────────────
+// ── Search bar ────────────────────────────────────────────────────────────────
 
-class _ActionButton extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final String description;
-  final bool isPrimary;
-  final bool isLoading;
+class _SearchBar extends StatelessWidget {
   final VoidCallback onTap;
-  final double w;
 
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.description,
-    required this.onTap,
-    required this.w,
-    this.isPrimary = false,
-    this.isLoading = false,
-  });
+  const _SearchBar({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final bg = isPrimary ? AppColors.primary : AppColors.surfaceVariant;
-    final fg = isPrimary ? Colors.white : AppColors.textPrimary;
-    final sub = isPrimary
-        ? Colors.white.withValues(alpha: 0.75)
-        : AppColors.textSecondary;
-
-    return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: w * 0.045,
-          vertical: w * 0.04,
-        ),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(w * 0.035),
-          border: Border.all(
-            color: isPrimary ? AppColors.primary : AppColors.border,
-          ),
-          boxShadow: isPrimary
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : [],
-        ),
-        child: Row(
-          children: [
-            if (isLoading)
-              SizedBox(
-                width: w * 0.055,
-                height: w * 0.055,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: isPrimary ? Colors.white : AppColors.primary,
-                ),
-              )
-            else
-              Container(
-                padding: EdgeInsets.all(w * 0.02),
-                decoration: BoxDecoration(
-                  color: isPrimary
-                      ? Colors.white.withValues(alpha: 0.18)
-                      : AppColors.border.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(w * 0.02),
-                ),
-                child: HugeIcon(
-                  icon: icon,
-                  color: isPrimary ? Colors.white : AppColors.textSecondary,
+    final w = MediaQuery.sizeOf(context).width;
+    final radius = BorderRadius.circular(w * 0.035);
+    return Semantics(
+      button: true,
+      label: 'Search for an address',
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: radius,
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: w * 0.04,
+              vertical: w * 0.04,
+            ),
+            child: Row(
+              children: [
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedSearch01,
+                  color: AppColors.textPrimary,
                   size: w * 0.05,
                 ),
-              ),
-            SizedBox(width: w * 0.035),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
+                SizedBox(width: w * 0.03),
+                Expanded(
+                  child: Text(
+                    'Search street, area or landmark',
                     style: TextStyle(
-                      fontSize: w * 0.038,
-                      fontWeight: FontWeight.w700,
-                      color: fg,
+                      fontSize: w * 0.036,
+                      color: AppColors.textHint,
                     ),
                   ),
-                  SizedBox(height: w * 0.005),
-                  Text(
-                    description,
-                    style: TextStyle(fontSize: w * 0.03, color: sub),
-                  ),
-                ],
+                ),
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedMaps,
+                  color: AppColors.textSecondary,
+                  size: w * 0.045,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Current location row ──────────────────────────────────────────────────────
+
+class _CurrentLocationRow extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  const _CurrentLocationRow({required this.isLoading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final radius = BorderRadius.circular(w * 0.035);
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: isLoading ? null : onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: w * 0.02),
+          child: Row(
+            children: [
+              SizedBox(
+                width: w * 0.11,
+                height: w * 0.11,
+                child: isLoading
+                    ? Padding(
+                        padding: EdgeInsets.all(w * 0.028),
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const ParcelIconBadge(
+                        icon: HugeIcons.strokeRoundedGps01,
+                        active: true,
+                      ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: isPrimary
-                  ? Colors.white.withValues(alpha: 0.7)
-                  : AppColors.textHint,
-              size: w * 0.038,
-            ),
-          ],
+              SizedBox(width: w * 0.035),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isLoading ? 'Finding you…' : 'Use my current location',
+                      style: TextStyle(
+                        fontSize: w * 0.036,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: w * 0.004),
+                    Text(
+                      'Detect it automatically with GPS',
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: AppColors.textHint,
+                size: w * 0.045,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -292,104 +286,59 @@ class _ActionButton extends StatelessWidget {
 // ── Selected address card ─────────────────────────────────────────────────────
 
 class _SelectedAddressCard extends StatelessWidget {
+  final String label;
   final String address;
-  final LatLng? latLng;
-  final double w;
+  final VoidCallback onChange;
 
   const _SelectedAddressCard({
+    super.key,
+    required this.label,
     required this.address,
-    required this.latLng,
-    required this.w,
+    required this.onChange,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasAddress = address.isNotEmpty;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-      padding: EdgeInsets.all(w * 0.045),
-      decoration: BoxDecoration(
-        color: hasAddress
-            ? AppColors.success.withValues(alpha: 0.06)
-            : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.035),
-        border: Border.all(
-          color: hasAddress
-              ? AppColors.success.withValues(alpha: 0.4)
-              : AppColors.border,
-        ),
-      ),
-      child: hasAddress
-          ? Row(
+    final w = MediaQuery.sizeOf(context).width;
+    return ParcelCard(
+      highlighted: true,
+      child: Row(
+        children: [
+          const ParcelIconBadge(
+            icon: HugeIcons.strokeRoundedLocation01,
+            active: true,
+          ),
+          SizedBox(width: w * 0.035),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: EdgeInsets.all(w * 0.022),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedLocation01,
-                    color: AppColors.success,
-                    size: w * 0.045,
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: w * 0.026,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: AppColors.primary,
                   ),
                 ),
-                SizedBox(width: w * 0.03),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Location Selected',
-                        style: TextStyle(
-                          fontSize: w * 0.032,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.success,
-                        ),
-                      ),
-                      SizedBox(height: w * 0.01),
-                      Text(
-                        address,
-                        style: TextStyle(
-                          fontSize: w * 0.035,
-                          color: AppColors.textPrimary,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                  size: w * 0.05,
-                ),
-              ],
-            )
-          : Row(
-              children: [
-                HugeIcon(
-                  icon: HugeIcons.strokeRoundedMapsLocation01,
-                  color: AppColors.textHint,
-                  size: w * 0.05,
-                ),
-                SizedBox(width: w * 0.03),
-                Expanded(
-                  child: Text(
-                    'No location selected yet.\nUse "My Location" or search for an address.',
-                    style: TextStyle(
-                      fontSize: w * 0.033,
-                      color: AppColors.textHint,
-                      height: 1.4,
-                    ),
+                SizedBox(height: w * 0.008),
+                Text(
+                  address,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: w * 0.035,
+                    height: 1.4,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
             ),
+          ),
+          TextButton(onPressed: onChange, child: const Text('Change')),
+        ],
+      ),
     );
   }
 }
-

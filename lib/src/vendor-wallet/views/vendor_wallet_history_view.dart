@@ -8,6 +8,7 @@ import '../viewmodels/vendor_wallet_state.dart';
 import '../viewmodels/vendor_wallet_viewmodel.dart';
 import 'widgets/vendor_wallet_transaction_tile.dart';
 import 'widgets/vendor_withdrawal_tile.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Full transaction + withdrawal history, each tab independently paginated.
 ///
@@ -194,7 +195,7 @@ class _VendorWalletHistoryViewState extends State<VendorWalletHistoryView>
 
     if (_txLoading) {
       return _scrollableFill(
-        const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        const AppLoader(),
       );
     }
     if (_txError != null) {
@@ -245,7 +246,7 @@ class _VendorWalletHistoryViewState extends State<VendorWalletHistoryView>
 
     if (_wdLoading) {
       return _scrollableFill(
-        const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        const AppLoader(),
       );
     }
     if (_wdError != null) {

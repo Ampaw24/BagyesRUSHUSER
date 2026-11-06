@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'parcel_ui.dart';
 
 class PackageTypeStep extends StatelessWidget {
   final String? selectedType;
@@ -16,72 +19,81 @@ class PackageTypeStep extends StatelessWidget {
     this.direction = ParcelDirection.send,
   });
 
+  static const _options = [
+    _TypeOption(
+      id: 'document',
+      label: 'Document',
+      subtitle: 'Letters, contracts, certificates, printed files',
+      icon: HugeIcons.strokeRoundedFileAttachment,
+    ),
+    _TypeOption(
+      id: 'parcel',
+      label: 'Parcel',
+      subtitle: 'Boxes, bags, electronics, clothing & goods',
+      icon: HugeIcons.strokeRoundedPackage,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.04),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.06),
       children: [
-        Text(
-          direction.isReceive
+        ParcelStepHeader(
+          title: direction.isReceive
               ? 'What are you receiving?'
               : 'What are you sending?',
-          style: TextStyle(
-            fontSize: w * 0.055,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+          subtitle: 'Pick the option that best describes your item.',
+        ),
+        const ParcelGap(0.06),
+        for (final option in _options) ...[
+          _TypeRow(
+            option: option,
+            isSelected: selectedType == option.id,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTypeSelected(option.id);
+            },
           ),
+          const ParcelGap(0.03),
+        ],
+        const ParcelGap(0.03),
+        const ParcelNote(
+          icon: HugeIcons.strokeRoundedAlert02,
+          tone: ParcelNoteTone.warning,
+          message:
+              'Illegal items can\'t be sent or received with GoPady. '
+              'Hazardous or perishable items need special handling — '
+              'contact support before booking.',
         ),
-        SizedBox(height: w * 0.02),
-        Text(
-          'Choose the type that best describes your item.',
-          style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
-        ),
-        SizedBox(height: w * 0.06),
-        Row(
-          children: [
-            _TypeCard(
-              type: 'document',
-              label: 'Document',
-              subtitle: 'Letters, contracts\n& printed files',
-              icon: HugeIcons.strokeRoundedTextAlignLeft01,
-              isSelected: selectedType == 'document',
-              onTap: () => onTypeSelected('document'),
-            ),
-            SizedBox(width: w * 0.04),
-            _TypeCard(
-              type: 'parcel',
-              label: 'Parcel',
-              subtitle: 'Items, goods\n& packages',
-              icon: HugeIcons.strokeRoundedDeliveryBox01,
-              isSelected: selectedType == 'parcel',
-              onTap: () => onTypeSelected('parcel'),
-            ),
-          ],
-        ),
-        SizedBox(height: w * 0.06),
-        _InfoBanner(w: w),
       ],
     );
   }
 }
 
-// ── Type selection card ───────────────────────────────────────────────────────
-
-class _TypeCard extends StatelessWidget {
-  final String type;
+class _TypeOption {
+  final String id;
   final String label;
   final String subtitle;
   final List<List<dynamic>> icon;
-  final bool isSelected;
-  final VoidCallback onTap;
 
-  const _TypeCard({
-    required this.type,
+  const _TypeOption({
+    required this.id,
     required this.label,
     required this.subtitle,
     required this.icon,
+  });
+}
+
+class _TypeRow extends StatelessWidget {
+  final _TypeOption option;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TypeRow({
+    required this.option,
     required this.isSelected,
     required this.onTap,
   });
@@ -89,143 +101,66 @@ class _TypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
+    final radius = BorderRadius.circular(w * 0.045);
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.all(w * 0.05),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.06)
-                : AppColors.card,
-            borderRadius: BorderRadius.circular(w * 0.04),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.border,
-              width: isSelected ? 2.0 : 1.0,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    )
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-          ),
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Semantics(
+      selected: isSelected,
+      button: true,
+      child: AnimatedContainer(
+        duration: AppMotion.standard,
+        curve: AppMotion.outExpo,
+        decoration: parcelCardDecoration(w, highlighted: isSelected).copyWith(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.04)
+              : AppColors.card,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Padding(
+              padding: EdgeInsets.all(w * 0.045),
+              child: Row(
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(w * 0.03),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.12)
-                          : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(w * 0.03),
-                    ),
-                    child: HugeIcon(
-                      icon: icon,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                      size: w * 0.07,
+                  ParcelIconBadge(
+                    icon: option.icon,
+                    active: isSelected,
+                    sizeFactor: 0.13,
+                  ),
+                  SizedBox(width: w * 0.04),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          option.label,
+                          style: TextStyle(
+                            fontFamily: AppFonts.display,
+                            fontSize: w * 0.045,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: w * 0.008),
+                        Text(
+                          option.subtitle,
+                          style: TextStyle(
+                            fontSize: w * 0.031,
+                            height: 1.4,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: w * 0.04),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: w * 0.045,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  SizedBox(height: w * 0.01),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: w * 0.028,
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
+                  SizedBox(width: w * 0.03),
+                  ParcelSelectionDot(selected: isSelected),
                 ],
               ),
-              if (isSelected)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: EdgeInsets.all(w * 0.008),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedCheckmarkBadge01,
-                      color: Colors.white,
-                      size: w * 0.035,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Info banner ───────────────────────────────────────────────────────────────
-
-class _InfoBanner extends StatelessWidget {
-  final double w;
-  const _InfoBanner({required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(w * 0.04),
-      decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.info.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedInformationCircle,
-            color: AppColors.info,
-            size: w * 0.045,
-          ),
-          SizedBox(width: w * 0.03),
-          Expanded(
-            child: Text(
-              'Fragile or hazardous items may require special handling. '
-              'Contact support before booking.',
-              style: TextStyle(
-                fontSize: w * 0.032,
-                color: AppColors.info,
-                height: 1.45,
-              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

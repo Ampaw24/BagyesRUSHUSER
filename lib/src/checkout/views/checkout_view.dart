@@ -23,6 +23,7 @@ import 'package:gopady/src/cart/models/cart_model.dart';
 import 'package:gopady/src/cart/viewmodels/cart_viewmodel.dart';
 import 'package:gopady/core/utils/money_format.dart';
 import 'package:gopady/src/payment/views/widgets/paystack_note.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Unwraps whichever [CheckoutState] variant carries a [CheckoutForm].
 CheckoutForm _formFromState(CheckoutState state) => switch (state) {
@@ -253,7 +254,7 @@ class _CheckoutViewState extends State<CheckoutView> {
 
     if (cart == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: AppLoader(),
       );
     }
 

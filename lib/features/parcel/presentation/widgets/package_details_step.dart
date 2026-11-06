@@ -8,11 +8,13 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../constant/app_theme.dart';
 import 'package:gopady/constant/app_tokens.dart';
+import 'parcel_ui.dart';
 
 // 5 MB size cap per image
 const _maxFileSizeBytes = 5 * 1024 * 1024;
+const _maxWeightKg = 20.0;
 
-// ── Weight category model ─────────────────────────────────────────────────────
+// ── Size category model ───────────────────────────────────────────────────────
 
 class _WCategory {
   final String id;
@@ -21,7 +23,8 @@ class _WCategory {
   final String examples;
   final String defaultKg;
   final List<List<dynamic>> icon;
-  final Color accent;
+  final double min;
+  final double max;
 
   const _WCategory({
     required this.id,
@@ -30,27 +33,59 @@ class _WCategory {
     required this.examples,
     required this.defaultKg,
     required this.icon,
-    required this.accent,
+    required this.min,
+    required this.max,
   });
 
-  double get _min => switch (id) {
-        'small' => 0.0,
-        'medium' => 3.0,
-        'large' => 8.0,
-        'heavy' => 15.0,
-        _ => 0.0,
-      };
-
-  double get _max => switch (id) {
-        'small' => 3.0,
-        'medium' => 8.0,
-        'large' => 15.0,
-        'heavy' => 20.0,
-        _ => 20.0,
-      };
-
-  bool matches(double kg) => kg >= _min && (id == 'heavy' ? kg <= _max : kg < _max);
+  bool matches(double kg) =>
+      kg >= min && (max == _maxWeightKg ? kg <= max : kg < max);
 }
+
+const _categories = [
+  _WCategory(
+    id: 'small',
+    label: 'Small',
+    range: 'Up to 3 kg',
+    examples: 'Phone, books, shoes, a small gift',
+    defaultKg: '1.5',
+    icon: HugeIcons.strokeRoundedMail01,
+    min: 0,
+    max: 3,
+  ),
+  _WCategory(
+    id: 'medium',
+    label: 'Medium',
+    range: '3–8 kg',
+    examples: 'Clothes, a food box, small electronics',
+    defaultKg: '5.0',
+    icon: HugeIcons.strokeRoundedShoppingBag01,
+    min: 3,
+    max: 8,
+  ),
+  _WCategory(
+    id: 'large',
+    label: 'Large',
+    range: '8–15 kg',
+    examples: 'Appliances, big boxes, groceries',
+    defaultKg: '11.0',
+    icon: HugeIcons.strokeRoundedPackage,
+    min: 8,
+    max: 15,
+  ),
+  _WCategory(
+    id: 'heavy',
+    label: 'Heavy',
+    range: '15–20 kg',
+    examples: 'Furniture parts, heavy equipment',
+    defaultKg: '17.0',
+    icon: HugeIcons.strokeRoundedDeliveryBox02,
+    min: 15,
+    max: _maxWeightKg,
+  ),
+];
+
+_WCategory? _categoryFor(double kg) =>
+    _categories.where((c) => c.matches(kg)).firstOrNull;
 
 // ── Main widget ───────────────────────────────────────────────────────────────
 
@@ -88,83 +123,37 @@ class PackageDetailsStep extends StatefulWidget {
 }
 
 class _PackageDetailsStepState extends State<PackageDetailsStep> {
-  late final List<_WCategory> _categories;
-  late final TextEditingController _customCtrl;
+  late final TextEditingController _weightCtrl;
   bool _isPicking = false;
   String? _selectedCategoryId;
-  bool _showCustom = false;
   bool _overLimit = false;
 
   @override
   void initState() {
     super.initState();
+    _weightCtrl = TextEditingController(text: widget.weightText);
 
-    _categories = [
-      _WCategory(
-        id: 'small',
-        label: 'Small',
-        range: 'Under 3 kg',
-        examples: 'Phone, books, shoes, small gift',
-        defaultKg: '1.5',
-        icon: HugeIcons.strokeRoundedSmartPhone01,
-        accent: AppColors.success,
-      ),
-      _WCategory(
-        id: 'medium',
-        label: 'Medium',
-        range: '3 – 8 kg',
-        examples: 'Clothes, food box, small electronics',
-        defaultKg: '5.0',
-        icon: HugeIcons.strokeRoundedShoppingBag01,
-        accent: AppColors.accent,
-      ),
-      _WCategory(
-        id: 'large',
-        label: 'Large',
-        range: '8 – 15 kg',
-        examples: 'Appliances, big boxes, groceries',
-        defaultKg: '11.0',
-        icon: HugeIcons.strokeRoundedDeliveryBox01,
-        accent: const Color(0xFF9B59B6),
-      ),
-      _WCategory(
-        id: 'heavy',
-        label: 'Heavy',
-        range: '15 – 20 kg',
-        examples: 'Furniture parts, heavy equipment',
-        defaultKg: '17.0',
-        icon: HugeIcons.strokeRoundedDeliveryTruck01,
-        accent: AppColors.error,
-      ),
-    ];
-
-    _customCtrl = TextEditingController(text: widget.weightText);
-
-    // Auto-restore selection when returning to this step — prefer the
-    // explicitly selected size category over re-deriving it from weight.
-    if (widget.selectedSize.isNotEmpty &&
-        _categories.any((c) => c.id == widget.selectedSize)) {
+    // Restore the selection when returning to this step — prefer the
+    // explicitly selected size over re-deriving it from the weight.
+    if (_categories.any((c) => c.id == widget.selectedSize)) {
       _selectedCategoryId = widget.selectedSize;
-    } else if (widget.weightText.isNotEmpty) {
+    } else {
       final kg = double.tryParse(widget.weightText);
       if (kg != null) {
-        final match = _categories.where((c) => c.matches(kg)).firstOrNull;
-        if (match != null) {
-          _selectedCategoryId = match.id;
-        } else {
-          // Weight was set manually outside any category range
-          _showCustom = true;
-          _overLimit = kg > 20.0;
-        }
+        _selectedCategoryId = _categoryFor(kg)?.id;
+        _overLimit = kg > _maxWeightKg;
       }
     }
   }
 
   @override
   void dispose() {
-    _customCtrl.dispose();
+    _weightCtrl.dispose();
     super.dispose();
   }
+
+  _WCategory? get _selectedCategory =>
+      _categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
 
   // ── Image picking ─────────────────────────────────────────────────────────
 
@@ -174,8 +163,7 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 
     setState(() => _isPicking = true);
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickMultiImage(
+      final picked = await ImagePicker().pickMultiImage(
         maxWidth: 1200,
         imageQuality: 80,
         limit: remaining,
@@ -187,257 +175,463 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
       final oversized = <String>[];
 
       for (final xFile in picked) {
-        final file = File(xFile.path);
         final bytes = await xFile.readAsBytes();
         if (bytes.length > _maxFileSizeBytes) {
           oversized.add(xFile.name);
           continue;
         }
-        validFiles.add(file);
+        validFiles.add(File(xFile.path));
         validBase64.add(base64.encode(bytes));
       }
 
-      if (validFiles.isNotEmpty) {
-        widget.onImagesAdded(validFiles, validBase64);
-      }
-
-      if (oversized.isNotEmpty && mounted) {
-        _showSizeError(oversized);
-      }
+      if (validFiles.isNotEmpty) widget.onImagesAdded(validFiles, validBase64);
+      if (oversized.isNotEmpty && mounted) _showSizeError(oversized.length);
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
   }
 
-  void _showSizeError(List<String> names) {
+  void _showSizeError(int count) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '${names.length} image${names.length > 1 ? 's' : ''} skipped — '
+          '$count image${count > 1 ? 's' : ''} skipped — '
           'each photo must be under 5 MB.',
         ),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.warning,
       ),
     );
   }
 
   // ── Weight selection ──────────────────────────────────────────────────────
 
-  void _selectCategory(_WCategory cat) {
-    HapticFeedback.lightImpact();
+  void _selectCategory(_WCategory category) {
+    HapticFeedback.selectionClick();
     setState(() {
-      _selectedCategoryId = cat.id;
-      _showCustom = false;
+      _selectedCategoryId = category.id;
       _overLimit = false;
     });
-    _customCtrl.text = cat.defaultKg;
-    widget.onWeightChanged(cat.defaultKg);
-    widget.onSizeChanged(cat.id);
+    _weightCtrl.text = category.defaultKg;
+    widget.onWeightChanged(category.defaultKg);
+    widget.onSizeChanged(category.id);
   }
 
-  void _onCustomWeightChanged(String value) {
+  void _onWeightTyped(String value) {
     final kg = double.tryParse(value);
-    _WCategory? match;
+    final match = kg == null ? null : _categoryFor(kg);
     setState(() {
-      _overLimit = kg != null && kg > 20.0;
-      if (kg != null) {
-        // Smart: auto-highlight matching category tile while typing
-        match = _categories.where((c) => c.matches(kg)).firstOrNull;
-        _selectedCategoryId = match?.id;
-      } else {
-        _selectedCategoryId = null;
-      }
+      _overLimit = kg != null && kg > _maxWeightKg;
+      // Typing a weight live-highlights the size it falls into.
+      _selectedCategoryId = match?.id;
     });
     widget.onWeightChanged(value);
-    if (match != null) widget.onSizeChanged(match!.id);
+    if (match != null) widget.onSizeChanged(match.id);
   }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final hasImages = widget.images.isNotEmpty;
-    final canAddMore = widget.images.length < widget.maxImages;
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.06),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.02, w * 0.05, w * 0.08),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
-        // ── Header ───────────────────────────────────────────────────────────
-        Text(
-          'Package Details',
-          style: TextStyle(
-            fontSize: w * 0.055,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-          ),
+        const ParcelStepHeader(
+          title: 'Tell us about it',
+          subtitle: 'Size and weight help us match the right rider and price.',
         ),
-        SizedBox(height: w * 0.015),
-        Text(
-          'Add photos and select your package size.',
-          style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
+        const ParcelGap(0.065),
+
+        // ── Size ───────────────────────────────────────────────────────────
+        ParcelSectionLabel(
+          label: 'Package size',
+          caption: 'Pick the closest match · max 20 kg',
+          trailing: widget.weightText.isNotEmpty && !_overLimit
+              ? _WeightBadge(weightText: widget.weightText)
+              : null,
         ),
-        SizedBox(height: w * 0.06),
-
-        // ── Photo section ─────────────────────────────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _sectionLabel('Package Photos', w),
-            if (hasImages)
-              Text(
-                '${widget.images.length}/${widget.maxImages}',
-                style: TextStyle(
-                  fontSize: w * 0.032,
-                  fontWeight: FontWeight.w600,
-                  color: widget.images.length == widget.maxImages
-                      ? AppColors.primary
-                      : AppColors.textHint,
-                ),
-              ),
-          ],
+        const ParcelGap(0.035),
+        _SizeSelector(
+          selectedId: _selectedCategoryId,
+          onSelected: _selectCategory,
         ),
-        SizedBox(height: w * 0.03),
-
-        if (!hasImages)
-          _EmptyImageSlot(isPicking: _isPicking, onTap: _pickImages, w: w)
-        else
-          _ImageGrid(
-            images: widget.images,
-            canAddMore: canAddMore,
-            isPicking: _isPicking,
-            onAdd: _pickImages,
-            onRemove: widget.onImageRemoved,
-            w: w,
-          ),
-
-        SizedBox(height: w * 0.025),
-        _SizeRestrictionNote(w: w, maxImages: widget.maxImages),
-        if (widget.images.isNotEmpty) ...[
-          SizedBox(height: w * 0.025),
-          _MultiItemHint(w: w),
-        ],
-
-        SizedBox(height: w * 0.07),
-
-        // ── Weight / Size section ─────────────────────────────────────────────
-        Row(
-          children: [
-            _sectionLabel('Package Size', w),
-            const Spacer(),
-            // Selected weight badge
-            if (widget.weightText.isNotEmpty && !_overLimit)
-              _WeightBadge(weightText: widget.weightText, w: w),
-          ],
+        const ParcelGap(0.03),
+        _FitsHint(category: _selectedCategory),
+        const ParcelGap(0.03),
+        _ExactWeightRow(
+          controller: _weightCtrl,
+          onChanged: _onWeightTyped,
+          hasError: _overLimit,
         ),
-        SizedBox(height: w * 0.01),
-        Text(
-          'Tap the closest match — we\'ll estimate the weight for you.',
-          style: TextStyle(fontSize: w * 0.032, color: AppColors.textSecondary),
-        ),
-        SizedBox(height: w * 0.04),
-
-        // ── Category grid (2 columns) ──────────────────────────────────────────
-        _buildCategoryGrid(w),
-
-        SizedBox(height: w * 0.04),
-
-        // ── "Enter exact weight" toggle ───────────────────────────────────────
-        _ExactWeightToggle(
-          isOpen: _showCustom,
-          w: w,
-          onToggle: () => setState(() => _showCustom = !_showCustom),
-        ),
-
-        // ── Custom weight field (expanded) ────────────────────────────────────
         AnimatedSize(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          child: _showCustom
+          duration: AppMotion.standard,
+          curve: AppMotion.outExpo,
+          child: _overLimit
               ? Padding(
-                  padding: EdgeInsets.only(top: w * 0.03),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _CustomWeightField(
-                        controller: _customCtrl,
-                        onChanged: _onCustomWeightChanged,
-                        w: w,
-                      ),
-                      if (_overLimit) ...[
-                        SizedBox(height: w * 0.025),
-                        _OverLimitWarning(w: w),
-                      ] else if (_selectedCategoryId != null &&
-                          _customCtrl.text.isNotEmpty) ...[
-                        SizedBox(height: w * 0.02),
-                        _CategoryMatchHint(
-                          category: _categories
-                              .firstWhere((c) => c.id == _selectedCategoryId),
-                          w: w,
-                        ),
-                      ],
-                    ],
+                  padding: EdgeInsets.only(top: w * 0.025),
+                  child: const ParcelNote(
+                    tone: ParcelNoteTone.error,
+                    message:
+                        'That\'s over 20 kg — we can\'t deliver items '
+                        'above this limit.',
                   ),
                 )
-              : const SizedBox.shrink(),
+              : const SizedBox(width: double.infinity),
         ),
 
-        SizedBox(height: w * 0.025),
-        _MaxWeightNote(w: w),
+        const ParcelGap(0.07),
 
-        SizedBox(height: w * 0.07),
-
-        // ── Handle with care ──────────────────────────────────────────────────
-        _sectionLabel('Handle with care', w),
-        SizedBox(height: w * 0.03),
+        // ── Handling ───────────────────────────────────────────────────────
+        const ParcelSectionLabel(label: 'Handling'),
+        const ParcelGap(0.03),
         _FragileToggle(
           fragile: widget.fragile,
           onChanged: widget.onFragileChanged,
-          w: w,
         ),
 
-        SizedBox(height: w * 0.04),
-      ],
-    );
-  }
+        const ParcelGap(0.07),
 
-  Widget _buildCategoryGrid(double w) {
-    final gap = w * 0.03;
-    final tileW = (w - w * 0.1 - gap) / 2;
-
-    Widget tile(_WCategory category) => _CategoryTile(
-          category: category,
-          isSelected: _selectedCategoryId == category.id,
-          width: tileW,
-          onTap: () => _selectCategory(category),
-          w: w,
-        );
-
-    return Column(
-      children: [
-        for (var i = 0; i < _categories.length; i += 2) ...[
-          if (i > 0) SizedBox(height: gap),
-          Row(
-            children: [
-              tile(_categories[i]),
-              if (i + 1 < _categories.length) ...[
-                SizedBox(width: gap),
-                tile(_categories[i + 1]),
-              ],
-            ],
+        // ── Photos ─────────────────────────────────────────────────────────
+        ParcelSectionLabel(
+          label: 'Photos',
+          caption: 'Optional · up to ${widget.maxImages}, 5 MB each',
+          trailing: widget.images.isEmpty
+              ? null
+              : _CountPill(count: widget.images.length, max: widget.maxImages),
+        ),
+        const ParcelGap(0.035),
+        _PhotoStrip(
+          images: widget.images,
+          canAddMore: widget.images.length < widget.maxImages,
+          isPicking: _isPicking,
+          onAdd: _pickImages,
+          onRemove: widget.onImageRemoved,
+        ),
+        if (widget.images.isNotEmpty) ...[
+          const ParcelGap(0.03),
+          const ParcelNote(
+            tone: ParcelNoteTone.info,
+            icon: HugeIcons.strokeRoundedIdea01,
+            message:
+                'Sending to several places? Add a photo per item — '
+                'you can tag them to each stop next.',
           ),
         ],
       ],
     );
   }
+}
 
-  Widget _sectionLabel(String label, double w) => Text(
-        label,
-        style: TextStyle(
-          fontSize: w * 0.038,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+// ── Size selector ─────────────────────────────────────────────────────────────
+
+class _SizeSelector extends StatelessWidget {
+  final String? selectedId;
+  final ValueChanged<_WCategory> onSelected;
+
+  const _SizeSelector({required this.selectedId, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < _categories.length; i++) ...[
+            if (i > 0) SizedBox(width: w * 0.022),
+            Expanded(
+              child: _SizeTile(
+                category: _categories[i],
+                isSelected: selectedId == _categories[i].id,
+                onTap: () => onSelected(_categories[i]),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SizeTile extends StatelessWidget {
+  final _WCategory category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SizeTile({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final radius = BorderRadius.circular(w * 0.04);
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: '${category.label}, ${category.range}',
+      child: AnimatedContainer(
+        duration: AppMotion.standard,
+        curve: AppMotion.outExpo,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : AppColors.card,
+          borderRadius: radius,
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
-      );
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.015,
+                vertical: w * 0.035,
+              ),
+              child: Column(
+                children: [
+                  ParcelIconBadge(
+                    icon: category.icon,
+                    active: isSelected,
+                    sizeFactor: 0.105,
+                  ),
+                  SizedBox(height: w * 0.025),
+                  Text(
+                    category.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: w * 0.034,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected
+                          ? AppColors.primaryDark
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: w * 0.006),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      category.range,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: w * 0.027,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Fits: Phone, books…" for the selected size, or a prompt when none is.
+class _FitsHint extends StatelessWidget {
+  final _WCategory? category;
+
+  const _FitsHint({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final selected = category;
+    return AnimatedSwitcher(
+      duration: AppMotion.standard,
+      child: Row(
+        key: ValueKey(selected?.id),
+        children: [
+          HugeIcon(
+            icon: selected == null
+                ? HugeIcons.strokeRoundedTouch01
+                : HugeIcons.strokeRoundedCheckmarkCircle02,
+            color: selected == null ? AppColors.textHint : AppColors.primary,
+            size: w * 0.04,
+          ),
+          SizedBox(width: w * 0.02),
+          Expanded(
+            child: Text.rich(
+              selected == null
+                  ? const TextSpan(text: 'Tap a size to estimate the weight')
+                  : TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Fits  ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        TextSpan(text: selected.examples),
+                      ],
+                    ),
+              style: TextStyle(
+                fontSize: w * 0.031,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Exact weight ──────────────────────────────────────────────────────────────
+
+class _ExactWeightRow extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final bool hasError;
+
+  const _ExactWeightRow({
+    required this.controller,
+    required this.onChanged,
+    required this.hasError,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final fieldRadius = BorderRadius.circular(w * 0.025);
+
+    OutlineInputBorder border(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: fieldRadius,
+          borderSide: BorderSide(color: color, width: width),
+        );
+
+    return ParcelCard(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: w * 0.03),
+      child: Row(
+        children: [
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedWeightScale,
+            color: AppColors.textSecondary,
+            size: w * 0.05,
+          ),
+          SizedBox(width: w * 0.03),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Know the exact weight?',
+                  style: TextStyle(
+                    fontSize: w * 0.034,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: w * 0.004),
+                Text(
+                  'Optional · more accurate pricing',
+                  style: TextStyle(
+                    fontSize: w * 0.028,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: w * 0.02),
+          SizedBox(
+            width: w * 0.26,
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              textAlign: TextAlign.end,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              textInputAction: TextInputAction.done,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^\d{0,3}\.?\d{0,2}'),
+                ),
+              ],
+              style: TextStyle(
+                fontSize: w * 0.04,
+                fontWeight: FontWeight.w700,
+                color: hasError ? AppColors.error : AppColors.textPrimary,
+                fontFamily: AppFonts.body,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: '0.0',
+                suffixText: ' kg',
+                suffixStyle: TextStyle(
+                  fontSize: w * 0.034,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: w * 0.03,
+                  vertical: w * 0.028,
+                ),
+                border: border(Colors.transparent),
+                enabledBorder: border(
+                  hasError ? AppColors.error : Colors.transparent,
+                ),
+                focusedBorder: border(
+                  hasError ? AppColors.error : AppColors.primary,
+                  1.5,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeightBadge extends StatelessWidget {
+  final String weightText;
+
+  const _WeightBadge({required this.weightText});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return AnimatedSwitcher(
+      duration: AppMotion.micro,
+      child: Container(
+        key: ValueKey(weightText),
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.028,
+          vertical: w * 0.01,
+        ),
+        decoration: const ShapeDecoration(
+          color: AppColors.surfaceVariant,
+          shape: StadiumBorder(),
+        ),
+        child: Text(
+          '≈ $weightText kg',
+          style: TextStyle(
+            fontSize: w * 0.03,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primaryDark,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Fragile toggle ────────────────────────────────────────────────────────────
@@ -445,704 +639,268 @@ class _PackageDetailsStepState extends State<PackageDetailsStep> {
 class _FragileToggle extends StatelessWidget {
   final bool fragile;
   final ValueChanged<bool> onChanged;
-  final double w;
 
-  const _FragileToggle({
-    required this.fragile,
-    required this.onChanged,
-    required this.w,
-  });
+  const _FragileToggle({required this.fragile, required this.onChanged});
+
+  void _toggle(bool value) {
+    HapticFeedback.lightImpact();
+    onChanged(value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onChanged(!fragile);
-      },
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(
-          horizontal: w * 0.04,
-          vertical: w * 0.038,
-        ),
-        decoration: BoxDecoration(
-          color: fragile
-              ? AppColors.error.withValues(alpha: 0.06)
-              : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.035),
-          border: Border.all(
-            color: fragile
-                ? AppColors.error.withValues(alpha: 0.4)
-                : AppColors.border,
-            width: fragile ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: w * 0.1,
-              height: w * 0.1,
-              decoration: BoxDecoration(
-                color: fragile
-                    ? AppColors.error.withValues(alpha: 0.1)
-                    : AppColors.border.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
+    final w = MediaQuery.sizeOf(context).width;
+    return MergeSemantics(
+      child: ParcelCard(
+        highlighted: fragile,
+        padding: EdgeInsets.zero,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(w * 0.045),
+            onTap: () => _toggle(!fragile),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.04,
+                vertical: w * 0.03,
               ),
-              child: Center(
-                child: Text(
-                  '🫧',
-                  style: TextStyle(fontSize: w * 0.045),
-                ),
-              ),
-            ),
-            SizedBox(width: w * 0.035),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    'Fragile item',
-                    style: TextStyle(
-                      fontSize: w * 0.036,
-                      fontWeight: FontWeight.w700,
-                      color: fragile
-                          ? AppColors.error
-                          : AppColors.textPrimary,
+                  ParcelIconBadge(
+                    icon: HugeIcons.strokeRoundedAlert02,
+                    active: fragile,
+                  ),
+                  SizedBox(width: w * 0.035),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Fragile item',
+                          style: TextStyle(
+                            fontSize: w * 0.036,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: w * 0.005),
+                        Text(
+                          'The rider will handle it with extra care',
+                          style: TextStyle(
+                            fontSize: w * 0.03,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: w * 0.006),
-                  Text(
-                    'Mark this if contents can break easily',
-                    style: TextStyle(
-                      fontSize: w * 0.03,
-                      color: AppColors.textSecondary,
-                      height: 1.3,
-                    ),
-                  ),
+                  Switch.adaptive(value: fragile, onChanged: _toggle),
                 ],
               ),
             ),
-            SizedBox(width: w * 0.03),
-            Switch.adaptive(
-              value: fragile,
-              onChanged: (v) {
-                HapticFeedback.lightImpact();
-                onChanged(v);
-              },
-              activeThumbColor: AppColors.error,
-              activeTrackColor: AppColors.error.withValues(alpha: 0.4),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Multi-item hint ───────────────────────────────────────────────────────────
+// ── Photos ────────────────────────────────────────────────────────────────────
 
-class _MultiItemHint extends StatelessWidget {
-  final double w;
-  const _MultiItemHint({required this.w});
+class _CountPill extends StatelessWidget {
+  final int count;
+  final int max;
+
+  const _CountPill({required this.count, required this.max});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.035,
-        vertical: w * 0.028,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.info.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.lightbulb_outline_rounded,
-            size: w * 0.038,
-            color: AppColors.info,
-          ),
-          SizedBox(width: w * 0.025),
-          Expanded(
-            child: Text(
-              'Sending different items to multiple locations? '
-              'Add a separate photo for each item — you can tag '
-              'which photo belongs to each stop on the next screen.',
-              style: TextStyle(
-                fontSize: w * 0.031,
-                color: AppColors.info,
-                height: 1.45,
-              ),
-            ),
-          ),
-        ],
+    final w = MediaQuery.sizeOf(context).width;
+    return Text(
+      '$count/$max',
+      style: TextStyle(
+        fontSize: w * 0.031,
+        fontWeight: FontWeight.w700,
+        color: count == max ? AppColors.primary : AppColors.textHint,
       ),
     );
   }
 }
 
-// ── Category tile ─────────────────────────────────────────────────────────────
-
-class _CategoryTile extends StatelessWidget {
-  final _WCategory category;
-  final bool isSelected;
-  final double width;
-  final VoidCallback onTap;
-  final double w;
-
-  const _CategoryTile({
-    required this.category,
-    required this.isSelected,
-    required this.width,
-    required this.onTap,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        width: width,
-        padding: EdgeInsets.all(w * 0.038),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? category.accent.withValues(alpha: 0.07)
-              : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.035),
-          border: Border.all(
-            color: isSelected ? category.accent : AppColors.border,
-            width: isSelected ? 2.0 : 1.0,
-          ),
-        ),
-        child: _CompactContent(category: category, isSelected: isSelected, w: w),
-      ),
-    );
-  }
-}
-
-// ── Tile content ──────────────────────────────────────────────────────────────
-
-class _CompactContent extends StatelessWidget {
-  final _WCategory category;
-  final bool isSelected;
-  final double w;
-
-  const _CompactContent({
-    required this.category,
-    required this.isSelected,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.all(w * 0.02),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? category.accent.withValues(alpha: 0.15)
-                    : AppColors.border.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(w * 0.02),
-              ),
-              child: HugeIcon(
-                icon: category.icon,
-                color: isSelected ? category.accent : AppColors.textSecondary,
-                size: w * 0.05,
-              ),
-            ),
-            const Spacer(),
-            if (isSelected)
-              Container(
-                width: w * 0.05,
-                height: w * 0.05,
-                decoration: BoxDecoration(
-                  color: category.accent,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: w * 0.032,
-                ),
-              ),
-          ],
-        ),
-        SizedBox(height: w * 0.028),
-        Text(
-          category.label,
-          style: TextStyle(
-            fontSize: w * 0.038,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? category.accent : AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: w * 0.008),
-        Text(
-          category.range,
-          style: TextStyle(
-            fontSize: w * 0.029,
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? category.accent.withValues(alpha: 0.8)
-                : AppColors.textSecondary,
-          ),
-        ),
-        SizedBox(height: w * 0.01),
-        Text(
-          category.examples,
-          style: TextStyle(
-            fontSize: w * 0.028,
-            color: AppColors.textHint,
-            height: 1.4,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
-
-
-// ── Selected weight badge ─────────────────────────────────────────────────────
-
-class _WeightBadge extends StatelessWidget {
-  final String weightText;
-  final double w;
-
-  const _WeightBadge({required this.weightText, required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      child: Container(
-        key: ValueKey(weightText),
-        padding: EdgeInsets.symmetric(
-          horizontal: w * 0.03,
-          vertical: w * 0.012,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(w * 0.05),
-          border: Border.all(
-            color: AppColors.success.withValues(alpha: 0.35),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check_circle_rounded,
-              color: AppColors.success,
-              size: w * 0.035,
-            ),
-            SizedBox(width: w * 0.015),
-            Text(
-              '~$weightText kg',
-              style: TextStyle(
-                fontSize: w * 0.032,
-                fontWeight: FontWeight.w700,
-                color: AppColors.success,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Exact weight toggle ───────────────────────────────────────────────────────
-
-class _ExactWeightToggle extends StatelessWidget {
-  final bool isOpen;
-  final double w;
-  final VoidCallback onToggle;
-
-  const _ExactWeightToggle({
-    required this.isOpen,
-    required this.w,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onToggle,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: w * 0.04,
-          vertical: w * 0.035,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedDeliveryBox01,
-              color: AppColors.textSecondary,
-              size: w * 0.045,
-            ),
-            SizedBox(width: w * 0.03),
-            Expanded(
-              child: Text(
-                isOpen ? 'Hide exact weight' : 'Enter exact weight (optional)',
-                style: TextStyle(
-                  fontSize: w * 0.035,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            AnimatedRotation(
-              turns: isOpen ? 0.5 : 0.0,
-              duration: const Duration(milliseconds: 220),
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: AppColors.textSecondary,
-                size: w * 0.055,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Custom weight field ───────────────────────────────────────────────────────
-
-class _CustomWeightField extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final double w;
-
-  const _CustomWeightField({
-    required this.controller,
-    required this.onChanged,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          SizedBox(width: w * 0.04),
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedDeliveryBox01,
-            color: AppColors.textSecondary,
-            size: w * 0.05,
-          ),
-          SizedBox(width: w * 0.03),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
-              onChanged: onChanged,
-              autofocus: true,
-              style: TextStyle(
-                fontSize: w * 0.04,
-                color: AppColors.textPrimary,
-                fontFamily: AppFonts.body,
-              ),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                hintStyle: TextStyle(
-                  fontSize: w * 0.04,
-                  color: AppColors.textHint,
-                  fontFamily: AppFonts.body,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: w * 0.04,
-                  horizontal: w * 0.02,
-                ),
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: w * 0.04,
-              vertical: w * 0.04,
-            ),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: AppColors.border)),
-            ),
-            child: Text(
-              'kg',
-              style: TextStyle(
-                fontSize: w * 0.038,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Category match hint (shown when custom weight matches a category) ──────────
-
-class _CategoryMatchHint extends StatelessWidget {
-  final _WCategory category;
-  final double w;
-
-  const _CategoryMatchHint({required this.category, required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        HugeIcon(
-          icon: category.icon,
-          color: category.accent,
-          size: w * 0.038,
-        ),
-        SizedBox(width: w * 0.02),
-        Text(
-          'Matches ${category.label} · ${category.range}',
-          style: TextStyle(
-            fontSize: w * 0.031,
-            fontWeight: FontWeight.w600,
-            color: category.accent,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Over-limit warning ────────────────────────────────────────────────────────
-
-class _OverLimitWarning extends StatelessWidget {
-  final double w;
-  const _OverLimitWarning({required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.04,
-        vertical: w * 0.025,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(w * 0.025),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: [
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedInformationCircle,
-            color: AppColors.error,
-            size: w * 0.04,
-          ),
-          SizedBox(width: w * 0.025),
-          Expanded(
-            child: Text(
-              'Weight exceeds 20 kg. We can\'t deliver items over this limit.',
-              style: TextStyle(
-                fontSize: w * 0.031,
-                color: AppColors.error,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Max weight info note ──────────────────────────────────────────────────────
-
-class _MaxWeightNote extends StatelessWidget {
-  final double w;
-  const _MaxWeightNote({required this.w});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        HugeIcon(
-          icon: HugeIcons.strokeRoundedInformationCircle,
-          color: AppColors.textHint,
-          size: w * 0.038,
-        ),
-        SizedBox(width: w * 0.02),
-        Text(
-          'Maximum delivery weight: 20 kg',
-          style: TextStyle(fontSize: w * 0.03, color: AppColors.textHint),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Empty image slot ──────────────────────────────────────────────────────────
-
-class _EmptyImageSlot extends StatelessWidget {
-  final bool isPicking;
-  final VoidCallback onTap;
-  final double w;
-
-  const _EmptyImageSlot({
-    required this.isPicking,
-    required this.onTap,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isPicking ? null : onTap,
-      child: Container(
-        height: w * 0.52,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.04),
-          border: Border.all(
-            color: AppColors.border,
-            width: 1.5,
-          ),
-        ),
-        child: isPicking
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(w * 0.045),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
-                    ),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedCamera01,
-                      color: AppColors.primary,
-                      size: w * 0.08,
-                    ),
-                  ),
-                  SizedBox(height: w * 0.04),
-                  Text(
-                    'Tap to add photos',
-                    style: TextStyle(
-                      fontSize: w * 0.04,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  SizedBox(height: w * 0.01),
-                  Text(
-                    'Select up to 5 · JPG or PNG',
-                    style: TextStyle(
-                      fontSize: w * 0.03,
-                      color: AppColors.textHint,
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-// ── Image grid ────────────────────────────────────────────────────────────────
-
-class _ImageGrid extends StatelessWidget {
+class _PhotoStrip extends StatelessWidget {
   final List<File> images;
   final bool canAddMore;
   final bool isPicking;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
-  final double w;
 
-  const _ImageGrid({
+  const _PhotoStrip({
     required this.images,
     required this.canAddMore,
     required this.isPicking,
     required this.onAdd,
     required this.onRemove,
-    required this.w,
   });
 
   @override
   Widget build(BuildContext context) {
-    final tileSize = (w - w * 0.1 - w * 0.03 * 2) / 3;
+    final w = MediaQuery.sizeOf(context).width;
 
-    return Wrap(
-      spacing: w * 0.03,
-      runSpacing: w * 0.03,
-      children: [
-        for (int i = 0; i < images.length; i++)
-          _ImageThumbnail(
-            file: images[i],
-            index: i,
-            size: tileSize,
-            onRemove: onRemove,
-            w: w,
-          ),
-        if (canAddMore)
-          _AddMoreTile(
-            size: tileSize,
-            isPicking: isPicking,
-            onTap: onAdd,
-            w: w,
-          ),
-      ],
+    if (images.isEmpty) {
+      return _AddPhotoTile(isPicking: isPicking, onTap: onAdd, expanded: true);
+    }
+
+    final tile = w * 0.21;
+    final itemCount = images.length + (canAddMore ? 1 : 0);
+    return SizedBox(
+      // Room for the remove badge that overhangs each thumbnail.
+      height: tile + w * 0.025,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        padding: EdgeInsets.only(top: w * 0.025),
+        itemCount: itemCount,
+        separatorBuilder: (_, _) => SizedBox(width: w * 0.03),
+        itemBuilder: (context, i) {
+          if (canAddMore && i == 0) {
+            return SizedBox(
+              width: tile,
+              child: _AddPhotoTile(isPicking: isPicking, onTap: onAdd),
+            );
+          }
+          final index = canAddMore ? i - 1 : i;
+          return _Thumbnail(
+            file: images[index],
+            size: tile,
+            onRemove: () => onRemove(index),
+          );
+        },
+      ),
     );
   }
 }
 
-// ── Image thumbnail ───────────────────────────────────────────────────────────
+class _AddPhotoTile extends StatelessWidget {
+  final bool isPicking;
+  final VoidCallback onTap;
+  final bool expanded;
 
-class _ImageThumbnail extends StatelessWidget {
-  final File file;
-  final int index;
-  final double size;
-  final ValueChanged<int> onRemove;
-  final double w;
-
-  const _ImageThumbnail({
-    required this.file,
-    required this.index,
-    required this.size,
-    required this.onRemove,
-    required this.w,
+  const _AddPhotoTile({
+    required this.isPicking,
+    required this.onTap,
+    this.expanded = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final radius = BorderRadius.circular(w * 0.035);
+
+    final content = isPicking
+        ? SizedBox(
+            width: w * 0.06,
+            height: w * 0.06,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          )
+        : expanded
+        ? Row(
+            children: [
+              const ParcelIconBadge(
+                icon: HugeIcons.strokeRoundedCamera02,
+                active: true,
+              ),
+              SizedBox(width: w * 0.035),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add photos',
+                      style: TextStyle(
+                        fontSize: w * 0.036,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: w * 0.005),
+                    Text(
+                      'Helps the rider recognise your package',
+                      style: TextStyle(
+                        fontSize: w * 0.03,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedAdd01,
+                color: AppColors.primary,
+                size: w * 0.05,
+              ),
+            ],
+          )
+        : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedAdd01,
+                color: AppColors.primary,
+                size: w * 0.06,
+              ),
+              SizedBox(height: w * 0.01),
+              Text(
+                'Add',
+                style: TextStyle(
+                  fontSize: w * 0.028,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          );
+
+    return Semantics(
+      button: true,
+      label: 'Add package photos',
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: radius,
+        child: InkWell(
+          borderRadius: radius,
+          onTap: isPicking ? null : onTap,
+          child: Container(
+            padding: expanded ? EdgeInsets.all(w * 0.04) : null,
+            alignment: expanded ? null : Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: expanded && isPicking ? Center(child: content) : content,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Thumbnail extends StatelessWidget {
+  final File file;
+  final double size;
+  final VoidCallback onRemove;
+
+  const _Thumbnail({
+    required this.file,
+    required this.size,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final badge = w * 0.06;
     return SizedBox(
       width: size,
       height: size,
@@ -1150,145 +908,38 @@ class _ImageThumbnail extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(w * 0.03),
+            borderRadius: BorderRadius.circular(w * 0.035),
             child: Image.file(
               file,
               width: size,
               height: size,
               fit: BoxFit.cover,
+              cacheWidth: (size * MediaQuery.devicePixelRatioOf(context))
+                  .round(),
             ),
           ),
           Positioned(
-            top: -(w * 0.015),
-            right: -(w * 0.015),
-            child: GestureDetector(
-              onTap: () => onRemove(index),
-              child: Container(
-                width: w * 0.065,
-                height: w * 0.065,
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.close_rounded,
-                  color: Colors.white,
-                  size: w * 0.035,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Add-more tile ─────────────────────────────────────────────────────────────
-
-class _AddMoreTile extends StatelessWidget {
-  final double size;
-  final bool isPicking;
-  final VoidCallback onTap;
-  final double w;
-
-  const _AddMoreTile({
-    required this.size,
-    required this.isPicking,
-    required this.onTap,
-    required this.w,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isPicking ? null : onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(
-            color: AppColors.border,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: isPicking
-            ? const Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  HugeIcon(
-                    icon: HugeIcons.strokeRoundedCamera01,
-                    color: AppColors.primary,
-                    size: w * 0.06,
+            top: -badge * 0.35,
+            right: -badge * 0.35,
+            child: Semantics(
+              button: true,
+              label: 'Remove photo',
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: badge,
+                  height: badge,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
-                  SizedBox(height: w * 0.015),
-                  Text(
-                    'Add more',
-                    style: TextStyle(
-                      fontSize: w * 0.028,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: badge * 0.55,
                   ),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-// ── Size restriction note ─────────────────────────────────────────────────────
-
-class _SizeRestrictionNote extends StatelessWidget {
-  final double w;
-  final int maxImages;
-
-  const _SizeRestrictionNote({required this.w, required this.maxImages});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.04,
-        vertical: w * 0.03,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.025),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedInformationCircle,
-            color: AppColors.textSecondary,
-            size: w * 0.04,
-          ),
-          SizedBox(width: w * 0.025),
-          Expanded(
-            child: Text(
-              'Max $maxImages photos · 5 MB per image · JPG or PNG only',
-              style: TextStyle(
-                fontSize: w * 0.03,
-                color: AppColors.textSecondary,
-                height: 1.45,
+                ),
               ),
             ),
           ),

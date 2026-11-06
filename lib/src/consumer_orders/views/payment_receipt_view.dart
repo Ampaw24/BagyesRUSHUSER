@@ -15,6 +15,7 @@ import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_actions.dart'
 import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_status_header.dart';
 import 'package:gopady/src/consumer_orders/widgets/receipt/receipt_ticket.dart';
 import 'package:gopady/src/consumer_orders/widgets/tracking_card.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Where a payment stands, as a receipt. Checks the payment on open, then
 /// shows a paid / processing / failed receipt. Pops an [OrderPaymentResult]
@@ -315,13 +316,10 @@ class _VerifyingPane extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: w * 0.14,
-              height: w * 0.14,
-              child: const CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 3,
-              ),
+            AppStatusAnimation(
+              AppStatus.processing,
+              size: (w * 0.22).clamp(56.0, 120.0),
+              semanticLabel: 'Confirming your payment',
             ),
             SizedBox(height: w * 0.06),
             Text(

@@ -17,6 +17,7 @@ import 'package:gopady/src/restaurant/widgets/item_addon_sheet.dart';
 import 'package:gopady/src/restaurant/widgets/menu_item_card.dart';
 import 'package:gopady/core/utils/money_format.dart';
 import 'package:gopady/constant/app_tokens.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 class RestaurantDetailView extends StatefulWidget {
   final String restaurantId;
@@ -208,11 +209,15 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView>
       child: Scaffold(
         backgroundColor: AppColors.scaffold,
         body: switch (state.status) {
-          RestaurantLoadStatus.loading => const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          RestaurantLoadStatus.error => Center(
-              child: Text('Error: ${state.errorMessage}'),
+          RestaurantLoadStatus.loading => const AppLoader(),
+          RestaurantLoadStatus.error => SafeArea(
+              child: AppStatusView(
+                status: AppStatus.error,
+                title: 'Couldn\'t load this restaurant',
+                message: state.errorMessage,
+                actionLabel: 'Go back',
+                onAction: () => Navigator.of(context).maybePop(),
+              ),
             ),
           RestaurantLoadStatus.loaded => _buildBody(
               context,

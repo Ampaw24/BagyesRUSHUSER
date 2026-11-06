@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import 'package:gopady/constant/app_theme.dart';
 import 'package:gopady/core/widgets/animated_money.dart';
 import 'package:gopady/core/widgets/gopady_logo.dart';
 import 'package:gopady/src/consumer_orders/models/payment_receipt.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 extension ReceiptStatusStyle on ReceiptStatus {
   Color get color => switch (this) {
@@ -110,36 +110,14 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    final size = w * 0.22;
-
-    if (status == ReceiptStatus.paid) {
-      return SizedBox(
-        width: size,
-        height: size,
-        child: Lottie.asset(
-          'assets/success_loader.json',
-          repeat: false,
-          errorBuilder: (_, _, _) => Icon(
-            Icons.check_circle_rounded,
-            size: size * 0.8,
-            color: status.color,
-          ),
-        ),
-      );
-    }
-
-    final icon = status == ReceiptStatus.processing
-        ? Icons.hourglass_top_rounded
-        : Icons.close_rounded;
-    return Container(
-      width: size * 0.8,
-      height: size * 0.8,
-      margin: EdgeInsets.all(size * 0.1),
-      decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.12),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, size: size * 0.4, color: status.color),
+    return AppStatusAnimation(
+      switch (status) {
+        ReceiptStatus.paid => AppStatus.success,
+        ReceiptStatus.processing => AppStatus.processing,
+        ReceiptStatus.failed => AppStatus.error,
+      },
+      size: (w * 0.22).clamp(64.0, 120.0),
+      semanticLabel: status.title,
     );
   }
 }

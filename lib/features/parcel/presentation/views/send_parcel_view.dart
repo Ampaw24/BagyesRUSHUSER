@@ -190,18 +190,32 @@ class _SendParcelViewState extends State<SendParcelView> {
                 ),
               ),
 
-              // The backend's reason the rider list didn't open.
-              if (state.currentStep == ParcelStep.deliveryLocation &&
-                  state.quoteBlockedMessage != null)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    MediaQuery.sizeOf(context).width * 0.05,
-                    0,
-                    MediaQuery.sizeOf(context).width * 0.05,
-                    MediaQuery.sizeOf(context).width * 0.03,
-                  ),
-                  child: InlineMessage(message: state.quoteBlockedMessage!),
+              // The backend's reason the rider list didn't open; slides away
+              // when it clears (the "no riders" notice clears after 5s).
+              AnimatedSize(
+                duration: AppMotion.standard,
+                curve: AppMotion.outExpo,
+                alignment: Alignment.bottomCenter,
+                child: AnimatedSwitcher(
+                  duration: AppMotion.standard,
+                  child:
+                      state.currentStep == ParcelStep.deliveryLocation &&
+                          state.quoteBlockedMessage != null
+                      ? Padding(
+                          key: ValueKey(state.quoteBlockedMessage),
+                          padding: EdgeInsets.fromLTRB(
+                            MediaQuery.sizeOf(context).width * 0.05,
+                            0,
+                            MediaQuery.sizeOf(context).width * 0.05,
+                            MediaQuery.sizeOf(context).width * 0.03,
+                          ),
+                          child: InlineMessage(
+                            message: state.quoteBlockedMessage!,
+                          ),
+                        )
+                      : const SizedBox(width: double.infinity),
                 ),
+              ),
 
               // The parcel is booked but its payment didn't start: say why and
               // offer to retry (the button below) or pay later from tracking.
@@ -252,29 +266,34 @@ class _SendParcelViewState extends State<SendParcelView> {
       backgroundColor: AppColors.scaffold,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: GestureDetector(
-        onTap: () {
-          // Once booked there is nothing to edit; leaving keeps the unpaid
-          // parcel (with "Pay Now") in the customer's orders.
-          if (state.currentStep == ParcelStep.packageType ||
-              state.createdParcel != null) {
-            Navigator.pop(context);
-          } else {
-            vm.goBack();
-          }
-        },
-        child: Padding(
-          padding: EdgeInsets.all(w * 0.03),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(w * 0.025),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: w * 0.045,
-              color: AppColors.textPrimary,
+      leading: Padding(
+        padding: EdgeInsets.only(left: w * 0.03),
+        child: Center(
+          child: Material(
+            color: AppColors.surfaceVariant,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () {
+                // Once booked there is nothing to edit; leaving keeps the
+                // unpaid parcel (with "Pay Now") in the customer's orders.
+                if (state.currentStep == ParcelStep.packageType ||
+                    state.createdParcel != null) {
+                  Navigator.pop(context);
+                } else {
+                  vm.goBack();
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.all(w * 0.025),
+                child: Icon(
+                  state.currentStep == ParcelStep.packageType
+                      ? Icons.close_rounded
+                      : Icons.arrow_back_ios_new_rounded,
+                  size: w * 0.045,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
         ),
@@ -283,9 +302,9 @@ class _SendParcelViewState extends State<SendParcelView> {
         _stepTitle(state.currentStep, state.direction),
         style: TextStyle(
           fontSize: w * 0.042,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
-          fontFamily: AppFonts.body,
+          fontFamily: AppFonts.display,
         ),
       ),
       centerTitle: true,

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'package:gopady/core/utils/money_format.dart';
 import 'package:gopady/core/widgets/animated_money.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 import 'package:gopady/core/widgets/network_avatar.dart';
 import 'package:gopady/src/customer-wallet/models/wallet_split.dart';
 import 'package:gopady/src/customer-wallet/viewmodels/customer_wallet_state.dart';
@@ -17,6 +18,7 @@ import '../../../../constant/app_theme.dart';
 import 'package:gopady/src/parcel/model/delivery_stop.dart';
 import 'package:gopady/src/parcel/model/rider_model.dart';
 import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
+import 'parcel_ui.dart';
 
 class ParcelSummaryStep extends StatefulWidget {
   final String packageType;
@@ -79,68 +81,67 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
     final currency = sendState.quoteCurrency ?? 'GHS';
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.05, w * 0.05, w * 0.06),
+      padding: EdgeInsets.fromLTRB(w * 0.05, w * 0.03, w * 0.05, w * 0.06),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Delivery Summary',
-            style: TextStyle(
-              fontSize: w * 0.05,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+          const ParcelStepHeader(
+            title: 'Review & pay',
+            subtitle: 'Check everything before you confirm.',
+          ),
+          SizedBox(height: w * 0.05),
+
+          // ── Route ─────────────────────────────────────────────────────────
+          ParcelCard(child: _buildRoute(w, sendState)),
+          SizedBox(height: w * 0.03),
+
+          // ── Package ───────────────────────────────────────────────────────
+          ParcelCard(
+            child: Wrap(
+              spacing: w * 0.02,
+              runSpacing: w * 0.02,
+              children: [
+                _InfoChip(
+                  icon: widget.packageType == 'document'
+                      ? HugeIcons.strokeRoundedFileAttachment
+                      : HugeIcons.strokeRoundedPackage,
+                  label: widget.packageType == 'document'
+                      ? 'Document'
+                      : 'Parcel',
+                  w: w,
+                ),
+                _InfoChip(
+                  icon: HugeIcons.strokeRoundedWeightScale,
+                  label: '${widget.weightText} kg',
+                  w: w,
+                ),
+                _InfoChip(
+                  icon: HugeIcons.strokeRoundedRoute01,
+                  label: '${widget.distanceKm.toStringAsFixed(1)} km',
+                  w: w,
+                ),
+                if (widget.fragile)
+                  _InfoChip(
+                    icon: HugeIcons.strokeRoundedAlert02,
+                    label: 'Fragile',
+                    w: w,
+                    color: AppColors.error,
+                  ),
+              ],
             ),
           ),
-          SizedBox(height: w * 0.04),
 
-          // ── Route visualization ──────────────────────────────────────────
-          _buildRoute(w, sendState),
-
-          SizedBox(height: w * 0.04),
-          _Divider(),
-          SizedBox(height: w * 0.04),
-
-          // ── Package info chips ───────────────────────────────────────────
-          Wrap(
-            spacing: w * 0.03,
-            runSpacing: w * 0.02,
-            children: [
-              _InfoChip(
-                icon: HugeIcons.strokeRoundedDeliveryBox01,
-                label: widget.packageType == 'document' ? 'Document' : 'Parcel',
-                w: w,
-              ),
-              _InfoChip(
-                icon: HugeIcons.strokeRoundedInformationCircle,
-                label: '${widget.weightText} kg',
-                w: w,
-              ),
-              _InfoChip(
-                icon: HugeIcons.strokeRoundedMapsLocation01,
-                label: '${widget.distanceKm.toStringAsFixed(1)} km',
-                w: w,
-              ),
-              if (widget.fragile)
-                _InfoChip(
-                  icon: HugeIcons.strokeRoundedAlert01,
-                  label: 'Fragile',
-                  w: w,
-                  color: AppColors.error,
-                ),
-            ],
-          ),
-
-          // ── Rider summary ────────────────────────────────────────────────
+          // ── Rider ─────────────────────────────────────────────────────────
           if (widget.assignedRider != null) ...[
-            SizedBox(height: w * 0.04),
-            _Divider(),
-            SizedBox(height: w * 0.04),
-            _RiderSummaryRow(rider: widget.assignedRider!, w: w),
+            SizedBox(height: w * 0.03),
+            ParcelCard(
+              child: _RiderSummaryRow(rider: widget.assignedRider!, w: w),
+            ),
           ],
 
-          SizedBox(height: w * 0.04),
-          _Divider(),
-          SizedBox(height: w * 0.04),
+          SizedBox(height: w * 0.06),
+          const ParcelSectionLabel(label: 'Price'),
+          SizedBox(height: w * 0.03),
 
           // Total box — always driven by the backend quote, the amount
           // that actually gets charged.
@@ -157,19 +158,8 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
             w: w,
           ),
 
-          SizedBox(height: w * 0.05),
-          _Divider(),
-          SizedBox(height: w * 0.05),
-
-          // ── Payment ─────────────────────────────────────────────────────
-          Text(
-            'Payment',
-            style: TextStyle(
-              fontSize: w * 0.042,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          SizedBox(height: w * 0.06),
+          const ParcelSectionLabel(label: 'Payment'),
           SizedBox(height: w * 0.03),
           UseWalletTile(
             wallet: walletVm.wallet,
@@ -283,19 +273,21 @@ class _ParcelSummaryStepState extends State<ParcelSummaryStep> {
           label: isReceive
               ? 'Deliver to you'
               : widget.deliveryStops.length == 1
-                  ? 'Delivery'
-                  : 'Stop ${i + 1}${isFinal ? ' (Final)' : ''}',
+              ? 'Delivery'
+              : 'Stop ${i + 1}${isFinal ? ' (Final)' : ''}',
           address: widget.deliveryStops[i].address,
           w: w,
         ),
       );
       // Show optional item details beneath the address row if filled in.
       if (widget.deliveryStops[i].hasDetails) {
-        nodes.add(_StopDetailChips(
-          stop: widget.deliveryStops[i],
-          packageImages: widget.packageImages,
-          w: w,
-        ));
+        nodes.add(
+          _StopDetailChips(
+            stop: widget.deliveryStops[i],
+            packageImages: widget.packageImages,
+            w: w,
+          ),
+        );
       }
     }
 
@@ -335,12 +327,12 @@ class _AddressRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
+                label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: w * 0.028,
-                  fontWeight: FontWeight.w600,
+                  fontSize: w * 0.026,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textHint,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.6,
                 ),
               ),
               SizedBox(height: w * 0.005),
@@ -370,36 +362,19 @@ class _RouteLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        left: w * 0.023,
-        top: w * 0.01,
-        bottom: w * 0.01,
+        left: w * 0.024,
+        top: w * 0.012,
+        bottom: w * 0.012,
       ),
-      child: Column(
-        children: List.generate(
-          3,
-          (_) => Container(
-            width: 2,
-            height: w * 0.02,
-            margin: EdgeInsets.symmetric(vertical: w * 0.006),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
+      child: Container(
+        width: 2,
+        height: w * 0.06,
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(w * 0.01),
         ),
       ),
     );
-  }
-}
-
-// ── Divider ───────────────────────────────────────────────────────────────────
-
-class _Divider extends StatelessWidget {
-  const _Divider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(height: 1, color: AppColors.divider);
   }
 }
 
@@ -422,20 +397,12 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = color ?? AppColors.textSecondary;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.025,
-        vertical: w * 0.015,
-      ),
-      decoration: BoxDecoration(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.016),
+      decoration: ShapeDecoration(
         color: color != null
             ? color!.withValues(alpha: 0.08)
-            : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(w * 0.02),
-        border: Border.all(
-          color: color != null
-              ? color!.withValues(alpha: 0.35)
-              : AppColors.border,
-        ),
+            : AppColors.surface,
+        shape: const StadiumBorder(),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -578,7 +545,10 @@ class _CoveredChip extends StatelessWidget {
         child: child,
       ),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: w * 0.025, vertical: w * 0.01),
+        padding: EdgeInsets.symmetric(
+          horizontal: w * 0.025,
+          vertical: w * 0.01,
+        ),
         decoration: BoxDecoration(
           color: AppColors.success.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(w),
@@ -586,7 +556,11 @@ class _CoveredChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_rounded, size: w * 0.036, color: AppColors.success),
+            Icon(
+              Icons.check_circle_rounded,
+              size: w * 0.036,
+              color: AppColors.success,
+            ),
             SizedBox(width: w * 0.012),
             Text(
               'Covered by your wallet',
@@ -644,7 +618,11 @@ class _WalletCoversCard extends StatelessWidget {
                 color: AppColors.success,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.check_rounded, color: Colors.white, size: badge * 0.6),
+              child: Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: badge * 0.6,
+              ),
             ),
           ),
           SizedBox(width: w * 0.035),
@@ -733,7 +711,7 @@ class _RiderSummaryRow extends StatelessWidget {
                   SizedBox(width: w * 0.025),
                   HugeIcon(
                     icon: HugeIcons.strokeRoundedStarCircle,
-                    color: AppColors.accent,
+                    color: AppColors.accentInk,
                     size: w * 0.032,
                   ),
                   SizedBox(width: w * 0.01),
@@ -741,7 +719,7 @@ class _RiderSummaryRow extends StatelessWidget {
                     '${rider.rating.toStringAsFixed(1)} (${rider.reviewCount})',
                     style: TextStyle(
                       fontSize: w * 0.03,
-                      color: AppColors.accent,
+                      color: AppColors.accentInk,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -818,7 +796,11 @@ class _StopDetailChips extends StatelessWidget {
         .toList();
 
     return Padding(
-      padding: EdgeInsets.only(left: w * 0.08, top: w * 0.015, bottom: w * 0.005),
+      padding: EdgeInsets.only(
+        left: w * 0.08,
+        top: w * 0.015,
+        bottom: w * 0.005,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -837,9 +819,9 @@ class _StopDetailChips extends StatelessWidget {
                     width: w * 0.14,
                     height: w * 0.14,
                     fit: BoxFit.cover,
-                    cacheWidth: (w * 0.14 *
-                            MediaQuery.devicePixelRatioOf(context))
-                        .round(),
+                    cacheWidth:
+                        (w * 0.14 * MediaQuery.devicePixelRatioOf(context))
+                            .round(),
                   ),
                 ),
               ),
@@ -857,7 +839,8 @@ class _StopDetailChips extends StatelessWidget {
                   label: '${stop.quantity}× ${stop.itemDescription}',
                   w: w,
                 ),
-              if (stop.recipientName.isNotEmpty || stop.recipientPhone.isNotEmpty)
+              if (stop.recipientName.isNotEmpty ||
+                  stop.recipientPhone.isNotEmpty)
                 _DetailChip(
                   icon: Icons.person_outline_rounded,
                   label: [
@@ -885,19 +868,12 @@ class _DetailChip extends StatelessWidget {
   final String label;
   final double w;
 
-  const _DetailChip({
-    required this.icon,
-    required this.label,
-    required this.w,
-  });
+  const _DetailChip({required this.icon, required this.label, required this.w});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: w * 0.025,
-        vertical: w * 0.012,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.025, vertical: w * 0.012),
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(w * 0.02),
@@ -958,12 +934,8 @@ class _QuoteTotalBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(w * 0.04),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
+      padding: EdgeInsets.all(w * 0.045),
+      decoration: parcelCardDecoration(w),
       child: _buildContent(),
     );
   }
@@ -972,11 +944,7 @@ class _QuoteTotalBox extends StatelessWidget {
     if (isFetchingQuote) {
       return Row(
         children: [
-          SizedBox(
-            width: w * 0.045,
-            height: w * 0.045,
-            child: const CircularProgressIndicator(strokeWidth: 2.2),
-          ),
+          AppStatusAnimation(AppStatus.processing, size: w * 0.08),
           SizedBox(width: w * 0.03),
           Text(
             'Calculating price…',
@@ -993,7 +961,11 @@ class _QuoteTotalBox extends StatelessWidget {
     if (quoteError != null) {
       return Row(
         children: [
-          Icon(Icons.error_outline_rounded, color: AppColors.error, size: w * 0.05),
+          Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.error,
+            size: w * 0.05,
+          ),
           SizedBox(width: w * 0.025),
           Expanded(
             child: Text(
@@ -1021,12 +993,19 @@ class _QuoteTotalBox extends StatelessWidget {
     if (noRidersMessage != null) {
       return Row(
         children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.textSecondary, size: w * 0.05),
+          Icon(
+            Icons.info_outline_rounded,
+            color: AppColors.textSecondary,
+            size: w * 0.05,
+          ),
           SizedBox(width: w * 0.025),
           Expanded(
             child: Text(
               noRidersMessage!,
-              style: TextStyle(fontSize: w * 0.034, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: w * 0.034,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
           GestureDetector(
@@ -1109,23 +1088,23 @@ class _QuoteTotalBox extends StatelessWidget {
   }
 
   Widget _splitRow(String label, String value, Color valueColor) => Padding(
-        padding: EdgeInsets.symmetric(vertical: w * 0.008),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: w * 0.035,
-                fontWeight: FontWeight.w700,
-                color: valueColor,
-              ),
-            ),
-          ],
+    padding: EdgeInsets.symmetric(vertical: w * 0.008),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: w * 0.033, color: AppColors.textSecondary),
         ),
-      );
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: w * 0.035,
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+        ),
+      ],
+    ),
+  );
 }

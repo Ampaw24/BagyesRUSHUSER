@@ -6,6 +6,8 @@ import '../../../../constant/app_theme.dart';
 import 'package:gopady/core/widgets/network_avatar.dart';
 import 'package:gopady/src/parcel/model/parcel_quote.dart';
 import 'package:gopady/src/parcel/model/rider_model.dart';
+import 'package:gopady/constant/app_tokens.dart';
+import 'parcel_ui.dart';
 
 /// Selectable rider tile. Each rider carries their own quote — fee and ETA
 /// differ by where that rider currently is.
@@ -32,37 +34,29 @@ class RiderQuoteCard extends StatelessWidget {
         onTap();
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
+        duration: AppMotion.standard,
+        curve: AppMotion.outExpo,
         padding: EdgeInsets.all(w * 0.04),
-        decoration: BoxDecoration(
+        decoration: parcelCardDecoration(w, highlighted: isSelected).copyWith(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.06)
+              ? AppColors.primary.withValues(alpha: 0.04)
               : AppColors.card,
-          borderRadius: BorderRadius.circular(w * 0.04),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           children: [
             NetworkAvatar(
               name: rider.name,
               photoUrl: rider.photoUrl,
-              size: w * 0.15,
+              size: w * 0.13,
             ),
             SizedBox(width: w * 0.035),
-            Expanded(child: _RiderDetails(rider: rider, w: w)),
+            Expanded(
+              child: _RiderDetails(rider: rider, w: w),
+            ),
             SizedBox(width: w * 0.02),
             _QuotePrice(quote: quote, isSelected: isSelected, w: w),
+            SizedBox(width: w * 0.03),
+            ParcelSelectionDot(selected: isSelected),
           ],
         ),
       ),
@@ -105,8 +99,9 @@ class _RiderDetails extends StatelessWidget {
               ),
             _MetaChip(
               icon: HugeIcons.strokeRoundedStarCircle,
-              label: '${rider.rating.toStringAsFixed(1)} (${rider.reviewCount})',
-              color: AppColors.accent,
+              label:
+                  '${rider.rating.toStringAsFixed(1)} (${rider.reviewCount})',
+              color: AppColors.accentInk,
               w: w,
             ),
             if (rider.distanceAwayKm != null)
@@ -143,9 +138,10 @@ class _QuotePrice extends StatelessWidget {
         Text(
           '${quote.currency} ${quote.price.toStringAsFixed(2)}',
           style: TextStyle(
-            fontSize: w * 0.038,
-            fontWeight: FontWeight.w800,
-            color: isSelected ? AppColors.primary : AppColors.textPrimary,
+            fontFamily: AppFonts.display,
+            fontSize: w * 0.04,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
           ),
         ),
         if (quote.etaMinutes != null) ...[
@@ -186,11 +182,7 @@ class NoRiderAvailableCard extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(w * 0.045),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(w * 0.04),
-        border: Border.all(color: AppColors.border),
-      ),
+      decoration: parcelCardDecoration(w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -232,25 +224,7 @@ class NoRiderAvailableCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: w * 0.04),
-          GestureDetector(
-            onTap: onRetry,
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: w * 0.03),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(w * 0.03),
-              ),
-              child: Text(
-                'Search again',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: w * 0.035,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+          FilledButton(onPressed: onRetry, child: const Text('Search again')),
         ],
       ),
     );

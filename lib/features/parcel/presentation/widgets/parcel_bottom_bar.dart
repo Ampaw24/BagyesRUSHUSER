@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../../constant/app_theme.dart';
+import 'package:gopady/constant/app_tokens.dart';
 import 'package:gopady/src/parcel/viewmodel/send_parcel_viewmodel.dart';
 
 class ParcelBottomBar extends StatelessWidget {
@@ -44,15 +45,19 @@ class ParcelBottomBar extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         w * 0.05,
-        w * 0.035,
+        w * 0.03,
         w * 0.05,
-        w * 0.035 + bottomPadding,
+        w * 0.03 + bottomPadding,
       ),
       decoration: BoxDecoration(
         color: AppColors.scaffold,
-        border: Border(
-          top: BorderSide(color: AppColors.divider, width: 1),
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondary.withValues(alpha: 0.06),
+            blurRadius: w * 0.05,
+            offset: Offset(0, -w * 0.01),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -64,10 +69,10 @@ class ParcelBottomBar extends StatelessWidget {
             child: _ContinueButton(
               label: _isFinalStep ? confirmLabel : 'Continue',
               icon: !_isFinalStep
-                  ? HugeIcons.strokeRoundedArrowRight01
+                  ? HugeIcons.strokeRoundedArrowRight02
                   : confirmIsFree
-                      ? HugeIcons.strokeRoundedCheckmarkCircle02
-                      : HugeIcons.strokeRoundedCreditCard,
+                  ? HugeIcons.strokeRoundedCheckmarkCircle02
+                  : HugeIcons.strokeRoundedCreditCard,
               canProceed: canProceed && !isLoading,
               isLoading: isLoading,
               onTap: onContinue,
@@ -80,8 +85,6 @@ class ParcelBottomBar extends StatelessWidget {
   }
 }
 
-// ── Back button ───────────────────────────────────────────────────────────────
-
 class _BackButton extends StatelessWidget {
   final double w;
   final VoidCallback onTap;
@@ -90,26 +93,32 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(w * 0.038),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: HugeIcon(
-          icon: HugeIcons.strokeRoundedArrowLeft01,
-          color: AppColors.textPrimary,
-          size: w * 0.055,
+    final size = w * 0.135;
+    return Semantics(
+      button: true,
+      label: 'Back',
+      child: Material(
+        color: AppColors.surfaceVariant,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowLeft02,
+                color: AppColors.textPrimary,
+                size: w * 0.055,
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 }
-
-// ── Continue button ───────────────────────────────────────────────────────────
 
 class _ContinueButton extends StatelessWidget {
   final String label;
@@ -131,67 +140,70 @@ class _ContinueButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = canProceed && !isLoading;
-    return GestureDetector(
-      onTap: active ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(vertical: w * 0.042),
-        decoration: BoxDecoration(
-          color: (canProceed || isLoading) ? AppColors.primary : AppColors.border,
-          borderRadius: BorderRadius.circular(w * 0.03),
-        ),
-        child: isLoading
-            ? Center(
-                child: SizedBox(
-                  width: w * 0.05,
-                  height: w * 0.05,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2.2,
-                    color: Colors.white,
+    final enabledLook = canProceed || isLoading;
+    final fg = enabledLook ? AppColors.onPrimary : AppColors.textHint;
+
+    return AnimatedContainer(
+      duration: AppMotion.standard,
+      curve: AppMotion.outExpo,
+      height: w * 0.135,
+      decoration: ShapeDecoration(
+        color: enabledLook ? AppColors.primary : AppColors.surfaceVariant,
+        shape: const StadiumBorder(),
+        shadows: enabledLook ? AppShadows.elevated : const [],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: active ? onTap : null,
+          child: isLoading
+              ? Center(
+                  child: SizedBox(
+                    width: w * 0.05,
+                    height: w * 0.05,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: AppColors.onPrimary,
+                    ),
                   ),
-                ),
-              )
-            // Label changes ("Pay GHS 30.40" → "Pay GHS 18.05" →
-            // "Confirm booking") roll in from below instead of snapping.
-            : AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.4),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
+                )
+              // Label changes ("Pay GHS 30.40" → "Pay GHS 18.05" →
+              // "Confirm") roll in from below instead of snapping.
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.4),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
                   ),
-                ),
-                child: Row(
-                  key: ValueKey(label),
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: w * 0.04,
-                          fontWeight: FontWeight.w700,
-                          color: canProceed ? Colors.white : AppColors.textHint,
-                          letterSpacing: 0.3,
+                  child: Row(
+                    key: ValueKey(label),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: w * 0.04,
+                            fontWeight: FontWeight.w600,
+                            color: fg,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: w * 0.025),
-                    HugeIcon(
-                      icon: icon,
-                      color: canProceed ? Colors.white : AppColors.textHint,
-                      size: w * 0.045,
-                    ),
-                  ],
+                      SizedBox(width: w * 0.02),
+                      HugeIcon(icon: icon, color: fg, size: w * 0.045),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

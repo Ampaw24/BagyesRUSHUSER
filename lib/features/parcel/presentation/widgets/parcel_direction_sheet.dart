@@ -4,6 +4,8 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../../constant/app_theme.dart';
 import '../../../../core/router/app_navigator.dart';
 import 'package:gopady/src/parcel/model/parcel_direction.dart';
+import 'package:gopady/constant/app_tokens.dart';
+import 'parcel_ui.dart';
 
 /// Entry point for the parcel wizard: lets the customer choose whether
 /// they are sending a package or having one brought to them.
@@ -57,24 +59,16 @@ class _ParcelDirectionSheet extends StatelessWidget {
             ),
           ),
           SizedBox(height: w * 0.05),
-          Text(
-            'Parcel delivery',
-            style: TextStyle(
-              fontSize: w * 0.05,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: w * 0.01),
-          Text(
-            'What would you like to do?',
-            style: TextStyle(fontSize: w * 0.034, color: AppColors.textSecondary),
+          const ParcelStepHeader(
+            title: 'Parcel delivery',
+            subtitle: 'Same-day delivery across town by a vetted rider.',
           ),
           SizedBox(height: w * 0.05),
           _DirectionCard(
             icon: HugeIcons.strokeRoundedPackageSent,
             title: 'Send a parcel',
-            subtitle: 'A rider picks it up from you and delivers it to one or '
+            subtitle:
+                'A rider picks it up from you and delivers it to one or '
                 'more people.',
             onTap: () => onSelected(ParcelDirection.send),
           ),
@@ -82,7 +76,8 @@ class _ParcelDirectionSheet extends StatelessWidget {
           _DirectionCard(
             icon: HugeIcons.strokeRoundedPackageReceive,
             title: 'Receive a parcel',
-            subtitle: 'A rider collects it from someone else and brings it '
+            subtitle:
+                'A rider collects it from someone else and brings it '
                 'to you.',
             onTap: () => onSelected(ParcelDirection.receive),
           ),
@@ -111,30 +106,18 @@ class _DirectionCard extends StatelessWidget {
 
     return Material(
       color: AppColors.card,
-      borderRadius: BorderRadius.circular(w * 0.04),
+      borderRadius: BorderRadius.circular(w * 0.045),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(w * 0.04),
+        borderRadius: BorderRadius.circular(w * 0.045),
         child: Container(
           padding: EdgeInsets.all(w * 0.04),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(w * 0.04),
-            border: Border.all(color: AppColors.border),
-          ),
+          decoration: parcelCardDecoration(
+            w,
+          ).copyWith(color: Colors.transparent),
           child: Row(
             children: [
-              Container(
-                padding: EdgeInsets.all(w * 0.03),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(w * 0.03),
-                ),
-                child: HugeIcon(
-                  icon: icon,
-                  color: AppColors.primary,
-                  size: w * 0.07,
-                ),
-              ),
+              ParcelIconBadge(icon: icon, active: true, sizeFactor: 0.13),
               SizedBox(width: w * 0.04),
               Expanded(
                 child: Column(
@@ -143,8 +126,9 @@ class _DirectionCard extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: w * 0.04,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: AppFonts.display,
+                        fontSize: w * 0.042,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -162,7 +146,7 @@ class _DirectionCard extends StatelessWidget {
               ),
               SizedBox(width: w * 0.02),
               HugeIcon(
-                icon: HugeIcons.strokeRoundedArrowRight01,
+                icon: HugeIcons.strokeRoundedArrowRight02,
                 color: AppColors.textHint,
                 size: w * 0.05,
               ),

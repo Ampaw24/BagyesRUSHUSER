@@ -9,6 +9,7 @@ import 'package:gopady/src/consumer_orders/models/consumer_order.dart';
 import 'package:gopady/src/consumer_orders/viewmodels/orders_state.dart';
 import 'package:gopady/src/consumer_orders/viewmodels/orders_viewmodel.dart';
 import 'package:gopady/src/consumer_orders/widgets/order_history_card.dart';
+import 'package:gopady/core/widgets/app_status_animation.dart';
 
 /// Every finished order — delivered, cancelled, declined or refunded — newest
 /// first, grouped by month. Orders still in progress live under My Orders.
@@ -56,9 +57,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
       backgroundColor: AppColors.scaffold,
       appBar: AppBar(title: const Text('Order History')),
       body: switch (state) {
-        OrdersLoading() => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
+        OrdersLoading() => const AppLoader(),
         OrdersError() => _MessageState(
           icon: Icons.wifi_off_rounded,
           title: "Couldn't load your orders",
