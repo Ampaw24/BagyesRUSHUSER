@@ -23,7 +23,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   // Phase 1 — legacy vendor/onboarding services
-  await di.init();
+  await di.init(); 
   // Phase 2 — new MVVM auth services (Cache, CacheHelper, Dio, CurrentUserProvider,bv. 
   // AuthRepository, AuthViewmodel); guarded with isRegistered checks.-
   await AppInitializer.initialize();

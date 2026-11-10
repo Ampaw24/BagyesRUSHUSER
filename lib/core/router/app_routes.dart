@@ -24,7 +24,6 @@ abstract final class AppRoutes {
   // ── Profile ──
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
-  static const String deleteAccount = '/profile/delete-account';
 
   // ── Courier / delivery ──
   static const String sendPackages = '/send-packages';
@@ -71,6 +70,7 @@ abstract final class AppRoutes {
   static const String privacyPolicy = '/legal/privacy-policy';
   static const String termsConditions = '/legal/terms-conditions';
   static const String refundPolicy = '/legal/refund-policy';
+  static const String deleteAccount = '/legal/delete-account';
 
   // ── Report a problem ──
   static const String reportFlow = '/report';

@@ -846,35 +846,6 @@ class AuthViewmodel extends ViewModel<AuthState> {
     );
   }
 
-  /// Permanently deletes the signed-in user's account (role-agnostic — used
-  /// by both customer and vendor "Delete Account" flows).
-  ///
-  /// On success, clears local session state exactly like [logout] (realtime
-  /// disconnect, [CurrentUserProvider], pending signup/OTP state) and emits
-  /// [AccountDeleted]. On failure (e.g. wrong password) the session is left
-  /// untouched so the user can correct their input and retry.
-  Future<void> deleteAccount({required String password, String? reason}) async {
-    appLogger.d('AuthViewmodel.deleteAccount → initiated');
-    emit(const AccountDeleting());
-
-    final result = await _repository.deleteAccount(
-      password: password,
-      reason: reason,
-    );
-
-    await result.fold(
-      (failure) async {
-        appLogger.w('AuthViewmodel.deleteAccount → error: ${failure.message}');
-        emit(AuthError.fromFailure(failure));
-      },
-      (_) async {
-        appLogger.i('AuthViewmodel.deleteAccount → account deleted');
-        await _clearSessionState();
-        emit(const AccountDeleted());
-      },
-    );
-  }
-
   /// Ends a session the backend rejected (token refresh failed — see
   /// `DioInterceptor`); local storage is already wiped by then. Returns
   /// false when there was no session left to end, so a burst of late 401s

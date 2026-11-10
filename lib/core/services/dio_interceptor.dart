@@ -56,13 +56,12 @@ class DioInterceptor extends Interceptor {
 
   /// Endpoints whose request/response bodies carry credentials, OTPs or
   /// tokens — logged as `{REDACTED}`. Superset of [_publicPaths]: some of
-  /// these (password change, account delete) still need the bearer token.
+  /// these (password change) still need the bearer token.
   static const _sensitivePaths = {
     ..._publicPaths,
     ApiEndpoints.phoneSendCode,
     ApiEndpoints.phoneVerify,
     ApiEndpoints.passwordChange,
-    ApiEndpoints.accountDelete,
   };
 
   static bool _matches(String path, Set<String> paths) =>

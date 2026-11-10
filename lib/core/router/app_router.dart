@@ -30,7 +30,6 @@ import 'package:gopady/src/auth/views/otp_view.dart';
 import 'package:gopady/src/auth/views/reset_password_view.dart';
 import 'package:gopady/src/auth/views/walkthrough_view.dart';
 import 'package:gopady/src/auth/views/kyc_verification_view.dart';
-import 'package:gopady/src/auth/views/delete_account_view.dart';
 import 'package:gopady/src/onboarding/views/onboarding_view.dart';
 import 'package:gopady/src/vendor_registration/views/vendor_registration_view.dart';
 import 'package:gopady/src/vendor/view/vendor_home.dart';
@@ -54,6 +53,7 @@ import 'package:gopady/src/chat/view/chat_list_view.dart';
 import 'package:gopady/src/legal/models/legal_document.dart';
 import 'package:gopady/src/legal/views/legal_webview_screen.dart';
 import 'app_routes.dart';
+import 'auth_redirect_refresh.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -175,14 +175,48 @@ String? resolveAuthRedirect({
   return null; // no redirect
 }
 
+/// Whether [resolveAuthRedirect] would redirect away from where [router] is
+/// now, evaluated with the same inputs the router's own redirect receives
+/// (the base location, ignoring pushed pages).
+@visibleForTesting
+bool authRedirectWouldFire(
+  GoRouter router, {
+  required bool hasToken,
+  User? user,
+}) {
+  final current = router.routerDelegate.currentConfiguration;
+  if (current.isEmpty) return true;
+  final matches = router.configuration.findMatch(
+    current.uri,
+    extra: current.extra,
+  );
+  if (matches.isError) return true;
+  return resolveAuthRedirect(
+        location: matches.uri.path,
+        routePattern: matches.fullPath,
+        hasToken: hasToken,
+        user: user,
+      ) !=
+      null;
+}
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   observers: [appRouteObserver],
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: kDebugMode,
-  // Re-evaluate the redirect whenever auth state changes so that background
-  // token expiry / logout immediately redirects the user to login.
-  refreshListenable: GetIt.instance<CurrentUserProvider>(),
+  // Re-evaluate the redirect when auth state changes so that background
+  // token expiry / logout immediately redirects the user to login. Gated so a
+  // refresh that wouldn't redirect can't rebuild (and break) pushed pages.
+  refreshListenable: AuthRedirectRefresh(
+    source: GetIt.instance<CurrentUserProvider>(),
+    isAuthenticated: () => GetIt.instance<CurrentUserProvider>().isAuthenticated,
+    wouldRedirect: () => authRedirectWouldFire(
+      appRouter,
+      hasToken: Cache.instance.sessionToken != null,
+      user: GetIt.instance<CurrentUserProvider>().user,
+    ),
+  ),
 
   // ── Centralized redirect guard ──────────────────────────────────────────
   redirect: (context, state) {
@@ -323,10 +357,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.editProfile,
       builder: (context, state) => EditProfile(),
-    ),
-    GoRoute(
-      path: AppRoutes.deleteAccount,
-      builder: (context, state) => const DeleteAccountView(),
     ),
     // ── Courier / delivery ──
     GoRoute(

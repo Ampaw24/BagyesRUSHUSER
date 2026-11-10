@@ -35,10 +35,10 @@ import 'vendor_earnings_view.dart';
 import '../model/vendor_order.dart';
 import '../../auth/views/change_password_sheet.dart';
 import '../../notification/viewmodel/notification_viewmodel.dart';
-import '../../../core/widgets/custom_dialogs.dart';
 import '../../../core/utils/location_helper.dart';
 import '../../auth/views/logout_action.dart';
 import 'package:gopady/constant/app_tokens.dart';
+import 'package:gopady/src/auth/views/account_deletion_action.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -97,16 +97,7 @@ class _VendorHomeState extends State<VendorHome> {
 
   void _showDeleteAccountDialog() {
     _closeDrawer();
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Delete Account',
-      subtitle:
-          'This action is permanent and cannot be undone. '
-          'All your shop data, menu items, order history, and earnings records will be permanently deleted.',
-      confirmText: 'Continue',
-      cancelText: 'Cancel',
-      onConfirm: () => context.push(AppRoutes.deleteAccount),
-    );
+    confirmAccountDeletion(context);
   }
 
   void _handleLogout() {

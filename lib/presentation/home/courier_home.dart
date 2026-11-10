@@ -11,7 +11,6 @@ import 'package:gopady/src/legal/models/legal_document.dart';
 import '../../src/auth/views/auth_gate.dart';
 import '../../src/auth/views/widgets/guest_prompt.dart';
 import '../../src/notification/viewmodel/notification_viewmodel.dart';
-import '../../core/widgets/custom_dialogs.dart';
 import '../../features/parcel/presentation/widgets/parcel_direction_sheet.dart';
 import 'package:gopady/src/report/model/report.dart';
 import '../../src/vendor/view/widgets/floating_nav_bar.dart';
@@ -20,6 +19,7 @@ import '../profile/profile.dart';
 import 'widgets/home_discovery_tab.dart';
 import 'widgets/customer_drawer.dart';
 import '../../src/auth/views/logout_action.dart';
+import 'package:gopady/src/auth/views/account_deletion_action.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -106,16 +106,7 @@ class _HomeState extends State<Home> {
 
   void _showDeleteAccountDialog() {
     _closeDrawer();
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Delete Account',
-      subtitle:
-          'This action is permanent and cannot be undone. '
-          'All your order history and personal data will be permanently deleted.',
-      confirmText: 'Continue',
-      cancelText: 'Cancel',
-      onConfirm: () => context.push(AppRoutes.deleteAccount),
-    );
+    confirmAccountDeletion(context);
   }
 
   void _showReportProblem() => _openForAccount(

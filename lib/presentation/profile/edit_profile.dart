@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:gopady/core/utils/share_utils.dart';
 import 'package:gopady/src/auth/views/logout_action.dart';
+import 'package:gopady/src/auth/views/account_deletion_action.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -458,7 +459,7 @@ class _EditProfileState extends State<EditProfile> {
                         iconColor: AppColors.error,
                         label: 'Delete Account',
                         labelColor: AppColors.error,
-                        onTap: () => _confirmDeleteAccount(context),
+                        onTap: () => confirmAccountDeletion(context),
                       ),
                     ],
                   ),
@@ -521,19 +522,6 @@ class _EditProfileState extends State<EditProfile> {
           ],
         ),
       ),
-    );
-  }
-
-  void _confirmDeleteAccount(BuildContext context) {
-    CustomDialog.showConfirmation(
-      context: context,
-      title: 'Delete Account',
-      subtitle:
-          'This action is permanent and cannot be undone. All your orders, '
-          'saved details, and wallet history will be permanently deleted.',
-      confirmText: 'Continue',
-      cancelText: 'Cancel',
-      onConfirm: () => context.push(AppRoutes.deleteAccount),
     );
   }
 

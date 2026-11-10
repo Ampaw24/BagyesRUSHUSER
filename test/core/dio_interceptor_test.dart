@@ -134,10 +134,9 @@ void main() {
     await dio.post(ApiEndpoints.login, data: {});
     await dio.post(ApiEndpoints.signup, data: {});
     await dio.post(ApiEndpoints.passwordChange, data: {});
-    await dio.post(ApiEndpoints.accountDelete, data: {});
 
     final auth = [for (final r in api.requests) r.headers['Authorization']];
-    expect(auth, [null, null, 'Bearer old', 'Bearer old']);
+    expect(auth, [null, null, 'Bearer old']);
   });
 
   test('every credential-bearing endpoint is redacted from logs', () {
@@ -151,7 +150,6 @@ void main() {
       ApiEndpoints.passwordForgot,
       ApiEndpoints.forgotPassword,
       ApiEndpoints.passwordChange,
-      ApiEndpoints.accountDelete,
     ];
     for (final path in sensitive) {
       expect(DioInterceptor.isSensitivePath(path), isTrue, reason: path);

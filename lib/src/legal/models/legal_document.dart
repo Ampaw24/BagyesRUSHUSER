@@ -4,8 +4,8 @@ import 'package:gopady/core/router/app_routes.dart';
 /// the external browser.
 const String legalSiteHost = 'gopady.com';
 
-/// Legal pages hosted on the GoPady website, shown in-app via
-/// `LegalWebViewScreen`.
+/// Pages hosted on the GoPady website — the legal documents and the
+/// account-deletion request page — shown in-app via `LegalWebViewScreen`.
 enum LegalDocument {
   privacyPolicy(
     title: 'Privacy Policy',
@@ -21,6 +21,13 @@ enum LegalDocument {
     title: 'Refund Policy',
     url: 'https://$legalSiteHost/refund-policy',
     routePath: AppRoutes.refundPolicy,
+  ),
+
+  /// Accounts are deleted here, verified by phone number, not in the app.
+  deleteAccount(
+    title: 'Delete Account',
+    url: 'https://$legalSiteHost/delete-account',
+    routePath: AppRoutes.deleteAccount,
   );
 
   const LegalDocument({
